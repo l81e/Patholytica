@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Patholytica — Login</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg-color: #0f0f0f;
+  --text-primary: #fff;
+  --text-secondary: #aaa;
+  --hover-bg: #2a2a2a;
+  --border-color: #303030;
+  --accent: #3ea6ff;
+  --accent-green: #2ecc71;
+  --error-color: #e74c3c;
+}
+body.light-theme {
+  --bg-color: #ffffff;
+  --text-primary: #0f0f0f;
+  --text-secondary: #606060;
+  --hover-bg: #f0f0f0;
+  --border-color: #e5e5e5;
+  --accent: #065fd4;
+  --accent-green: #27ae60;
+  --error-color: #c0392b;
+}
+* { box-sizing: border-box; }
+html, body { 
+  margin: 0; 
+  padding: 0; 
+  min-height: 100%; 
+  font-family: "Roboto", Arial, sans-serif;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+body {
+  background: var(--bg-color);
+  color: var(--text-primary);
+  transition: background 0.2s ease, color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+.header-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-color);
+  padding-top: env(safe-area-inset-top);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 40;
+  width: 100%;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+.logo-img {
+  height: 28px;
+  width: auto;
+  transition: filter 0.2s ease;
+  cursor: pointer;
+}
+body.light-theme .logo-img {
+  filter: invert(1);
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: background 0.2s ease;
+}
+.icon-btn:hover {
+  background: var(--hover-bg);
+}
+.login-container {
+  max-width: 450px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px;
+  padding-top: calc(100px + env(safe-area-inset-top));
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.login-card {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 48px 40px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+.login-title {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 36px;
+  font-weight: bold;
+  margin: 0 0 12px 0;
+  text-align: center;
+  color: var(--text-primary);
+}
+.login-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 32px;
+}
+.form-group {
+  margin-bottom: 20px;
+}
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 15px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-color);
+  color: var(--text-primary);
+  transition: border-color 0.2s ease;
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.form-input::placeholder {
+  color: var(--text-secondary);
+}
+.btn {
+  width: 100%;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  margin-bottom: 12px;
+}
+.btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-google {
+  background: white;
+  color: #444;
+  border: 1px solid var(--border-color);
+}
+body.light-theme .btn-google {
+  background: var(--bg-color);
+  color: var(--text-primary);
+}
+.btn-google:hover {
+  background: var(--hover-bg);
+}
+.btn-google i {
+  font-size: 18px;
+}
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 24px 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+.divider span {
+  padding: 0 12px;
+}
+.form-footer {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.form-footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.form-footer a:hover {
+  text-decoration: underline;
+}
+.error-message {
+  background: var(--error-color);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  display: none;
+}
+.error-message.show {
+  display: block;
+}
+.success-message {
+  background: var(--accent-green);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  display: none;
+}
+.success-message.show {
+  display: block;
+}
+.forgot-password {
+  text-align: right;
+  margin-top: 8px;
+}
+.forgot-password a {
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+}
+.forgot-password a:hover {
+  text-decoration: underline;
+}
+.signup-extra {
+  display: none;
+}
+.signup-extra.show {
+  display: block;
+}
+@media (max-width: 768px) {
+  .login-container {
+    padding: 16px;
+    padding-top: calc(80px + env(safe-area-inset-top));
+  }
+  .login-card {
+    padding: 32px 24px;
+  }
+  .login-title {
+    font-size: 28px;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="header-wrapper">
+  <div class="header">
+    <img src="IMG_0696.png" class="logo-img" alt="Patholytica Logo">
+    <div class="header-actions">
+      <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
+        <i class="fas fa-circle-half-stroke"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="login-container">
+  <div class="login-card">
+    <h1 class="login-title">Welcome Back</h1>
+    <p class="login-subtitle">Sign in to access Patholytica Library</p>
+
+<div id="errorMessage" class="error-message"></div>
+<div id="successMessage" class="success-message"></div>
+
+<form id="loginForm">
+  <div class="form-group signup-extra">
+    <label class="form-label" for="fullName">Full Name</label>
+    <input type="text" id="fullName" class="form-input" placeholder="John Doe">
+  </div>
+  
+  <div class="form-group signup-extra">
+    <label class="form-label" for="username">Username</label>
+    <input type="text" id="username" class="form-input" placeholder="johndoe">
+  </div>
+  
+  <div class="form-group">
+    <label class="form-label" for="email">Email</label>
+    <input type="email" id="email" class="form-input" placeholder="your@email.com" required>
+  </div>
+  
+  <div class="form-group">
+    <label class="form-label" for="password">Password</label>
+    <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+    <div class="forgot-password" id="forgotPasswordLink">
+      <a href="#" onclick="forgotPassword(); return false;">Forgot password?</a>
+    </div>
+  </div>
+  
+  <button type="submit" class="btn btn-primary" id="submitBtn">
+    <span>Sign In</span>
+  </button>
+</form>
+
+<div class="divider">
+  <span>or continue with</span>
+</div>
+
+<button class="btn btn-google" onclick="signInWithGoogle()">
+  <i class="fab fa-google"></i>
+  <span>Sign in with Google</span>
+</button>
+
+<div class="form-footer">
+  Don't have an account? <a href="#" onclick="toggleSignUpMode(); return false;">Sign up</a>
+</div>
+
+  </div>
+</div>
+
+<script type="module">
+// Import Firebase modules
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  signInWithPopup,
+  GoogleAuthProvider,
+  sendPasswordResetEmail,
+  createUserWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+  authDomain: "patholytica.firebaseapp.com",
+  databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "patholytica",
+  storageBucket: "patholytica.firebasestorage.app",
+  messagingSenderId: "738430635282",
+  appId: "1:738430635282:web:8451ef380447c7611137cb"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+
+// Initialize Supabase
+const supabase = window.supabase.createClient(
+  "https://vduqewqyvszfquntmark.supabase.co",
+  "sb_publishable_YseP73aoHam8YT6B0b9EQQ_iAUEWARI"
+);
+
+// Store user data in Supabase
+async function createUserInSupabase(firebaseUser, fullName = null, username = null) {
+  try {
+    // First, check if user exists by firebase_uid
+    const { data: existingUserByUid, error: uidCheckError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('firebase_uid', firebaseUser.uid)
+      .maybeSingle(); // Use maybeSingle() instead of single() to avoid throwing on no results
+
+    if (existingUserByUid) {
+      console.log("User already exists in Supabase (by firebase_uid):", existingUserByUid);
+      // Update the last login
+      const { data: updated } = await supabase
+        .from('users')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('firebase_uid', firebaseUser.uid)
+        .select();
+      return existingUserByUid;
+    }
+
+    // Also check by email in case firebase_uid wasn't saved before
+    const { data: existingUserByEmail, error: emailCheckError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', firebaseUser.email)
+      .maybeSingle();
+
+    if (existingUserByEmail) {
+      console.log("User exists but missing firebase_uid, updating...");
+      // Update the existing record with firebase_uid
+      const { data: updated, error: updateError } = await supabase
+        .from('users')
+        .update({ 
+          firebase_uid: firebaseUser.uid,
+          updated_at: new Date().toISOString()
+        })
+        .eq('email', firebaseUser.email)
+        .select();
+
+      if (updateError) {
+        console.error("Error updating firebase_uid:", updateError);
+        throw updateError;
+      }
+      
+      console.log("Updated existing user with firebase_uid:", updated);
+      return updated[0];
+    }
+
+    // User doesn't exist, create new user
+    const userData = {
+      firebase_uid: firebaseUser.uid,
+      email: firebaseUser.email,
+      username: username || firebaseUser.email.split('@')[0],
+      full_name: fullName || firebaseUser.displayName || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('users')
+      .insert([userData])
+      .select();
+
+    if (error) {
+      console.error("Supabase insert error:", error);
+      throw error;
+    }
+
+    console.log("New user created in Supabase:", data);
+    return data[0];
+  } catch (error) {
+    console.error("Error in createUserInSupabase:", error);
+    throw error;
+  }
+}
+
+// Update user data in Supabase
+async function updateUserInSupabase(firebaseUid) {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('firebase_uid', firebaseUid)
+      .select();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error updating user in Supabase:", error);
+  }
+}
+
+// Google Sign-In
+window.signInWithGoogle = async function() {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    console.log("Google sign-in successful:", result.user);
+    
+    // Create/update user in Supabase
+    await createUserInSupabase(result.user);
+    
+    showSuccess("Signed in successfully!");
+    setTimeout(() => {
+      window.location.href = "index.html";
+    }, 1000);
+  } catch (error) {
+    console.error("Google sign-in error:", error);
+    showError(getErrorMessage(error.code));
+  }
+};
+
+// Forgot Password
+window.forgotPassword = async function() {
+  const email = document.getElementById('email').value;
+  if (!email) {
+    showError("Please enter your email address first");
+    return;
+  }
+  
+  try {
+    await sendPasswordResetEmail(auth, email);
+    showSuccess("Password reset email sent! Check your inbox.");
+  } catch (error) {
+    showError(getErrorMessage(error.code));
+  }
+};
+
+// Toggle between Sign In and Sign Up
+window.toggleSignUpMode = function() {
+  const title = document.querySelector('.login-title');
+  const subtitle = document.querySelector('.login-subtitle');
+  const submitBtn = document.querySelector('.btn-primary span');
+  const footer = document.querySelector('.form-footer');
+  const signupFields = document.querySelectorAll('.signup-extra');
+  const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+  const fullNameInput = document.getElementById('fullName');
+  const usernameInput = document.getElementById('username');
+  
+  if (title.textContent === "Welcome Back") {
+    // Switch to Sign Up mode
+    title.textContent = "Create Account";
+    subtitle.textContent = "Sign up to access Patholytica Library";
+    submitBtn.textContent = "Sign Up";
+    footer.innerHTML = 'Already have an account? <a href="#" onclick="toggleSignUpMode(); return false;">Sign in</a>';
+    signupFields.forEach(field => field.classList.add('show'));
+    forgotPasswordLink.style.display = 'none';
+    fullNameInput.required = true;
+    usernameInput.required = true;
+  } else {
+    // Switch to Sign In mode
+    title.textContent = "Welcome Back";
+    subtitle.textContent = "Sign in to access Patholytica Library";
+    submitBtn.textContent = "Sign In";
+    footer.innerHTML = 'Don\'t have an account? <a href="#" onclick="toggleSignUpMode(); return false;">Sign up</a>';
+    signupFields.forEach(field => field.classList.remove('show'));
+    forgotPasswordLink.style.display = 'block';
+    fullNameInput.required = false;
+    usernameInput.required = false;
+  }
+};
+
+// Handle form submission
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const fullName = document.getElementById('fullName').value;
+  const username = document.getElementById('username').value;
+  const isSignUp = document.querySelector('.login-title').textContent === "Create Account";
+  const submitBtn = document.getElementById('submitBtn');
+  
+  submitBtn.disabled = true;
+  submitBtn.querySelector('span').textContent = isSignUp ? "Creating account..." : "Signing in...";
+  
+  try {
+    if (isSignUp) {
+      // Sign up with Firebase
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      console.log("Sign-up successful:", result.user);
+      
+      // Create user in Supabase
+      await createUserInSupabase(result.user, fullName, username);
+      
+      showSuccess("Account created successfully!");
+      setTimeout(() => {
+        window.location.href = "index.html";
+      }, 1000);
+    } else {
+      // Sign in with Firebase
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      console.log("Sign-in successful:", result.user);
+      
+      // Update last login in Supabase
+      await updateUserInSupabase(result.user.uid);
+      
+      showSuccess("Signed in successfully!");
+      setTimeout(() => {
+        window.location.href = "index.html";
+      }, 1000);
+    }
+  } catch (error) {
+    console.error("Form submission error:", error);
+    showError(getErrorMessage(error.code));
+    submitBtn.disabled = false;
+    submitBtn.querySelector('span').textContent = isSignUp ? "Sign Up" : "Sign In";
+  }
+});
+
+function showError(message) {
+  const errorDiv = document.getElementById('errorMessage');
+  const successDiv = document.getElementById('successMessage');
+  successDiv.classList.remove('show');
+  errorDiv.textContent = message;
+  errorDiv.classList.add('show');
+  setTimeout(() => {
+    errorDiv.classList.remove('show');
+  }, 5000);
+}
+
+function showSuccess(message) {
+  const successDiv = document.getElementById('successMessage');
+  const errorDiv = document.getElementById('errorMessage');
+  errorDiv.classList.remove('show');
+  successDiv.textContent = message;
+  successDiv.classList.add('show');
+  setTimeout(() => {
+    successDiv.classList.remove('show');
+  }, 3000);
+}
+
+function getErrorMessage(errorCode) {
+  const errorMessages = {
+    'auth/invalid-email': 'Invalid email address',
+    'auth/user-disabled': 'This account has been disabled',
+    'auth/user-not-found': 'No account found with this email',
+    'auth/wrong-password': 'Incorrect password',
+    'auth/email-already-in-use': 'An account with this email already exists',
+    'auth/weak-password': 'Password should be at least 6 characters',
+    'auth/popup-closed-by-user': 'Sign-in popup was closed',
+    'auth/cancelled-popup-request': 'Sign-in cancelled',
+  };
+  return errorMessages[errorCode] || 'An error occurred. Please try again.';
+}
+</script>
+
+<script>
+function toggleTheme() {
+  document.body.classList.toggle('light-theme');
+  localStorage.setItem("theme", document.body.classList.contains("light-theme") ? "light" : "dark");
+}
+
+// Load saved theme
+if (localStorage.getItem("theme") === "light") {
+  document.body.classList.add("light-theme");
+}
+</script>
+
+</body>
+</html>
