@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Patholytica — Library</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg-color: #1f1f1f;
+  --text-primary: #fff;
+  --text-secondary: #aaa;
+  --card-bg: #1f1f1f;
+  --hover-bg: #2a2a2a;
+  --border-color: #303030;
+  --accent: #3ea6ff;
+  --accent-hover: #2d8ed6;
+  --accent-green: #2ecc71;
+}
+
+* { box-sizing: border-box; }
+html, body { 
+  margin: 0; 
+  padding: 0; 
+  min-height: 100%; 
+  font-family: "Roboto", Arial, sans-serif;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+body {
+  background: var(--bg-color);
+  color: var(--text-primary);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.header-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-color);
+  padding-top: env(safe-area-inset-top);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 40;
+  width: 100%;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+.logo-img {
+  height: 28px;
+  width: auto;
+  cursor: pointer;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: background 0.2s ease;
+}
+.icon-btn:hover {
+  background: var(--hover-bg);
+}
+.auth-buttons {
+  display: none;
+  gap: 12px;
+}
+.auth-buttons.show {
+  display: flex;
+}
+.btn-login, .btn-signup {
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  border: none;
+}
+.btn-login {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+.btn-login:hover {
+  background: var(--hover-bg);
+}
+.btn-signup {
+  background: var(--accent);
+  color: white;
+}
+.btn-signup:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.user-welcome {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.user-welcome.show {
+  display: flex;
+}
+.welcome-text {
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.welcome-text:hover {
+  color: var(--accent);
+}
+
+/* Floating Create Button */
+.fab-create {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 4px 12px rgba(62, 166, 255, 0.4);
+  transition: all 0.3s ease;
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.fab-create.show {
+  display: flex;
+}
+.fab-create:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(62, 166, 255, 0.5);
+}
+.fab-create:active {
+  transform: scale(0.95);
+}
+
+.list-container {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 24px 80px;
+  padding-top: calc(65px + env(safe-area-inset-top) + 24px);
+}
+.article-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.article-item {
+  padding: 24px 0;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.article-item:hover {
+  background: var(--hover-bg);
+  margin: 0 -12px;
+  padding: 24px 12px;
+}
+.article-title {
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: 38px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  line-height: 1.3;
+  color: var(--text-primary);
+  word-wrap: break-word;
+}
+.article-item:hover .article-title {
+  color: var(--accent);
+}
+.article-meta {
+  font-size: 14px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.meta-dot {
+  width: 3px;
+  height: 3px;
+  background: var(--text-secondary);
+  border-radius: 50%;
+}
+.loading-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+.error-state {
+  text-align: center;
+  padding: 40px;
+  color: #ff4444;
+  font-size: 16px;
+}
+.footer {
+  background: var(--bg-color);
+  border-top: 1px solid var(--border-color);
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+}
+.footer-stats {
+  margin-bottom: 8px;
+}
+.article-count {
+  color: var(--accent-green);
+  font-weight: 600;
+}
+.footer-tagline {
+  margin-bottom: 8px;
+}
+.footer-location {
+  font-size: 13px;
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
+/* Footer Bar Navigation */
+.footer-bar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 450px;
+  background: var(--card-bg);
+  border-top: 1px solid var(--border-color);
+  padding: 8px 24px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 100;
+}
+
+.footer-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 6px 12px;
+}
+
+.footer-btn:hover {
+  color: var(--text-primary);
+}
+
+.footer-btn.active {
+  color: var(--accent);
+}
+
+.footer-btn i {
+  font-size: 20px;
+}
+
+.footer-btn span {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .fab-create {
+    bottom: 80px;
+    right: 20px;
+    width: 52px;
+    height: 52px;
+    font-size: 22px;
+  }
+  .list-container {
+    padding: 16px 16px 100px;
+    padding-top: calc(65px + env(safe-area-inset-top) + 16px);
+  }
+  .article-title {
+    font-size: 28px;
+  }
+  .article-meta {
+    font-size: 13px;
+  }
+  .footer {
+    padding: 20px 16px;
+    font-size: 13px;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+  .auth-buttons {
+    gap: 8px;
+  }
+  .btn-login, .btn-signup {
+    padding: 6px 16px;
+    font-size: 13px;
+  }
+  .footer-bar {
+    padding: 8px 16px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+  
+  .footer-btn {
+    padding: 6px 8px;
+  }
+  
+  .footer-btn i {
+    font-size: 18px;
+  }
+  
+  .footer-btn span {
+    font-size: 9px;
+  }
+}
+</style>
+</head>
+<body>
+<div class="header-wrapper">
+  <div class="header">
+    <img src="IMG_0696.png" class="logo-img" alt="Patholytica Logo">
+    <div class="header-actions">
+      <!-- Auth buttons (shown when logged out) -->
+      <div class="auth-buttons" id="authButtons">
+        <a href="login.html" class="btn-login">Log In</a>
+      </div>
+      <!-- User welcome (shown when logged in) -->
+      <div class="user-welcome" id="userWelcome">
+        <span class="welcome-text" id="welcomeText">Welcome</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Floating Create Button -->
+<button class="fab-create" id="fabCreateBtn" onclick="createArticle()" title="Create Article">
+  <i class="fas fa-plus"></i>
+</button>
+
+<div class="list-container">
+  <ul class="article-list" id="articleList">
+    <li class="loading-state">Loading articles...</li>
+  </ul>
+</div>
+
+<footer class="footer">
+  <div class="footer-stats">
+    <span class="article-count" id="articleCount">0</span> articles accessible
+  </div>
+</footer>
+
+<!-- Footer Bar Navigation -->
+<div class="footer-bar">
+  <button class="footer-btn active" onclick="window.location.href='index.html'">
+    <i class="fas fa-home"></i>
+    <span>Home</span>
+  </button>
+  <button class="footer-btn" onclick="window.location.href='https://patholytica.com/dailyfeed'">
+    <i class="fas fa-scroll"></i>
+    <span>Feed</span>
+  </button>
+  <button class="footer-btn" onclick="window.location.href='explore.html'">
+    <i class="fas fa-search"></i>
+    <span>Explore</span>
+  </button>
+  <button class="footer-btn" onclick="window.location.href='profile.html'">
+    <i class="fas fa-user"></i>
+    <span>Profile</span>
+  </button>
+</div>
+
+<script type="module">
+// Import Firebase modules
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { 
+  getAuth, 
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+  authDomain: "patholytica.firebaseapp.com",
+  databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "patholytica",
+  storageBucket: "patholytica.firebasestorage.app",
+  messagingSenderId: "738430635282",
+  appId: "1:738430635282:web:8451ef380447c7611137cb"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// Initialize Supabase
+const supabase = window.supabase.createClient(
+  "https://vduqewqyvszfquntmark.supabase.co",
+  "sb_publishable_YseP73aoHam8YT6B0b9EQQ_iAUEWARI"
+);
+
+// Load articles from Supabase
+async function loadArticles() {
+  const articleList = document.getElementById('articleList');
+  
+  try {
+    console.log('Fetching articles...');
+    
+    // Fetch articles first
+    const { data: articles, error: articlesError } = await supabase
+      .from('articles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    console.log('Articles response:', { articles, error: articlesError });
+
+    if (articlesError) {
+      console.error('Error fetching articles:', articlesError);
+      articleList.innerHTML = '<li class="error-state">Error loading articles: ' + articlesError.message + '</li>';
+      return;
+    }
+
+    if (!articles || articles.length === 0) {
+      articleList.innerHTML = '<li class="loading-state">No articles found.</li>';
+      document.getElementById('articleCount').textContent = '0';
+      return;
+    }
+
+    // Get unique firebase_user_ids from articles
+    const firebaseUserIds = [...new Set(articles.map(a => a.firebase_user_id).filter(Boolean))];
+    console.log('Fetching users with firebase_uids:', firebaseUserIds);
+    
+    // Fetch users by firebase_uid
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('firebase_uid, username')
+      .in('firebase_uid', firebaseUserIds);
+
+    console.log('Users response:', { users, error: usersError });
+
+    // Create a user lookup map by firebase_uid
+    const userMap = {};
+    if (users) {
+      users.forEach(user => {
+        userMap[user.firebase_uid] = user;
+      });
+    }
+
+    // Clear loading state
+    articleList.innerHTML = '';
+
+    // Create article items
+    articles.forEach(article => {
+      const li = document.createElement('li');
+      li.className = 'article-item';
+      li.onclick = () => openArticle(article.id);
+      
+      // Get author username and format with @
+      const user = userMap[article.firebase_user_id];
+      const authorName = user?.username ? `@${user.username}` : 'Unknown Author';
+      
+      // Format date
+      const date = new Date(article.created_at);
+      const formattedDate = date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+      
+      li.innerHTML = `
+        <h2 class="article-title">${article.title}</h2>
+        <div class="article-meta">
+          <span>${authorName}</span>
+          <div class="meta-dot"></div>
+          <span>${formattedDate}</span>
+          <div class="meta-dot"></div>
+          <span>${article.views || 0} views</span>
+        </div>
+      `;
+      
+      articleList.appendChild(li);
+    });
+
+    // Update article count
+    document.getElementById('articleCount').textContent = articles.length;
+    
+  } catch (err) {
+    console.error('Unexpected error:', err);
+    articleList.innerHTML = '<li class="error-state">An unexpected error occurred: ' + err.message + '</li>';
+  }
+}
+
+// Log out function
+window.logOut = async function() {
+  try {
+    await signOut(auth);
+    console.log("User logged out");
+    // Reload page to update UI
+    window.location.reload();
+  } catch (error) {
+    console.error("Error logging out:", error);
+    alert("Error logging out. Please try again.");
+  }
+};
+
+// Check authentication state
+onAuthStateChanged(auth, async (user) => {
+  const authButtons = document.getElementById('authButtons');
+  const userWelcome = document.getElementById('userWelcome');
+  const welcomeText = document.getElementById('welcomeText');
+  const fabCreateBtn = document.getElementById('fabCreateBtn');
+  
+  if (user) {
+    // User is logged in
+    authButtons.classList.remove('show');
+    userWelcome.classList.add('show');
+    if (fabCreateBtn) fabCreateBtn.classList.add('show');
+    
+    // Add click event to username for logout
+    welcomeText.onclick = window.logOut;
+    welcomeText.style.cursor = 'pointer';
+    
+    // Update welcome text with username if available
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('username')
+        .eq('firebase_uid', user.uid)
+        .single();
+      
+      if (userData && userData.username) {
+        welcomeText.textContent = `@${userData.username}`;
+      }
+    } catch (error) {
+      console.error('Error fetching username:', error);
+    }
+  } else {
+    // User is logged out
+    authButtons.classList.add('show');
+    userWelcome.classList.remove('show');
+    if (fabCreateBtn) fabCreateBtn.classList.remove('show');
+  }
+});
+
+// Load articles on page load
+loadArticles();
+</script>
+
+<script>
+function openArticle(articleId) {
+  // Navigate to article detail page
+  window.location.href = `article.html?id=${articleId}`;
+}
+
+function createArticle() {
+  window.location.href = 'https://patholytica.com/create';
+}
+
+function searchArticles() {
+  // Toggle search bar visibility
+  let searchBar = document.getElementById('searchBar');
+  
+  if (!searchBar) {
+    // Create search bar if it doesn't exist
+    searchBar = document.createElement('div');
+    searchBar.id = 'searchBar';
+    searchBar.style.cssText = `
+      position: fixed;
+      top: calc(65px + env(safe-area-inset-top));
+      left: 0;
+      right: 0;
+      background: var(--bg-color);
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 24px;
+      z-index: 35;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    `;
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'Search articles...';
+    input.style.cssText = `
+      flex: 1;
+      padding: 10px 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      background: var(--bg-color);
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+    `;
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+    closeBtn.style.cssText = `
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 18px;
+    `;
+    closeBtn.onclick = () => {
+      searchBar.style.display = 'none';
+    };
+    
+    searchBar.appendChild(input);
+    searchBar.appendChild(closeBtn);
+    document.body.insertBefore(searchBar, document.querySelector('.list-container'));
+    
+    input.focus();
+  } else {
+    // Toggle visibility
+    searchBar.style.display = searchBar.style.display === 'none' ? 'flex' : 'none';
+    if (searchBar.style.display === 'flex') {
+      searchBar.querySelector('input').focus();
+    }
+  }
+}
+
+</script>
+</body>
+</html>
