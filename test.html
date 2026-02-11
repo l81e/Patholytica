@@ -1,1 +1,630 @@
-thanks
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Patholytica — Library</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg-color: #1f1f1f;
+  --text-primary: #fff;
+  --text-secondary: #aaa;
+  --card-bg: #1f1f1f;
+  --hover-bg: #2a2a2a;
+  --border-color: #303030;
+  --accent: #3ea6ff;
+  --accent-hover: #2d8ed6;
+  --accent-green: #2ecc71;
+}
+
+body.light-theme {
+  --bg-color: #f9f9f9;
+  --text-primary: #0f0f0f;
+  --text-secondary: #606060;
+  --card-bg: #f9f9f9;
+  --hover-bg: #f0f0f0;
+  --border-color: #e5e5e5;
+  --accent: #065fd4;
+  --accent-hover: #0448a3;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-family: "Roboto", Arial, sans-serif;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+body {
+  background: var(--bg-color);
+  color: var(--text-primary);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+/* ── Header — exact same as Explore ── */
+.header-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-color);
+  padding-top: env(safe-area-inset-top);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 40;
+  width: 100%;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+.logo-img {
+  height: 28px;
+  width: auto;
+  cursor: pointer;
+  filter: brightness(0) invert(1);
+  transition: filter 0.2s ease;
+}
+body.light-theme .logo-img {
+  filter: brightness(0);
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: background 0.2s ease;
+}
+.icon-btn:hover {
+  background: var(--hover-bg);
+}
+.auth-buttons {
+  display: none;
+  gap: 12px;
+}
+.auth-buttons.show {
+  display: flex;
+}
+.btn-login {
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-primary);
+}
+.btn-login:hover {
+  background: var(--hover-bg);
+}
+.user-welcome {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.user-welcome.show {
+  display: flex;
+}
+.welcome-text {
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.welcome-text:hover {
+  color: var(--accent);
+}
+
+/* Floating Create Button */
+.fab-create {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 4px 12px rgba(62, 166, 255, 0.4);
+  transition: all 0.3s ease;
+  z-index: 50;
+}
+.fab-create.show {
+  display: flex;
+}
+.fab-create:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(62, 166, 255, 0.5);
+}
+.fab-create:active {
+  transform: scale(0.95);
+}
+
+/* Content offset matches Explore's header height (53px content + safe area) */
+.list-container {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 24px 0;
+  padding-top: calc(53px + env(safe-area-inset-top) + 24px);
+}
+
+.article-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Enhanced article item */
+.article-item {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background 0.2s ease;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.article-item:last-child {
+  border-bottom: none;
+}
+.article-item:hover {
+  background: var(--hover-bg);
+  margin: 0 -12px;
+  padding: 20px 12px;
+}
+
+.article-thumbnail {
+  width: 100px;
+  height: 100px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  color: white;
+  background: var(--accent);
+}
+.article-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.article-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.article-title {
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.3;
+  color: var(--text-primary);
+  word-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.article-item:hover .article-title {
+  color: var(--accent);
+}
+
+.article-meta {
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.meta-dot {
+  width: 3px;
+  height: 3px;
+  background: var(--text-secondary);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.article-stats {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.stat-item.views i { color: var(--accent); }
+.stat-item.likes i { color: #ef4444; }
+
+/* Sits below last article, clears the fixed nav bar */
+.footer-spacer {
+  height: calc(72px + env(safe-area-inset-bottom));
+}
+
+.footer {
+  padding: 16px 0;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.article-count {
+  color: var(--accent-green);
+  font-weight: 600;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+.error-state {
+  text-align: center;
+  padding: 40px;
+  color: #ff4444;
+  font-size: 16px;
+}
+
+/* Footer Bar Navigation */
+.footer-bar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 450px;
+  background: var(--card-bg);
+  border-top: 1px solid var(--border-color);
+  padding: 8px 24px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 100;
+}
+.footer-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 6px 12px;
+}
+.footer-btn:hover { color: var(--text-primary); }
+.footer-btn.active { color: var(--accent); }
+.footer-btn i { font-size: 20px; }
+.footer-btn span { font-size: 10px; font-weight: 500; }
+
+@media (max-width: 768px) {
+  .fab-create {
+    bottom: 80px;
+    right: 16px;
+  }
+  .list-container {
+    padding: 16px 16px 0;
+    padding-top: calc(53px + env(safe-area-inset-top) + 16px);
+  }
+  .article-thumbnail {
+    width: 80px;
+    height: 80px;
+    font-size: 26px;
+    border-radius: 8px;
+  }
+  .article-title { font-size: 17px; }
+  .article-meta { font-size: 12px; }
+  .article-stats { font-size: 12px; }
+  .footer {
+    padding: 14px 0;
+    font-size: 13px;
+  }
+  .auth-buttons { gap: 8px; }
+  .btn-login { padding: 6px 16px; font-size: 13px; }
+  .footer-bar {
+    padding: 8px 16px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+  .footer-btn { padding: 6px 8px; }
+  .footer-btn i { font-size: 18px; }
+  .footer-btn span { font-size: 9px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header-wrapper">
+  <div class="header">
+    <img src="IMG_0696.png" class="logo-img" alt="Patholytica Logo">
+    <div class="header-actions">
+      <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
+        <i class="fas fa-circle-half-stroke"></i>
+      </button>
+      <div class="auth-buttons" id="authButtons">
+        <a href="login.html" class="btn-login">Log In</a>
+      </div>
+      <div class="user-welcome" id="userWelcome">
+        <span class="welcome-text" id="welcomeText">Welcome</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="fab-create" id="fabCreateBtn" onclick="createArticle()" title="Create Article">
+  <i class="fas fa-plus"></i>
+</button>
+
+<div class="list-container">
+  <ul class="article-list" id="articleList">
+    <li class="loading-state">Loading articles...</li>
+  </ul>
+  <footer class="footer">
+    <span class="article-count" id="articleCount">0</span> articles accessible
+  </footer>
+  <div class="footer-spacer"></div>
+</div>
+
+<!-- Footer Bar Navigation -->
+<div class="footer-bar">
+  <button class="footer-btn active" onclick="window.location.href='index.html'">
+    <i class="fas fa-home"></i>
+    <span>Home</span>
+  </button>
+  <button class="footer-btn" onclick="window.location.href='https://patholytica.com/dailyfeed'">
+    <i class="fas fa-scroll"></i>
+    <span>Feed</span>
+  </button>
+  <button class="footer-btn" onclick="window.location.href='explore.html'">
+    <i class="fas fa-search"></i>
+    <span>Explore</span>
+  </button>
+  <button class="footer-btn" onclick="window.location.href='profile.html'">
+    <i class="fas fa-user"></i>
+    <span>Profile</span>
+  </button>
+</div>
+
+<script>
+  function toggleTheme() {
+    document.body.classList.toggle('light-theme');
+    localStorage.setItem("theme", document.body.classList.contains("light-theme") ? "light" : "dark");
+  }
+
+  if (localStorage.getItem("theme") === "light") {
+    document.body.classList.add("light-theme");
+  }
+
+  function formatNumber(num) {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+  }
+
+  function openArticle(articleId) {
+    window.location.href = `article.html?id=${articleId}`;
+  }
+
+  function createArticle() {
+    window.location.href = 'https://patholytica.com/create';
+  }
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+  authDomain: "patholytica.firebaseapp.com",
+  databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "patholytica",
+  storageBucket: "patholytica.firebasestorage.app",
+  messagingSenderId: "738430635282",
+  appId: "1:738430635282:web:8451ef380447c7611137cb"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+const supabase = window.supabase.createClient(
+  "https://vduqewqyvszfquntmark.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
+);
+
+async function loadArticles() {
+  const articleList = document.getElementById('articleList');
+
+  try {
+    const { data: articles, error: articlesError } = await supabase
+      .from('articles')
+      .select('id, title, created_at, views, likes, firebase_user_id, media(url)')
+      .order('created_at', { ascending: false });
+
+    if (articlesError) {
+      articleList.innerHTML = '<li class="error-state">Error loading articles: ' + articlesError.message + '</li>';
+      return;
+    }
+
+    if (!articles || articles.length === 0) {
+      articleList.innerHTML = '<li class="loading-state">No articles found.</li>';
+      document.getElementById('articleCount').textContent = '0';
+      return;
+    }
+
+    const firebaseUserIds = [...new Set(articles.map(a => a.firebase_user_id).filter(Boolean))];
+    const { data: users } = await supabase
+      .from('users')
+      .select('firebase_uid, username')
+      .in('firebase_uid', firebaseUserIds);
+
+    const userMap = {};
+    if (users) users.forEach(u => { userMap[u.firebase_uid] = u; });
+
+    articleList.innerHTML = '';
+
+    articles.forEach(article => {
+      const li = document.createElement('li');
+      li.className = 'article-item';
+      li.onclick = () => openArticle(article.id);
+
+      const user = userMap[article.firebase_user_id];
+      const authorName = user?.username ? `@${user.username}` : 'Unknown';
+
+      const date = new Date(article.created_at);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      let formattedDate;
+      if (diffMins < 60) formattedDate = `${diffMins}m ago`;
+      else if (diffHours < 24) formattedDate = `${diffHours}h ago`;
+      else if (diffDays < 7) formattedDate = `${diffDays}d ago`;
+      else formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+      const firstLetter = (article.title || 'A')[0].toUpperCase();
+      const articleImage = article.media && article.media.length > 0 ? article.media[0].url : null;
+
+      const thumbDiv = document.createElement('div');
+      thumbDiv.className = 'article-thumbnail';
+      if (articleImage) {
+        const img = document.createElement('img');
+        img.src = articleImage;
+        img.alt = article.title || 'Article';
+        img.onerror = () => {
+          img.remove();
+          thumbDiv.textContent = firstLetter;
+        };
+        thumbDiv.appendChild(img);
+      } else {
+        thumbDiv.textContent = firstLetter;
+      }
+
+      const bodyDiv = document.createElement('div');
+      bodyDiv.className = 'article-body';
+      bodyDiv.innerHTML = `
+        <h2 class="article-title">${article.title || 'Untitled'}</h2>
+        <div class="article-meta">
+          <span>${authorName}</span>
+          <div class="meta-dot"></div>
+          <span>${formattedDate}</span>
+        </div>
+        <div class="article-stats">
+          <div class="stat-item views">
+            <i class="fas fa-eye"></i>
+            <span>${window.formatNumber(article.views || 0)}</span>
+          </div>
+          <div class="stat-item likes">
+            <i class="fas fa-heart"></i>
+            <span>${window.formatNumber(article.likes || 0)}</span>
+          </div>
+        </div>
+      `;
+
+      li.appendChild(thumbDiv);
+      li.appendChild(bodyDiv);
+      articleList.appendChild(li);
+    });
+
+    document.getElementById('articleCount').textContent = articles.length;
+
+  } catch (err) {
+    articleList.innerHTML = '<li class="error-state">An unexpected error occurred: ' + err.message + '</li>';
+  }
+}
+
+window.logOut = async function () {
+  try {
+    await signOut(auth);
+    window.location.reload();
+  } catch (error) {
+    alert("Error logging out. Please try again.");
+  }
+};
+
+onAuthStateChanged(auth, async (user) => {
+  const authButtons = document.getElementById('authButtons');
+  const userWelcome = document.getElementById('userWelcome');
+  const welcomeText = document.getElementById('welcomeText');
+  const fabCreateBtn = document.getElementById('fabCreateBtn');
+
+  if (user) {
+    authButtons.classList.remove('show');
+    userWelcome.classList.add('show');
+    if (fabCreateBtn) fabCreateBtn.classList.add('show');
+    welcomeText.onclick = window.logOut;
+    welcomeText.style.cursor = 'pointer';
+
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('username')
+        .eq('firebase_uid', user.uid)
+        .single();
+      if (userData?.username) welcomeText.textContent = `@${userData.username}`;
+    } catch (error) {
+      console.error('Error fetching username:', error);
+    }
+  } else {
+    authButtons.classList.add('show');
+    userWelcome.classList.remove('show');
+    if (fabCreateBtn) fabCreateBtn.classList.remove('show');
+  }
+});
+
+loadArticles();
+</script>
+</body>
+</html>
