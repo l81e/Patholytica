@@ -582,11 +582,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// Initialize Supabase
-const SUPABASE_URL = "https://vduqewqyvszfquntmark.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU5NTE1MDEsImV4cCI6MjA1MTUyNzUwMX0.gs_0CufW-D4CBdcBHyPztOlcgLCBdhnXj7c";
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Initialize Supabase with CORRECT API KEY from login page
+const supabase = window.supabase.createClient(
+  "https://vduqewqyvszfquntmark.supabase.co",
+  "sb_publishable_YseP73aoHam8YT6B0b9EQQ_iAUEWARI"
+);
 
 // Global variables
 let currentUser = null;
@@ -597,6 +597,10 @@ let libraryId = null;
 // Get library ID from URL
 const urlParams = new URLSearchParams(window.location.search);
 libraryId = urlParams.get('id');
+
+console.log('=== LIBRARY PAGE DEBUG ===');
+console.log('Library ID from URL:', libraryId);
+console.log('Full URL:', window.location.href);
 
 // Helper function to escape HTML
 function escapeHtml(text) {
@@ -612,68 +616,113 @@ async function loadLibrary() {
   const emptyState = document.getElementById('emptyState');
   const articlesGrid = document.getElementById('articlesGrid');
 
+  console.log('--- Starting loadLibrary function ---');
+  console.log('Loading library with ID:', libraryId);
+
   try {
     // Fetch library details
+    console.log('Fetching library from playlists table...');
     const { data: library, error: libraryError } = await supabase
       .from('playlists')
       .select('*')
       .eq('id', libraryId)
       .single();
 
-    if (libraryError || !library) {
+    console.log('Library query result:', { library, error: libraryError });
+
+    if (libraryError) {
+      console.error('❌ Error fetching library:', libraryError);
+      console.error('Error code:', libraryError.code);
+      console.error('Error message:', libraryError.message);
+      console.error('Error details:', libraryError.details);
+      console.error('Error hint:', libraryError.hint);
       loadingState.style.display = 'none';
       emptyState.style.display = 'block';
       return;
     }
 
+    if (!library) {
+      console.error('❌ Library not found - query returned null/undefined');
+      loadingState.style.display = 'none';
+      emptyState.style.display = 'block';
+      return;
+    }
+
+    console.log('✅ Library found successfully:', library);
     libraryData = library;
 
     // Fetch library creator
+    console.log('Fetching library creator with user_id:', library.user_id);
     const { data: creator, error: creatorError } = await supabase
       .from('users')
       .select('user_id, username, full_name')
       .eq('user_id', library.user_id)
       .single();
 
+    console.log('Creator query result:', { creator, error: creatorError });
+    if (creatorError) {
+      console.warn('⚠️ Error fetching creator (non-fatal):', creatorError);
+    }
+
     // Fetch articles in library
+    console.log('Fetching playlist items...');
     const { data: playlistItems, error: itemsError } = await supabase
       .from('playlist_items')
       .select('article_id, created_at')
       .eq('playlist_id', libraryId)
       .order('created_at', { ascending: true });
 
-    if (itemsError) throw itemsError;
+    console.log('Playlist items query result:', { playlistItems, error: itemsError });
+
+    if (itemsError) {
+      console.error('❌ Error fetching playlist items:', itemsError);
+      throw itemsError;
+    }
 
     let articles = [];
     if (playlistItems && playlistItems.length > 0) {
+      console.log(`Found ${playlistItems.length} playlist items`);
       const articleIds = playlistItems.map(item => item.article_id);
+      console.log('Article IDs to fetch:', articleIds);
       
       const { data: articlesData, error: articlesError } = await supabase
         .from('articles')
         .select('*')
         .in('id', articleIds);
 
-      if (articlesError) throw articlesError;
+      console.log('Articles query result:', { articlesData, error: articlesError });
+
+      if (articlesError) {
+        console.error('❌ Error fetching articles:', articlesError);
+        throw articlesError;
+      }
 
       // Maintain order from playlist_items
       articles = playlistItems.map(item => {
         return articlesData.find(a => a.id === item.article_id);
       }).filter(a => a !== undefined);
 
+      console.log(`Matched ${articles.length} articles from playlist items`);
+
       // Fetch authors for articles
       const authorIds = [...new Set(articles.map(a => a.firebase_user_id).filter(id => id))];
+      console.log('Author IDs to fetch:', authorIds);
+      
       let authorsMap = {};
       
       if (authorIds.length > 0) {
-        const { data: authors } = await supabase
+        const { data: authors, error: authorsError } = await supabase
           .from('users')
           .select('firebase_uid, username, full_name')
           .in('firebase_uid', authorIds);
+        
+        console.log('Authors query result:', { authors, error: authorsError });
         
         if (authors) {
           authors.forEach(author => {
             authorsMap[author.firebase_uid] = author;
           });
+          console.log('Authors map created:', authorsMap);
         }
       }
 
@@ -684,30 +733,44 @@ async function loadLibrary() {
           author: author?.username ? `@${author.username}` : (author?.full_name || 'Anonymous')
         };
       });
+
+      console.log('Final articles with author info:', articles);
+    } else {
+      console.log('No playlist items found');
     }
 
+    console.log('✅ Successfully loaded all data, calling displayLibrary...');
     displayLibrary(library, creator, articles);
 
   } catch (error) {
-    console.error('Error loading library:', error);
+    console.error('❌ FATAL ERROR in loadLibrary:', error);
+    console.error('Error stack:', error.stack);
     loadingState.style.display = 'none';
     emptyState.style.display = 'block';
   }
 }
 
 function displayLibrary(library, creator, articles) {
+  console.log('--- Starting displayLibrary function ---');
+  console.log('Library:', library);
+  console.log('Creator:', creator);
+  console.log('Articles count:', articles.length);
+
   const loadingState = document.getElementById('loadingState');
   const libraryContent = document.getElementById('libraryContent');
   const articlesGrid = document.getElementById('articlesGrid');
 
   // Update library info
   document.getElementById('libraryTitle').textContent = library.name;
+  console.log('Set library title:', library.name);
   
   if (library.description) {
     document.getElementById('libraryDescription').textContent = library.description;
     document.getElementById('libraryDescription').style.display = 'block';
+    console.log('Set library description:', library.description);
   } else {
     document.getElementById('libraryDescription').style.display = 'none';
+    console.log('No description provided');
   }
 
   // Update author
@@ -718,6 +781,9 @@ function displayLibrary(library, creator, articles) {
     document.getElementById('libraryAuthor').onclick = () => {
       window.location.href = `profile.html?user=${creator.user_id}`;
     };
+    console.log('Set author:', authorName);
+  } else {
+    console.log('No creator found');
   }
 
   // Update stats
@@ -730,10 +796,12 @@ function displayLibrary(library, creator, articles) {
     day: 'numeric',
     year: 'numeric'
   });
+  console.log('Set stats - articles:', articles.length, 'created:', createdDate);
 
   // Show edit button if user owns library
   if (currentUserData && currentUserData.user_id === library.user_id) {
     document.getElementById('editBtn').style.display = 'flex';
+    console.log('User owns library - showing edit button');
   }
 
   // Display articles
@@ -747,23 +815,27 @@ function displayLibrary(library, creator, articles) {
         <div class="empty-text">This library doesn't have any articles yet.</div>
       </div>
     `;
+    console.log('No articles to display');
   } else {
     articlesGrid.innerHTML = '';
     articles.forEach((article, index) => {
       const card = createArticleCard(article, index + 1);
       articlesGrid.appendChild(card);
     });
+    console.log(`Rendered ${articles.length} article cards`);
   }
 
   // Setup action buttons
   document.getElementById('playAllBtn').onclick = () => {
     if (articles.length > 0) {
+      console.log('Play All clicked - navigating to first article:', articles[0].id);
       window.location.href = `article.html?id=${articles[0].id}`;
     }
   };
 
   document.getElementById('shareBtn').onclick = () => {
     const url = window.location.href;
+    console.log('Share clicked - URL:', url);
     if (navigator.share) {
       navigator.share({
         title: library.name,
@@ -777,12 +849,14 @@ function displayLibrary(library, creator, articles) {
   };
 
   document.getElementById('editBtn').onclick = () => {
+    console.log('Edit clicked - navigating to edit page');
     window.location.href = `edit-library.html?id=${libraryId}`;
   };
 
   // Show content
   loadingState.style.display = 'none';
   libraryContent.style.display = 'block';
+  console.log('✅ Library display complete');
 }
 
 function createArticleCard(article, number) {
@@ -838,6 +912,7 @@ function createArticleCard(article, number) {
 
   card.onclick = (e) => {
     if (!e.target.closest('.article-action-btn')) {
+      console.log('Article card clicked - navigating to:', article.id);
       window.location.href = `article.html?id=${article.id}`;
     }
   };
@@ -847,6 +922,9 @@ function createArticleCard(article, number) {
 
 // Check authentication and load library
 onAuthStateChanged(auth, async (user) => {
+  console.log('--- Auth state changed ---');
+  console.log('User:', user ? user.uid : 'null');
+  
   if (user) {
     currentUser = user;
     
@@ -857,22 +935,31 @@ onAuthStateChanged(auth, async (user) => {
         .eq('firebase_uid', user.uid)
         .single();
       
+      console.log('User data query result:', { userData, error });
+      
       if (!error) {
         currentUserData = userData;
+        console.log('Current user data set:', currentUserData);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
     }
+  } else {
+    console.log('No user logged in');
   }
   
   // Load library regardless of auth state (public viewing)
   if (libraryId) {
+    console.log('Library ID present - calling loadLibrary');
     loadLibrary();
   } else {
+    console.error('❌ No library ID in URL');
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('emptyState').style.display = 'block';
   }
 });
+
+console.log('=== Script loaded successfully ===');
 </script>
 
 </body>
