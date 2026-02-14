@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Library — Patholytica</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg-color: #1f1f1f;
+  --text-primary: #fff;
+  --text-secondary: #aaa;
+  --card-bg: #1f1f1f;
+  --hover-bg: #2a2a2a;
+  --border-color: #303030;
+  --accent: #3ea6ff;
+  --accent-hover: #2d8ed6;
+  --accent-purple: #9b59b6;
+  --accent-green: #2ecc71;
+  --accent-red: #e74c3c;
+}
+
+body.light-theme {
+  --bg-color: #f9f9f9;
+  --text-primary: #0f0f0f;
+  --text-secondary: #606060;
+  --card-bg: #f9f9f9;
+  --hover-bg: #f0f0f0;
+  --border-color: #e5e5e5;
+  --accent: #065fd4;
+  --accent-hover: #0448a3;
+}
+
+* { 
+  box-sizing: border-box; 
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  min-height: 100%;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+body {
+  background: var(--bg-color);
+  color: var(--text-primary);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.header-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-color);
+  padding-top: env(safe-area-inset-top);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 40;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.logo-img {
+  height: 28px;
+  width: auto;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+body.light-theme .logo-img {
+  filter: invert(1);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-welcome {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.user-welcome.show {
+  display: flex;
+}
+
+.welcome-text {
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.welcome-text:hover {
+  color: var(--accent);
+}
+
+/* Main Container */
+.main-container {
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 80px 24px 100px;
+}
+
+/* Loading State */
+.loading-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-secondary);
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 20px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--accent-purple);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Library Header */
+.library-header {
+  margin-bottom: 32px;
+}
+
+.library-icon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, var(--accent-purple) 0%, #8e44ad 100%);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  font-size: 36px;
+  color: white;
+  box-shadow: 0 8px 24px rgba(155, 89, 182, 0.4);
+}
+
+.library-title {
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: 36px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.library-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.meta-item i {
+  font-size: 14px;
+}
+
+.library-description {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+.library-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.action-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--hover-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.action-btn:hover {
+  background: var(--border-color);
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, var(--accent-purple) 0%, #8e44ad 100%);
+  color: white;
+  border: none;
+}
+
+.action-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(155, 89, 182, 0.4);
+}
+
+.action-btn.danger {
+  background: transparent;
+  color: var(--accent-red);
+  border-color: var(--accent-red);
+}
+
+.action-btn.danger:hover {
+  background: rgba(231, 76, 60, 0.1);
+}
+
+/* Articles Section */
+.articles-section {
+  margin-top: 40px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.article-count {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.articles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.article-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.article-card:hover {
+  background: var(--hover-bg);
+  border-color: var(--accent-purple);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(155, 89, 182, 0.2);
+}
+
+.article-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.article-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+  flex: 1;
+}
+
+.remove-article-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  opacity: 0;
+}
+
+.article-card:hover .remove-article-btn {
+  opacity: 1;
+}
+
+.remove-article-btn:hover {
+  background: rgba(231, 76, 60, 0.1);
+  color: var(--accent-red);
+}
+
+.article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.article-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.article-meta-item i {
+  font-size: 12px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+  background: var(--card-bg);
+  border: 2px dashed var(--border-color);
+  border-radius: 16px;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  background: var(--hover-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 32px;
+  color: var(--text-secondary);
+}
+
+.empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.empty-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+.empty-action {
+  padding: 12px 24px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent-purple) 0%, #8e44ad 100%);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.empty-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(155, 89, 182, 0.4);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-overlay.show {
+  display: flex;
+}
+
+.modal {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 32px;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.modal-header {
+  margin-bottom: 20px;
+}
+
+.modal-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.modal-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.modal-btn.cancel {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.modal-btn.cancel:hover {
+  background: var(--border-color);
+}
+
+.modal-btn.confirm {
+  background: var(--accent-red);
+  color: white;
+}
+
+.modal-btn.confirm:hover {
+  background: #c0392b;
+}
+
+/* Footer Bar Navigation */
+.footer-bar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 450px;
+  background: var(--card-bg);
+  border-top: 1px solid var(--border-color);
+  padding: 8px 24px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 100;
+}
+
+.footer-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 6px 12px;
+}
+
+.footer-btn:hover {
+  color: var(--text-primary);
+}
+
+.footer-btn.active {
+  color: var(--accent);
+}
+
+.footer-btn i {
+  font-size: 20px;
+}
+
+.footer-btn span {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .main-container {
+    padding: 70px 16px 100px;
+  }
+
+  .library-title {
+    font-size: 28px;
+  }
+
+  .library-actions {
+    flex-direction: column;
+  }
+
+  .action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .modal {
+    padding: 24px;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .footer-bar {
+    padding: 8px 16px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+
+  .footer-btn {
+    padding: 6px 8px;
+  }
+
+  .footer-btn i {
+    font-size: 18px;
+  }
+
+  .footer-btn span {
+    font-size: 9px;
+  }
+}
+</style>
+</head>
+<body>
+<script>
+if (localStorage.getItem("theme") === "light") {
+  document.body.classList.add("light-theme");
+}
+</script>
+
+<div class="header-wrapper">
+  <div class="header">
+    <img src="IMG_0696.png" class="logo-img" alt="Patholytica Logo" onclick="window.location.href='index.html'">
+    <div class="header-actions">
+      <div class="user-welcome" id="userWelcome">
+        <span class="welcome-text" id="welcomeText">Welcome</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="main-container">
+  <!-- Loading State -->
+  <div class="loading-state" id="loadingState">
+    <div class="loading-spinner"></div>
+    <div>Loading library...</div>
+  </div>
+
+  <!-- Main Content -->
+  <div id="mainContent" style="display: none;">
+    <div class="library-header">
+      <div class="library-icon">
+        <i class="fas fa-bookmark"></i>
+      </div>
+      <h1 class="library-title" id="libraryTitle"></h1>
+      
+      <div class="library-meta">
+        <div class="meta-item">
+          <i class="fas fa-user"></i>
+          <span id="libraryOwner"></span>
+        </div>
+        <div class="meta-item">
+          <i class="fas fa-calendar"></i>
+          <span id="libraryDate"></span>
+        </div>
+        <div class="meta-item">
+          <i class="fas fa-file-alt"></i>
+          <span id="articleCountBadge"></span>
+        </div>
+      </div>
+
+      <div class="library-description" id="libraryDescription"></div>
+
+      <div class="library-actions" id="libraryActions">
+        <!-- Actions will be inserted here -->
+      </div>
+    </div>
+
+    <div class="articles-section">
+      <div class="section-header">
+        <h2 class="section-title">
+          <i class="fas fa-file-alt"></i>
+          Articles
+        </h2>
+        <span class="article-count" id="articleCount"></span>
+      </div>
+      <div class="articles-list" id="articlesList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Delete Library?</h3>
+      <p class="modal-text">Are you sure you want to delete this library? This action cannot be undone.</p>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeDeleteModal()">Cancel</button>
+      <button class="modal-btn confirm" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remove Article Modal -->
+<div class="modal-overlay" id="removeArticleModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Remove Article?</h3>
+      <p class="modal-text">Remove this article from the library?</p>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeRemoveArticleModal()">Cancel</button>
+      <button class="modal-btn confirm" onclick="confirmRemoveArticle()">Remove</button>
+    </div>
+  </div>
+</div>
+
+<!-- Footer Bar Navigation -->
+<div class="footer-bar">
+  <button class="footer-btn" onclick="window.location.href='index.html'">
+    <i class="fas fa-home"></i>
+    <span>Home</span>
+  </button>
+  <button class="footer-btn" onclick="window.location.href='https://patholytica.com/dailyfeed'">
+    <i class="fas fa-scroll"></i>
+    <span>Feed</span>
+  </button>
+  <button class="footer-btn" onclick="window.location.href='explore.html'">
+    <i class="fas fa-search"></i>
+    <span>Explore</span>
+  </button>
+  <button class="footer-btn" onclick="window.location.href='profile.html'">
+    <i class="fas fa-user"></i>
+    <span>Profile</span>
+  </button>
+</div>
+
+<script type="module">
+// Import Firebase modules
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { 
+  getAuth, 
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+  authDomain: "patholytica.firebaseapp.com",
+  databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "patholytica",
+  storageBucket: "patholytica.firebasestorage.app",
+  messagingSenderId: "738430635282",
+  appId: "1:738430635282:web:8451ef380447c7611137cb"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// Initialize Supabase
+const SUPABASE_URL = "https://vduqewqyvszfquntmark.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c";
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Global variables
+let currentUser = null;
+let currentUserData = null;
+let libraryData = null;
+let libraryArticles = [];
+let articleToRemove = null;
+
+// Get library ID from URL
+const urlParams = new URLSearchParams(window.location.search);
+const libraryId = urlParams.get('id');
+
+if (!libraryId) {
+  window.location.href = 'profile.html';
+}
+
+// DOM Elements
+const loadingState = document.getElementById('loadingState');
+const mainContent = document.getElementById('mainContent');
+const libraryTitle = document.getElementById('libraryTitle');
+const libraryOwner = document.getElementById('libraryOwner');
+const libraryDate = document.getElementById('libraryDate');
+const articleCountBadge = document.getElementById('articleCountBadge');
+const libraryDescription = document.getElementById('libraryDescription');
+const libraryActions = document.getElementById('libraryActions');
+const articleCount = document.getElementById('articleCount');
+const articlesList = document.getElementById('articlesList');
+const deleteModal = document.getElementById('deleteModal');
+const removeArticleModal = document.getElementById('removeArticleModal');
+
+// Load library data
+async function loadLibrary() {
+  try {
+    // Fetch library
+    const { data: library, error: libraryError } = await supabase
+      .from('playlists')
+      .select('*, users(username, user_id)')
+      .eq('id', libraryId)
+      .single();
+
+    if (libraryError) throw libraryError;
+
+    libraryData = library;
+
+    // Fetch articles in library
+    const { data: items, error: itemsError } = await supabase
+      .from('playlist_items')
+      .select('*, articles(*)')
+      .eq('playlist_id', libraryId)
+      .order('created_at', { ascending: false });
+
+    if (itemsError) throw itemsError;
+
+    libraryArticles = items || [];
+
+    displayLibrary();
+    loadingState.style.display = 'none';
+    mainContent.style.display = 'block';
+
+  } catch (error) {
+    console.error('Error loading library:', error);
+    alert('Failed to load library');
+    window.location.href = 'profile.html';
+  }
+}
+
+// Display library
+function displayLibrary() {
+  libraryTitle.textContent = libraryData.name;
+  libraryOwner.textContent = `@${libraryData.users.username}`;
+  
+  const date = new Date(libraryData.created_at);
+  libraryDate.textContent = date.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric',
+    year: 'numeric'
+  });
+
+  const count = libraryArticles.length;
+  articleCountBadge.textContent = `${count} article${count !== 1 ? 's' : ''}`;
+  articleCount.textContent = `${count} article${count !== 1 ? 's' : ''}`;
+
+  if (libraryData.description) {
+    libraryDescription.textContent = libraryData.description;
+    libraryDescription.style.display = 'block';
+  } else {
+    libraryDescription.style.display = 'none';
+  }
+
+  // Display actions
+  displayActions();
+
+  // Display articles
+  displayArticles();
+}
+
+// Display actions
+function displayActions() {
+  const isOwner = currentUserData && currentUserData.user_id === libraryData.user_id;
+
+  libraryActions.innerHTML = '';
+
+  if (isOwner) {
+    libraryActions.innerHTML = `
+      <button class="action-btn primary" onclick="editLibrary()">
+        <i class="fas fa-edit"></i>
+        Edit Library
+      </button>
+      <button class="action-btn" onclick="shareLibrary()">
+        <i class="fas fa-share-alt"></i>
+        Share
+      </button>
+      <button class="action-btn danger" onclick="openDeleteModal()">
+        <i class="fas fa-trash"></i>
+        Delete
+      </button>
+    `;
+  } else {
+    libraryActions.innerHTML = `
+      <button class="action-btn primary" onclick="shareLibrary()">
+        <i class="fas fa-share-alt"></i>
+        Share Library
+      </button>
+    `;
+  }
+}
+
+// Display articles
+function displayArticles() {
+  if (libraryArticles.length === 0) {
+    articlesList.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">
+          <i class="fas fa-file-alt"></i>
+        </div>
+        <div class="empty-title">No Articles Yet</div>
+        <div class="empty-text">This library doesn't have any articles yet.</div>
+        ${currentUserData && currentUserData.user_id === libraryData.user_id ? `
+          <button class="empty-action" onclick="editLibrary()">
+            <i class="fas fa-plus"></i>
+            Add Articles
+          </button>
+        ` : ''}
+      </div>
+    `;
+    return;
+  }
+
+  const isOwner = currentUserData && currentUserData.user_id === libraryData.user_id;
+
+  articlesList.innerHTML = '';
+  libraryArticles.forEach(item => {
+    const article = item.articles;
+    if (!article) return;
+
+    const date = new Date(article.created_at);
+    const formattedDate = date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    const card = document.createElement('div');
+    card.className = 'article-card';
+    card.innerHTML = `
+      <div class="article-header">
+        <h3 class="article-title">${escapeHtml(article.title)}</h3>
+        ${isOwner ? `
+          <button class="remove-article-btn" onclick="openRemoveArticleModal(event, ${item.id})">
+            <i class="fas fa-times"></i>
+          </button>
+        ` : ''}
+      </div>
+      <div class="article-meta">
+        <div class="article-meta-item">
+          <i class="fas fa-calendar"></i>
+          <span>${formattedDate}</span>
+        </div>
+        <div class="article-meta-item">
+          <i class="fas fa-eye"></i>
+          <span>${article.views || 0} views</span>
+        </div>
+      </div>
+    `;
+
+    card.onclick = (e) => {
+      if (!e.target.closest('.remove-article-btn')) {
+        window.location.href = `article.html?id=${article.id}`;
+      }
+    };
+
+    articlesList.appendChild(card);
+  });
+}
+
+// Edit library
+window.editLibrary = function() {
+  // For now, redirect to create page (you could create an edit page)
+  alert('Edit functionality coming soon!');
+};
+
+// Share library
+window.shareLibrary = function() {
+  const url = window.location.href;
+  
+  if (navigator.share) {
+    navigator.share({
+      title: libraryData.name,
+      text: libraryData.description || 'Check out this library on Patholytica',
+      url: url
+    }).catch(err => {
+      if (err.name !== 'AbortError') {
+        copyToClipboard(url);
+      }
+    });
+  } else {
+    copyToClipboard(url);
+  }
+};
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    alert('Link copied to clipboard!');
+  }).catch(() => {
+    alert('Failed to copy link');
+  });
+}
+
+// Delete library
+window.openDeleteModal = function() {
+  deleteModal.classList.add('show');
+};
+
+window.closeDeleteModal = function() {
+  deleteModal.classList.remove('show');
+};
+
+window.confirmDelete = async function() {
+  try {
+    // Delete all playlist items first
+    const { error: itemsError } = await supabase
+      .from('playlist_items')
+      .delete()
+      .eq('playlist_id', libraryId);
+
+    if (itemsError) throw itemsError;
+
+    // Delete the playlist
+    const { error: playlistError } = await supabase
+      .from('playlists')
+      .delete()
+      .eq('id', libraryId);
+
+    if (playlistError) throw playlistError;
+
+    alert('Library deleted successfully');
+    window.location.href = 'profile.html';
+
+  } catch (error) {
+    console.error('Error deleting library:', error);
+    alert('Failed to delete library');
+    closeDeleteModal();
+  }
+};
+
+// Remove article from library
+window.openRemoveArticleModal = function(event, itemId) {
+  event.stopPropagation();
+  articleToRemove = itemId;
+  removeArticleModal.classList.add('show');
+};
+
+window.closeRemoveArticleModal = function() {
+  removeArticleModal.classList.remove('show');
+  articleToRemove = null;
+};
+
+window.confirmRemoveArticle = async function() {
+  if (!articleToRemove) return;
+
+  try {
+    const { error } = await supabase
+      .from('playlist_items')
+      .delete()
+      .eq('id', articleToRemove);
+
+    if (error) throw error;
+
+    // Reload library
+    await loadLibrary();
+    closeRemoveArticleModal();
+
+  } catch (error) {
+    console.error('Error removing article:', error);
+    alert('Failed to remove article');
+    closeRemoveArticleModal();
+  }
+};
+
+// Helper function
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Close modals on overlay click
+deleteModal.onclick = function(e) {
+  if (e.target === deleteModal) {
+    closeDeleteModal();
+  }
+};
+
+removeArticleModal.onclick = function(e) {
+  if (e.target === removeArticleModal) {
+    closeRemoveArticleModal();
+  }
+};
+
+// Check authentication
+onAuthStateChanged(auth, async (user) => {
+  const userWelcome = document.getElementById('userWelcome');
+  const welcomeText = document.getElementById('welcomeText');
+  
+  if (user) {
+    currentUser = user;
+    userWelcome.classList.add('show');
+    
+    try {
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('firebase_uid', user.uid)
+        .single();
+      
+      if (error) throw error;
+      
+      currentUserData = userData;
+      welcomeText.textContent = `@${userData.username}`;
+      welcomeText.onclick = () => window.location.href = 'profile.html';
+      
+      // Load library after user is authenticated
+      await loadLibrary();
+      
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      await loadLibrary(); // Still try to load library
+    }
+  } else {
+    // Not authenticated, still load library (public view)
+    await loadLibrary();
+  }
+});
+</script>
+</body>
+</html>
