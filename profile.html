@@ -4,9 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Patholytica — Profile</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- Resource hints for faster loading -->
+<link rel="preconnect" href="https://vduqewqyvszfquntmark.supabase.co">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+<link rel="dns-prefetch" href="https://www.gstatic.com">
+
+<!-- Load fonts with display=swap to prevent blocking -->
 <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Defer Font Awesome loading -->
+<link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+
 <style>
 :root {
   --bg-color: #1f1f1f;
@@ -53,6 +65,7 @@ body {
   width: 100%;
   height: 450px;
   overflow: hidden;
+  background-color: #2a2a2a; /* Fallback while image loads */
 }
 
 .hero-background {
@@ -63,6 +76,12 @@ body {
   bottom: 0;
   background-size: cover;
   background-position: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.hero-background.loaded {
+  opacity: 1;
 }
 
 .hero-overlay {
@@ -1076,6 +1095,8 @@ if (localStorage.getItem("theme") === "light") {
   </button>
 </div>
 
+<!-- Load Supabase and Firebase ASYNCHRONOUSLY after page content -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <script type="module">
 // Import Firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -1085,588 +1106,615 @@ import {
   signOut
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
-  authDomain: "patholytica.firebaseapp.com",
-  databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "patholytica",
-  storageBucket: "patholytica.firebasestorage.app",
-  messagingSenderId: "738430635282",
-  appId: "1:738430635282:web:8451ef380447c7611137cb"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-
-// Initialize Supabase
-const supabase = window.supabase.createClient(
-  "https://vduqewqyvszfquntmark.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
-);
-
-// Global variables
-let currentUser = null;
-let currentUserData = null;
-let viewingUserData = null;
-let selectedImageDataUrl = null;
-let isOwnProfile = false;
-
-// Generate random natural scene background using Unsplash
-function generateNaturalSceneBackground() {
-  const scenes = [
-    'nature/mountain',
-    'nature/forest',
-    'nature/ocean',
-    'nature/sunset',
-    'nature/landscape',
-    'nature/beach',
-    'nature/lake',
-    'nature/river',
-    'nature/sky',
-    'nature/valley',
-    'nature/hill',
-    'nature/waterfall',
-    'nature/desert',
-    'nature/field',
-    'nature/meadow'
-  ];
-  const randomScene = scenes[Math.floor(Math.random() * scenes.length)];
-  const randomSeed = Math.floor(Math.random() * 1000);
-  return `https://source.unsplash.com/1600x900/?${randomScene}&sig=${randomSeed}`;
-}
-
-// Get URL parameters
-function getUrlParameter(name) {
-  const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get(name);
-}
-
-// Load profile data
-async function loadProfile(loggedInUser) {
-  const profileContent = document.getElementById('profileContent');
-  currentUser = loggedInUser;
-  
-  // Check if we're viewing someone else's profile via URL parameter
-  const usernameParam = getUrlParameter('username');
-  
-  try {
-    console.log('Loading profile...', usernameParam ? `for username: ${usernameParam}` : 'for logged-in user');
-    
-    let userData;
-    let userFirebaseId;
-    let userId;
-    
-    if (usernameParam) {
-      // Viewing someone else's profile
-      const { data: profileUser, error: profileError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('username', usernameParam)
-        .single();
-
-      if (profileError || !profileUser) {
-        console.error('Error fetching profile user:', profileError);
-        profileContent.innerHTML = '<div class="error-state">User not found</div>';
-        return;
-      }
-
-      userData = profileUser;
-      userFirebaseId = profileUser.firebase_uid;
-      userId = profileUser.user_id;
-      viewingUserData = userData;
-      
-      // Check if this is the logged-in user's own profile
-      isOwnProfile = loggedInUser && loggedInUser.uid === userFirebaseId;
+// Wait for Supabase to load
+function waitForSupabase() {
+  return new Promise((resolve) => {
+    if (window.supabase) {
+      resolve();
     } else {
-      // Viewing own profile (no username parameter)
-      if (!loggedInUser) {
-        profileContent.innerHTML = '<div class="error-state">Please log in to view your profile</div>';
-        setTimeout(() => {
-          window.location.href = 'login.html';
-        }, 1500);
-        return;
-      }
-      
-      const { data: ownUserData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('firebase_uid', loggedInUser.uid)
-        .single();
-
-      if (userError) {
-        console.error('Error fetching user:', userError);
-        profileContent.innerHTML = '<div class="error-state">Error loading profile</div>';
-        return;
-      }
-
-      userData = ownUserData;
-      userFirebaseId = loggedInUser.uid;
-      userId = ownUserData.user_id;
-      currentUserData = userData;
-      viewingUserData = userData;
-      isOwnProfile = true;
+      const checkInterval = setInterval(() => {
+        if (window.supabase) {
+          clearInterval(checkInterval);
+          resolve();
+        }
+      }, 50);
     }
+  });
+}
 
-    // Fetch user's articles
-    const { data: articles, error: articlesError } = await supabase
-      .from('articles')
-      .select('*')
-      .eq('firebase_user_id', userFirebaseId)
-      .order('created_at', { ascending: false });
+// Initialize immediately
+(async function() {
+  // Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+    authDomain: "patholytica.firebaseapp.com",
+    databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "patholytica",
+    storageBucket: "patholytica.firebasestorage.app",
+    messagingSenderId: "738430635282",
+    appId: "1:738430635282:web:8451ef380447c7611137cb"
+  };
 
-    if (articlesError) {
-      console.error('Error fetching articles:', articlesError);
-    }
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
 
-    // Fetch user's libraries
-    const { data: libraries, error: librariesError } = await supabase
-      .from('playlists')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+  // Wait for Supabase to be available
+  await waitForSupabase();
 
-    if (librariesError) {
-      console.error('Error fetching libraries:', librariesError);
-    }
+  // Initialize Supabase
+  const supabase = window.supabase.createClient(
+    "https://vduqewqyvszfquntmark.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
+  );
 
-    const articleCount = articles ? articles.length : 0;
-    const libraryCount = libraries ? libraries.length : 0;
-    const totalViews = articles ? articles.reduce((sum, article) => sum + (article.views || 0), 0) : 0;
-    const totalLikes = articles ? articles.reduce((sum, article) => sum + (article.likes || 0), 0) : 0;
+  // Global variables
+  let currentUser = null;
+  let currentUserData = null;
+  let viewingUserData = null;
+  let selectedImageDataUrl = null;
+  let isOwnProfile = false;
 
-    // Format joined date
-    const joinedDate = userData.created_at ? new Date(userData.created_at) : null;
-    const joinedText = joinedDate ? joinedDate.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short'
-    }) : 'Unknown';
+  // Static background scene for better caching (removed random element)
+  function generateNaturalSceneBackground() {
+    const scenes = [
+      'nature/mountain',
+      'nature/forest',
+      'nature/ocean',
+      'nature/sunset',
+      'nature/landscape'
+    ];
+    const dayOfYear = Math.floor((Date.now() / (1000 * 60 * 60 * 24)) % scenes.length);
+    return `https://source.unsplash.com/1600x900/?${scenes[dayOfYear]}`;
+  }
 
-    // Build profile HTML
-    let avatarHTML = userData.pfp 
-      ? `<img src="${userData.pfp}" alt="Profile Picture">`
-      : `<i class="fas fa-user"></i>`;
+  // Lazy load background image
+  function lazyLoadBackground(element, imageUrl) {
+    const img = new Image();
+    img.onload = function() {
+      element.style.backgroundImage = `url('${imageUrl}')`;
+      element.classList.add('loaded');
+    };
+    img.src = imageUrl;
+  }
 
-    const backgroundImage = generateNaturalSceneBackground();
+  // Get URL parameters
+  function getUrlParameter(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
+  }
 
-    let profileHTML = `
-      <div class="profile-hero">
-        <div class="hero-background" style="background-image: url('${backgroundImage}');"></div>
-        <div class="hero-overlay"></div>
-        <div class="hero-content">
-          <div class="profile-avatar-large">
-            ${avatarHTML}
-          </div>
-          <div class="hero-info">
-            <h1 class="profile-username-hero">@${userData.username || 'User'}</h1>
-            <div class="profile-meta-row">
-              <div class="meta-item">
-                <i class="fas fa-calendar-alt"></i>
-                <span>Joined ${joinedText}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="profile-container">
-    `;
-
-    // Bio card (appears first, above counters)
-    if (userData.bio || isOwnProfile) {
-      profileHTML += `
-        <div class="bio-card">
-          <div class="bio-title">About</div>
-          ${userData.bio 
-            ? `<div class="bio-content">${userData.bio}</div>` 
-            : `<div class="bio-empty">No bio yet${isOwnProfile ? ' — add one by editing your profile' : ''}</div>`
-          }
-        </div>
-      `;
-    }
-
-    // Stats grid
-    profileHTML += `
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon">
-              <i class="fas fa-file-alt"></i>
-            </div>
-            <div class="stat-value">${articleCount}</div>
-            <div class="stat-label">Articles</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon libraries">
-              <i class="fas fa-bookmark"></i>
-            </div>
-            <div class="stat-value">${libraryCount}</div>
-            <div class="stat-label">Libraries</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">
-              <i class="fas fa-eye"></i>
-            </div>
-            <div class="stat-value">${totalViews}</div>
-            <div class="stat-label">Total Views</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">
-              <i class="fas fa-heart"></i>
-            </div>
-            <div class="stat-value">${totalLikes}</div>
-            <div class="stat-label">Total Likes</div>
-          </div>
-        </div>
-    `;
-
-    // Show edit/logout buttons only on own profile
-    if (isOwnProfile) {
-      profileHTML += `
-        <div class="profile-actions">
-          <button class="btn-edit" onclick="openEditModal()">
-            <i class="fas fa-edit"></i>
-            Edit Profile
-          </button>
-          <button class="btn-logout" onclick="logOut()">
-            <i class="fas fa-sign-out-alt"></i>
-            Log Out
-          </button>
-        </div>
-      `;
-    }
-
-    // Add libraries section (before articles)
-    const librariesTitle = isOwnProfile ? 'Your Libraries' : `Libraries by @${userData.username}`;
+  // Load profile data - OPTIMIZED WITH PARALLEL QUERIES
+  async function loadProfile(loggedInUser) {
+    const profileContent = document.getElementById('profileContent');
+    currentUser = loggedInUser;
     
-    profileHTML += `
-      <div class="libraries-section">
-        <div class="section-header">
-          <h2 class="section-title">${librariesTitle}</h2>
-          ${libraryCount > 0 ? `<span class="count-badge">${libraryCount}</span>` : ''}
-        </div>
-    `;
+    // Check if we're viewing someone else's profile via URL parameter
+    const usernameParam = getUrlParameter('username');
+    
+    try {
+      console.log('Loading profile...', usernameParam ? `for username: ${usernameParam}` : 'for logged-in user');
+      
+      let userData;
+      let userFirebaseId;
+      let userId;
+      
+      if (usernameParam) {
+        // Viewing someone else's profile
+        const { data: profileUser, error: profileError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('username', usernameParam)
+          .single();
 
-    if (libraries && libraries.length > 0) {
-      profileHTML += `<div class="library-grid">`;
+        if (profileError || !profileUser) {
+          console.error('Error fetching profile user:', profileError);
+          profileContent.innerHTML = '<div class="error-state">User not found</div>';
+          return;
+        }
 
-      libraries.forEach(library => {
-        const date = new Date(library.created_at);
-        const formattedDate = date.toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'short', 
-          day: 'numeric' 
-        });
+        userData = profileUser;
+        userFirebaseId = profileUser.firebase_uid;
+        userId = profileUser.user_id;
+        viewingUserData = userData;
+        
+        // Check if this is the logged-in user's own profile
+        isOwnProfile = loggedInUser && loggedInUser.uid === userFirebaseId;
+      } else {
+        // Viewing own profile (no username parameter)
+        if (!loggedInUser) {
+          profileContent.innerHTML = '<div class="error-state">Please log in to view your profile</div>';
+          setTimeout(() => {
+            window.location.href = 'login.html';
+          }, 1500);
+          return;
+        }
+        
+        const { data: ownUserData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('firebase_uid', loggedInUser.uid)
+          .single();
 
-        const description = library.description || 'No description';
+        if (userError) {
+          console.error('Error fetching user:', userError);
+          profileContent.innerHTML = '<div class="error-state">Error loading profile</div>';
+          return;
+        }
 
-        profileHTML += `
-          <div class="library-card" onclick="openLibrary('${library.id}')">
-            <div class="library-icon">
-              <i class="fas fa-bookmark"></i>
+        userData = ownUserData;
+        userFirebaseId = loggedInUser.uid;
+        userId = ownUserData.user_id;
+        currentUserData = userData;
+        viewingUserData = userData;
+        isOwnProfile = true;
+      }
+
+      // OPTIMIZATION: Fetch articles, libraries, and total article count in parallel
+      const [articlesResult, librariesResult, totalArticlesResult] = await Promise.all([
+        supabase
+          .from('articles')
+          .select('*')
+          .eq('firebase_user_id', userFirebaseId)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('playlists')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('articles')
+          .select('id')
+      ]);
+
+      const { data: articles, error: articlesError } = articlesResult;
+      const { data: libraries, error: librariesError } = librariesResult;
+      const { data: allArticles } = totalArticlesResult;
+
+      if (articlesError) {
+        console.error('Error fetching articles:', articlesError);
+      }
+
+      if (librariesError) {
+        console.error('Error fetching libraries:', librariesError);
+      }
+
+      const articleCount = articles ? articles.length : 0;
+      const libraryCount = libraries ? libraries.length : 0;
+      const totalViews = articles ? articles.reduce((sum, article) => sum + (article.views || 0), 0) : 0;
+      const totalLikes = articles ? articles.reduce((sum, article) => sum + (article.likes || 0), 0) : 0;
+
+      // Format joined date
+      const joinedDate = userData.created_at ? new Date(userData.created_at) : null;
+      const joinedText = joinedDate ? joinedDate.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short'
+      }) : 'Unknown';
+
+      // Build profile HTML
+      let avatarHTML = userData.pfp 
+        ? `<img src="${userData.pfp}" alt="Profile Picture">`
+        : `<i class="fas fa-user"></i>`;
+
+      const backgroundImage = generateNaturalSceneBackground();
+
+      let profileHTML = `
+        <div class="profile-hero">
+          <div class="hero-background" id="heroBackground"></div>
+          <div class="hero-overlay"></div>
+          <div class="hero-content">
+            <div class="profile-avatar-large">
+              ${avatarHTML}
             </div>
-            <div class="library-content">
-              <h3 class="library-title">${library.name}</h3>
-              <p class="library-description">${description}</p>
-              <div class="library-meta">
-                <div class="library-date">
-                  <i class="fas fa-calendar"></i>
-                  <span>${formattedDate}</span>
+            <div class="hero-info">
+              <h1 class="profile-username-hero">@${userData.username || 'User'}</h1>
+              <div class="profile-meta-row">
+                <div class="meta-item">
+                  <i class="fas fa-calendar-alt"></i>
+                  <span>Joined ${joinedText}</span>
                 </div>
               </div>
             </div>
           </div>
-        `;
-      });
-
-      profileHTML += `</div>`;
-    } else {
-      const emptyMessage = isOwnProfile 
-        ? "You haven't created any libraries yet" 
-        : "This user hasn't created any libraries yet";
-      
-      profileHTML += `
-        <div class="empty-state">
-          <div class="empty-state-icon">
-            <i class="fas fa-bookmark"></i>
-          </div>
-          <div class="empty-state-title">No libraries yet</div>
-          <p class="empty-state-text">${emptyMessage}</p>
         </div>
+
+        <div class="profile-container">
       `;
-    }
 
-    profileHTML += `</div>`;
-
-    // Add articles section
-    const articlesTitle = isOwnProfile ? 'Your Articles' : `Articles by @${userData.username}`;
-    
-    profileHTML += `
-      <div class="articles-section">
-        <div class="section-header">
-          <h2 class="section-title">${articlesTitle}</h2>
-          ${articleCount > 0 ? `<span class="article-count-badge">${articleCount}</span>` : ''}
-        </div>
-    `;
-
-    if (articles && articles.length > 0) {
-      profileHTML += `<div class="article-grid">`;
-
-      articles.forEach(article => {
-        const date = new Date(article.created_at);
-        const formattedDate = date.toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'short', 
-          day: 'numeric' 
-        });
-
+      // Bio card (appears first, above counters)
+      if (userData.bio || isOwnProfile) {
         profileHTML += `
-          <div class="article-card" onclick="openArticle('${article.id}')">
-            <h3 class="article-card-title">${article.title}</h3>
-            <div class="article-card-meta">
-              <div class="meta-badge">
-                <i class="fas fa-calendar"></i>
-                <span>${formattedDate}</span>
+          <div class="bio-card">
+            <div class="bio-title">About</div>
+            ${userData.bio 
+              ? `<div class="bio-content">${userData.bio}</div>` 
+              : `<div class="bio-empty">No bio yet${isOwnProfile ? ' — add one by editing your profile' : ''}</div>`
+            }
+          </div>
+        `;
+      }
+
+      // Stats grid
+      profileHTML += `
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fas fa-file-alt"></i>
               </div>
-              <div class="meta-badge">
+              <div class="stat-value">${articleCount}</div>
+              <div class="stat-label">Articles</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon libraries">
+                <i class="fas fa-bookmark"></i>
+              </div>
+              <div class="stat-value">${libraryCount}</div>
+              <div class="stat-label">Libraries</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">
                 <i class="fas fa-eye"></i>
-                <span>${article.views || 0}</span>
               </div>
-              <div class="meta-badge">
+              <div class="stat-value">${totalViews}</div>
+              <div class="stat-label">Total Views</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">
                 <i class="fas fa-heart"></i>
-                <span>${article.likes || 0}</span>
               </div>
+              <div class="stat-value">${totalLikes}</div>
+              <div class="stat-label">Total Likes</div>
             </div>
           </div>
-        `;
-      });
+      `;
 
-      profileHTML += `</div>`;
-    } else {
-      const emptyMessage = isOwnProfile 
-        ? "You haven't written any articles yet" 
-        : "This user hasn't written any articles yet";
+      // Show edit/logout buttons only on own profile
+      if (isOwnProfile) {
+        profileHTML += `
+          <div class="profile-actions">
+            <button class="btn-edit" onclick="openEditModal()">
+              <i class="fas fa-edit"></i>
+              Edit Profile
+            </button>
+            <button class="btn-logout" onclick="logOut()">
+              <i class="fas fa-sign-out-alt"></i>
+              Log Out
+            </button>
+          </div>
+        `;
+      }
+
+      // Add libraries section (before articles)
+      const librariesTitle = isOwnProfile ? 'Your Libraries' : `Libraries by @${userData.username}`;
       
       profileHTML += `
-        <div class="empty-state">
-          <div class="empty-state-icon">
-            <i class="fas fa-file-alt"></i>
+        <div class="libraries-section">
+          <div class="section-header">
+            <h2 class="section-title">${librariesTitle}</h2>
+            ${libraryCount > 0 ? `<span class="count-badge">${libraryCount}</span>` : ''}
           </div>
-          <div class="empty-state-title">No articles yet</div>
-          <p class="empty-state-text">${emptyMessage}</p>
-        </div>
       `;
+
+      if (libraries && libraries.length > 0) {
+        profileHTML += `<div class="library-grid">`;
+
+        libraries.forEach(library => {
+          const date = new Date(library.created_at);
+          const formattedDate = date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          });
+
+          const description = library.description || 'No description';
+
+          profileHTML += `
+            <div class="library-card" onclick="openLibrary('${library.id}')">
+              <div class="library-icon">
+                <i class="fas fa-bookmark"></i>
+              </div>
+              <div class="library-content">
+                <h3 class="library-title">${library.name}</h3>
+                <p class="library-description">${description}</p>
+                <div class="library-meta">
+                  <div class="library-date">
+                    <i class="fas fa-calendar"></i>
+                    <span>${formattedDate}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+
+        profileHTML += `</div>`;
+      } else {
+        const emptyMessage = isOwnProfile 
+          ? "You haven't created any libraries yet" 
+          : "This user hasn't created any libraries yet";
+        
+        profileHTML += `
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <i class="fas fa-bookmark"></i>
+            </div>
+            <div class="empty-state-title">No libraries yet</div>
+            <p class="empty-state-text">${emptyMessage}</p>
+          </div>
+        `;
+      }
+
+      profileHTML += `</div>`;
+
+      // Add articles section
+      const articlesTitle = isOwnProfile ? 'Your Articles' : `Articles by @${userData.username}`;
+      
+      profileHTML += `
+        <div class="articles-section">
+          <div class="section-header">
+            <h2 class="section-title">${articlesTitle}</h2>
+            ${articleCount > 0 ? `<span class="article-count-badge">${articleCount}</span>` : ''}
+          </div>
+      `;
+
+      if (articles && articles.length > 0) {
+        profileHTML += `<div class="article-grid">`;
+
+        articles.forEach(article => {
+          const date = new Date(article.created_at);
+          const formattedDate = date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          });
+
+          profileHTML += `
+            <div class="article-card" onclick="openArticle('${article.id}')">
+              <h3 class="article-card-title">${article.title}</h3>
+              <div class="article-card-meta">
+                <div class="meta-badge">
+                  <i class="fas fa-calendar"></i>
+                  <span>${formattedDate}</span>
+                </div>
+                <div class="meta-badge">
+                  <i class="fas fa-eye"></i>
+                  <span>${article.views || 0}</span>
+                </div>
+                <div class="meta-badge">
+                  <i class="fas fa-heart"></i>
+                  <span>${article.likes || 0}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+
+        profileHTML += `</div>`;
+      } else {
+        const emptyMessage = isOwnProfile 
+          ? "You haven't written any articles yet" 
+          : "This user hasn't written any articles yet";
+        
+        profileHTML += `
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <i class="fas fa-file-alt"></i>
+            </div>
+            <div class="empty-state-title">No articles yet</div>
+            <p class="empty-state-text">${emptyMessage}</p>
+          </div>
+        `;
+      }
+
+      profileHTML += `</div></div>`;
+
+      profileContent.innerHTML = profileHTML;
+
+      // Lazy load background image AFTER content is rendered
+      const heroBackground = document.getElementById('heroBackground');
+      if (heroBackground) {
+        lazyLoadBackground(heroBackground, backgroundImage);
+      }
+
+      // Update global article count
+      document.getElementById('articleCount').textContent = allArticles ? allArticles.length : 0;
+      
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      profileContent.innerHTML = '<div class="error-state">An unexpected error occurred</div>';
     }
+  }
 
-    profileHTML += `</div></div>`;
-
-    profileContent.innerHTML = profileHTML;
-
-    // Update global article count
-    const { data: allArticles } = await supabase
-      .from('articles')
-      .select('id');
-    document.getElementById('articleCount').textContent = allArticles ? allArticles.length : 0;
+  // Open edit modal
+  window.openEditModal = function() {
+    if (!isOwnProfile) return;
     
-  } catch (err) {
-    console.error('Unexpected error:', err);
-    profileContent.innerHTML = '<div class="error-state">An unexpected error occurred</div>';
-  }
-}
-
-// Open edit modal
-window.openEditModal = function() {
-  if (!isOwnProfile) return; // Only allow editing own profile
-  
-  const modal = document.getElementById('editModal');
-  const bioInput = document.getElementById('bioInput');
-  const avatarPreview = document.getElementById('avatarPreview');
-  const removeBtn = document.getElementById('removeBtn');
-  
-  // Populate current data
-  bioInput.value = currentUserData.bio || '';
-  
-  // Show current avatar
-  if (currentUserData.pfp) {
-    avatarPreview.innerHTML = `<img src="${currentUserData.pfp}" alt="Profile Picture">`;
-    removeBtn.style.display = 'block';
-  } else {
-    avatarPreview.innerHTML = `<i class="fas fa-user"></i>`;
-    removeBtn.style.display = 'none';
-  }
-  
-  selectedImageDataUrl = null;
-  modal.classList.add('show');
-};
-
-// Close edit modal
-window.closeEditModal = function() {
-  const modal = document.getElementById('editModal');
-  modal.classList.remove('show');
-  selectedImageDataUrl = null;
-  document.getElementById('fileInput').value = '';
-};
-
-// Handle image selection
-window.handleImageSelect = function(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  
-  // Check file size (2MB max to keep database manageable)
-  if (file.size > 2 * 1024 * 1024) {
-    alert('File size must be less than 2MB');
-    event.target.value = '';
-    return;
-  }
-  
-  // Check file type
-  if (!file.type.startsWith('image/')) {
-    alert('Please select an image file');
-    event.target.value = '';
-    return;
-  }
-  
-  // Convert to base64
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    selectedImageDataUrl = e.target.result;
+    const modal = document.getElementById('editModal');
+    const bioInput = document.getElementById('bioInput');
     const avatarPreview = document.getElementById('avatarPreview');
     const removeBtn = document.getElementById('removeBtn');
-    avatarPreview.innerHTML = `<img src="${selectedImageDataUrl}" alt="Preview">`;
-    removeBtn.style.display = 'block';
-  };
-  reader.readAsDataURL(file);
-};
-
-// Remove image
-window.removeImage = function() {
-  selectedImageDataUrl = '';  // Empty string means remove the image
-  const avatarPreview = document.getElementById('avatarPreview');
-  const removeBtn = document.getElementById('removeBtn');
-  const fileInput = document.getElementById('fileInput');
-  
-  avatarPreview.innerHTML = `<i class="fas fa-user"></i>`;
-  removeBtn.style.display = 'none';
-  fileInput.value = '';
-};
-
-// Save profile
-window.saveProfile = async function() {
-  if (!isOwnProfile || !currentUser) return; // Only allow editing own profile
-  
-  const saveBtn = document.getElementById('saveBtn');
-  const bioInput = document.getElementById('bioInput');
-  
-  saveBtn.disabled = true;
-  saveBtn.textContent = 'Saving...';
-  
-  try {
-    // Prepare update object
-    const updateData = {
-      bio: bioInput.value.trim()
-    };
     
-    // Handle profile picture
-    if (selectedImageDataUrl !== null) {
-      // User changed the image (could be new image or removal)
-      updateData.pfp = selectedImageDataUrl || null;
+    bioInput.value = currentUserData.bio || '';
+    
+    if (currentUserData.pfp) {
+      avatarPreview.innerHTML = `<img src="${currentUserData.pfp}" alt="Profile Picture">`;
+      removeBtn.style.display = 'block';
+    } else {
+      avatarPreview.innerHTML = `<i class="fas fa-user"></i>`;
+      removeBtn.style.display = 'none';
     }
-    // If selectedImageDataUrl is null, keep the existing pfp value
     
-    // Update user data
-    const { error: updateError } = await supabase
-      .from('users')
-      .update(updateData)
-      .eq('firebase_uid', currentUser.uid);
+    selectedImageDataUrl = null;
+    modal.classList.add('show');
+  };
+
+  window.closeEditModal = function() {
+    const modal = document.getElementById('editModal');
+    modal.classList.remove('show');
+    selectedImageDataUrl = null;
+    document.getElementById('fileInput').value = '';
+  };
+
+  window.handleImageSelect = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
     
-    if (updateError) {
-      console.error('Update error:', updateError);
-      alert('Error saving profile. Please try again.');
-      saveBtn.disabled = false;
-      saveBtn.textContent = 'Save Changes';
+    if (file.size > 2 * 1024 * 1024) {
+      alert('File size must be less than 2MB');
+      event.target.value = '';
       return;
     }
     
-    // Reload profile
-    await loadProfile(currentUser);
-    closeEditModal();
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      event.target.value = '';
+      return;
+    }
     
-  } catch (err) {
-    console.error('Unexpected error:', err);
-    alert('An unexpected error occurred. Please try again.');
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      selectedImageDataUrl = e.target.result;
+      const avatarPreview = document.getElementById('avatarPreview');
+      const removeBtn = document.getElementById('removeBtn');
+      avatarPreview.innerHTML = `<img src="${selectedImageDataUrl}" alt="Preview">`;
+      removeBtn.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  };
+
+  window.removeImage = function() {
+    selectedImageDataUrl = '';
+    const avatarPreview = document.getElementById('avatarPreview');
+    const removeBtn = document.getElementById('removeBtn');
+    const fileInput = document.getElementById('fileInput');
+    
+    avatarPreview.innerHTML = `<i class="fas fa-user"></i>`;
+    removeBtn.style.display = 'none';
+    fileInput.value = '';
+  };
+
+  window.saveProfile = async function() {
+    if (!isOwnProfile || !currentUser) return;
+    
+    const saveBtn = document.getElementById('saveBtn');
+    const bioInput = document.getElementById('bioInput');
+    
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    
+    try {
+      const updateData = {
+        bio: bioInput.value.trim()
+      };
+      
+      if (selectedImageDataUrl !== null) {
+        updateData.pfp = selectedImageDataUrl || null;
+      }
+      
+      const { error: updateError } = await supabase
+        .from('users')
+        .update(updateData)
+        .eq('firebase_uid', currentUser.uid);
+      
+      if (updateError) {
+        console.error('Update error:', updateError);
+        alert('Error saving profile. Please try again.');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Changes';
+        return;
+      }
+      
+      await loadProfile(currentUser);
+      closeEditModal();
+      
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      alert('An unexpected error occurred. Please try again.');
+    }
+    
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save Changes';
+  };
+
+  window.logOut = async function() {
+    try {
+      await signOut(auth);
+      console.log("User logged out");
+      window.location.href = 'index.html';
+    } catch (error) {
+      console.error("Error logging out:", error);
+      alert("Error logging out. Please try again.");
+    }
+  };
+
+  window.openLibrary = function(libraryId) {
+    window.location.href = `playlist.html?id=${libraryId}`;
+  };
+
+  window.openArticle = function(articleId) {
+    window.location.href = `article.html?id=${articleId}`;
+  };
+
+  // CRITICAL FIX: Start loading immediately instead of waiting for auth
+  const usernameParam = getUrlParameter('username');
+  
+  // If viewing someone's profile, load immediately without waiting for auth
+  if (usernameParam) {
+    loadProfile(null);
   }
   
-  saveBtn.disabled = false;
-  saveBtn.textContent = 'Save Changes';
-};
-
-// Log out function
-window.logOut = async function() {
-  try {
-    await signOut(auth);
-    console.log("User logged out");
-    window.location.href = 'index.html';
-  } catch (error) {
-    console.error("Error logging out:", error);
-    alert("Error logging out. Please try again.");
-  }
-};
-
-// Open library function
-window.openLibrary = function(libraryId) {
-  window.location.href = `playlist.html?id=${libraryId}`;
-};
-
-// Open article function
-window.openArticle = function(articleId) {
-  window.location.href = `article.html?id=${articleId}`;
-};
-
-// Check authentication state
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    // User is logged in
-    try {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('*')
-        .eq('firebase_uid', user.uid)
-        .single();
-      
-      if (userData) {
-        currentUserData = userData;
+  // Check authentication state in background
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      try {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('*')
+          .eq('firebase_uid', user.uid)
+          .single();
+        
+        if (userData) {
+          currentUserData = userData;
+        }
+      } catch (error) {
+        console.error('Error fetching username:', error);
       }
-    } catch (error) {
-      console.error('Error fetching username:', error);
-    }
 
-    // Load profile (either own or someone else's based on URL)
-    loadProfile(user);
-  } else {
-    // User is logged out
-    
-    // Check if trying to view someone's profile via URL parameter
-    const usernameParam = getUrlParameter('username');
-    if (usernameParam) {
-      // Allow viewing other profiles even when logged out
-      loadProfile(null);
+      // Only load profile if we haven't already (i.e., no username param)
+      if (!usernameParam) {
+        loadProfile(user);
+      } else {
+        // Reload if this is actually the user's own profile
+        const { data: profileUser } = await supabase
+          .from('users')
+          .select('firebase_uid')
+          .eq('username', usernameParam)
+          .single();
+        
+        if (profileUser && profileUser.firebase_uid === user.uid) {
+          loadProfile(user);
+        }
+      }
     } else {
-      // Redirect to login if trying to access profile without being logged in
-      const profileContent = document.getElementById('profileContent');
-      profileContent.innerHTML = '<div class="error-state">Please log in to view your profile</div>';
-      setTimeout(() => {
-        window.location.href = 'login.html';
-      }, 1500);
+      // User is logged out
+      if (!usernameParam) {
+        const profileContent = document.getElementById('profileContent');
+        profileContent.innerHTML = '<div class="error-state">Please log in to view your profile</div>';
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 1500);
+      }
+      // If usernameParam exists, profile already loaded above
     }
-  }
-});
+  });
 
-// Close modal when clicking outside
-document.getElementById('editModal').addEventListener('click', function(e) {
-  if (e.target === this) {
-    closeEditModal();
-  }
-});
+  // Close modal when clicking outside
+  document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      closeEditModal();
+    }
+  });
+})();
 </script>
 </body>
 </html>
