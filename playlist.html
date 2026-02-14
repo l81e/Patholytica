@@ -582,7 +582,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// Initialize Supabase with CORRECT API KEY from login page
+// Initialize Supabase
 const supabase = window.supabase.createClient(
   "https://vduqewqyvszfquntmark.supabase.co",
   "sb_publishable_YseP73aoHam8YT6B0b9EQQ_iAUEWARI"
@@ -600,7 +600,6 @@ libraryId = urlParams.get('id');
 
 console.log('=== LIBRARY PAGE DEBUG ===');
 console.log('Library ID from URL:', libraryId);
-console.log('Full URL:', window.location.href);
 
 // Helper function to escape HTML
 function escapeHtml(text) {
@@ -632,17 +631,13 @@ async function loadLibrary() {
 
     if (libraryError) {
       console.error('❌ Error fetching library:', libraryError);
-      console.error('Error code:', libraryError.code);
-      console.error('Error message:', libraryError.message);
-      console.error('Error details:', libraryError.details);
-      console.error('Error hint:', libraryError.hint);
       loadingState.style.display = 'none';
       emptyState.style.display = 'block';
       return;
     }
 
     if (!library) {
-      console.error('❌ Library not found - query returned null/undefined');
+      console.error('❌ Library not found');
       loadingState.style.display = 'none';
       emptyState.style.display = 'block';
       return;
@@ -660,17 +655,13 @@ async function loadLibrary() {
       .single();
 
     console.log('Creator query result:', { creator, error: creatorError });
-    if (creatorError) {
-      console.warn('⚠️ Error fetching creator (non-fatal):', creatorError);
-    }
 
-    // Fetch articles in library
+    // Fetch articles in library - REMOVED created_at column
     console.log('Fetching playlist items...');
     const { data: playlistItems, error: itemsError } = await supabase
       .from('playlist_items')
-      .select('article_id, created_at')
-      .eq('playlist_id', libraryId)
-      .order('created_at', { ascending: true });
+      .select('article_id')
+      .eq('playlist_id', libraryId);
 
     console.log('Playlist items query result:', { playlistItems, error: itemsError });
 
@@ -688,7 +679,8 @@ async function loadLibrary() {
       const { data: articlesData, error: articlesError } = await supabase
         .from('articles')
         .select('*')
-        .in('id', articleIds);
+        .in('id', articleIds)
+        .order('created_at', { ascending: false });
 
       console.log('Articles query result:', { articlesData, error: articlesError });
 
@@ -697,12 +689,8 @@ async function loadLibrary() {
         throw articlesError;
       }
 
-      // Maintain order from playlist_items
-      articles = playlistItems.map(item => {
-        return articlesData.find(a => a.id === item.article_id);
-      }).filter(a => a !== undefined);
-
-      console.log(`Matched ${articles.length} articles from playlist items`);
+      articles = articlesData || [];
+      console.log(`Fetched ${articles.length} articles`);
 
       // Fetch authors for articles
       const authorIds = [...new Set(articles.map(a => a.firebase_user_id).filter(id => id))];
@@ -722,7 +710,6 @@ async function loadLibrary() {
           authors.forEach(author => {
             authorsMap[author.firebase_uid] = author;
           });
-          console.log('Authors map created:', authorsMap);
         }
       }
 
@@ -744,7 +731,6 @@ async function loadLibrary() {
 
   } catch (error) {
     console.error('❌ FATAL ERROR in loadLibrary:', error);
-    console.error('Error stack:', error.stack);
     loadingState.style.display = 'none';
     emptyState.style.display = 'block';
   }
@@ -752,9 +738,6 @@ async function loadLibrary() {
 
 function displayLibrary(library, creator, articles) {
   console.log('--- Starting displayLibrary function ---');
-  console.log('Library:', library);
-  console.log('Creator:', creator);
-  console.log('Articles count:', articles.length);
 
   const loadingState = document.getElementById('loadingState');
   const libraryContent = document.getElementById('libraryContent');
@@ -762,15 +745,12 @@ function displayLibrary(library, creator, articles) {
 
   // Update library info
   document.getElementById('libraryTitle').textContent = library.name;
-  console.log('Set library title:', library.name);
   
   if (library.description) {
     document.getElementById('libraryDescription').textContent = library.description;
     document.getElementById('libraryDescription').style.display = 'block';
-    console.log('Set library description:', library.description);
   } else {
     document.getElementById('libraryDescription').style.display = 'none';
-    console.log('No description provided');
   }
 
   // Update author
@@ -781,9 +761,6 @@ function displayLibrary(library, creator, articles) {
     document.getElementById('libraryAuthor').onclick = () => {
       window.location.href = `profile.html?user=${creator.user_id}`;
     };
-    console.log('Set author:', authorName);
-  } else {
-    console.log('No creator found');
   }
 
   // Update stats
@@ -796,12 +773,10 @@ function displayLibrary(library, creator, articles) {
     day: 'numeric',
     year: 'numeric'
   });
-  console.log('Set stats - articles:', articles.length, 'created:', createdDate);
 
   // Show edit button if user owns library
   if (currentUserData && currentUserData.user_id === library.user_id) {
     document.getElementById('editBtn').style.display = 'flex';
-    console.log('User owns library - showing edit button');
   }
 
   // Display articles
@@ -815,27 +790,23 @@ function displayLibrary(library, creator, articles) {
         <div class="empty-text">This library doesn't have any articles yet.</div>
       </div>
     `;
-    console.log('No articles to display');
   } else {
     articlesGrid.innerHTML = '';
     articles.forEach((article, index) => {
       const card = createArticleCard(article, index + 1);
       articlesGrid.appendChild(card);
     });
-    console.log(`Rendered ${articles.length} article cards`);
   }
 
   // Setup action buttons
   document.getElementById('playAllBtn').onclick = () => {
     if (articles.length > 0) {
-      console.log('Play All clicked - navigating to first article:', articles[0].id);
       window.location.href = `article.html?id=${articles[0].id}`;
     }
   };
 
   document.getElementById('shareBtn').onclick = () => {
     const url = window.location.href;
-    console.log('Share clicked - URL:', url);
     if (navigator.share) {
       navigator.share({
         title: library.name,
@@ -849,7 +820,6 @@ function displayLibrary(library, creator, articles) {
   };
 
   document.getElementById('editBtn').onclick = () => {
-    console.log('Edit clicked - navigating to edit page');
     window.location.href = `edit-library.html?id=${libraryId}`;
   };
 
@@ -912,7 +882,6 @@ function createArticleCard(article, number) {
 
   card.onclick = (e) => {
     if (!e.target.closest('.article-action-btn')) {
-      console.log('Article card clicked - navigating to:', article.id);
       window.location.href = `article.html?id=${article.id}`;
     }
   };
@@ -922,9 +891,6 @@ function createArticleCard(article, number) {
 
 // Check authentication and load library
 onAuthStateChanged(auth, async (user) => {
-  console.log('--- Auth state changed ---');
-  console.log('User:', user ? user.uid : 'null');
-  
   if (user) {
     currentUser = user;
     
@@ -935,31 +901,22 @@ onAuthStateChanged(auth, async (user) => {
         .eq('firebase_uid', user.uid)
         .single();
       
-      console.log('User data query result:', { userData, error });
-      
       if (!error) {
         currentUserData = userData;
-        console.log('Current user data set:', currentUserData);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
     }
-  } else {
-    console.log('No user logged in');
   }
   
   // Load library regardless of auth state (public viewing)
   if (libraryId) {
-    console.log('Library ID present - calling loadLibrary');
     loadLibrary();
   } else {
-    console.error('❌ No library ID in URL');
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('emptyState').style.display = 'block';
   }
 });
-
-console.log('=== Script loaded successfully ===');
 </script>
 
 </body>
