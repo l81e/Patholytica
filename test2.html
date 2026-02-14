@@ -1,11 +1,27 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Patholytica — Create Library</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Patholytica — Profile</title>
+
+<!-- Resource hints for faster loading -->
+<link rel="preconnect" href="https://vduqewqyvszfquntmark.supabase.co">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+<link rel="dns-prefetch" href="https://www.gstatic.com">
+
+<!-- Load fonts with display=swap to prevent blocking -->
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+
+<!-- Defer Font Awesome loading -->
+<link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+
+<!-- Load Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 :root {
   --bg-color: #1f1f1f;
@@ -16,581 +32,981 @@
   --border-color: #303030;
   --accent: #3ea6ff;
   --accent-hover: #2d8ed6;
-  --accent-purple: #9b59b6;
   --accent-green: #2ecc71;
-}body.light-theme {
-–bg-color: #f9f9f9;
-–text-primary: #0f0f0f;
-–text-secondary: #606060;
-–card-bg: #f9f9f9;
-–hover-bg: #f0f0f0;
-–border-color: #e5e5e5;
-–accent: #065fd4;
-–accent-hover: #0448a3;
+  --accent-purple: #9b59b6;
 }
-	∙	{
-box-sizing: border-box;
-margin: 0;
-padding: 0;
+
+body.light-theme {
+  --bg-color: #f9f9f9;
+  --text-primary: #0f0f0f;
+  --text-secondary: #606060;
+  --card-bg: #f9f9f9;
+  --hover-bg: #f0f0f0;
+  --border-color: #e5e5e5;
+  --accent: #065fd4;
+  --accent-hover: #0448a3;
 }
-html, body {
-min-height: 100%;
-font-family: “Inter”, -apple-system, BlinkMacSystemFont, sans-serif;
-overflow-x: hidden;
-max-width: 100vw;
+
+* { box-sizing: border-box; }
+html, body { 
+  margin: 0; 
+  padding: 0; 
+  min-height: 100%; 
+  font-family: "Roboto", Arial, sans-serif;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 body {
-background: var(–bg-color);
-color: var(–text-primary);
-transition: background 0.2s ease, color 0.2s ease;
+  background: var(--bg-color);
+  color: var(--text-primary);
+  transition: background 0.2s ease, color 0.2s ease;
 }
-.header-wrapper {
-position: fixed;
-top: 0;
-left: 0;
-right: 0;
-background: var(–bg-color);
-padding-top: env(safe-area-inset-top);
-border-bottom: 1px solid var(–border-color);
-z-index: 40;
-width: 100%;
+
+/* Profile Hero Section */
+.profile-hero {
+  position: relative;
+  width: 100%;
+  height: 450px;
+  overflow: hidden;
+  background-color: #2a2a2a; /* Fallback while image loads */
 }
-.header {
-display: flex;
-align-items: center;
-justify-content: space-between;
-padding: 12px 24px;
-max-width: 100%;
-margin: 0 auto;
+
+.hero-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
-.logo-img {
-height: 28px;
-width: auto;
-cursor: pointer;
-transition: filter 0.2s ease;
+
+.hero-background.loaded {
+  opacity: 1;
 }
-body.light-theme .logo-img {
-filter: invert(1);
+
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.8) 100%);
 }
-.header-actions {
-display: flex;
-align-items: center;
-gap: 16px;
+
+.hero-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 40px 24px;
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
 }
-.user-welcome {
-display: none;
-align-items: center;
-gap: 12px;
-font-size: 14px;
-color: var(–text-primary);
+
+.profile-avatar-large {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56px;
+  color: var(--accent);
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 5px solid white;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
 }
-.user-welcome.show {
-display: flex;
+
+.profile-avatar-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
-.welcome-text {
-font-weight: 500;
-cursor: pointer;
-transition: color 0.2s ease;
+
+.hero-info {
+  flex: 1;
+  color: white;
+  padding-bottom: 12px;
 }
-.welcome-text:hover {
-color: var(–accent);
+
+.profile-username-hero {
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: 42px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
-/* Main Container */
-.main-container {
-max-width: 800px;
-width: 100%;
-margin: 0 auto;
-padding: 100px 24px 100px;
+
+.profile-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 15px;
+  opacity: 0.95;
 }
-/* Page Header */
-.page-header {
-text-align: center;
-margin-bottom: 48px;
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-.page-icon {
-width: 80px;
-height: 80px;
-background: linear-gradient(135deg, var(–accent-purple) 0%, #8e44ad 100%);
-border-radius: 20px;
-display: flex;
-align-items: center;
-justify-content: center;
-margin: 0 auto 24px;
-font-size: 36px;
-color: white;
-box-shadow: 0 8px 24px rgba(155, 89, 182, 0.4);
+
+.meta-item i {
+  font-size: 14px;
 }
-.page-title {
-font-family: ‘Merriweather’, Georgia, serif;
-font-size: 42px;
-font-weight: 700;
-margin: 0 0 12px 0;
-color: var(–text-primary);
+
+/* Profile Container */
+.profile-container {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
 }
-.page-subtitle {
-font-size: 16px;
-color: var(–text-secondary);
-max-width: 500px;
-margin: 0 auto;
-line-height: 1.6;
+
+/* Bio Card */
+.bio-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
 }
-/* Form Card */
-.form-card {
-background: var(–card-bg);
-border: 1px solid var(–border-color);
-border-radius: 24px;
-padding: 40px;
-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+
+.bio-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
 }
-.form-section {
-margin-bottom: 40px;
+
+.bio-content {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-primary);
 }
-.form-section:last-of-type {
-margin-bottom: 0;
+
+.bio-empty {
+  font-size: 15px;
+  color: var(--text-secondary);
+  font-style: italic;
 }
-.section-title {
-font-size: 18px;
-font-weight: 700;
-color: var(–text-primary);
-margin-bottom: 20px;
-display: flex;
-align-items: center;
-gap: 12px;
+
+/* Stats Cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
 }
-.section-icon {
-width: 32px;
-height: 32px;
-background: linear-gradient(135deg, var(–accent-purple) 0%, #8e44ad 100%);
-border-radius: 8px;
-display: flex;
-align-items: center;
-justify-content: center;
-font-size: 16px;
-color: white;
+
+.stat-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  transition: all 0.3s ease;
 }
-.form-group {
-margin-bottom: 24px;
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
 }
-.form-label {
-display: block;
-font-size: 14px;
-font-weight: 600;
-color: var(–text-primary);
-margin-bottom: 8px;
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: white;
 }
-.form-label-required {
-color: #ef4444;
-margin-left: 4px;
+
+.stat-icon.libraries {
+  background: linear-gradient(135deg, var(--accent-purple) 0%, #8e44ad 100%);
 }
-.form-input, .form-textarea {
-width: 100%;
-padding: 14px 18px;
-border: 2px solid var(–border-color);
-border-radius: 12px;
-background: var(–bg-color);
-color: var(–text-primary);
-font-size: 15px;
-font-family: inherit;
-transition: all 0.2s ease;
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
 }
-.form-input:focus, .form-textarea:focus {
-outline: none;
-border-color: var(–accent-purple);
-box-shadow: 0 0 0 3px rgba(155, 89, 182, 0.1);
+
+.stat-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
 }
-.form-textarea {
-resize: vertical;
-min-height: 120px;
-line-height: 1.6;
-}
-.char-count {
-font-size: 12px;
-color: var(–text-secondary);
-text-align: right;
-margin-top: 4px;
-}
-.form-hint {
-font-size: 13px;
-color: var(–text-secondary);
-margin-top: 6px;
-}
-/* Article Search */
-.search-box {
-position: relative;
-margin-bottom: 20px;
-}
-.search-icon {
-position: absolute;
-left: 16px;
-top: 50%;
-transform: translateY(-50%);
-color: var(–text-secondary);
-font-size: 16px;
-pointer-events: none;
-}
-.search-input {
-width: 100%;
-padding: 14px 18px 14px 48px;
-border: 2px solid var(–border-color);
-border-radius: 12px;
-background: var(–bg-color);
-color: var(–text-primary);
-font-size: 15px;
-transition: all 0.2s ease;
-}
-.search-input:focus {
-outline: none;
-border-color: var(–accent-purple);
-box-shadow: 0 0 0 3px rgba(155, 89, 182, 0.1);
-}
-.search-results {
-max-height: 300px;
-overflow-y: auto;
-border: 1px solid var(–border-color);
-border-radius: 12px;
-background: var(–card-bg);
-margin-top: 12px;
-display: none;
-}
-.search-results.show {
-display: block;
-}
-.search-result-item {
-padding: 12px 16px;
-cursor: pointer;
-transition: background 0.2s ease;
-border-bottom: 1px solid var(–border-color);
-display: flex;
-align-items: center;
-gap: 12px;
-}
-.search-result-item:last-child {
-border-bottom: none;
-}
-.search-result-item:hover {
-background: var(–hover-bg);
-}
-.search-result-item.selected {
-background: rgba(155, 89, 182, 0.1);
-}
-.result-checkbox {
-width: 20px;
-height: 20px;
-border: 2px solid var(–border-color);
-border-radius: 6px;
-flex-shrink: 0;
-position: relative;
-transition: all 0.2s ease;
-}
-.search-result-item.selected .result-checkbox {
-background: var(–accent-purple);
-border-color: var(–accent-purple);
-}
-.result-checkbox::after {
-content: ‘\f00c’;
-font-family: ‘Font Awesome 6 Free’;
-font-weight: 900;
-position: absolute;
-top: 50%;
-left: 50%;
-transform: translate(-50%, -50%) scale(0);
-color: white;
-font-size: 12px;
-transition: transform 0.2s ease;
-}
-.search-result-item.selected .result-checkbox::after {
-transform: translate(-50%, -50%) scale(1);
-}
-.result-info {
-flex: 1;
-min-width: 0;
-}
-.result-title {
-font-size: 14px;
-font-weight: 600;
-color: var(–text-primary);
-margin-bottom: 2px;
-white-space: nowrap;
-overflow: hidden;
-text-overflow: ellipsis;
-}
-.result-meta {
-font-size: 12px;
-color: var(–text-secondary);
-}
-.search-empty {
-padding: 40px 20px;
-text-align: center;
-color: var(–text-secondary);
-}
-.search-empty i {
-font-size: 32px;
-margin-bottom: 12px;
-opacity: 0.5;
-}
-/* Selected Articles */
-.selected-articles {
-margin-top: 20px;
-}
-.selected-count {
-font-size: 14px;
-font-weight: 600;
-color: var(–text-primary);
-margin-bottom: 12px;
-}
-.selected-list {
-list-style: none;
-display: flex;
-flex-direction: column;
-gap: 8px;
-}
-.selected-item {
-background: var(–hover-bg);
-border: 1px solid var(–border-color);
-border-radius: 12px;
-padding: 12px 16px;
-display: flex;
-align-items: center;
-gap: 12px;
-}
-.selected-item-info {
-flex: 1;
-min-width: 0;
-}
-.selected-item-title {
-font-size: 14px;
-font-weight: 600;
-color: var(–text-primary);
-margin-bottom: 2px;
-white-space: nowrap;
-overflow: hidden;
-text-overflow: ellipsis;
-}
-.selected-item-meta {
-font-size: 12px;
-color: var(–text-secondary);
-}
-.remove-btn {
-width: 32px;
-height: 32px;
-border-radius: 50%;
-background: transparent;
-border: none;
-color: #ef4444;
-cursor: pointer;
-display: flex;
-align-items: center;
-justify-content: center;
-transition: all 0.2s ease;
-flex-shrink: 0;
-}
-.remove-btn:hover {
-background: rgba(239, 68, 68, 0.1);
-}
-.empty-selection {
-text-align: center;
-padding: 32px 20px;
-color: var(–text-secondary);
-background: var(–bg-color);
-border-radius: 12px;
-border: 2px dashed var(–border-color);
-}
-.empty-selection i {
-font-size: 32px;
-margin-bottom: 12px;
-opacity: 0.5;
-}
+
 /* Action Buttons */
-.form-actions {
-display: flex;
-gap: 16px;
-padding-top: 32px;
-border-top: 1px solid var(–border-color);
+.profile-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
 }
-.btn-cancel, .btn-create {
-flex: 1;
-padding: 16px 32px;
-border-radius: 12px;
-font-size: 16px;
-font-weight: 700;
-cursor: pointer;
-transition: all 0.3s ease;
-border: none;
-display: flex;
-align-items: center;
-justify-content: center;
-gap: 10px;
+
+.btn-edit, .btn-logout {
+  flex: 1;
+  min-width: 140px;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
-.btn-cancel {
-background: var(–card-bg);
-color: var(–text-primary);
-border: 2px solid var(–border-color);
+
+.btn-edit {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(62, 166, 255, 0.3);
 }
-.btn-cancel:hover {
-background: var(–hover-bg);
+
+.btn-edit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(62, 166, 255, 0.4);
 }
-.btn-create {
-background: linear-gradient(135deg, var(–accent-purple) 0%, #8e44ad 100%);
-color: white;
-box-shadow: 0 4px 12px rgba(155, 89, 182, 0.4);
+
+.btn-logout {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
 }
-.btn-create:hover {
-transform: translateY(-2px);
-box-shadow: 0 6px 20px rgba(155, 89, 182, 0.5);
+
+.btn-logout:hover {
+  background: var(--hover-bg);
+  border-color: var(--accent);
 }
-.btn-create:disabled {
-opacity: 0.5;
-cursor: not-allowed;
-transform: none;
+
+/* Libraries Section */
+.libraries-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 32px;
 }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.section-title {
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.count-badge {
+  background: var(--accent-purple);
+  color: white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.library-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.library-card {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.library-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(135deg, var(--accent-purple) 0%, #8e44ad 100%);
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.library-card:hover::before {
+  transform: scaleY(1);
+}
+
+.library-card:hover {
+  transform: translateX(8px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  border-color: var(--accent-purple);
+}
+
+.library-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent-purple) 0%, #8e44ad 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.library-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.library-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 6px 0;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.library-description {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 8px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.library-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.library-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.library-date i {
+  font-size: 11px;
+}
+
+/* Articles Section */
+.articles-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 32px;
+}
+
+.article-count-badge {
+  background: var(--accent);
+  color: white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.article-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.article-card {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.article-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.article-card:hover::before {
+  transform: scaleY(1);
+}
+
+.article-card:hover {
+  transform: translateX(8px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  border-color: var(--accent);
+}
+
+.article-card-title {
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+.article-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.meta-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: var(--hover-bg);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.meta-badge i {
+  font-size: 12px;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+.empty-state-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  background: var(--hover-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  opacity: 0.5;
+}
+
+.empty-state-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+}
+
+.empty-state-text {
+  font-size: 15px;
+  margin: 0;
+}
+
 /* Loading State */
 .loading-state {
-text-align: center;
-padding: 60px 20px;
-color: var(–text-secondary);
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
 }
+
 .loading-spinner {
-width: 48px;
-height: 48px;
-margin: 0 auto 20px;
-border: 4px solid var(–border-color);
-border-top-color: var(–accent-purple);
-border-radius: 50%;
-animation: spin 0.8s linear infinite;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 20px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
+
 @keyframes spin {
-to { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
-/* Success Message */
-.success-message {
-display: none;
-text-align: center;
-padding: 60px 20px;
+
+/* Error State */
+.error-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #ff4444;
+  font-size: 16px;
 }
-.success-message.show {
-display: block;
+
+/* Edit Profile Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
 }
-.success-icon {
-width: 80px;
-height: 80px;
-background: linear-gradient(135deg, var(–accent-green) 0%, #27ae60 100%);
-border-radius: 50%;
-display: flex;
-align-items: center;
-justify-content: center;
-margin: 0 auto 24px;
-font-size: 36px;
-color: white;
-animation: scaleIn 0.5s ease;
+
+.modal-overlay.show {
+  display: flex;
 }
-@keyframes scaleIn {
-from { transform: scale(0); }
-to { transform: scale(1); }
+
+.modal-content {
+  background: var(--card-bg);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
 }
-.success-title {
-font-size: 28px;
-font-weight: 700;
-margin: 0 0 12px 0;
-color: var(–text-primary);
+
+.modal-header {
+  padding: 28px 32px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
-.success-text {
-font-size: 16px;
-color: var(–text-secondary);
-margin-bottom: 32px;
+
+.modal-title {
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0;
 }
-.btn-view {
-padding: 16px 32px;
-border-radius: 12px;
-background: linear-gradient(135deg, var(–accent-purple) 0%, #8e44ad 100%);
-color: white;
-font-size: 16px;
-font-weight: 700;
-border: none;
-cursor: pointer;
-transition: all 0.3s ease;
-display: inline-flex;
-align-items: center;
-gap: 10px;
+
+.modal-close {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  transition: all 0.2s ease;
 }
-.btn-view:hover {
-transform: translateY(-2px);
-box-shadow: 0 6px 20px rgba(155, 89, 182, 0.5);
+
+.modal-close:hover {
+  background: var(--hover-bg);
+  transform: rotate(90deg);
 }
+
+.modal-body {
+  padding: 32px;
+}
+
+.form-group {
+  margin-bottom: 28px;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-input, .form-textarea {
+  width: 100%;
+  padding: 14px 18px;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-color);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.form-input:focus, .form-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(62, 166, 255, 0.1);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.avatar-upload {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.avatar-preview {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: var(--hover-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  color: var(--accent);
+  overflow: hidden;
+  border: 3px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-upload-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.btn-upload, .btn-remove {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid var(--border-color);
+  background: transparent;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-upload:hover {
+  background: var(--hover-bg);
+  border-color: var(--accent);
+}
+
+.btn-remove {
+  color: #ff4444;
+  border-color: #ff4444;
+}
+
+.btn-remove:hover {
+  background: rgba(255, 68, 68, 0.1);
+}
+
+.file-input {
+  display: none;
+}
+
+.upload-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.modal-footer {
+  padding: 24px 32px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.btn-cancel, .btn-save {
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.btn-cancel {
+  background: transparent;
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+}
+
+.btn-cancel:hover {
+  background: var(--hover-bg);
+}
+
+.btn-save {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(62, 166, 255, 0.3);
+}
+
+.btn-save:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(62, 166, 255, 0.4);
+}
+
+.btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Footer */
+.footer {
+  background: var(--bg-color);
+  border-top: 1px solid var(--border-color);
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+}
+
+.footer-stats {
+  margin-bottom: 8px;
+}
+
+.article-count {
+  color: var(--accent-green);
+  font-weight: 600;
+}
+
 /* Footer Bar Navigation */
 .footer-bar {
-position: fixed;
-bottom: 0;
-left: 50%;
-transform: translateX(-50%);
-width: 100%;
-max-width: 450px;
-background: var(–card-bg);
-border-top: 1px solid var(–border-color);
-padding: 8px 24px;
-padding-bottom: calc(8px + env(safe-area-inset-bottom));
-display: flex;
-justify-content: space-around;
-align-items: center;
-z-index: 100;
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 450px;
+  background: var(--card-bg);
+  border-top: 1px solid var(--border-color);
+  padding: 8px 24px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 100;
 }
+
 .footer-btn {
-display: flex;
-flex-direction: column;
-align-items: center;
-gap: 2px;
-background: none;
-border: none;
-color: var(–text-secondary);
-cursor: pointer;
-transition: color 0.2s ease;
-padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 6px 12px;
 }
+
 .footer-btn:hover {
-color: var(–text-primary);
+  color: var(--text-primary);
 }
+
 .footer-btn.active {
-color: var(–accent);
+  color: var(--accent);
 }
+
 .footer-btn i {
-font-size: 20px;
+  font-size: 20px;
 }
+
 .footer-btn span {
-font-size: 10px;
-font-weight: 500;
+  font-size: 10px;
+  font-weight: 500;
 }
-/* Responsive */
+
 @media (max-width: 768px) {
-.main-container {
-padding: 80px 16px 100px;
-}
-.page-title {
-font-size: 32px;
-}
-.page-subtitle {
-font-size: 15px;
-}
-.form-card {
-padding: 28px 20px;
-}
-.form-actions {
-flex-direction: column;
-}
-.btn-cancel, .btn-create, .btn-view {
-width: 100%;
-}
-.footer-bar {
-padding: 8px 16px;
-padding-bottom: calc(8px + env(safe-area-inset-bottom));
-}
-.footer-btn {
-padding: 6px 8px;
-}
-.footer-btn i {
-font-size: 18px;
-}
-.footer-btn span {
-font-size: 9px;
-}
+  .profile-hero {
+    height: 300px;
+  }
+
+  .hero-content {
+    padding: 24px 16px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .profile-avatar-large {
+    width: 100px;
+    height: 100px;
+    font-size: 40px;
+  }
+
+  .profile-username-hero {
+    font-size: 28px;
+  }
+
+  .profile-meta-row {
+    justify-content: center;
+    font-size: 13px;
+  }
+
+  .profile-container {
+    padding: 24px 16px 100px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 20px;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+
+  .bio-card, .libraries-section, .articles-section {
+    padding: 20px;
+  }
+
+  .section-title {
+    font-size: 22px;
+  }
+
+  .library-card, .article-card {
+    padding: 20px;
+  }
+
+  .library-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+  }
+
+  .library-title {
+    font-size: 16px;
+  }
+
+  .article-card-title {
+    font-size: 20px;
+  }
+
+  .profile-actions {
+    flex-direction: column;
+  }
+
+  .btn-edit, .btn-logout {
+    width: 100%;
+  }
+
+  .modal-content {
+    max-height: 85vh;
+  }
+
+  .modal-header {
+    padding: 20px 24px;
+  }
+
+  .modal-body {
+    padding: 24px;
+  }
+
+  .modal-footer {
+    padding: 20px 24px;
+    flex-direction: column;
+  }
+
+  .btn-cancel, .btn-save {
+    width: 100%;
+  }
+
+  .avatar-upload {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .avatar-upload-btn {
+    width: 100%;
+  }
+
+  .btn-upload, .btn-remove {
+    width: 100%;
+  }
+
+  .footer-bar {
+    padding: 8px 16px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+
+  .footer-btn {
+    padding: 6px 8px;
+  }
+
+  .footer-btn i {
+    font-size: 18px;
+  }
+
+  .footer-btn span {
+    font-size: 9px;
+  }
 }
 </style>
 </head>
@@ -599,123 +1015,71 @@ font-size: 9px;
 if (localStorage.getItem("theme") === "light") {
   document.body.classList.add("light-theme");
 }
-</script><div class="header-wrapper">
-  <div class="header">
-    <img src="IMG_0696.png" class="logo-img" alt="Patholytica Logo" onclick="window.location.href='index.html'">
-    <div class="header-actions">
-      <div class="user-welcome" id="userWelcome">
-        <span class="welcome-text" id="welcomeText">Welcome</span>
-      </div>
-    </div>
+</script>
+
+<div id="profileContent">
+  <div class="loading-state">
+    <div class="loading-spinner"></div>
+    <div>Loading profile...</div>
   </div>
-</div><div class="main-container">
-  <div class="page-header">
-    <div class="page-icon">
-      <i class="fas fa-bookmark"></i>
-    </div>
-    <h1 class="page-title">Create Library</h1>
-    <p class="page-subtitle">Organize your favorite articles into collections that you can share and revisit anytime.</p>
-  </div><div id="mainContent">
-    <div class="form-card">
-      <form id="libraryForm">
-        <!-- Library Details Section -->
-        <div class="form-section">
-          <h2 class="section-title">
-            <div class="section-icon">
-              <i class="fas fa-info-circle"></i>
-            </div>
-            Library Details
-          </h2>
-
-      <div class="form-group">
-        <label class="form-label" for="libraryName">
-          Name<span class="form-label-required">*</span>
-        </label>
-        <input 
-          type="text" 
-          id="libraryName" 
-          class="form-input" 
-          placeholder="My Awesome Collection"
-          maxlength="100"
-          required
-        >
-        <div class="char-count"><span id="nameCount">0</span>/100</div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="libraryDescription">
-          Description
-        </label>
-        <textarea 
-          id="libraryDescription" 
-          class="form-textarea" 
-          placeholder="What's this library about? Add a description to help others understand your collection..."
-          maxlength="500"
-        ></textarea>
-        <div class="char-count"><span id="descCount">0</span>/500</div>
-      </div>
-    </div>
-
-    <!-- Add Articles Section -->
-    <div class="form-section">
-      <h2 class="section-title">
-        <div class="section-icon">
-          <i class="fas fa-plus"></i>
-        </div>
-        Add Articles
-      </h2>
-
-      <div class="search-box">
-        <i class="fas fa-search search-icon"></i>
-        <input 
-          type="text" 
-          id="articleSearch" 
-          class="search-input" 
-          placeholder="Search articles by title..."
-        >
-      </div>
-
-      <div class="search-results" id="searchResults"></div>
-
-      <div class="selected-articles">
-        <div class="selected-count" id="selectedCount">0 articles selected</div>
-        <ul class="selected-list" id="selectedList">
-          <div class="empty-selection">
-            <i class="fas fa-file-alt"></i>
-            <div>No articles selected yet</div>
-            <div style="font-size: 12px; margin-top: 4px;">Search and select articles to add them to your library</div>
-          </div>
-        </ul>
-      </div>
-    </div>
-
-    <!-- Actions -->
-    <div class="form-actions">
-      <button type="button" class="btn-cancel" onclick="window.history.back()">
-        <i class="fas fa-times"></i>
-        Cancel
-      </button>
-      <button type="submit" class="btn-create" id="createBtn">
-        <i class="fas fa-bookmark"></i>
-        Create Library
-      </button>
-    </div>
-  </form>
 </div>
 
-
-</div><!-- Success Message (hidden by default) --><div class="success-message" id="successMessage">
-    <div class="success-icon">
-      <i class="fas fa-check"></i>
+<!-- Edit Profile Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title">Edit Profile</h2>
+      <button class="modal-close" onclick="closeEditModal()">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
-    <h2 class="success-title">Library Created!</h2>
-    <p class="success-text">Your library has been successfully created and is ready to share.</p>
-    <button class="btn-view" id="viewLibraryBtn">
-      <i class="fas fa-eye"></i>
-      View Library
-    </button>
+    <div class="modal-body">
+      <form id="editForm">
+        <div class="form-group">
+          <label class="form-label">Profile Picture</label>
+          <div class="avatar-upload">
+            <div class="avatar-preview" id="avatarPreview">
+              <i class="fas fa-user"></i>
+            </div>
+            <div class="avatar-upload-btn">
+              <button type="button" class="btn-upload" onclick="document.getElementById('fileInput').click()">
+                <i class="fas fa-upload"></i> Choose Image
+              </button>
+              <button type="button" class="btn-remove" id="removeBtn" onclick="removeImage()" style="display: none;">
+                <i class="fas fa-trash"></i> Remove Image
+              </button>
+              <input type="file" id="fileInput" class="file-input" accept="image/*" onchange="handleImageSelect(event)">
+              <span class="upload-hint">JPG, PNG or GIF (max 2MB)</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="bioInput">Bio</label>
+          <textarea 
+            id="bioInput" 
+            class="form-textarea" 
+            placeholder="Tell us about yourself..."
+            maxlength="500"
+          ></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+      <button class="btn-save" id="saveBtn" onclick="saveProfile()">Save Changes</button>
+    </div>
   </div>
-</div><!-- Footer Bar Navigation --><div class="footer-bar">
+</div>
+
+<footer class="footer">
+  <div class="footer-stats">
+    <span class="article-count" id="articleCount">0</span> articles accessible
+  </div>
+</footer>
+
+<!-- Footer Bar Navigation -->
+<div class="footer-bar">
   <button class="footer-btn" onclick="window.location.href='index.html'">
     <i class="fas fa-home"></i>
     <span>Home</span>
@@ -728,16 +1092,19 @@ if (localStorage.getItem("theme") === "light") {
     <i class="fas fa-search"></i>
     <span>Explore</span>
   </button>
-  <button class="footer-btn" onclick="window.location.href='profile.html'">
+  <button class="footer-btn active" onclick="window.location.href='profile.html'">
     <i class="fas fa-user"></i>
     <span>Profile</span>
   </button>
-</div><script type="module">
+</div>
+
+<script type="module">
 // Import Firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
   getAuth, 
-  onAuthStateChanged
+  onAuthStateChanged,
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // Firebase configuration
@@ -756,295 +1123,584 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 // Initialize Supabase
-const SUPABASE_URL = "https://vduqewqyvszfquntmark.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c";
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = window.supabase.createClient(
+  "https://vduqewqyvszfquntmark.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
+);
 
 // Global variables
 let currentUser = null;
 let currentUserData = null;
-let selectedArticles = [];
-let allArticles = [];
-let searchTimeout;
-let createdLibraryId = null;
+let viewingUserData = null;
+let selectedImageDataUrl = null;
+let isOwnProfile = false;
 
-// DOM Elements
-const libraryNameInput = document.getElementById('libraryName');
-const libraryDescInput = document.getElementById('libraryDescription');
-const articleSearchInput = document.getElementById('articleSearch');
-const searchResults = document.getElementById('searchResults');
-const selectedList = document.getElementById('selectedList');
-const selectedCount = document.getElementById('selectedCount');
-const libraryForm = document.getElementById('libraryForm');
-const createBtn = document.getElementById('createBtn');
-const mainContent = document.getElementById('mainContent');
-const successMessage = document.getElementById('successMessage');
-const viewLibraryBtn = document.getElementById('viewLibraryBtn');
+// Static background scene for better caching (removed random element)
+function generateNaturalSceneBackground() {
+  // Use a consistent background URL for better caching
+  // You can rotate through scenes based on user ID or date for variety while maintaining cacheability
+  const scenes = [
+    'nature/mountain',
+    'nature/forest',
+    'nature/ocean',
+    'nature/sunset',
+    'nature/landscape'
+  ];
+  // Use day of year for consistent but rotating backgrounds
+  const dayOfYear = Math.floor((Date.now() / (1000 * 60 * 60 * 24)) % scenes.length);
+  return `https://source.unsplash.com/1600x900/?${scenes[dayOfYear]}`;
+}
 
-// Character counters
-libraryNameInput.addEventListener('input', (e) => {
-  document.getElementById('nameCount').textContent = e.target.value.length;
-});
+// Lazy load background image
+function lazyLoadBackground(element, imageUrl) {
+  const img = new Image();
+  img.onload = function() {
+    element.style.backgroundImage = `url('${imageUrl}')`;
+    element.classList.add('loaded');
+  };
+  img.src = imageUrl;
+}
 
-libraryDescInput.addEventListener('input', (e) => {
-  document.getElementById('descCount').textContent = e.target.value.length;
-});
+// Get URL parameters
+function getUrlParameter(name) {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get(name);
+}
 
-// Article search
-articleSearchInput.addEventListener('input', (e) => {
-  const query = e.target.value.trim();
+// Load profile data - OPTIMIZED WITH PARALLEL QUERIES
+async function loadProfile(loggedInUser) {
+  const profileContent = document.getElementById('profileContent');
+  currentUser = loggedInUser;
   
-  clearTimeout(searchTimeout);
+  // Check if we're viewing someone else's profile via URL parameter
+  const usernameParam = getUrlParameter('username');
   
-  if (query.length < 2) {
-    searchResults.classList.remove('show');
-    return;
-  }
-  
-  searchTimeout = setTimeout(() => {
-    searchArticles(query);
-  }, 300);
-});
-
-async function searchArticles(query) {
   try {
-    const { data: articles, error } = await supabase
-      .from('articles')
-      .select('id, title, created_at, views')
-      .ilike('title', `%${query}%`)
-      .limit(20);
+    console.log('Loading profile...', usernameParam ? `for username: ${usernameParam}` : 'for logged-in user');
+    
+    let userData;
+    let userFirebaseId;
+    let userId;
+    
+    if (usernameParam) {
+      // Viewing someone else's profile
+      const { data: profileUser, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', usernameParam)
+        .single();
 
-    if (error) throw error;
+      if (profileError || !profileUser) {
+        console.error('Error fetching profile user:', profileError);
+        profileContent.innerHTML = '<div class="error-state">User not found</div>';
+        return;
+      }
 
-    if (!articles || articles.length === 0) {
-      searchResults.innerHTML = `
-        <div class="search-empty">
-          <i class="fas fa-search"></i>
-          <div>No articles found</div>
-        </div>
-      `;
-      searchResults.classList.add('show');
-      return;
+      userData = profileUser;
+      userFirebaseId = profileUser.firebase_uid;
+      userId = profileUser.user_id;
+      viewingUserData = userData;
+      
+      // Check if this is the logged-in user's own profile
+      isOwnProfile = loggedInUser && loggedInUser.uid === userFirebaseId;
+    } else {
+      // Viewing own profile (no username parameter)
+      if (!loggedInUser) {
+        profileContent.innerHTML = '<div class="error-state">Please log in to view your profile</div>';
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 1500);
+        return;
+      }
+      
+      const { data: ownUserData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('firebase_uid', loggedInUser.uid)
+        .single();
+
+      if (userError) {
+        console.error('Error fetching user:', userError);
+        profileContent.innerHTML = '<div class="error-state">Error loading profile</div>';
+        return;
+      }
+
+      userData = ownUserData;
+      userFirebaseId = loggedInUser.uid;
+      userId = ownUserData.user_id;
+      currentUserData = userData;
+      viewingUserData = userData;
+      isOwnProfile = true;
     }
 
-    searchResults.innerHTML = '';
-    articles.forEach(article => {
-      const isSelected = selectedArticles.some(a => a.id === article.id);
-      const date = new Date(article.created_at);
-      const formattedDate = date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric',
-        year: 'numeric'
+    // OPTIMIZATION: Fetch articles, libraries, and total article count in parallel
+    const [articlesResult, librariesResult, totalArticlesResult] = await Promise.all([
+      supabase
+        .from('articles')
+        .select('*')
+        .eq('firebase_user_id', userFirebaseId)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('playlists')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('articles')
+        .select('id')
+    ]);
+
+    const { data: articles, error: articlesError } = articlesResult;
+    const { data: libraries, error: librariesError } = librariesResult;
+    const { data: allArticles } = totalArticlesResult;
+
+    if (articlesError) {
+      console.error('Error fetching articles:', articlesError);
+    }
+
+    if (librariesError) {
+      console.error('Error fetching libraries:', librariesError);
+    }
+
+    const articleCount = articles ? articles.length : 0;
+    const libraryCount = libraries ? libraries.length : 0;
+    const totalViews = articles ? articles.reduce((sum, article) => sum + (article.views || 0), 0) : 0;
+    const totalLikes = articles ? articles.reduce((sum, article) => sum + (article.likes || 0), 0) : 0;
+
+    // Format joined date
+    const joinedDate = userData.created_at ? new Date(userData.created_at) : null;
+    const joinedText = joinedDate ? joinedDate.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short'
+    }) : 'Unknown';
+
+    // Build profile HTML
+    let avatarHTML = userData.pfp 
+      ? `<img src="${userData.pfp}" alt="Profile Picture">`
+      : `<i class="fas fa-user"></i>`;
+
+    const backgroundImage = generateNaturalSceneBackground();
+
+    let profileHTML = `
+      <div class="profile-hero">
+        <div class="hero-background" id="heroBackground"></div>
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+          <div class="profile-avatar-large">
+            ${avatarHTML}
+          </div>
+          <div class="hero-info">
+            <h1 class="profile-username-hero">@${userData.username || 'User'}</h1>
+            <div class="profile-meta-row">
+              <div class="meta-item">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Joined ${joinedText}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-container">
+    `;
+
+    // Bio card (appears first, above counters)
+    if (userData.bio || isOwnProfile) {
+      profileHTML += `
+        <div class="bio-card">
+          <div class="bio-title">About</div>
+          ${userData.bio 
+            ? `<div class="bio-content">${userData.bio}</div>` 
+            : `<div class="bio-empty">No bio yet${isOwnProfile ? ' — add one by editing your profile' : ''}</div>`
+          }
+        </div>
+      `;
+    }
+
+    // Stats grid
+    profileHTML += `
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-file-alt"></i>
+            </div>
+            <div class="stat-value">${articleCount}</div>
+            <div class="stat-label">Articles</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon libraries">
+              <i class="fas fa-bookmark"></i>
+            </div>
+            <div class="stat-value">${libraryCount}</div>
+            <div class="stat-label">Libraries</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-eye"></i>
+            </div>
+            <div class="stat-value">${totalViews}</div>
+            <div class="stat-label">Total Views</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-heart"></i>
+            </div>
+            <div class="stat-value">${totalLikes}</div>
+            <div class="stat-label">Total Likes</div>
+          </div>
+        </div>
+    `;
+
+    // Show edit/logout buttons only on own profile
+    if (isOwnProfile) {
+      profileHTML += `
+        <div class="profile-actions">
+          <button class="btn-edit" onclick="openEditModal()">
+            <i class="fas fa-edit"></i>
+            Edit Profile
+          </button>
+          <button class="btn-logout" onclick="logOut()">
+            <i class="fas fa-sign-out-alt"></i>
+            Log Out
+          </button>
+        </div>
+      `;
+    }
+
+    // Add libraries section (before articles)
+    const librariesTitle = isOwnProfile ? 'Your Libraries' : `Libraries by @${userData.username}`;
+    
+    profileHTML += `
+      <div class="libraries-section">
+        <div class="section-header">
+          <h2 class="section-title">${librariesTitle}</h2>
+          ${libraryCount > 0 ? `<span class="count-badge">${libraryCount}</span>` : ''}
+        </div>
+    `;
+
+    if (libraries && libraries.length > 0) {
+      profileHTML += `<div class="library-grid">`;
+
+      libraries.forEach(library => {
+        const date = new Date(library.created_at);
+        const formattedDate = date.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        });
+
+        const description = library.description || 'No description';
+
+        profileHTML += `
+          <div class="library-card" onclick="openLibrary('${library.id}')">
+            <div class="library-icon">
+              <i class="fas fa-bookmark"></i>
+            </div>
+            <div class="library-content">
+              <h3 class="library-title">${library.name}</h3>
+              <p class="library-description">${description}</p>
+              <div class="library-meta">
+                <div class="library-date">
+                  <i class="fas fa-calendar"></i>
+                  <span>${formattedDate}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
       });
 
-      const item = document.createElement('div');
-      item.className = `search-result-item ${isSelected ? 'selected' : ''}`;
-      item.innerHTML = `
-        <div class="result-checkbox"></div>
-        <div class="result-info">
-          <div class="result-title">${escapeHtml(article.title)}</div>
-          <div class="result-meta">${formattedDate} • ${article.views || 0} views</div>
+      profileHTML += `</div>`;
+    } else {
+      const emptyMessage = isOwnProfile 
+        ? "You haven't created any libraries yet" 
+        : "This user hasn't created any libraries yet";
+      
+      profileHTML += `
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <i class="fas fa-bookmark"></i>
+          </div>
+          <div class="empty-state-title">No libraries yet</div>
+          <p class="empty-state-text">${emptyMessage}</p>
         </div>
       `;
+    }
+
+    profileHTML += `</div>`;
+
+    // Add articles section
+    const articlesTitle = isOwnProfile ? 'Your Articles' : `Articles by @${userData.username}`;
+    
+    profileHTML += `
+      <div class="articles-section">
+        <div class="section-header">
+          <h2 class="section-title">${articlesTitle}</h2>
+          ${articleCount > 0 ? `<span class="article-count-badge">${articleCount}</span>` : ''}
+        </div>
+    `;
+
+    if (articles && articles.length > 0) {
+      profileHTML += `<div class="article-grid">`;
+
+      articles.forEach(article => {
+        const date = new Date(article.created_at);
+        const formattedDate = date.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        });
+
+        profileHTML += `
+          <div class="article-card" onclick="openArticle('${article.id}')">
+            <h3 class="article-card-title">${article.title}</h3>
+            <div class="article-card-meta">
+              <div class="meta-badge">
+                <i class="fas fa-calendar"></i>
+                <span>${formattedDate}</span>
+              </div>
+              <div class="meta-badge">
+                <i class="fas fa-eye"></i>
+                <span>${article.views || 0}</span>
+              </div>
+              <div class="meta-badge">
+                <i class="fas fa-heart"></i>
+                <span>${article.likes || 0}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      profileHTML += `</div>`;
+    } else {
+      const emptyMessage = isOwnProfile 
+        ? "You haven't written any articles yet" 
+        : "This user hasn't written any articles yet";
       
-      item.onclick = () => toggleArticle(article);
-      searchResults.appendChild(item);
-    });
+      profileHTML += `
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <i class="fas fa-file-alt"></i>
+          </div>
+          <div class="empty-state-title">No articles yet</div>
+          <p class="empty-state-text">${emptyMessage}</p>
+        </div>
+      `;
+    }
 
-    searchResults.classList.add('show');
-  } catch (error) {
-    console.error('Error searching articles:', error);
+    profileHTML += `</div></div>`;
+
+    profileContent.innerHTML = profileHTML;
+
+    // Lazy load background image AFTER content is rendered
+    const heroBackground = document.getElementById('heroBackground');
+    if (heroBackground) {
+      lazyLoadBackground(heroBackground, backgroundImage);
+    }
+
+    // Update global article count
+    document.getElementById('articleCount').textContent = allArticles ? allArticles.length : 0;
+    
+  } catch (err) {
+    console.error('Unexpected error:', err);
+    profileContent.innerHTML = '<div class="error-state">An unexpected error occurred</div>';
   }
 }
 
-function toggleArticle(article) {
-  const index = selectedArticles.findIndex(a => a.id === article.id);
+// Open edit modal
+window.openEditModal = function() {
+  if (!isOwnProfile) return; // Only allow editing own profile
   
-  if (index > -1) {
-    // Remove article
-    selectedArticles.splice(index, 1);
+  const modal = document.getElementById('editModal');
+  const bioInput = document.getElementById('bioInput');
+  const avatarPreview = document.getElementById('avatarPreview');
+  const removeBtn = document.getElementById('removeBtn');
+  
+  // Populate current data
+  bioInput.value = currentUserData.bio || '';
+  
+  // Show current avatar
+  if (currentUserData.pfp) {
+    avatarPreview.innerHTML = `<img src="${currentUserData.pfp}" alt="Profile Picture">`;
+    removeBtn.style.display = 'block';
   } else {
-    // Add article
-    selectedArticles.push(article);
+    avatarPreview.innerHTML = `<i class="fas fa-user"></i>`;
+    removeBtn.style.display = 'none';
   }
   
-  updateSelectedList();
-  
-  // Update search results if visible
-  if (searchResults.classList.contains('show')) {
-    const items = searchResults.querySelectorAll('.search-result-item');
-    items.forEach(item => {
-      const title = item.querySelector('.result-title').textContent;
-      const isSelected = selectedArticles.some(a => a.title === title);
-      if (isSelected) {
-        item.classList.add('selected');
-      } else {
-        item.classList.remove('selected');
-      }
-    });
-  }
-}
+  selectedImageDataUrl = null;
+  modal.classList.add('show');
+};
 
-function updateSelectedList() {
-  selectedCount.textContent = `${selectedArticles.length} article${selectedArticles.length !== 1 ? 's' : ''} selected`;
+// Close edit modal
+window.closeEditModal = function() {
+  const modal = document.getElementById('editModal');
+  modal.classList.remove('show');
+  selectedImageDataUrl = null;
+  document.getElementById('fileInput').value = '';
+};
+
+// Handle image selection
+window.handleImageSelect = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
   
-  if (selectedArticles.length === 0) {
-    selectedList.innerHTML = `
-      <div class="empty-selection">
-        <i class="fas fa-file-alt"></i>
-        <div>No articles selected yet</div>
-        <div style="font-size: 12px; margin-top: 4px;">Search and select articles to add them to your library</div>
-      </div>
-    `;
+  // Check file size (2MB max to keep database manageable)
+  if (file.size > 2 * 1024 * 1024) {
+    alert('File size must be less than 2MB');
+    event.target.value = '';
     return;
   }
   
-  selectedList.innerHTML = '';
-  selectedArticles.forEach(article => {
-    const date = new Date(article.created_at);
-    const formattedDate = date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric'
-    });
-
-    const item = document.createElement('li');
-    item.className = 'selected-item';
-    item.innerHTML = `
-      <div class="selected-item-info">
-        <div class="selected-item-title">${escapeHtml(article.title)}</div>
-        <div class="selected-item-meta">${formattedDate} • ${article.views || 0} views</div>
-      </div>
-      <button type="button" class="remove-btn" data-id="${article.id}">
-        <i class="fas fa-times"></i>
-      </button>
-    `;
-    
-    item.querySelector('.remove-btn').onclick = () => {
-      selectedArticles = selectedArticles.filter(a => a.id !== article.id);
-      updateSelectedList();
-    };
-    
-    selectedList.appendChild(item);
-  });
-}
-
-// Form submission
-libraryForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  
-  const name = libraryNameInput.value.trim();
-  const description = libraryDescInput.value.trim();
-  
-  if (!name) {
-    alert('Please enter a library name');
-    libraryNameInput.focus();
+  // Check file type
+  if (!file.type.startsWith('image/')) {
+    alert('Please select an image file');
+    event.target.value = '';
     return;
   }
   
-  if (!currentUserData) {
-    alert('Please log in to create a library');
-    window.location.href = 'login.html';
-    return;
-  }
+  // Convert to base64
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    selectedImageDataUrl = e.target.result;
+    const avatarPreview = document.getElementById('avatarPreview');
+    const removeBtn = document.getElementById('removeBtn');
+    avatarPreview.innerHTML = `<img src="${selectedImageDataUrl}" alt="Preview">`;
+    removeBtn.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+};
+
+// Remove image
+window.removeImage = function() {
+  selectedImageDataUrl = '';  // Empty string means remove the image
+  const avatarPreview = document.getElementById('avatarPreview');
+  const removeBtn = document.getElementById('removeBtn');
+  const fileInput = document.getElementById('fileInput');
   
-  createBtn.disabled = true;
-  createBtn.innerHTML = '<div class="loading-spinner" style="width: 20px; height: 20px; border-width: 3px; margin: 0;"></div> Creating...';
+  avatarPreview.innerHTML = `<i class="fas fa-user"></i>`;
+  removeBtn.style.display = 'none';
+  fileInput.value = '';
+};
+
+// Save profile
+window.saveProfile = async function() {
+  if (!isOwnProfile || !currentUser) return; // Only allow editing own profile
+  
+  const saveBtn = document.getElementById('saveBtn');
+  const bioInput = document.getElementById('bioInput');
+  
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving...';
   
   try {
-    // Create library
-    const { data: library, error: libraryError } = await supabase
-      .from('playlists')
-      .insert([{
-        user_id: currentUserData.user_id,
-        name: name,
-        description: description || null
-      }])
-      .select()
-      .single();
+    // Prepare update object
+    const updateData = {
+      bio: bioInput.value.trim()
+    };
     
-    if (libraryError) throw libraryError;
+    // Handle profile picture
+    if (selectedImageDataUrl !== null) {
+      // User changed the image (could be new image or removal)
+      updateData.pfp = selectedImageDataUrl || null;
+    }
+    // If selectedImageDataUrl is null, keep the existing pfp value
     
-    createdLibraryId = library.id;
+    // Update user data
+    const { error: updateError } = await supabase
+      .from('users')
+      .update(updateData)
+      .eq('firebase_uid', currentUser.uid);
     
-    // Add articles to library
-    if (selectedArticles.length > 0) {
-      const playlistItems = selectedArticles.map(article => ({
-        playlist_id: library.id,
-        article_id: article.id
-      }));
-      
-      const { error: itemsError } = await supabase
-        .from('playlist_items')
-        .insert(playlistItems);
-      
-      if (itemsError) throw itemsError;
+    if (updateError) {
+      console.error('Update error:', updateError);
+      alert('Error saving profile. Please try again.');
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Changes';
+      return;
     }
     
-    // Show success message
-    mainContent.style.display = 'none';
-    successMessage.classList.add('show');
+    // Reload profile
+    await loadProfile(currentUser);
+    closeEditModal();
     
-  } catch (error) {
-    console.error('Error creating library:', error);
-    alert('Failed to create library. Please try again.');
-    createBtn.disabled = false;
-    createBtn.innerHTML = '<i class="fas fa-bookmark"></i> Create Library';
+  } catch (err) {
+    console.error('Unexpected error:', err);
+    alert('An unexpected error occurred. Please try again.');
   }
-});
+  
+  saveBtn.disabled = false;
+  saveBtn.textContent = 'Save Changes';
+};
 
-// View library button
-viewLibraryBtn.onclick = () => {
-  if (createdLibraryId) {
-    window.location.href = `playlist.html?id=${createdLibraryId}`;
+// Log out function
+window.logOut = async function() {
+  try {
+    await signOut(auth);
+    console.log("User logged out");
+    window.location.href = 'index.html';
+  } catch (error) {
+    console.error("Error logging out:", error);
+    alert("Error logging out. Please try again.");
   }
 };
 
-// Helper function to escape HTML
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
+// Open library function
+window.openLibrary = function(libraryId) {
+  window.location.href = `playlist.html?id=${libraryId}`;
+};
 
-// Check authentication
+// Open article function
+window.openArticle = function(articleId) {
+  window.location.href = `article.html?id=${articleId}`;
+};
+
+// Check authentication state
 onAuthStateChanged(auth, async (user) => {
-  const userWelcome = document.getElementById('userWelcome');
-  const welcomeText = document.getElementById('welcomeText');
-  
   if (user) {
-    currentUser = user;
-    userWelcome.classList.add('show');
-    
+    // User is logged in
     try {
-      const { data: userData, error } = await supabase
+      const { data: userData } = await supabase
         .from('users')
         .select('*')
         .eq('firebase_uid', user.uid)
         .single();
       
-      if (error) throw error;
-      
-      currentUserData = userData;
-      welcomeText.textContent = `@${userData.username}`;
-      welcomeText.onclick = () => window.location.href = 'profile.html';
-      
+      if (userData) {
+        currentUserData = userData;
+      }
     } catch (error) {
-      console.error('Error fetching user data:', error);
-      alert('Error loading user data. Please refresh the page.');
+      console.error('Error fetching username:', error);
     }
+
+    // Load profile (either own or someone else's based on URL)
+    loadProfile(user);
   } else {
-    // Redirect to login if not authenticated
-    window.location.href = 'login.html';
+    // User is logged out
+    
+    // Check if trying to view someone's profile via URL parameter
+    const usernameParam = getUrlParameter('username');
+    if (usernameParam) {
+      // Allow viewing other profiles even when logged out
+      loadProfile(null);
+    } else {
+      // Redirect to login if trying to access profile without being logged in
+      const profileContent = document.getElementById('profileContent');
+      profileContent.innerHTML = '<div class="error-state">Please log in to view your profile</div>';
+      setTimeout(() => {
+        window.location.href = 'login.html';
+      }, 1500);
+    }
   }
 });
 
-// Close search results when clicking outside
-document.addEventListener('click', (e) => {
-  if (!articleSearchInput.contains(e.target) && !searchResults.contains(e.target)) {
-    searchResults.classList.remove('show');
+// Close modal when clicking outside
+document.getElementById('editModal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closeEditModal();
   }
 });
-</script></body>
+</script>
+</body>
 </html>
