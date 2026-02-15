@@ -455,6 +455,36 @@ body.light-theme .logo-img {
   function createArticle() {
     window.location.href = 'https://patholytica.com/create';
   }
+
+  // Username cache utilities
+  const USERNAME_CACHE_KEY = 'patholytica_username_cache';
+  const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+  function getCachedUsername(uid) {
+    try {
+      const cache = localStorage.getItem(USERNAME_CACHE_KEY);
+      if (!cache) return null;
+      const data = JSON.parse(cache);
+      if (data.uid === uid && data.timestamp && (Date.now() - data.timestamp < CACHE_DURATION)) {
+        return data.username;
+      }
+    } catch (e) {
+      console.error('Error reading username cache:', e);
+    }
+    return null;
+  }
+
+  function setCachedUsername(uid, username) {
+    try {
+      localStorage.setItem(USERNAME_CACHE_KEY, JSON.stringify({
+        uid,
+        username,
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      console.error('Error setting username cache:', e);
+    }
+  }
 </script>
 
 <script type="module">
@@ -588,6 +618,8 @@ async function loadArticles() {
 window.logOut = async function () {
   try {
     await signOut(auth);
+    // Clear username cache on logout
+    localStorage.removeItem(USERNAME_CACHE_KEY);
     window.location.reload();
   } catch (error) {
     alert("Error logging out. Please try again.");
@@ -601,21 +633,36 @@ onAuthStateChanged(auth, async (user) => {
   const fabCreateBtn = document.getElementById('fabCreateBtn');
 
   if (user) {
+    // Show UI immediately
     authButtons.classList.remove('show');
     userWelcome.classList.add('show');
     if (fabCreateBtn) fabCreateBtn.classList.add('show');
     welcomeText.onclick = window.logOut;
     welcomeText.style.cursor = 'pointer';
 
+    // Try cache first
+    const cachedUsername = window.getCachedUsername(user.uid);
+    if (cachedUsername) {
+      welcomeText.textContent = `@${cachedUsername}`;
+    } else {
+      welcomeText.textContent = 'Welcome';
+    }
+
+    // Fetch username in background and update cache
     try {
       const { data: userData } = await supabase
         .from('users')
         .select('username')
         .eq('firebase_uid', user.uid)
         .single();
-      if (userData?.username) welcomeText.textContent = `@${userData.username}`;
+      
+      if (userData?.username) {
+        welcomeText.textContent = `@${userData.username}`;
+        window.setCachedUsername(user.uid, userData.username);
+      }
     } catch (error) {
       console.error('Error fetching username:', error);
+      // Keep cached or default text if fetch fails
     }
   } else {
     authButtons.classList.add('show');
@@ -624,6 +671,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
+// Load articles immediately, don't wait for auth
 loadArticles();
 </script>
 </body>
