@@ -1,1 +1,1342 @@
-ok
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Patholytica — Auto-Generate Article</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-color: #1f1f1f;
+            --text-primary: #fff;
+            --text-secondary: #aaa;
+            --card-bg: #1f1f1f;
+            --hover-bg: #2a2a2a;
+            --border-color: #303030;
+            --accent: #3ea6ff;
+            --accent-hover: #2d8ed6;
+            --success: #2ecc71;
+            --error: #e74c3c;
+            --warning: #f39c12;
+        }
+
+        body.light-theme {
+            --bg-color: #f9f9f9;
+            --text-primary: #0f0f0f;
+            --text-secondary: #606060;
+            --card-bg: #f9f9f9;
+            --hover-bg: #f0f0f0;
+            --border-color: #e5e5e5;
+            --accent: #065fd4;
+            --accent-hover: #0448a3;
+            --success: #27ae60;
+            --error: #c0392b;
+            --warning: #e67e22;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .app-container {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            background: var(--bg-color);
+            overflow-y: auto;
+        }
+
+        .app-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .app-container::-webkit-scrollbar-track {
+            background: var(--border-color);
+        }
+
+        .app-container::-webkit-scrollbar-thumb {
+            background: var(--text-secondary);
+            border-radius: 2px;
+        }
+
+        .header-bar {
+            position: sticky;
+            top: 0;
+            background: var(--bg-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 50;
+        }
+
+        .back-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--hover-bg);
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: background 0.2s ease;
+        }
+
+        .back-btn:hover {
+            background: var(--border-color);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--hover-bg);
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: background 0.2s ease;
+        }
+
+        .icon-btn:hover {
+            background: var(--border-color);
+        }
+
+        .publish-btn {
+            padding: 8px 20px;
+            border-radius: 24px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .publish-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .publish-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .editor-wrapper {
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        .topic-input-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .topic-input-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .topic-input {
+            width: 100%;
+            font-size: 16px;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--hover-bg);
+            color: var(--text-primary);
+            outline: none;
+            transition: border 0.2s ease;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .topic-input:focus {
+            border-color: var(--accent);
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 14px 20px;
+            border-radius: 8px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 16px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .generate-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .article-title-input {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            line-height: 1.2;
+            border: none;
+            outline: none;
+            background: transparent;
+            width: 100%;
+            resize: none;
+            overflow: hidden;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .article-title-input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.5;
+        }
+
+        .content-item {
+            margin-bottom: 14px;
+        }
+
+        .content-line {
+            font-size: 16px;
+            line-height: 1.6;
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .content-editable {
+            outline: none;
+            min-height: 1.6em;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            flex: 1;
+            cursor: text;
+            color: var(--text-primary);
+        }
+
+        .content-editable:empty::before {
+            content: 'Start writing...';
+            color: var(--text-secondary);
+            opacity: 0.5;
+        }
+
+        .content-editable:focus {
+            background: var(--hover-bg);
+            padding: 4px 8px;
+            margin: -4px -8px;
+            border-radius: 4px;
+        }
+
+        .line-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .content-line:hover .line-actions {
+            opacity: 1;
+        }
+
+        .line-btn {
+            width: 28px;
+            height: 28px;
+            min-width: 28px;
+            border-radius: 50%;
+            background: var(--hover-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .line-btn:hover {
+            background: var(--border-color);
+            color: var(--accent);
+        }
+
+        .media-embed {
+            margin: 16px 0;
+            max-width: 100%;
+            position: relative;
+        }
+
+        .media-embed img {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+        }
+
+        .media-caption {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            font-style: italic;
+            outline: none;
+            cursor: text;
+        }
+
+        .media-caption:empty::before {
+            content: 'Add a caption...';
+            opacity: 0.5;
+        }
+
+        .remove-media-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: 10;
+        }
+
+        .media-embed:hover .remove-media-btn {
+            opacity: 1;
+        }
+
+        .remove-media-btn:hover {
+            background: var(--error);
+        }
+
+        .custom-audio-player {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 100%;
+            border: 1px solid var(--border-color);
+        }
+
+        .play-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .play-btn:hover {
+            background: var(--accent-hover);
+            transform: scale(1.05);
+        }
+
+        .audio-info {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .audio-title {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-primary);
+        }
+
+        .waveform-container {
+            position: relative;
+            height: 32px;
+            background: var(--hover-bg);
+            border-radius: 4px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .waveform-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: var(--accent);
+            opacity: 0.3;
+            transition: width 0.1s linear;
+        }
+
+        .waveform-bars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 4px;
+        }
+
+        .waveform-bar {
+            width: 2px;
+            background: var(--text-secondary);
+            border-radius: 2px;
+            opacity: 0.6;
+        }
+
+        .audio-time {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .action-bar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 450px;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            padding: 12px 20px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom));
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+        }
+
+        .action-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--hover-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+
+        .action-btn svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--text-primary);
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border-color);
+            margin: 0;
+        }
+
+        .notification {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px 20px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            min-width: 300px;
+            max-width: 400px;
+        }
+
+        .notification.show {
+            display: flex;
+            animation: slideDown 0.3s ease;
+        }
+
+        .notification.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .notification.error {
+            border-left: 4px solid var(--error);
+        }
+
+        .notification.warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateX(-50%) translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .generated-section {
+            display: none;
+        }
+
+        .generated-section.show {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .editor-wrapper {
+                padding: 16px;
+            }
+
+            .article-title-input {
+                font-size: 28px;
+            }
+
+            .notification {
+                left: 16px;
+                right: 16px;
+                transform: none;
+                min-width: auto;
+                max-width: none;
+            }
+
+            .notification.show {
+                animation: slideDownMobile 0.3s ease;
+            }
+
+            @keyframes slideDownMobile {
+                from {
+                    transform: translateY(-100px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container" id="appContainer">
+    <div class="header-bar">
+        <button class="back-btn" onclick="goBack()">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
+                <i class="fas fa-circle-half-stroke"></i>
+            </button>
+            <button class="publish-btn" id="publishBtn" onclick="publishArticle()" style="display: none;">
+                Publish
+            </button>
+        </div>
+    </div>
+
+    <div class="editor-wrapper" id="editorContainer">
+        <!-- Topic Input Section -->
+        <div class="topic-input-section" id="topicSection">
+            <label class="topic-input-label">
+                <i class="fas fa-lightbulb"></i> Enter a topic to generate article
+            </label>
+            <input type="text" 
+                   class="topic-input" 
+                   id="topicInput" 
+                   placeholder="e.g., Climate Change, AI Technology, Space Exploration..."
+                   onkeypress="handleTopicKeypress(event)">
+            <button class="generate-btn" id="generateBtn" onclick="generateArticle()">
+                <i class="fas fa-magic"></i>
+                <span>Generate Article</span>
+            </button>
+        </div>
+
+        <!-- Generated Content Section -->
+        <div class="generated-section" id="generatedSection">
+            <textarea class="article-title-input" id="articleTitle" placeholder="Article Title" rows="1" oninput="autoResizeTitle(this)"></textarea>
+            
+            <div id="contentItems">
+                <div class="content-item">
+                    <div class="content-line" data-line="1">
+                        <div class="content-editable" contenteditable="true"></div>
+                        <div class="line-actions">
+                            <button class="line-btn" onclick="deleteLine(this)" title="Delete line">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="action-bar" id="actionBar" style="display: none;">
+    <button class="action-btn" onclick="addNewParagraph()" title="Add text">
+        <svg viewBox="0 0 24 24">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>Text</span>
+    </button>
+    <div class="divider"></div>
+    <label class="action-btn" title="Upload image">
+        <svg viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+        </svg>
+        <span>Image</span>
+        <input type="file" accept="image/*" onchange="handleImageUpload(event)" style="display: none;">
+    </label>
+    <label class="action-btn" title="Upload audio">
+        <svg viewBox="0 0 24 24">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>
+        <span>Audio</span>
+        <input type="file" accept="audio/*" onchange="handleAudioUpload(event)" style="display: none;">
+    </label>
+</div>
+
+<div class="notification" id="notification">
+    <i class="fas fa-check-circle" style="font-size: 20px;"></i>
+    <span id="notificationText"></span>
+</div>
+
+<script>
+// Global variables
+let lineCounter = 1;
+let isGenerating = false;
+
+function goBack() {
+    if (document.referrer && document.referrer.includes(window.location.host)) {
+        window.history.back();
+    } else {
+        window.location.href = 'index.html';
+    }
+}
+
+function toggleTheme() {
+    document.body.classList.toggle('light-theme');
+    localStorage.setItem("theme", document.body.classList.contains("light-theme") ? "light" : "dark");
+}
+
+if (localStorage.getItem("theme") === "light") {
+    document.body.classList.add("light-theme");
+}
+
+function autoResizeTitle(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+}
+
+function handleTopicKeypress(event) {
+    if (event.key === 'Enter') {
+        generateArticle();
+    }
+}
+
+// Sample data sources for article generation
+const sampleArticleData = {
+    'climate change': {
+        title: 'Understanding Climate Change: A Comprehensive Overview',
+        paragraphs: [
+            'Climate change represents one of the most pressing challenges facing humanity in the 21st century. The scientific consensus is clear: human activities, particularly the emission of greenhouse gases, are driving unprecedented changes in our planet\'s climate system.',
+            'The effects of climate change are already visible across the globe. Rising temperatures have led to more frequent and intense heatwaves, while changing precipitation patterns are causing both severe droughts and devastating floods in different regions.',
+            'Melting ice caps and glaciers contribute to rising sea levels, threatening coastal communities worldwide. Scientists estimate that sea levels could rise by several feet within this century if current trends continue.',
+            'Addressing climate change requires coordinated global action. The transition to renewable energy sources, improved energy efficiency, and sustainable land use practices are essential steps toward mitigating the worst impacts of climate change.'
+        ],
+        images: [
+            'https://images.unsplash.com/photo-1569163139394-de4798aa62b4?w=800',
+            'https://images.unsplash.com/photo-1611273426858-450d8e3c9fce?w=800'
+        ],
+        imageCaptions: [
+            'Melting glaciers demonstrate the visible impacts of global warming',
+            'Renewable energy sources like wind power offer hope for a sustainable future'
+        ]
+    },
+    'artificial intelligence': {
+        title: 'The Rise of Artificial Intelligence: Transforming Our World',
+        paragraphs: [
+            'Artificial Intelligence (AI) has evolved from a theoretical concept to a transformative technology that permeates nearly every aspect of modern life. From virtual assistants to autonomous vehicles, AI systems are reshaping how we live and work.',
+            'Machine learning, a subset of AI, enables computers to learn from data without explicit programming. This capability has led to breakthroughs in fields ranging from healthcare diagnostics to financial forecasting.',
+            'Natural language processing allows AI systems to understand and generate human language, powering chatbots, translation services, and content creation tools. These advances are breaking down communication barriers and democratizing access to information.',
+            'As AI continues to advance, ethical considerations become increasingly important. Questions about privacy, bias, job displacement, and the responsible development of AI systems require thoughtful consideration from technologists, policymakers, and society at large.'
+        ],
+        images: [
+            'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800',
+            'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800'
+        ],
+        imageCaptions: [
+            'AI technology is revolutionizing how we interact with computers',
+            'Machine learning algorithms process vast amounts of data to find patterns'
+        ]
+    },
+    'space exploration': {
+        title: 'The New Era of Space Exploration: Beyond Earth\'s Boundaries',
+        paragraphs: [
+            'Space exploration has entered an exciting new chapter, driven by both governmental space agencies and private companies. The dream of establishing a human presence beyond Earth is becoming increasingly achievable.',
+            'Mars has emerged as the primary target for human exploration beyond the Moon. Multiple missions are currently studying the Red Planet, searching for signs of past life and preparing for future human missions.',
+            'The development of reusable rocket technology has dramatically reduced the cost of space access. This innovation is opening up new possibilities for satellite deployment, space tourism, and the construction of orbital infrastructure.',
+            'International collaboration remains crucial for ambitious space projects. The International Space Station serves as a testament to what can be achieved when nations work together, while new partnerships are forming to tackle the challenges of deep space exploration.'
+        ],
+        images: [
+            'https://images.unsplash.com/photo-1446776653964-20c1d3a81b06?w=800',
+            'https://images.unsplash.com/photo-1614732414444-096e5f1122d5?w=800'
+        ],
+        imageCaptions: [
+            'The vast expanse of space holds countless mysteries waiting to be discovered',
+            'Modern spacecraft technology enables unprecedented exploration of our solar system'
+        ]
+    }
+};
+
+async function generateArticle() {
+    if (isGenerating) return;
+    
+    const topic = document.getElementById('topicInput').value.trim();
+    if (!topic) {
+        showNotification('Please enter a topic', 'error');
+        return;
+    }
+
+    isGenerating = true;
+    const generateBtn = document.getElementById('generateBtn');
+    const originalContent = generateBtn.innerHTML;
+    
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = '<div class="loading-spinner"></div><span>Generating...</span>';
+
+    try {
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Find matching article data (case-insensitive partial match)
+        let articleData = null;
+        const topicLower = topic.toLowerCase();
+        
+        for (const key in sampleArticleData) {
+            if (topicLower.includes(key) || key.includes(topicLower)) {
+                articleData = sampleArticleData[key];
+                break;
+            }
+        }
+
+        // If no match found, use a generic article
+        if (!articleData) {
+            articleData = {
+                title: `Exploring ${topic}: An In-Depth Analysis`,
+                paragraphs: [
+                    `${topic} is a fascinating subject that deserves careful examination. This article explores the key aspects and implications of ${topic} in today's world.`,
+                    `Understanding ${topic} requires looking at multiple perspectives and considering various factors that influence its development and impact on society.`,
+                    `Recent developments in ${topic} have opened up new possibilities and raised important questions about how we approach this field moving forward.`,
+                    `As we continue to study ${topic}, it becomes clear that collaboration and innovation will be essential to addressing the challenges and opportunities that lie ahead.`
+                ],
+                images: [
+                    'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800',
+                    'https://images.unsplash.com/photo-1516339901601-2e1b62dc0c45?w=800'
+                ],
+                imageCaptions: [
+                    `Visual representation of concepts related to ${topic}`,
+                    `Exploring the fascinating world of ${topic}`
+                ]
+            };
+        }
+
+        // Clear existing content
+        document.getElementById('contentItems').innerHTML = '';
+        lineCounter = 0;
+
+        // Set title
+        document.getElementById('articleTitle').value = articleData.title;
+        autoResizeTitle(document.getElementById('articleTitle'));
+
+        // Add paragraphs
+        for (const paragraph of articleData.paragraphs) {
+            addParagraphWithText(paragraph);
+        }
+
+        // Add images if available
+        if (articleData.images && articleData.images.length > 0) {
+            for (let i = 0; i < articleData.images.length; i++) {
+                await addGeneratedImage(articleData.images[i], articleData.imageCaptions[i] || '');
+                await new Promise(resolve => setTimeout(resolve, 500)); // Stagger image loading
+            }
+        }
+
+        // Generate sample audio (simulated)
+        addGeneratedAudio(`${articleData.title} - Audio Narration`, topic);
+
+        // Show generated content
+        document.getElementById('topicSection').style.display = 'none';
+        document.getElementById('generatedSection').classList.add('show');
+        document.getElementById('actionBar').style.display = 'flex';
+        document.getElementById('publishBtn').style.display = 'block';
+
+        showNotification('Article generated successfully!', 'success');
+
+    } catch (error) {
+        console.error('Error generating article:', error);
+        showNotification('Error generating article. Please try again.', 'error');
+    } finally {
+        isGenerating = false;
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = originalContent;
+    }
+}
+
+function addParagraphWithText(text) {
+    lineCounter++;
+    const contentItem = document.createElement('div');
+    contentItem.className = 'content-item';
+    contentItem.innerHTML = `
+        <div class="content-line" data-line="${lineCounter}">
+            <div class="content-editable" contenteditable="true">${text}</div>
+            <div class="line-actions">
+                <button class="line-btn" onclick="deleteLine(this)" title="Delete line">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    document.getElementById('contentItems').appendChild(contentItem);
+}
+
+async function addGeneratedImage(imageUrl, caption) {
+    const contentItem = document.createElement('div');
+    contentItem.className = 'content-item';
+    contentItem.innerHTML = `
+        <div class="media-embed">
+            <button class="remove-media-btn" onclick="removeMedia(this)">
+                <i class="fas fa-times"></i>
+            </button>
+            <img src="${imageUrl}" alt="Generated image" loading="lazy">
+            <div class="media-caption" contenteditable="true">${caption}</div>
+        </div>
+    `;
+    document.getElementById('contentItems').appendChild(contentItem);
+}
+
+function addGeneratedAudio(title, topic) {
+    const audioId = 'audio-' + Math.random().toString(36).substr(2, 9);
+    const contentItem = document.createElement('div');
+    contentItem.className = 'content-item';
+    
+    // Using a sample audio file URL (replace with actual audio generation API)
+    const audioUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+    
+    contentItem.innerHTML = `
+        <div class="media-embed">
+            <button class="remove-media-btn" onclick="removeMedia(this)">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="custom-audio-player">
+                <button class="play-btn" onclick="toggleAudio(this, '${audioId}')">
+                    <i class="fas fa-play"></i>
+                </button>
+                <div class="audio-info">
+                    <div class="audio-title">${title}</div>
+                    <div class="waveform-container" onclick="seekAudio(event, this, '${audioId}')">
+                        <div class="waveform-progress"></div>
+                        <div class="waveform-bars">
+                            ${Array(15).fill(0).map(() => `<div class="waveform-bar" style="height: ${Math.random() * 60 + 20}%"></div>`).join('')}
+                        </div>
+                    </div>
+                    <div class="audio-time">
+                        <span class="current-time">0:00</span>
+                        <span class="duration">0:00</span>
+                    </div>
+                </div>
+                <audio id="${audioId}" src="${audioUrl}" style="display: none;"></audio>
+            </div>
+            <div class="media-caption" contenteditable="true">AI-generated narration about ${topic}</div>
+        </div>
+    `;
+    document.getElementById('contentItems').appendChild(contentItem);
+    
+    setTimeout(() => {
+        const audio = document.getElementById(audioId);
+        if (audio) {
+            audio.addEventListener('loadedmetadata', function() {
+                const duration = Math.floor(audio.duration);
+                const mins = Math.floor(duration / 60);
+                const secs = duration % 60;
+                const durationSpan = audio.closest('.custom-audio-player').querySelector('.duration');
+                if (durationSpan) {
+                    durationSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+                }
+            });
+        }
+    }, 100);
+}
+
+function addNewParagraph() {
+    lineCounter++;
+    const contentItem = document.createElement('div');
+    contentItem.className = 'content-item';
+    contentItem.innerHTML = `
+        <div class="content-line" data-line="${lineCounter}">
+            <div class="content-editable" contenteditable="true"></div>
+            <div class="line-actions">
+                <button class="line-btn" onclick="deleteLine(this)" title="Delete line">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    document.getElementById('contentItems').appendChild(contentItem);
+    const editable = contentItem.querySelector('.content-editable');
+    editable.focus();
+}
+
+function deleteLine(btn) {
+    const contentItem = btn.closest('.content-item');
+    const allItems = document.querySelectorAll('.content-item .content-line');
+    
+    if (allItems.length > 1) {
+        contentItem.remove();
+    } else {
+        showNotification('Cannot delete the last line', 'error');
+    }
+}
+
+function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const contentItem = document.createElement('div');
+        contentItem.className = 'content-item';
+        contentItem.innerHTML = `
+            <div class="media-embed">
+                <button class="remove-media-btn" onclick="removeMedia(this)">
+                    <i class="fas fa-times"></i>
+                </button>
+                <img src="${e.target.result}" alt="Uploaded image">
+                <div class="media-caption" contenteditable="true"></div>
+            </div>
+        `;
+        document.getElementById('contentItems').appendChild(contentItem);
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+}
+
+function handleAudioUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const audioId = 'audio-' + Math.random().toString(36).substr(2, 9);
+        const contentItem = document.createElement('div');
+        contentItem.className = 'content-item';
+        contentItem.innerHTML = `
+            <div class="media-embed">
+                <button class="remove-media-btn" onclick="removeMedia(this)">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="custom-audio-player">
+                    <button class="play-btn" onclick="toggleAudio(this, '${audioId}')">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <div class="audio-info">
+                        <div class="audio-title">${file.name}</div>
+                        <div class="waveform-container" onclick="seekAudio(event, this, '${audioId}')">
+                            <div class="waveform-progress"></div>
+                            <div class="waveform-bars">
+                                ${Array(15).fill(0).map(() => `<div class="waveform-bar" style="height: ${Math.random() * 60 + 20}%"></div>`).join('')}
+                            </div>
+                        </div>
+                        <div class="audio-time">
+                            <span class="current-time">0:00</span>
+                            <span class="duration">0:00</span>
+                        </div>
+                    </div>
+                    <audio id="${audioId}" src="${e.target.result}" style="display: none;"></audio>
+                </div>
+                <div class="media-caption" contenteditable="true"></div>
+            </div>
+        `;
+        document.getElementById('contentItems').appendChild(contentItem);
+        
+        setTimeout(() => {
+            const audio = document.getElementById(audioId);
+            if (audio) {
+                audio.addEventListener('loadedmetadata', function() {
+                    const duration = Math.floor(audio.duration);
+                    const mins = Math.floor(duration / 60);
+                    const secs = duration % 60;
+                    const durationSpan = audio.closest('.custom-audio-player').querySelector('.duration');
+                    if (durationSpan) {
+                        durationSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+                    }
+                });
+            }
+        }, 100);
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+}
+
+function removeMedia(btn) {
+    const contentItem = btn.closest('.content-item');
+    contentItem.remove();
+}
+
+function toggleAudio(btn, audioId) {
+    const player = btn.closest('.custom-audio-player');
+    const audio = document.getElementById(audioId);
+    const icon = btn.querySelector('i');
+    
+    if (audio.paused) {
+        audio.play();
+        icon.className = 'fas fa-pause';
+        
+        audio.ontimeupdate = function() {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            player.querySelector('.waveform-progress').style.width = progress + '%';
+            const currentMins = Math.floor(audio.currentTime / 60);
+            const currentSecs = Math.floor(audio.currentTime % 60);
+            player.querySelector('.current-time').textContent = `${currentMins}:${currentSecs.toString().padStart(2, '0')}`;
+        };
+        
+        audio.onended = function() {
+            icon.className = 'fas fa-play';
+            player.querySelector('.waveform-progress').style.width = '0%';
+            player.querySelector('.current-time').textContent = '0:00';
+        };
+    } else {
+        audio.pause();
+        icon.className = 'fas fa-play';
+    }
+}
+
+function seekAudio(event, container, audioId) {
+    const audio = document.getElementById(audioId);
+    const rect = container.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const percentage = x / rect.width;
+    audio.currentTime = percentage * audio.duration;
+}
+
+function showNotification(message, type = 'success') {
+    const notification = document.getElementById('notification');
+    const notificationText = document.getElementById('notificationText');
+    const icon = notification.querySelector('i');
+    
+    notificationText.textContent = message;
+    notification.className = `notification ${type} show`;
+    
+    if (type === 'success') {
+        icon.className = 'fas fa-check-circle';
+    } else if (type === 'error') {
+        icon.className = 'fas fa-exclamation-circle';
+    } else if (type === 'warning') {
+        icon.className = 'fas fa-exclamation-triangle';
+    }
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 4000);
+}
+</script>
+
+<script type="module">
+// Import Firebase modules
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+// Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+    authDomain: "patholytica.firebaseapp.com",
+    databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "patholytica",
+    storageBucket: "patholytica.firebasestorage.app",
+    messagingSenderId: "738430635282",
+    appId: "1:738430635282:web:8451ef380447c7611137cb"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// Initialize Supabase
+const supabase = window.supabase.createClient(
+    "https://vduqewqyvszfquntmark.supabase.co",
+    "sb_publishable_YseP73aoHam8YT6B0b9EQQ_iAUEWARI"
+);
+
+let currentUser = null;
+
+// Check authentication
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        currentUser = user;
+        console.log("User authenticated:", user.uid);
+    } else {
+        // Redirect to login if not authenticated
+        window.location.href = 'login.html';
+    }
+});
+
+// Publish article function
+window.publishArticle = async function() {
+    if (!currentUser) {
+        showNotification('Please log in to publish articles', 'error');
+        return;
+    }
+
+    const title = document.getElementById('articleTitle').value.trim();
+    if (!title) {
+        showNotification('Please add a title', 'error');
+        return;
+    }
+
+    // Collect all content
+    const contentLines = [];
+    const mediaItems = [];
+    
+    document.querySelectorAll('.content-line').forEach(line => {
+        const text = line.querySelector('.content-editable').textContent.trim();
+        if (text) {
+            contentLines.push(text);
+        }
+    });
+
+    document.querySelectorAll('.media-embed').forEach((media, index) => {
+        const img = media.querySelector('img');
+        const audio = media.querySelector('audio');
+        const caption = media.querySelector('.media-caption').textContent.trim();
+        
+        if (img) {
+            mediaItems.push({
+                type: 'image',
+                src: img.src,
+                caption: caption,
+                order: index
+            });
+        } else if (audio) {
+            mediaItems.push({
+                type: 'audio',
+                src: audio.src,
+                caption: caption,
+                order: index
+            });
+        }
+    });
+
+    const content = contentLines.join('\n\n');
+    
+    if (!content) {
+        showNotification('Please add some content', 'error');
+        return;
+    }
+
+    // Disable publish button
+    const publishBtn = document.getElementById('publishBtn');
+    publishBtn.disabled = true;
+    publishBtn.textContent = 'Publishing...';
+
+    try {
+        // Check if user exists
+        let { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('firebase_uid, username')
+            .eq('firebase_uid', currentUser.uid)
+            .single();
+
+        if (userError && userError.code !== 'PGRST116') {
+            throw new Error('Error looking up user: ' + userError.message);
+        }
+
+        if (!userData) {
+            // Try to find by email
+            let { data: emailUser } = await supabase
+                .from('users')
+                .select('firebase_uid, username, email')
+                .eq('email', currentUser.email)
+                .single();
+
+            if (emailUser) {
+                // Update firebase_uid
+                const { error: updateError } = await supabase
+                    .from('users')
+                    .update({ 
+                        firebase_uid: currentUser.uid,
+                        username: emailUser.username || currentUser.email?.split('@')[0],
+                        full_name: currentUser.displayName || emailUser.full_name || currentUser.email?.split('@')[0]
+                    })
+                    .eq('email', currentUser.email);
+
+                if (updateError) throw new Error('Error updating user: ' + updateError.message);
+                userData = { firebase_uid: currentUser.uid };
+            } else {
+                // Create new user
+                const { data: newUser, error: createError } = await supabase
+                    .from('users')
+                    .insert([
+                        {
+                            firebase_uid: currentUser.uid,
+                            email: currentUser.email,
+                            full_name: currentUser.displayName || currentUser.email?.split('@')[0],
+                            username: currentUser.email?.split('@')[0] || 'user'
+                        }
+                    ])
+                    .select('firebase_uid')
+                    .single();
+
+                if (createError) throw new Error('Error creating user: ' + createError.message);
+                userData = newUser;
+            }
+        }
+
+        // Insert article
+        const { data: article, error: articleError } = await supabase
+            .from('articles')
+            .insert([
+                {
+                    title: title,
+                    content: content,
+                    firebase_user_id: currentUser.uid,
+                    views: 0,
+                    likes: 0
+                }
+            ])
+            .select()
+            .single();
+
+        if (articleError) throw articleError;
+
+        // Insert media items if any
+        if (mediaItems.length > 0) {
+            const mediaInserts = mediaItems.map(item => ({
+                article_id: article.id,
+                type: item.type,
+                url: item.src,
+                caption: item.caption,
+                display_order: item.order
+            }));
+
+            const { error: mediaError } = await supabase
+                .from('media')
+                .insert(mediaInserts);
+
+            if (mediaError) console.error('Error inserting media:', mediaError);
+        }
+
+        showNotification('Article published successfully!', 'success');
+        
+        // Redirect to article page
+        setTimeout(() => {
+            window.location.href = `article.html?id=${article.id}`;
+        }, 1500);
+
+    } catch (error) {
+        console.error('Error publishing article:', error);
+        showNotification('Error publishing article: ' + error.message, 'error');
+        publishBtn.disabled = false;
+        publishBtn.textContent = 'Publish';
+    }
+};
+</script>
+
+</body>
+</html>
