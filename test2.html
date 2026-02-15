@@ -1,1121 +1,706 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Patholytica — Profile</title>
-
-<!-- Resource hints for faster loading -->
-<link rel="preconnect" href="https://vduqewqyvszfquntmark.supabase.co">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
-<link rel="dns-prefetch" href="https://www.gstatic.com">
-
-<!-- Load fonts with display=swap to prevent blocking -->
-<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
-
-<!-- Defer Font Awesome loading -->
-<link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
-
-<!-- Load Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<style>
-:root {
-  --bg-color: #1f1f1f;
-  --text-primary: #fff;
-  --text-secondary: #aaa;
-  --card-bg: #1f1f1f;
-  --hover-bg: #2a2a2a;
-  --border-color: #303030;
-  --accent: #3ea6ff;
-  --accent-hover: #2d8ed6;
-  --accent-green: #2ecc71;
-  --accent-purple: #9b59b6;
-}
-
-body.light-theme {
-  --bg-color: #f9f9f9;
-  --text-primary: #0f0f0f;
-  --text-secondary: #606060;
-  --card-bg: #f9f9f9;
-  --hover-bg: #f0f0f0;
-  --border-color: #e5e5e5;
-  --accent: #065fd4;
-  --accent-hover: #0448a3;
-}
-
-* { box-sizing: border-box; }
-html, body { 
-  margin: 0; 
-  padding: 0; 
-  min-height: 100%; 
-  font-family: "Roboto", Arial, sans-serif;
-  overflow-x: hidden;
-  max-width: 100vw;
-}
-body {
-  background: var(--bg-color);
-  color: var(--text-primary);
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-/* Profile Hero Section */
-.profile-hero {
-  position: relative;
-  width: 100%;
-  height: 450px;
-  overflow: hidden;
-  background-color: #2a2a2a; /* Fallback while image loads */
-}
-
-.hero-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-size: cover;
-  background-position: center;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.hero-background.loaded {
-  opacity: 1;
-}
-
-.hero-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.8) 100%);
-}
-
-.hero-content {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 40px 24px;
-  display: flex;
-  align-items: flex-end;
-  gap: 24px;
-}
-
-.profile-avatar-large {
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  background: var(--card-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 56px;
-  color: var(--accent);
-  flex-shrink: 0;
-  overflow: hidden;
-  border: 5px solid white;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-}
-
-.profile-avatar-large img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.hero-info {
-  flex: 1;
-  color: white;
-  padding-bottom: 12px;
-}
-
-.profile-username-hero {
-  font-family: 'Merriweather', Georgia, serif;
-  font-size: 42px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-
-.profile-meta-row {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-  font-size: 15px;
-  opacity: 0.95;
-}
-
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.meta-item i {
-  font-size: 14px;
-}
-
-/* Profile Container */
-.profile-container {
-  max-width: 900px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 32px 24px 80px;
-}
-
-/* Bio Card */
-.bio-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 24px;
-  margin-bottom: 24px;
-}
-
-.bio-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 12px;
-}
-
-.bio-content {
-  font-size: 16px;
-  line-height: 1.6;
-  color: var(--text-primary);
-}
-
-.bio-empty {
-  font-size: 15px;
-  color: var(--text-secondary);
-  font-style: italic;
-}
-
-/* Stats Cards */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 32px;
-}
-
-.stat-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 24px;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-}
-
-.stat-icon {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 12px;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  color: white;
-}
-
-.stat-icon.libraries {
-  background: linear-gradient(135deg, var(--accent-purple) 0%, #8e44ad 100%);
-}
-
-.stat-value {
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 4px 0;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 500;
-}
-
-/* Action Buttons */
-.profile-actions {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 32px;
-  flex-wrap: wrap;
-}
-
-.btn-edit, .btn-logout {
-  flex: 1;
-  min-width: 140px;
-  padding: 14px 28px;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.btn-edit {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(62, 166, 255, 0.3);
-}
-
-.btn-edit:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(62, 166, 255, 0.4);
-}
-
-.btn-logout {
-  background: var(--card-bg);
-  color: var(--text-primary);
-  border: 2px solid var(--border-color);
-}
-
-.btn-logout:hover {
-  background: var(--hover-bg);
-  border-color: var(--accent);
-}
-
-/* Libraries Section */
-.libraries-section {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 32px;
-  margin-bottom: 32px;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-
-.section-title {
-  font-family: 'Merriweather', Georgia, serif;
-  font-size: 28px;
-  font-weight: 700;
-  margin: 0;
-  color: var(--text-primary);
-}
-
-.count-badge {
-  background: var(--accent-purple);
-  color: white;
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.library-grid {
-  display: grid;
-  gap: 16px;
-}
-
-.library-card {
-  background: var(--bg-color);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 20px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.library-card::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: linear-gradient(135deg, var(--accent-purple) 0%, #8e44ad 100%);
-  transform: scaleY(0);
-  transition: transform 0.3s ease;
-}
-
-.library-card:hover::before {
-  transform: scaleY(1);
-}
-
-.library-card:hover {
-  transform: translateX(8px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-  border-color: var(--accent-purple);
-}
-
-.library-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--accent-purple) 0%, #8e44ad 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  color: white;
-  flex-shrink: 0;
-}
-
-.library-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.library-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 6px 0;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.library-description {
-  font-size: 14px;
-  color: var(--text-secondary);
-  margin: 0 0 8px 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.library-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.library-date {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.library-date i {
-  font-size: 11px;
-}
-
-/* Articles Section */
-.articles-section {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 32px;
-  margin-bottom: 32px;
-}
-
-.article-count-badge {
-  background: var(--accent);
-  color: white;
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.article-grid {
-  display: grid;
-  gap: 20px;
-}
-
-.article-card {
-  background: var(--bg-color);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 24px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.article-card::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
-  transform: scaleY(0);
-  transition: transform 0.3s ease;
-}
-
-.article-card:hover::before {
-  transform: scaleY(1);
-}
-
-.article-card:hover {
-  transform: translateX(8px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-  border-color: var(--accent);
-}
-
-.article-card-title {
-  font-family: 'Merriweather', Georgia, serif;
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0 0 12px 0;
-  line-height: 1.3;
-  color: var(--text-primary);
-}
-
-.article-card-meta {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-.meta-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  background: var(--hover-bg);
-  border-radius: 8px;
-  font-size: 13px;
-}
-
-.meta-badge i {
-  font-size: 12px;
-}
-
-/* Empty State */
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-secondary);
-}
-
-.empty-state-icon {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 20px;
-  background: var(--hover-bg);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 36px;
-  opacity: 0.5;
-}
-
-.empty-state-title {
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0 0 8px 0;
-  color: var(--text-primary);
-}
-
-.empty-state-text {
-  font-size: 15px;
-  margin: 0;
-}
-
-/* Loading State */
-.loading-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-secondary);
-}
-
-.loading-spinner {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 20px;
-  border: 4px solid var(--border-color);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Error State */
-.error-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: #ff4444;
-  font-size: 16px;
-}
-
-/* Edit Profile Modal */
-.modal-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  z-index: 1000;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.modal-overlay.show {
-  display: flex;
-}
-
-.modal-content {
-  background: var(--card-bg);
-  border-radius: 20px;
-  width: 100%;
-  max-width: 540px;
-  max-height: 90vh;
-  overflow-y: auto;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-}
-
-.modal-header {
-  padding: 28px 32px;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.modal-title {
-  font-family: 'Merriweather', Georgia, serif;
-  font-size: 26px;
-  font-weight: 700;
-  margin: 0;
-}
-
-.modal-close {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: transparent;
-  border: none;
-  color: var(--text-primary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  transition: all 0.2s ease;
-}
-
-.modal-close:hover {
-  background: var(--hover-bg);
-  transform: rotate(90deg);
-}
-
-.modal-body {
-  padding: 32px;
-}
-
-.form-group {
-  margin-bottom: 28px;
-}
-
-.form-label {
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.form-input, .form-textarea {
-  width: 100%;
-  padding: 14px 18px;
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
-  background: var(--bg-color);
-  color: var(--text-primary);
-  font-size: 15px;
-  font-family: inherit;
-  transition: all 0.2s ease;
-}
-
-.form-input:focus, .form-textarea:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(62, 166, 255, 0.1);
-}
-
-.form-textarea {
-  resize: vertical;
-  min-height: 120px;
-}
-
-.avatar-upload {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.avatar-preview {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  background: var(--hover-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 40px;
-  color: var(--accent);
-  overflow: hidden;
-  border: 3px solid var(--border-color);
-  flex-shrink: 0;
-}
-
-.avatar-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-upload-btn {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  flex: 1;
-}
-
-.btn-upload, .btn-remove {
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 2px solid var(--border-color);
-  background: transparent;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.btn-upload:hover {
-  background: var(--hover-bg);
-  border-color: var(--accent);
-}
-
-.btn-remove {
-  color: #ff4444;
-  border-color: #ff4444;
-}
-
-.btn-remove:hover {
-  background: rgba(255, 68, 68, 0.1);
-}
-
-.file-input {
-  display: none;
-}
-
-.upload-hint {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 4px;
-}
-
-.modal-footer {
-  padding: 24px 32px;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-}
-
-.btn-cancel, .btn-save {
-  padding: 12px 28px;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
-}
-
-.btn-cancel {
-  background: transparent;
-  color: var(--text-primary);
-  border: 2px solid var(--border-color);
-}
-
-.btn-cancel:hover {
-  background: var(--hover-bg);
-}
-
-.btn-save {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(62, 166, 255, 0.3);
-}
-
-.btn-save:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(62, 166, 255, 0.4);
-}
-
-.btn-save:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Footer */
-.footer {
-  background: var(--bg-color);
-  border-top: 1px solid var(--border-color);
-  padding: 24px;
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 1.6;
-  padding-bottom: calc(80px + env(safe-area-inset-bottom));
-}
-
-.footer-stats {
-  margin-bottom: 8px;
-}
-
-.article-count {
-  color: var(--accent-green);
-  font-weight: 600;
-}
-
-/* Footer Bar Navigation */
-.footer-bar {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 450px;
-  background: var(--card-bg);
-  border-top: 1px solid var(--border-color);
-  padding: 8px 24px;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom));
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  z-index: 100;
-}
-
-.footer-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color 0.2s ease;
-  padding: 6px 12px;
-}
-
-.footer-btn:hover {
-  color: var(--text-primary);
-}
-
-.footer-btn.active {
-  color: var(--accent);
-}
-
-.footer-btn i {
-  font-size: 20px;
-}
-
-.footer-btn span {
-  font-size: 10px;
-  font-weight: 500;
-}
-
-@media (max-width: 768px) {
-  .profile-hero {
-    height: 300px;
-  }
-
-  .hero-content {
-    padding: 24px 16px;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-
-  .profile-avatar-large {
-    width: 100px;
-    height: 100px;
-    font-size: 40px;
-  }
-
-  .profile-username-hero {
-    font-size: 28px;
-  }
-
-  .profile-meta-row {
-    justify-content: center;
-    font-size: 13px;
-  }
-
-  .profile-container {
-    padding: 24px 16px 100px;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  .stat-card {
-    padding: 20px;
-  }
-
-  .stat-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
-  }
-
-  .stat-value {
-    font-size: 24px;
-  }
-
-  .bio-card, .libraries-section, .articles-section {
-    padding: 20px;
-  }
-
-  .section-title {
-    font-size: 22px;
-  }
-
-  .library-card, .article-card {
-    padding: 20px;
-  }
-
-  .library-icon {
-    width: 48px;
-    height: 48px;
-    font-size: 20px;
-  }
-
-  .library-title {
-    font-size: 16px;
-  }
-
-  .article-card-title {
-    font-size: 20px;
-  }
-
-  .profile-actions {
-    flex-direction: column;
-  }
-
-  .btn-edit, .btn-logout {
-    width: 100%;
-  }
-
-  .modal-content {
-    max-height: 85vh;
-  }
-
-  .modal-header {
-    padding: 20px 24px;
-  }
-
-  .modal-body {
-    padding: 24px;
-  }
-
-  .modal-footer {
-    padding: 20px 24px;
-    flex-direction: column;
-  }
-
-  .btn-cancel, .btn-save {
-    width: 100%;
-  }
-
-  .avatar-upload {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .avatar-upload-btn {
-    width: 100%;
-  }
-
-  .btn-upload, .btn-remove {
-    width: 100%;
-  }
-
-  .footer-bar {
-    padding: 8px 16px;
-    padding-bottom: calc(8px + env(safe-area-inset-bottom));
-  }
-
-  .footer-btn {
-    padding: 6px 8px;
-  }
-
-  .footer-btn i {
-    font-size: 18px;
-  }
-
-  .footer-btn span {
-    font-size: 9px;
-  }
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Patholytica — Create Library</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-color: #1f1f1f;
+            --text-primary: #fff;
+            --text-secondary: #aaa;
+            --card-bg: #1f1f1f;
+            --hover-bg: #2a2a2a;
+            --border-color: #303030;
+            --accent: #3ea6ff;
+            --accent-hover: #2d8ed6;
+            --accent-purple: #9b59b6;
+            --success: #2ecc71;
+            --error: #e74c3c;
+        }
+
+        body.light-theme {
+            --bg-color: #f9f9f9;
+            --text-primary: #0f0f0f;
+            --text-secondary: #606060;
+            --card-bg: #f9f9f9;
+            --hover-bg: #f0f0f0;
+            --border-color: #e5e5e5;
+            --accent: #065fd4;
+            --accent-hover: #0448a3;
+            --success: #27ae60;
+            --error: #c0392b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .app-container {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            background: var(--bg-color);
+            overflow-y: auto;
+        }
+
+        .app-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .app-container::-webkit-scrollbar-track {
+            background: var(--border-color);
+        }
+
+        .app-container::-webkit-scrollbar-thumb {
+            background: var(--text-secondary);
+            border-radius: 2px;
+        }
+
+        .header-bar {
+            position: sticky;
+            top: 0;
+            background: var(--bg-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 50;
+        }
+
+        .back-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--hover-bg);
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: background 0.2s ease;
+        }
+
+        .back-btn:hover {
+            background: var(--border-color);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--hover-bg);
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: background 0.2s ease;
+        }
+
+        .icon-btn:hover {
+            background: var(--border-color);
+        }
+
+        .create-btn {
+            padding: 8px 20px;
+            border-radius: 24px;
+            background: var(--accent-purple);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .create-btn:hover {
+            background: #8e44ad;
+        }
+
+        .create-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .editor-wrapper {
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        .library-icon-preview {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--accent-purple) 0%, #8e44ad 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            color: white;
+            box-shadow: 0 8px 24px rgba(155, 89, 182, 0.4);
+            margin-bottom: 24px;
+        }
+
+        .library-title-input {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            line-height: 1.2;
+            border: none;
+            outline: none;
+            background: transparent;
+            width: 100%;
+            resize: none;
+            overflow: hidden;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .library-title-input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.5;
+        }
+
+        .library-description-input {
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--text-primary);
+            margin-bottom: 32px;
+            border: none;
+            outline: none;
+            background: transparent;
+            width: 100%;
+            resize: none;
+            min-height: 60px;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .library-description-input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.5;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 44px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-purple);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .articles-list {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .article-item {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .article-item:hover {
+            border-color: var(--accent-purple);
+        }
+
+        .article-item.selected {
+            border-color: var(--accent-purple);
+            background: var(--hover-bg);
+        }
+
+        .article-checkbox {
+            width: 24px;
+            height: 24px;
+            min-width: 24px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-color);
+            transition: all 0.2s ease;
+        }
+
+        .article-item.selected .article-checkbox {
+            background: var(--accent-purple);
+            border-color: var(--accent-purple);
+        }
+
+        .article-checkbox i {
+            color: white;
+            font-size: 14px;
+            display: none;
+        }
+
+        .article-item.selected .article-checkbox i {
+            display: block;
+        }
+
+        .article-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .article-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .article-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .selected-count {
+            background: var(--hover-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .count-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .count-number {
+            font-weight: 700;
+            color: var(--accent-purple);
+        }
+
+        .clear-btn {
+            background: none;
+            border: none;
+            color: var(--accent-purple);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+
+        .clear-btn:hover {
+            background: var(--hover-bg);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .empty-text {
+            font-size: 14px;
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 16px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-purple);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .notification {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px 20px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            min-width: 300px;
+            max-width: 400px;
+        }
+
+        .notification.show {
+            display: flex;
+            animation: slideDown 0.3s ease;
+        }
+
+        .notification.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .notification.error {
+            border-left: 4px solid var(--error);
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateX(-50%) translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .editor-wrapper {
+                padding: 16px;
+            }
+
+            .library-title-input {
+                font-size: 28px;
+            }
+
+            .notification {
+                left: 16px;
+                right: 16px;
+                transform: none;
+                min-width: auto;
+                max-width: none;
+            }
+
+            .notification.show {
+                animation: slideDownMobile 0.3s ease;
+            }
+
+            @keyframes slideDownMobile {
+                from {
+                    transform: translateY(-100px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+        }
+    </style>
 </head>
 <body>
 <script>
+// Apply theme immediately before page renders
 if (localStorage.getItem("theme") === "light") {
-  document.body.classList.add("light-theme");
+    document.body.classList.add("light-theme");
 }
 </script>
 
-<div id="profileContent">
-  <div class="loading-state">
-    <div class="loading-spinner"></div>
-    <div>Loading profile...</div>
-  </div>
-</div>
-
-<!-- Edit Profile Modal -->
-<div class="modal-overlay" id="editModal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2 class="modal-title">Edit Profile</h2>
-      <button class="modal-close" onclick="closeEditModal()">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-    <div class="modal-body">
-      <form id="editForm">
-        <div class="form-group">
-          <label class="form-label">Profile Picture</label>
-          <div class="avatar-upload">
-            <div class="avatar-preview" id="avatarPreview">
-              <i class="fas fa-user"></i>
-            </div>
-            <div class="avatar-upload-btn">
-              <button type="button" class="btn-upload" onclick="document.getElementById('fileInput').click()">
-                <i class="fas fa-upload"></i> Choose Image
-              </button>
-              <button type="button" class="btn-remove" id="removeBtn" onclick="removeImage()" style="display: none;">
-                <i class="fas fa-trash"></i> Remove Image
-              </button>
-              <input type="file" id="fileInput" class="file-input" accept="image/*" onchange="handleImageSelect(event)">
-              <span class="upload-hint">JPG, PNG or GIF (max 2MB)</span>
-            </div>
-          </div>
+<div class="app-container" id="appContainer">
+    <div class="header-bar">
+        <button class="back-btn" onclick="goBack()">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
+                <i class="fas fa-circle-half-stroke"></i>
+            </button>
+            <button class="create-btn" id="createBtn" onclick="createLibrary()">
+                Create
+            </button>
         </div>
+    </div>
+
+    <div class="editor-wrapper" id="editorContainer">
+        <div class="library-icon-preview">
+            <i class="fas fa-bookmark"></i>
+        </div>
+
+        <textarea class="library-title-input" id="libraryTitle" placeholder="Library Name" rows="1" oninput="autoResizeTitle(this)"></textarea>
         
-        <div class="form-group">
-          <label class="form-label" for="bioInput">Bio</label>
-          <textarea 
-            id="bioInput" 
-            class="form-textarea" 
-            placeholder="Tell us about yourself..."
-            maxlength="500"
-          ></textarea>
+        <textarea class="library-description-input" id="libraryDescription" placeholder="Add a description... (optional)" rows="2" oninput="autoResizeDescription(this)"></textarea>
+
+        <h2 class="section-title">Add Articles</h2>
+
+        <div class="search-box">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="search-input" id="searchInput" placeholder="Search articles..." oninput="searchArticles()">
         </div>
-      </form>
+
+        <div class="selected-count" id="selectedCount" style="display: none;">
+            <span class="count-text">
+                <span class="count-number" id="countNumber">0</span> articles selected
+            </span>
+            <button class="clear-btn" onclick="clearSelection()">Clear all</button>
+        </div>
+
+        <div id="articlesContainer">
+            <div class="loading-state">
+                <div class="loading-spinner"></div>
+                <div>Loading articles...</div>
+            </div>
+        </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
-      <button class="btn-save" id="saveBtn" onclick="saveProfile()">Save Changes</button>
-    </div>
-  </div>
 </div>
 
-<footer class="footer">
-  <div class="footer-stats">
-    <span class="article-count" id="articleCount">0</span> articles accessible
-  </div>
-</footer>
-
-<!-- Footer Bar Navigation -->
-<div class="footer-bar">
-  <button class="footer-btn" onclick="window.location.href='index.html'">
-    <i class="fas fa-home"></i>
-    <span>Home</span>
-  </button>
-  <button class="footer-btn" onclick="window.location.href='https://patholytica.com/dailyfeed'">
-    <i class="fas fa-scroll"></i>
-    <span>Feed</span>
-  </button>
-  <button class="footer-btn" onclick="window.location.href='explore.html'">
-    <i class="fas fa-search"></i>
-    <span>Explore</span>
-  </button>
-  <button class="footer-btn active" onclick="window.location.href='profile.html'">
-    <i class="fas fa-user"></i>
-    <span>Profile</span>
-  </button>
+<div class="notification" id="notification">
+    <i class="fas fa-check-circle" style="font-size: 20px;"></i>
+    <span id="notificationText"></span>
 </div>
+
+<script>
+let allArticles = [];
+let selectedArticles = new Set();
+
+function goBack() {
+    if (document.referrer && document.referrer.includes(window.location.host)) {
+        window.history.back();
+    } else {
+        window.location.href = 'profile.html';
+    }
+}
+
+function toggleTheme() {
+    document.body.classList.toggle('light-theme');
+    localStorage.setItem("theme", document.body.classList.contains("light-theme") ? "light" : "dark");
+}
+
+function autoResizeTitle(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+}
+
+function autoResizeDescription(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+}
+
+function toggleArticleSelection(articleId) {
+    if (selectedArticles.has(articleId)) {
+        selectedArticles.delete(articleId);
+    } else {
+        selectedArticles.add(articleId);
+    }
+    updateSelectedCount();
+    updateArticleUI(articleId);
+}
+
+function updateSelectedCount() {
+    const countElement = document.getElementById('selectedCount');
+    const countNumber = document.getElementById('countNumber');
+    
+    if (selectedArticles.size > 0) {
+        countElement.style.display = 'flex';
+        countNumber.textContent = selectedArticles.size;
+    } else {
+        countElement.style.display = 'none';
+    }
+}
+
+function updateArticleUI(articleId) {
+    const articleElement = document.querySelector(`[data-article-id="${articleId}"]`);
+    if (articleElement) {
+        if (selectedArticles.has(articleId)) {
+            articleElement.classList.add('selected');
+        } else {
+            articleElement.classList.remove('selected');
+        }
+    }
+}
+
+function clearSelection() {
+    selectedArticles.clear();
+    document.querySelectorAll('.article-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+    updateSelectedCount();
+}
+
+function searchArticles() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = allArticles.filter(article => 
+        article.title.toLowerCase().includes(query) ||
+        (article.author && article.author.toLowerCase().includes(query))
+    );
+    displayArticles(filtered);
+}
+
+function displayArticles(articles) {
+    const container = document.getElementById('articlesContainer');
+    
+    if (articles.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="empty-text">No articles found</div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = '<div class="articles-list"></div>';
+    const list = container.querySelector('.articles-list');
+
+    articles.forEach(article => {
+        const item = document.createElement('div');
+        item.className = 'article-item';
+        item.dataset.articleId = article.id;
+        if (selectedArticles.has(article.id)) {
+            item.classList.add('selected');
+        }
+        
+        const createdDate = new Date(article.created_at);
+        const formattedDate = createdDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+
+        item.innerHTML = `
+            <div class="article-checkbox">
+                <i class="fas fa-check"></i>
+            </div>
+            <div class="article-info">
+                <div class="article-title">${escapeHtml(article.title)}</div>
+                <div class="article-meta">
+                    <span><i class="fas fa-user"></i> ${article.author}</span>
+                    <span><i class="fas fa-calendar"></i> ${formattedDate}</span>
+                    <span><i class="fas fa-eye"></i> ${article.views || 0}</span>
+                </div>
+            </div>
+        `;
+
+        item.onclick = () => toggleArticleSelection(article.id);
+        list.appendChild(item);
+    });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showNotification(message, type = 'success') {
+    const notification = document.getElementById('notification');
+    const notificationText = document.getElementById('notificationText');
+    const icon = notification.querySelector('i');
+    
+    notificationText.textContent = message;
+    notification.className = `notification ${type} show`;
+    
+    if (type === 'success') {
+        icon.className = 'fas fa-check-circle';
+    } else {
+        icon.className = 'fas fa-exclamation-circle';
+    }
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 4000);
+}
+</script>
 
 <script type="module">
 // Import Firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { 
-  getAuth, 
-  onAuthStateChanged,
-  signOut
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
-  authDomain: "patholytica.firebaseapp.com",
-  databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "patholytica",
-  storageBucket: "patholytica.firebasestorage.app",
-  messagingSenderId: "738430635282",
-  appId: "1:738430635282:web:8451ef380447c7611137cb"
+    apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+    authDomain: "patholytica.firebaseapp.com",
+    databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "patholytica",
+    storageBucket: "patholytica.firebasestorage.app",
+    messagingSenderId: "738430635282",
+    appId: "1:738430635282:web:8451ef380447c7611137cb"
 };
 
 // Initialize Firebase
@@ -1124,583 +709,158 @@ const auth = getAuth(app);
 
 // Initialize Supabase
 const supabase = window.supabase.createClient(
-  "https://vduqewqyvszfquntmark.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
+    "https://vduqewqyvszfquntmark.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
 );
 
-// Global variables
 let currentUser = null;
 let currentUserData = null;
-let viewingUserData = null;
-let selectedImageDataUrl = null;
-let isOwnProfile = false;
 
-// Static background scene for better caching (removed random element)
-function generateNaturalSceneBackground() {
-  // Use a consistent background URL for better caching
-  // You can rotate through scenes based on user ID or date for variety while maintaining cacheability
-  const scenes = [
-    'nature/mountain',
-    'nature/forest',
-    'nature/ocean',
-    'nature/sunset',
-    'nature/landscape'
-  ];
-  // Use day of year for consistent but rotating backgrounds
-  const dayOfYear = Math.floor((Date.now() / (1000 * 60 * 60 * 24)) % scenes.length);
-  return `https://source.unsplash.com/1600x900/?${scenes[dayOfYear]}`;
-}
-
-// Lazy load background image
-function lazyLoadBackground(element, imageUrl) {
-  const img = new Image();
-  img.onload = function() {
-    element.style.backgroundImage = `url('${imageUrl}')`;
-    element.classList.add('loaded');
-  };
-  img.src = imageUrl;
-}
-
-// Get URL parameters
-function getUrlParameter(name) {
-  const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get(name);
-}
-
-// Load profile data - OPTIMIZED WITH PARALLEL QUERIES
-async function loadProfile(loggedInUser) {
-  const profileContent = document.getElementById('profileContent');
-  currentUser = loggedInUser;
-  
-  // Check if we're viewing someone else's profile via URL parameter
-  const usernameParam = getUrlParameter('username');
-  
-  try {
-    console.log('Loading profile...', usernameParam ? `for username: ${usernameParam}` : 'for logged-in user');
-    
-    let userData;
-    let userFirebaseId;
-    let userId;
-    
-    if (usernameParam) {
-      // Viewing someone else's profile
-      const { data: profileUser, error: profileError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('username', usernameParam)
-        .single();
-
-      if (profileError || !profileUser) {
-        console.error('Error fetching profile user:', profileError);
-        profileContent.innerHTML = '<div class="error-state">User not found</div>';
-        return;
-      }
-
-      userData = profileUser;
-      userFirebaseId = profileUser.firebase_uid;
-      userId = profileUser.user_id;
-      viewingUserData = userData;
-      
-      // Check if this is the logged-in user's own profile
-      isOwnProfile = loggedInUser && loggedInUser.uid === userFirebaseId;
-    } else {
-      // Viewing own profile (no username parameter)
-      if (!loggedInUser) {
-        profileContent.innerHTML = '<div class="error-state">Please log in to view your profile</div>';
-        setTimeout(() => {
-          window.location.href = 'login.html';
-        }, 1500);
-        return;
-      }
-      
-      const { data: ownUserData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('firebase_uid', loggedInUser.uid)
-        .single();
-
-      if (userError) {
-        console.error('Error fetching user:', userError);
-        profileContent.innerHTML = '<div class="error-state">Error loading profile</div>';
-        return;
-      }
-
-      userData = ownUserData;
-      userFirebaseId = loggedInUser.uid;
-      userId = ownUserData.user_id;
-      currentUserData = userData;
-      viewingUserData = userData;
-      isOwnProfile = true;
-    }
-
-    // OPTIMIZATION: Fetch articles, libraries, and total article count in parallel
-    const [articlesResult, librariesResult, totalArticlesResult] = await Promise.all([
-      supabase
-        .from('articles')
-        .select('*')
-        .eq('firebase_user_id', userFirebaseId)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('playlists')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('articles')
-        .select('id')
-    ]);
-
-    const { data: articles, error: articlesError } = articlesResult;
-    const { data: libraries, error: librariesError } = librariesResult;
-    const { data: allArticles } = totalArticlesResult;
-
-    if (articlesError) {
-      console.error('Error fetching articles:', articlesError);
-    }
-
-    if (librariesError) {
-      console.error('Error fetching libraries:', librariesError);
-    }
-
-    const articleCount = articles ? articles.length : 0;
-    const libraryCount = libraries ? libraries.length : 0;
-    const totalViews = articles ? articles.reduce((sum, article) => sum + (article.views || 0), 0) : 0;
-    const totalLikes = articles ? articles.reduce((sum, article) => sum + (article.likes || 0), 0) : 0;
-
-    // Format joined date
-    const joinedDate = userData.created_at ? new Date(userData.created_at) : null;
-    const joinedText = joinedDate ? joinedDate.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short'
-    }) : 'Unknown';
-
-    // Build profile HTML
-    let avatarHTML = userData.pfp 
-      ? `<img src="${userData.pfp}" alt="Profile Picture">`
-      : `<i class="fas fa-user"></i>`;
-
-    const backgroundImage = generateNaturalSceneBackground();
-
-    let profileHTML = `
-      <div class="profile-hero">
-        <div class="hero-background" id="heroBackground"></div>
-        <div class="hero-overlay"></div>
-        <div class="hero-content">
-          <div class="profile-avatar-large">
-            ${avatarHTML}
-          </div>
-          <div class="hero-info">
-            <h1 class="profile-username-hero">@${userData.username || 'User'}</h1>
-            <div class="profile-meta-row">
-              <div class="meta-item">
-                <i class="fas fa-calendar-alt"></i>
-                <span>Joined ${joinedText}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="profile-container">
-    `;
-
-    // Bio card (appears first, above counters)
-    if (userData.bio || isOwnProfile) {
-      profileHTML += `
-        <div class="bio-card">
-          <div class="bio-title">About</div>
-          ${userData.bio 
-            ? `<div class="bio-content">${userData.bio}</div>` 
-            : `<div class="bio-empty">No bio yet${isOwnProfile ? ' — add one by editing your profile' : ''}</div>`
-          }
-        </div>
-      `;
-    }
-
-    // Stats grid
-    profileHTML += `
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon">
-              <i class="fas fa-file-alt"></i>
-            </div>
-            <div class="stat-value">${articleCount}</div>
-            <div class="stat-label">Articles</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon libraries">
-              <i class="fas fa-bookmark"></i>
-            </div>
-            <div class="stat-value">${libraryCount}</div>
-            <div class="stat-label">Libraries</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">
-              <i class="fas fa-eye"></i>
-            </div>
-            <div class="stat-value">${totalViews}</div>
-            <div class="stat-label">Total Views</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">
-              <i class="fas fa-heart"></i>
-            </div>
-            <div class="stat-value">${totalLikes}</div>
-            <div class="stat-label">Total Likes</div>
-          </div>
-        </div>
-    `;
-
-    // Show edit/logout buttons only on own profile
-    if (isOwnProfile) {
-      profileHTML += `
-        <div class="profile-actions">
-          <button class="btn-edit" onclick="openEditModal()">
-            <i class="fas fa-edit"></i>
-            Edit Profile
-          </button>
-          <button class="btn-logout" onclick="logOut()">
-            <i class="fas fa-sign-out-alt"></i>
-            Log Out
-          </button>
-        </div>
-      `;
-    }
-
-    // Add libraries section (before articles)
-    const librariesTitle = isOwnProfile ? 'Your Libraries' : `Libraries by @${userData.username}`;
-    
-    profileHTML += `
-      <div class="libraries-section">
-        <div class="section-header">
-          <h2 class="section-title">${librariesTitle}</h2>
-          ${libraryCount > 0 ? `<span class="count-badge">${libraryCount}</span>` : ''}
-        </div>
-    `;
-
-    if (libraries && libraries.length > 0) {
-      profileHTML += `<div class="library-grid">`;
-
-      libraries.forEach(library => {
-        const date = new Date(library.created_at);
-        const formattedDate = date.toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'short', 
-          day: 'numeric' 
-        });
-
-        const description = library.description || 'No description';
-
-        profileHTML += `
-          <div class="library-card" onclick="openLibrary('${library.id}')">
-            <div class="library-icon">
-              <i class="fas fa-bookmark"></i>
-            </div>
-            <div class="library-content">
-              <h3 class="library-title">${library.name}</h3>
-              <p class="library-description">${description}</p>
-              <div class="library-meta">
-                <div class="library-date">
-                  <i class="fas fa-calendar"></i>
-                  <span>${formattedDate}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
-      });
-
-      profileHTML += `</div>`;
-    } else {
-      const emptyMessage = isOwnProfile 
-        ? "You haven't created any libraries yet" 
-        : "This user hasn't created any libraries yet";
-      
-      profileHTML += `
-        <div class="empty-state">
-          <div class="empty-state-icon">
-            <i class="fas fa-bookmark"></i>
-          </div>
-          <div class="empty-state-title">No libraries yet</div>
-          <p class="empty-state-text">${emptyMessage}</p>
-        </div>
-      `;
-    }
-
-    profileHTML += `</div>`;
-
-    // Add articles section
-    const articlesTitle = isOwnProfile ? 'Your Articles' : `Articles by @${userData.username}`;
-    
-    profileHTML += `
-      <div class="articles-section">
-        <div class="section-header">
-          <h2 class="section-title">${articlesTitle}</h2>
-          ${articleCount > 0 ? `<span class="article-count-badge">${articleCount}</span>` : ''}
-        </div>
-    `;
-
-    if (articles && articles.length > 0) {
-      profileHTML += `<div class="article-grid">`;
-
-      articles.forEach(article => {
-        const date = new Date(article.created_at);
-        const formattedDate = date.toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'short', 
-          day: 'numeric' 
-        });
-
-        profileHTML += `
-          <div class="article-card" onclick="openArticle('${article.id}')">
-            <h3 class="article-card-title">${article.title}</h3>
-            <div class="article-card-meta">
-              <div class="meta-badge">
-                <i class="fas fa-calendar"></i>
-                <span>${formattedDate}</span>
-              </div>
-              <div class="meta-badge">
-                <i class="fas fa-eye"></i>
-                <span>${article.views || 0}</span>
-              </div>
-              <div class="meta-badge">
-                <i class="fas fa-heart"></i>
-                <span>${article.likes || 0}</span>
-              </div>
-            </div>
-          </div>
-        `;
-      });
-
-      profileHTML += `</div>`;
-    } else {
-      const emptyMessage = isOwnProfile 
-        ? "You haven't written any articles yet" 
-        : "This user hasn't written any articles yet";
-      
-      profileHTML += `
-        <div class="empty-state">
-          <div class="empty-state-icon">
-            <i class="fas fa-file-alt"></i>
-          </div>
-          <div class="empty-state-title">No articles yet</div>
-          <p class="empty-state-text">${emptyMessage}</p>
-        </div>
-      `;
-    }
-
-    profileHTML += `</div></div>`;
-
-    profileContent.innerHTML = profileHTML;
-
-    // Lazy load background image AFTER content is rendered
-    const heroBackground = document.getElementById('heroBackground');
-    if (heroBackground) {
-      lazyLoadBackground(heroBackground, backgroundImage);
-    }
-
-    // Update global article count
-    document.getElementById('articleCount').textContent = allArticles ? allArticles.length : 0;
-    
-  } catch (err) {
-    console.error('Unexpected error:', err);
-    profileContent.innerHTML = '<div class="error-state">An unexpected error occurred</div>';
-  }
-}
-
-// Open edit modal
-window.openEditModal = function() {
-  if (!isOwnProfile) return; // Only allow editing own profile
-  
-  const modal = document.getElementById('editModal');
-  const bioInput = document.getElementById('bioInput');
-  const avatarPreview = document.getElementById('avatarPreview');
-  const removeBtn = document.getElementById('removeBtn');
-  
-  // Populate current data
-  bioInput.value = currentUserData.bio || '';
-  
-  // Show current avatar
-  if (currentUserData.pfp) {
-    avatarPreview.innerHTML = `<img src="${currentUserData.pfp}" alt="Profile Picture">`;
-    removeBtn.style.display = 'block';
-  } else {
-    avatarPreview.innerHTML = `<i class="fas fa-user"></i>`;
-    removeBtn.style.display = 'none';
-  }
-  
-  selectedImageDataUrl = null;
-  modal.classList.add('show');
-};
-
-// Close edit modal
-window.closeEditModal = function() {
-  const modal = document.getElementById('editModal');
-  modal.classList.remove('show');
-  selectedImageDataUrl = null;
-  document.getElementById('fileInput').value = '';
-};
-
-// Handle image selection
-window.handleImageSelect = function(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  
-  // Check file size (2MB max to keep database manageable)
-  if (file.size > 2 * 1024 * 1024) {
-    alert('File size must be less than 2MB');
-    event.target.value = '';
-    return;
-  }
-  
-  // Check file type
-  if (!file.type.startsWith('image/')) {
-    alert('Please select an image file');
-    event.target.value = '';
-    return;
-  }
-  
-  // Convert to base64
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    selectedImageDataUrl = e.target.result;
-    const avatarPreview = document.getElementById('avatarPreview');
-    const removeBtn = document.getElementById('removeBtn');
-    avatarPreview.innerHTML = `<img src="${selectedImageDataUrl}" alt="Preview">`;
-    removeBtn.style.display = 'block';
-  };
-  reader.readAsDataURL(file);
-};
-
-// Remove image
-window.removeImage = function() {
-  selectedImageDataUrl = '';  // Empty string means remove the image
-  const avatarPreview = document.getElementById('avatarPreview');
-  const removeBtn = document.getElementById('removeBtn');
-  const fileInput = document.getElementById('fileInput');
-  
-  avatarPreview.innerHTML = `<i class="fas fa-user"></i>`;
-  removeBtn.style.display = 'none';
-  fileInput.value = '';
-};
-
-// Save profile
-window.saveProfile = async function() {
-  if (!isOwnProfile || !currentUser) return; // Only allow editing own profile
-  
-  const saveBtn = document.getElementById('saveBtn');
-  const bioInput = document.getElementById('bioInput');
-  
-  saveBtn.disabled = true;
-  saveBtn.textContent = 'Saving...';
-  
-  try {
-    // Prepare update object
-    const updateData = {
-      bio: bioInput.value.trim()
-    };
-    
-    // Handle profile picture
-    if (selectedImageDataUrl !== null) {
-      // User changed the image (could be new image or removal)
-      updateData.pfp = selectedImageDataUrl || null;
-    }
-    // If selectedImageDataUrl is null, keep the existing pfp value
-    
-    // Update user data
-    const { error: updateError } = await supabase
-      .from('users')
-      .update(updateData)
-      .eq('firebase_uid', currentUser.uid);
-    
-    if (updateError) {
-      console.error('Update error:', updateError);
-      alert('Error saving profile. Please try again.');
-      saveBtn.disabled = false;
-      saveBtn.textContent = 'Save Changes';
-      return;
-    }
-    
-    // Reload profile
-    await loadProfile(currentUser);
-    closeEditModal();
-    
-  } catch (err) {
-    console.error('Unexpected error:', err);
-    alert('An unexpected error occurred. Please try again.');
-  }
-  
-  saveBtn.disabled = false;
-  saveBtn.textContent = 'Save Changes';
-};
-
-// Log out function
-window.logOut = async function() {
-  try {
-    await signOut(auth);
-    console.log("User logged out");
-    window.location.href = 'index.html';
-  } catch (error) {
-    console.error("Error logging out:", error);
-    alert("Error logging out. Please try again.");
-  }
-};
-
-// Open library function
-window.openLibrary = function(libraryId) {
-  window.location.href = `playlist.html?id=${libraryId}`;
-};
-
-// Open article function
-window.openArticle = function(articleId) {
-  window.location.href = `article.html?id=${articleId}`;
-};
-
-// Check authentication state
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    // User is logged in
+// Load all articles
+async function loadArticles() {
     try {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('*')
-        .eq('firebase_uid', user.uid)
-        .single();
-      
-      if (userData) {
-        currentUserData = userData;
-      }
+        const { data: articles, error } = await supabase
+            .from('articles')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Fetch authors
+        const authorIds = [...new Set(articles.map(a => a.firebase_user_id).filter(id => id))];
+        let authorsMap = {};
+        
+        if (authorIds.length > 0) {
+            const { data: authors } = await supabase
+                .from('users')
+                .select('firebase_uid, username, full_name')
+                .in('firebase_uid', authorIds);
+            
+            if (authors) {
+                authors.forEach(author => {
+                    authorsMap[author.firebase_uid] = author;
+                });
+            }
+        }
+
+        window.allArticles = articles.map(article => {
+            const author = authorsMap[article.firebase_user_id];
+            return {
+                ...article,
+                author: author?.username ? `@${author.username}` : (author?.full_name || 'Anonymous')
+            };
+        });
+
+        displayArticles(window.allArticles);
+
     } catch (error) {
-      console.error('Error fetching username:', error);
+        console.error('Error loading articles:', error);
+        document.getElementById('articlesContainer').innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <div class="empty-text">Error loading articles</div>
+            </div>
+        `;
+    }
+}
+
+// Create library
+window.createLibrary = async function() {
+    if (!currentUser) {
+        showNotification('Please log in to create libraries', 'error');
+        return;
     }
 
-    // Load profile (either own or someone else's based on URL)
-    loadProfile(user);
-  } else {
-    // User is logged out
-    
-    // Check if trying to view someone's profile via URL parameter
-    const usernameParam = getUrlParameter('username');
-    if (usernameParam) {
-      // Allow viewing other profiles even when logged out
-      loadProfile(null);
+    const title = document.getElementById('libraryTitle').value.trim();
+    if (!title) {
+        showNotification('Please add a library name', 'error');
+        return;
+    }
+
+    if (window.selectedArticles.size === 0) {
+        showNotification('Please select at least one article', 'error');
+        return;
+    }
+
+    const description = document.getElementById('libraryDescription').value.trim();
+
+    const createBtn = document.getElementById('createBtn');
+    createBtn.disabled = true;
+    createBtn.textContent = 'Creating...';
+
+    try {
+        // Create library
+        const { data: library, error: libraryError } = await supabase
+            .from('playlists')
+            .insert([
+                {
+                    name: title,
+                    description: description || null,
+                    user_id: currentUserData.user_id
+                }
+            ])
+            .select()
+            .single();
+
+        if (libraryError) throw libraryError;
+
+        // Add articles to library
+        const playlistItems = Array.from(window.selectedArticles).map(articleId => ({
+            playlist_id: library.id,
+            article_id: articleId
+        }));
+
+        const { error: itemsError } = await supabase
+            .from('playlist_items')
+            .insert(playlistItems);
+
+        if (itemsError) throw itemsError;
+
+        showNotification('Library created successfully!', 'success');
+        
+        setTimeout(() => {
+            window.location.href = `playlist.html?id=${library.id}`;
+        }, 1500);
+
+    } catch (error) {
+        console.error('Error creating library:', error);
+        showNotification('Error creating library: ' + error.message, 'error');
+        createBtn.disabled = false;
+        createBtn.textContent = 'Create';
+    }
+};
+
+// Check authentication
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        currentUser = user;
+        
+        try {
+            const { data: userData, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('firebase_uid', user.uid)
+                .single();
+            
+            if (!error && userData) {
+                currentUserData = userData;
+                loadArticles();
+            } else {
+                showNotification('Error loading user data', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+            }
+        } catch (error) {
+            console.error('Error fetching user data:', error);
+        }
     } else {
-      // Redirect to login if trying to access profile without being logged in
-      const profileContent = document.getElementById('profileContent');
-      profileContent.innerHTML = '<div class="error-state">Please log in to view your profile</div>';
-      setTimeout(() => {
         window.location.href = 'login.html';
-      }, 1500);
     }
-  }
-});
-
-// Close modal when clicking outside
-document.getElementById('editModal').addEventListener('click', function(e) {
-  if (e.target === this) {
-    closeEditModal();
-  }
 });
 </script>
+
 </body>
 </html>
