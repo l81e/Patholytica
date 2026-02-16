@@ -293,7 +293,7 @@ body.light-theme .logo-img {
 
 /* Stories-like Profile Carousel */
 .stories-section {
-  margin-bottom: 32px;
+  margin-bottom: 24px;
   position: relative;
 }
 .stories-scroll {
@@ -371,6 +371,20 @@ body.light-theme .logo-img {
 }
 .story-item.current-user .story-avatar {
   background: linear-gradient(135deg, var(--accent-green) 0%, #27ae60 100%);
+}
+
+/* Loading spinner for current user story */
+.story-loading {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--accent-green);
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Hero Section - inspired by profile page */
@@ -817,11 +831,14 @@ body.light-theme .logo-img {
     padding: 16px 16px 0;
     padding-top: calc(53px + env(safe-area-inset-top) + 16px);
   }
+  .stories-section {
+    margin-bottom: 20px;
+  }
   .stories-scroll {
     gap: 12px;
     padding: 12px 0;
   }
-  .story-avatar {
+  .story-avatar, .story-loading {
     width: 64px;
     height: 64px;
   }
@@ -1174,6 +1191,16 @@ body.light-theme .logo-img {
       console.error('Error setting username cache:', e);
     }
   }
+
+  // Shuffle array helper
+  function shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
 </script>
 
 <script type="module">
@@ -1252,42 +1279,27 @@ async function loadStories(currentUser) {
     
     storiesScroll.innerHTML = '';
     
-    // Add current user first if logged in
+    // Add current user placeholder first if logged in (with loading animation)
     if (currentUser) {
-      const currentUserData = users.find(u => u.firebase_uid === currentUser.uid);
-      if (currentUserData) {
-        const initial = currentUserData.username ? currentUserData.username[0].toUpperCase() : 'Y';
-        
-        const storyItem = document.createElement('div');
-        storyItem.className = 'story-item current-user';
-        storyItem.onclick = () => openProfile(currentUserData.username);
-        
-        const avatarHTML = currentUserData.pfp 
-          ? `<img src="${currentUserData.pfp}" alt="${currentUserData.username}">`
-          : initial;
-        
-        storyItem.innerHTML = `
-          <div class="story-avatar">
-            <div class="story-avatar-inner">
-              <div class="story-avatar-content">
-                ${avatarHTML}
-              </div>
-            </div>
-          </div>
-          <div class="story-username">You</div>
-        `;
-        
-        storiesScroll.appendChild(storyItem);
-        
-        // Remove current user from top users list
-        topUsers = topUsers.filter(u => u.firebase_uid !== currentUser.uid);
-      }
+      const storyItem = document.createElement('div');
+      storyItem.className = 'story-item current-user';
+      storyItem.id = 'currentUserStory';
+      
+      storyItem.innerHTML = `
+        <div class="story-loading"></div>
+        <div class="story-username">You</div>
+      `;
+      
+      storiesScroll.appendChild(storyItem);
+      
+      // Remove current user from top users list
+      topUsers = topUsers.filter(u => u.firebase_uid !== currentUser.uid);
     }
     
-    // Add top users
+    // Add other users immediately
     topUsers.forEach(topUser => {
       const user = users.find(u => u.firebase_uid === topUser.firebase_uid);
-      if (!user || (currentUser && user.firebase_uid === currentUser.uid)) return;
+      if (!user) return;
       
       const initial = user.username ? user.username[0].toUpperCase() : 'U';
       
@@ -1313,6 +1325,33 @@ async function loadStories(currentUser) {
       storiesScroll.appendChild(storyItem);
     });
     
+    // Load current user data asynchronously if logged in
+    if (currentUser) {
+      const currentUserData = users.find(u => u.firebase_uid === currentUser.uid);
+      if (currentUserData) {
+        const initial = currentUserData.username ? currentUserData.username[0].toUpperCase() : 'Y';
+        
+        const avatarHTML = currentUserData.pfp 
+          ? `<img src="${currentUserData.pfp}" alt="${currentUserData.username}">`
+          : initial;
+        
+        const currentStoryItem = document.getElementById('currentUserStory');
+        if (currentStoryItem) {
+          currentStoryItem.onclick = () => openProfile(currentUserData.username);
+          currentStoryItem.innerHTML = `
+            <div class="story-avatar">
+              <div class="story-avatar-inner">
+                <div class="story-avatar-content">
+                  ${avatarHTML}
+                </div>
+              </div>
+            </div>
+            <div class="story-username">You</div>
+          `;
+        }
+      }
+    }
+    
   } catch (err) {
     console.error('Error loading stories:', err);
     storiesScroll.innerHTML = '<div class="error-state">Error loading profiles</div>';
@@ -1323,7 +1362,8 @@ async function loadArticles() {
   const articleList = document.getElementById('articleList');
 
   try {
-    const { data: articles, error: articlesError } = await supabase
+    // Get all articles
+    const { data: allArticles, error: articlesError } = await supabase
       .from('articles')
       .select('id, title, created_at, views, likes, firebase_user_id, media(url)')
       .order('created_at', { ascending: false });
@@ -1333,7 +1373,7 @@ async function loadArticles() {
       return;
     }
 
-    if (!articles || articles.length === 0) {
+    if (!allArticles || allArticles.length === 0) {
       articleList.innerHTML = `
         <div class="empty-state">
           <div class="empty-state-icon">
@@ -1350,6 +1390,19 @@ async function loadArticles() {
       return;
     }
 
+    // Calculate total stats from ALL articles
+    const totalViews = allArticles.reduce((sum, a) => sum + (a.views || 0), 0);
+    const totalLikes = allArticles.reduce((sum, a) => sum + (a.likes || 0), 0);
+
+    // Update hero stats with total counts
+    document.getElementById('totalArticles').textContent = window.formatNumber(allArticles.length);
+    document.getElementById('totalViews').textContent = window.formatNumber(totalViews);
+    document.getElementById('totalLikes').textContent = window.formatNumber(totalLikes);
+
+    // Select 8 random articles to display
+    const shuffledArticles = window.shuffleArray(allArticles);
+    const articles = shuffledArticles.slice(0, 8);
+
     const firebaseUserIds = [...new Set(articles.map(a => a.firebase_user_id).filter(Boolean))];
     const { data: users } = await supabase
       .from('users')
@@ -1358,15 +1411,6 @@ async function loadArticles() {
 
     const userMap = {};
     if (users) users.forEach(u => { userMap[u.firebase_uid] = u; });
-
-    // Calculate total stats
-    const totalViews = articles.reduce((sum, a) => sum + (a.views || 0), 0);
-    const totalLikes = articles.reduce((sum, a) => sum + (a.likes || 0), 0);
-
-    // Update hero stats
-    document.getElementById('totalArticles').textContent = window.formatNumber(articles.length);
-    document.getElementById('totalViews').textContent = window.formatNumber(totalViews);
-    document.getElementById('totalLikes').textContent = window.formatNumber(totalLikes);
 
     articleList.innerHTML = '';
 
@@ -1434,7 +1478,7 @@ async function loadArticles() {
       articleList.appendChild(li);
     });
 
-    document.getElementById('articleCount').textContent = articles.length;
+    document.getElementById('articleCount').textContent = '8';
 
   } catch (err) {
     articleList.innerHTML = '<li class="error-state">An unexpected error occurred: ' + err.message + '</li>';
