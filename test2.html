@@ -776,12 +776,70 @@ body.light-theme .logo-img {
   font-size: 14px;
   line-height: 1.6;
 }
+
+/* Enhanced Loading States */
 .loading-state {
   text-align: center;
-  padding: 40px;
+  padding: 40px 20px;
   color: var(--text-secondary);
-  font-size: 16px;
+  font-size: 15px;
 }
+.loading-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.progress-bar-container {
+  width: 100%;
+  max-width: 200px;
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-hover) 100%);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.progress-percentage {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-top: 8px;
+}
+.loading-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
 .error-state {
   text-align: center;
   padding: 40px;
@@ -895,6 +953,8 @@ body.light-theme .logo-img {
   .create-option { padding: 16px; }
   .create-option-icon { width: 42px; height: 42px; font-size: 20px; }
   .create-option-title { font-size: 16px; }
+  .loading-spinner { width: 32px; height: 32px; }
+  .progress-bar-container { max-width: 160px; }
 }
 </style>
 </head>
@@ -955,7 +1015,16 @@ body.light-theme .logo-img {
   <!-- Stories Carousel -->
   <div class="stories-section">
     <div class="stories-scroll" id="storiesScroll">
-      <div class="loading-state" style="width: 100%; padding: 20px;">Loading profiles...</div>
+      <div class="loading-state" style="width: 100%; padding: 20px;">
+        <div class="loading-progress">
+          <div class="loading-spinner"></div>
+          <div class="progress-bar-container">
+            <div class="progress-bar" id="storiesProgress" style="width: 0%"></div>
+          </div>
+          <div class="progress-percentage" id="storiesPercentage">0%</div>
+          <div class="loading-text">Loading profiles...</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -985,7 +1054,16 @@ body.light-theme .logo-img {
       <h2 class="section-title">Featured Libraries</h2>
     </div>
     <div class="library-list" id="libraryList">
-      <div class="loading-state" style="padding: 20px 0;">Loading libraries...</div>
+      <div class="loading-state" style="padding: 20px 0;">
+        <div class="loading-progress">
+          <div class="loading-spinner"></div>
+          <div class="progress-bar-container">
+            <div class="progress-bar" id="librariesProgress" style="width: 0%"></div>
+          </div>
+          <div class="progress-percentage" id="librariesPercentage">0%</div>
+          <div class="loading-text">Loading libraries...</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1078,6 +1156,13 @@ body.light-theme .logo-img {
 
   let articlesLoaded = false;
 
+  function updateProgress(elementId, percentageId, progress) {
+    const bar = document.getElementById(elementId);
+    const text = document.getElementById(percentageId);
+    if (bar) bar.style.width = progress + '%';
+    if (text) text.textContent = progress + '%';
+  }
+
   function toggleArticles() {
     const articleList = document.getElementById('articleList');
     const collapseIcon = document.getElementById('collapseIcon');
@@ -1085,7 +1170,6 @@ body.light-theme .logo-img {
     articleList.classList.toggle('expanded');
     collapseIcon.classList.toggle('collapsed');
 
-    // Load articles only when opened for the first time
     if (!articlesLoaded && articleList.classList.contains('expanded')) {
       articlesLoaded = true;
       loadArticles();
@@ -1195,10 +1279,15 @@ const supabase = window.supabase.createClient(
 
 async function loadStories(currentUser) {
   const storiesScroll = document.getElementById('storiesScroll');
+  
+  updateProgress('storiesProgress', 'storiesPercentage', 20);
+  
   try {
     const { data: articles } = await supabase
       .from('articles')
       .select('firebase_user_id, views');
+
+    updateProgress('storiesProgress', 'storiesPercentage', 40);
 
     if (!articles || articles.length === 0) {
       storiesScroll.innerHTML = `
@@ -1217,6 +1306,8 @@ async function loadStories(currentUser) {
       }
     });
 
+    updateProgress('storiesProgress', 'storiesPercentage', 60);
+
     let topUsers = Object.entries(userViews)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
@@ -1226,6 +1317,8 @@ async function loadStories(currentUser) {
       .from('users')
       .select('firebase_uid, username, pfp')
       .in('firebase_uid', topUsers.map(u => u.firebase_uid));
+
+    updateProgress('storiesProgress', 'storiesPercentage', 80);
 
     if (!users) {
       storiesScroll.innerHTML = '<div class="error-state">Error loading profiles</div>';
@@ -1265,6 +1358,8 @@ async function loadStories(currentUser) {
       storiesScroll.appendChild(storyItem);
     });
 
+    updateProgress('storiesProgress', 'storiesPercentage', 100);
+
     if (currentUser) {
       const currentUserData = users.find(u => u.firebase_uid === currentUser.uid);
       if (currentUserData) {
@@ -1294,14 +1389,27 @@ async function loadStories(currentUser) {
 async function loadArticles() {
   const articleList = document.getElementById('articleList');
   
-  // Show loading state
-  articleList.innerHTML = '<li class="loading-state">Loading articles...</li>';
+  articleList.innerHTML = `
+    <li class="loading-state">
+      <div class="loading-progress">
+        <div class="loading-spinner"></div>
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="articlesProgress" style="width: 0%"></div>
+        </div>
+        <div class="progress-percentage" id="articlesPercentage">0%</div>
+        <div class="loading-text">Loading articles...</div>
+      </div>
+    </li>`;
+  
+  updateProgress('articlesProgress', 'articlesPercentage', 20);
   
   try {
     const { data: allArticles, error: articlesError } = await supabase
       .from('articles')
       .select('id, title, created_at, views, likes, firebase_user_id, media(url)')
       .order('created_at', { ascending: false });
+
+    updateProgress('articlesProgress', 'articlesPercentage', 50);
 
     if (articlesError) {
       articleList.innerHTML = '<li class="error-state">Error loading articles: ' + articlesError.message + '</li>';
@@ -1319,6 +1427,8 @@ async function loadArticles() {
       return;
     }
 
+    updateProgress('articlesProgress', 'articlesPercentage', 70);
+
     const shuffledArticles = window.shuffleArray(allArticles);
     const articles = shuffledArticles.slice(0, 8);
 
@@ -1327,6 +1437,8 @@ async function loadArticles() {
       .from('users')
       .select('firebase_uid, username')
       .in('firebase_uid', firebaseUserIds);
+
+    updateProgress('articlesProgress', 'articlesPercentage', 85);
 
     const userMap = {};
     if (users) users.forEach(u => { userMap[u.firebase_uid] = u; });
@@ -1393,6 +1505,7 @@ async function loadArticles() {
       articleList.appendChild(li);
     });
 
+    updateProgress('articlesProgress', 'articlesPercentage', 100);
     document.getElementById('articleCount').textContent = '8';
   } catch (err) {
     articleList.innerHTML = '<li class="error-state">An unexpected error occurred: ' + err.message + '</li>';
@@ -1401,12 +1514,17 @@ async function loadArticles() {
 
 async function loadLibraries() {
   const libraryList = document.getElementById('libraryList');
+  
+  updateProgress('librariesProgress', 'librariesPercentage', 30);
+  
   try {
     const { data: libraries, error } = await supabase
       .from('playlists')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(10);
+
+    updateProgress('librariesProgress', 'librariesPercentage', 70);
 
     if (error || !libraries || libraries.length === 0) {
       libraryList.innerHTML = `
@@ -1436,13 +1554,14 @@ async function loadLibraries() {
         <div class="library-row-count">${articleCount} articles</div>`;
       libraryList.appendChild(row);
     });
+
+    updateProgress('librariesProgress', 'librariesPercentage', 100);
   } catch (err) {
     console.error('Error loading libraries:', err);
     libraryList.innerHTML = '<div class="error-state">Error loading libraries</div>';
   }
 }
 
-// Load stats only on page load
 async function loadStats() {
   try {
     const { data: allArticles } = await supabase
@@ -1511,7 +1630,6 @@ onAuthStateChanged(auth, async (user) => {
     if (fabCreateBtn) fabCreateBtn.classList.remove('show');
   }
 
-  // Load only stories, libraries, and stats on page load
   loadStories(user);
   loadLibraries();
   loadStats();
