@@ -430,7 +430,6 @@ body.light-theme .logo-img {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
   cursor: pointer;
   user-select: none;
 }
@@ -478,12 +477,11 @@ body.light-theme .logo-img {
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.4s ease;
+  display: none;
+  padding-top: 24px;
 }
 .article-list.expanded {
-  max-height: 5000px;
+  display: block;
 }
 .article-item {
   background: var(--bg-color);
@@ -1002,9 +1000,7 @@ body.light-theme .logo-img {
         </div>
       </div>
     </div>
-    <ul class="article-list" id="articleList">
-      <li class="loading-state">Loading articles...</li>
-    </ul>
+    <ul class="article-list" id="articleList"></ul>
   </div>
 
   <!-- Quote Section -->
@@ -1080,12 +1076,20 @@ body.light-theme .logo-img {
     document.body.classList.add("light-theme");
   }
 
+  let articlesLoaded = false;
+
   function toggleArticles() {
     const articleList = document.getElementById('articleList');
     const collapseIcon = document.getElementById('collapseIcon');
     
     articleList.classList.toggle('expanded');
     collapseIcon.classList.toggle('collapsed');
+
+    // Load articles only when opened for the first time
+    if (!articlesLoaded && articleList.classList.contains('expanded')) {
+      articlesLoaded = true;
+      loadArticles();
+    }
   }
 
   function formatNumber(num) {
@@ -1289,6 +1293,10 @@ async function loadStories(currentUser) {
 
 async function loadArticles() {
   const articleList = document.getElementById('articleList');
+  
+  // Show loading state
+  articleList.innerHTML = '<li class="loading-state">Loading articles...</li>';
+  
   try {
     const { data: allArticles, error: articlesError } = await supabase
       .from('articles')
@@ -1308,17 +1316,8 @@ async function loadArticles() {
           <p class="empty-state-text">Be the first to publish an article</p>
         </div>`;
       document.getElementById('articleCount').textContent = '0';
-      document.getElementById('totalArticles').textContent = '0';
-      document.getElementById('totalViews').textContent = '0';
-      document.getElementById('totalLikes').textContent = '0';
       return;
     }
-
-    const totalViews = allArticles.reduce((sum, a) => sum + (a.views || 0), 0);
-    const totalLikes = allArticles.reduce((sum, a) => sum + (a.likes || 0), 0);
-    document.getElementById('totalArticles').textContent = window.formatNumber(allArticles.length);
-    document.getElementById('totalViews').textContent = window.formatNumber(totalViews);
-    document.getElementById('totalLikes').textContent = window.formatNumber(totalLikes);
 
     const shuffledArticles = window.shuffleArray(allArticles);
     const articles = shuffledArticles.slice(0, 8);
@@ -1443,6 +1442,26 @@ async function loadLibraries() {
   }
 }
 
+// Load stats only on page load
+async function loadStats() {
+  try {
+    const { data: allArticles } = await supabase
+      .from('articles')
+      .select('views, likes');
+
+    if (allArticles && allArticles.length > 0) {
+      const totalViews = allArticles.reduce((sum, a) => sum + (a.views || 0), 0);
+      const totalLikes = allArticles.reduce((sum, a) => sum + (a.likes || 0), 0);
+      document.getElementById('totalArticles').textContent = window.formatNumber(allArticles.length);
+      document.getElementById('totalViews').textContent = window.formatNumber(totalViews);
+      document.getElementById('totalLikes').textContent = window.formatNumber(totalLikes);
+      document.getElementById('articleCount').textContent = '8';
+    }
+  } catch (err) {
+    console.error('Error loading stats:', err);
+  }
+}
+
 window.logOut = async function () {
   try {
     await signOut(auth);
@@ -1492,9 +1511,10 @@ onAuthStateChanged(auth, async (user) => {
     if (fabCreateBtn) fabCreateBtn.classList.remove('show');
   }
 
+  // Load only stories, libraries, and stats on page load
   loadStories(user);
-  loadArticles();
   loadLibraries();
+  loadStats();
 });
 </script>
 </body>
