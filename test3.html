@@ -20,7 +20,6 @@
   --accent-purple: #9b59b6;
   --accent-orange: #e67e22;
 }
-
 body.light-theme {
   --bg-color: #f9f9f9;
   --text-primary: #0f0f0f;
@@ -31,413 +30,339 @@ body.light-theme {
   --accent: #065fd4;
   --accent-hover: #0448a3;
 }
-
 * { box-sizing: border-box; }
-html, body {
-  margin: 0;
-  padding: 0;
-  min-height: 100%;
-  font-family: "Roboto", Arial, sans-serif;
-  overflow-x: hidden;
-  max-width: 100vw;
-}
-body {
-  background: var(--bg-color);
-  color: var(--text-primary);
-  transition: background 0.2s ease, color 0.2s ease;
-}
+html, body { margin: 0; padding: 0; min-height: 100%; font-family: "Roboto", Arial, sans-serif; overflow-x: hidden; max-width: 100vw; }
+body { background: var(--bg-color); color: var(--text-primary); transition: background 0.2s ease, color 0.2s ease; }
+
+/* ── HEADER — fixed height, never grows ── */
 .header-wrapper {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  position: fixed; top: 0; left: 0; right: 0;
   background: var(--bg-color);
   padding-top: env(safe-area-inset-top);
   border-bottom: 1px solid var(--border-color);
   z-index: 40;
-  width: 100%;
 }
 .header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 24px;
-  max-width: 100%;
-  margin: 0 auto;
+  height: 53px;                /* strict height */
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  overflow: hidden;            /* nothing can push it taller */
 }
-.logo-img {
-  height: 28px;
-  width: auto;
-  cursor: pointer;
-  transition: filter 0.2s ease;
-}
+.logo-img { height: 28px; width: auto; cursor: pointer; transition: filter 0.2s ease; flex-shrink: 0; }
 body.light-theme .logo-img { filter: invert(1); }
-.header-actions { display: flex; align-items: center; gap: 16px; }
-.icon-btn {
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  background: transparent;
-  border: none;
-  color: var(--text-primary);
-  cursor: pointer;
+
+/* Right-side slot: always the same reserved width */
+.header-right {
+  width: 110px;                /* fixed width — same logged in or out */
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  transition: background 0.2s ease;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  overflow: hidden;
 }
-.icon-btn:hover { background: var(--hover-bg); }
-.auth-buttons { display: none; gap: 12px; }
+
+.auth-buttons { display: none; }
 .auth-buttons.show { display: flex; }
-.btn-login, .btn-signup {
-  padding: 8px 20px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  border: none;
-}
 .btn-login {
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
+  padding: 6px 14px; border-radius: 16px; font-size: 13px; font-weight: 500;
+  cursor: pointer; text-decoration: none; border: 1px solid var(--border-color);
+  background: transparent; color: var(--text-primary);
+  white-space: nowrap; transition: background 0.2s ease;
+  max-width: 110px; overflow: hidden; text-overflow: ellipsis;
 }
 .btn-login:hover { background: var(--hover-bg); }
-.btn-signup { background: var(--accent); color: white; }
-.btn-signup:hover { opacity: 0.9; transform: translateY(-1px); }
-.user-welcome { display: none; align-items: center; gap: 12px; font-size: 14px; color: var(--text-primary); }
-.user-welcome.show { display: flex; }
-.welcome-text { font-weight: 500; cursor: pointer; transition: color 0.2s ease; }
-.welcome-text:hover { color: var(--accent); }
 
-/* Tab Bar (below header) */
-.tab-bar {
-  position: fixed;
-  top: calc(53px + env(safe-area-inset-top));
-  left: 0;
-  right: 0;
-  background: var(--bg-color);
+.user-welcome { display: none; }
+.user-welcome.show { display: flex; align-items: center; max-width: 110px; }
+.welcome-text {
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  padding: 6px 12px; border-radius: 16px; border: 1px solid var(--border-color);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 110px; transition: color 0.2s ease, border-color 0.2s ease;
+}
+.welcome-text:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── USER POPUP ── */
+.user-popup-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; }
+.user-popup-overlay.show { display: block; }
+.user-popup {
+  position: fixed; top: calc(53px + env(safe-area-inset-top) + 8px); right: 16px;
+  width: 300px; background: var(--card-bg);
+  border: 1px solid var(--border-color); border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4); z-index: 201;
+  display: none; animation: popupIn 0.2s ease;
+}
+.user-popup.show { display: block; }
+@keyframes popupIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.popup-profile-section {
+  padding: 20px; display: flex; align-items: center; gap: 14px;
   border-bottom: 1px solid var(--border-color);
-  z-index: 36;
-  display: flex;
 }
+.popup-avatar {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--accent); display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 700; color: white; flex-shrink: 0; overflow: hidden;
+}
+.popup-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.popup-user-info { flex: 1; min-width: 0; }
+.popup-username { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
+.popup-stats { font-size: 12px; color: var(--text-secondary); }
+.popup-menu-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px; cursor: pointer;
+  transition: background 0.15s ease; font-size: 14px; color: var(--text-primary);
+  border: none; background: none; width: 100%; text-align: left;
+}
+.popup-menu-item:hover { background: var(--hover-bg); }
+.popup-menu-item i { width: 18px; text-align: center; color: var(--text-secondary); font-size: 15px; }
+.popup-menu-item.danger { color: #ff4444; }
+.popup-menu-item.danger i { color: #ff4444; }
+.popup-divider { height: 1px; background: var(--border-color); margin: 4px 0; }
+
+/* ── TAB BAR ── */
+.tab-bar {
+  position: fixed; top: calc(53px + env(safe-area-inset-top));
+  left: 0; right: 0; background: var(--bg-color);
+  border-bottom: 1px solid var(--border-color); z-index: 36;
+  display: flex; overflow-x: auto; scrollbar-width: none;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
 .tab-btn {
-  flex: 1;
-  padding: 12px 0;
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s ease;
+  flex: 1; min-width: 80px; padding: 12px 8px; background: none; border: none;
+  color: var(--text-secondary); font-size: 13px; font-weight: 500;
+  cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.2s ease; white-space: nowrap;
 }
-.tab-btn.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 .tab-btn:hover { color: var(--text-primary); }
 
-/* Search Container */
+/* ── SEARCH CONTAINER ── */
 .search-container {
-  position: fixed;
-  top: calc(53px + env(safe-area-inset-top) + 45px);
-  left: 0;
-  right: 0;
-  background: var(--bg-color);
-  padding: 16px 24px;
-  z-index: 35;
-  border-bottom: 1px solid var(--border-color);
-  display: none;
+  position: fixed; top: calc(53px + env(safe-area-inset-top) + 45px);
+  left: 0; right: 0; background: var(--bg-color);
+  padding: 14px 24px; z-index: 35;
+  border-bottom: 1px solid var(--border-color); display: none;
 }
 .search-container.active { display: block; }
 .search-bar { position: relative; max-width: 900px; margin: 0 auto; }
 .search-input-wrapper { position: relative; display: flex; align-items: center; }
-.search-icon { position: absolute; left: 16px; color: var(--text-secondary); font-size: 16px; pointer-events: none; }
+.search-icon { position: absolute; left: 16px; color: var(--text-secondary); font-size: 15px; pointer-events: none; }
 .search-input {
-  width: 100%;
-  padding: 12px 48px 12px 48px;
-  border: 1px solid var(--border-color);
-  border-radius: 24px;
-  background: var(--card-bg);
-  color: var(--text-primary);
-  font-size: 15px;
-  outline: none;
-  transition: border-color 0.2s ease;
+  width: 100%; padding: 11px 44px 11px 44px;
+  border: 1px solid var(--border-color); border-radius: 22px;
+  background: var(--card-bg); color: var(--text-primary); font-size: 14px;
+  outline: none; transition: border-color 0.2s ease;
 }
 .search-input:focus { border-color: var(--accent); }
 .clear-search {
-  position: absolute;
-  right: 12px;
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  transition: background 0.2s ease;
+  position: absolute; right: 10px; width: 26px; height: 26px;
+  border-radius: 50%; background: transparent; border: none;
+  color: var(--text-secondary); cursor: pointer; display: none;
+  align-items: center; justify-content: center; font-size: 14px;
 }
 .clear-search.show { display: flex; }
 .clear-search:hover { background: var(--hover-bg); }
-.filter-tabs {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
+.filter-tabs { display: flex; gap: 6px; margin-top: 10px; overflow-x: auto; scrollbar-width: none; }
 .filter-tabs::-webkit-scrollbar { display: none; }
 .filter-tab {
-  padding: 8px 16px;
-  border-radius: 20px;
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s ease;
+  padding: 6px 14px; border-radius: 18px; background: transparent;
+  border: 1px solid var(--border-color); color: var(--text-secondary);
+  font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all 0.2s ease;
 }
 .filter-tab:hover { background: var(--hover-bg); color: var(--text-primary); }
 .filter-tab.active { background: var(--accent); border-color: var(--accent); color: white; }
 
-/* Content Container */
+/* ── SEARCH RESULTS CONTENT ── */
 .content-container {
-  max-width: 900px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 24px 24px 80px;
-  padding-top: calc(53px + env(safe-area-inset-top) + 45px + 140px);
+  max-width: 900px; width: 100%; margin: 0 auto;
+  padding: 24px 24px 40px;
+  padding-top: calc(53px + env(safe-area-inset-top) + 45px + 128px);
   display: none;
 }
 .content-container.active { display: block; }
 
-/* Results List */
 .results-list { list-style: none; margin: 0; padding: 0; }
-
-/* Result Item */
 .result-item {
-  padding: 16px;
-  border-bottom: 1px solid var(--border-color);
-  cursor: pointer;
-  transition: background 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  padding: 12px; border-bottom: 1px solid var(--border-color);
+  cursor: pointer; transition: background 0.2s ease;
+  display: flex; align-items: center; gap: 12px;
 }
-.result-item:hover { background: var(--hover-bg); margin: 0 -12px; padding: 16px 28px; }
+.result-item:hover { background: var(--hover-bg); }
 .result-avatar {
-  width: 48px; height: 48px;
-  border-radius: 50%;
-  background: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  font-weight: 600;
-  color: white;
-  flex-shrink: 0;
-  overflow: hidden;
+  width: 42px; height: 42px; border-radius: 50%;
+  background: var(--accent); display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 600; color: white; flex-shrink: 0; overflow: hidden;
 }
 .result-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .result-avatar.article { background: var(--accent-green); }
 .result-avatar.article-content { background: var(--accent-orange); }
 .result-avatar.playlist { background: var(--accent-purple); }
-.result-avatar.text-thumb {
-  border-radius: 8px;
-  width: 48px; height: 48px;
-  font-size: 9px;
-  font-weight: 400;
-  line-height: 1.3;
-  text-align: left;
-  padding: 5px;
-  align-items: flex-start;
-  color: rgba(255,255,255,0.85);
-  overflow: hidden;
-  word-break: break-word;
-}
 .result-content { flex: 1; min-width: 0; }
-.result-title { font-size: 16px; font-weight: 600; margin: 0 0 4px 0; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.result-subtitle { font-size: 13px; color: var(--text-secondary); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.result-excerpt {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin: 4px 0 0 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  line-height: 1.4;
-}
-.result-excerpt mark { background: rgba(62, 166, 255, 0.3); color: var(--text-primary); padding: 2px 4px; border-radius: 3px; }
-.result-type-badge { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; flex-shrink: 0; }
-.result-type-badge.user { background: rgba(62, 166, 255, 0.15); color: var(--accent); }
-.result-type-badge.article { background: rgba(46, 204, 113, 0.15); color: var(--accent-green); }
-.result-type-badge.article-content { background: rgba(230, 126, 34, 0.15); color: var(--accent-orange); }
-.result-type-badge.playlist { background: rgba(155, 89, 182, 0.15); color: var(--accent-purple); }
+.result-title { font-size: 14px; font-weight: 600; margin: 0 0 2px 0; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-subtitle { font-size: 12px; color: var(--text-secondary); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-excerpt { font-size: 11px; color: var(--text-secondary); margin: 2px 0 0 0; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.result-excerpt mark { background: rgba(62,166,255,0.25); color: var(--text-primary); padding: 1px 3px; border-radius: 3px; }
+.result-type-badge { padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; flex-shrink: 0; }
+.result-type-badge.user { background: rgba(62,166,255,0.15); color: var(--accent); }
+.result-type-badge.article { background: rgba(46,204,113,0.15); color: var(--accent-green); }
+.result-type-badge.article-content { background: rgba(230,126,34,0.15); color: var(--accent-orange); }
+.result-type-badge.playlist { background: rgba(155,89,182,0.15); color: var(--accent-purple); }
 
-/* Load More */
-.load-more-container { text-align: center; padding: 24px; display: none; }
+.load-more-container { text-align: center; padding: 20px; display: none; }
 .load-more-container.show { display: block; }
 .btn-load-more {
-  padding: 12px 32px;
-  border-radius: 24px;
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  padding: 9px 24px; border-radius: 20px; background: transparent;
+  border: 1px solid var(--border-color); color: var(--text-primary);
+  font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s ease;
 }
 .btn-load-more:hover { background: var(--hover-bg); border-color: var(--accent); }
 .btn-load-more:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* Empty / Error States */
-.empty-state { text-align: center; padding: 60px 24px; color: var(--text-secondary); }
-.empty-state i { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
-.empty-state h3 { font-size: 18px; margin: 0 0 8px 0; color: var(--text-primary); }
-.empty-state p { font-size: 14px; margin: 0; }
-.loading-state { text-align: center; padding: 40px; color: var(--text-secondary); font-size: 16px; }
-.loading-spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid var(--border-color); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.empty-state { text-align: center; padding: 50px 24px; color: var(--text-secondary); }
+.empty-state i { font-size: 40px; margin-bottom: 14px; opacity: 0.5; display: block; }
+.empty-state h3 { font-size: 16px; margin: 0 0 6px 0; color: var(--text-primary); }
+.empty-state p { font-size: 13px; margin: 0; }
+.loading-spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid var(--border-color); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── SKELETON LOADING (search tab) ── */
-@keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position:  400px 0; }
-}
+/* ── SKELETON ── */
+@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
 .skeleton-base {
   background: linear-gradient(90deg, var(--hover-bg) 25%, var(--border-color) 50%, var(--hover-bg) 75%);
-  background-size: 800px 100%;
-  animation: shimmer 1.4s infinite linear;
-  border-radius: 6px;
+  background-size: 800px 100%; animation: shimmer 1.4s infinite linear; border-radius: 6px;
 }
-.skeleton-result-item {
-  padding: 16px;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.skeleton-result-avatar { width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0; }
-.skeleton-result-content { flex: 1; display: flex; flex-direction: column; gap: 8px; }
-.skeleton-result-title { height: 16px; width: 60%; }
-.skeleton-result-sub   { height: 12px; width: 40%; }
-.skeleton-result-badge { width: 52px; height: 22px; border-radius: 12px; flex-shrink: 0; }
+.skeleton-result-item { padding: 12px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 12px; }
+.skeleton-result-avatar { width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0; }
+.skeleton-result-content { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+.skeleton-result-title { height: 13px; width: 55%; }
+.skeleton-result-sub   { height: 10px; width: 35%; }
+.skeleton-result-badge { width: 44px; height: 18px; border-radius: 10px; flex-shrink: 0; }
 
-/* ── SCROLLER TAB ── */
+/* ── SCROLLER (Feed tab) ── */
 .scroller-container {
-  position: fixed;
-  top: calc(53px + env(safe-area-inset-top) + 45px);
-  left: 0; right: 0;
-  bottom: 0;
-  display: none;
-  overflow: hidden;
+  position: fixed; top: calc(53px + env(safe-area-inset-top) + 45px);
+  left: 0; right: 0; bottom: 0; display: none; overflow: hidden;
 }
 .scroller-container.active { display: block; }
-.posts-wrapper {
-  height: 100%;
-  overflow-y: scroll;
-  scroll-snap-type: y mandatory;
-  scrollbar-width: none;
-}
+.posts-wrapper { height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
 .posts-wrapper::-webkit-scrollbar { display: none; }
 .article-card {
   position: relative;
-  height: calc(100vh - 53px - env(safe-area-inset-top) - 45px - 56px - env(safe-area-inset-bottom));
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-  background: var(--bg-color);
-  padding: 14px 20px 20px;
-  display: flex;
-  flex-direction: column;
-  border-bottom: 1px solid var(--border-color);
+  height: calc(100vh - 53px - env(safe-area-inset-top) - 45px);
+  scroll-snap-align: start; scroll-snap-stop: always;
+  background: var(--bg-color); padding: 14px 20px 20px;
+  display: flex; flex-direction: column; border-bottom: 1px solid var(--border-color);
 }
-.card-top-line { width: calc(100%+40px); margin-left: -20px; height: 1px; background: var(--border-color); flex-shrink: 0; margin-bottom: 14px; display: none; }
-.article-header { display: flex; align-items: center; gap: 12px; margin-bottom: 0; flex-shrink: 0; }
+.article-header { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .author-avatar {
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  background: var(--accent);
+  width: 38px; height: 38px; border-radius: 50%; background: var(--accent);
   display: flex; align-items: center; justify-content: center;
-  font-size: 16px; font-weight: bold; color: white;
-  overflow: hidden; flex-shrink: 0;
+  font-size: 15px; font-weight: bold; color: white; overflow: hidden; flex-shrink: 0;
 }
 .author-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .author-info { flex: 1; }
-.author-name { color: var(--text-primary); font-weight: 600; font-size: 15px; margin-bottom: 2px; }
-.article-date { color: var(--text-secondary); font-size: 12px; }
+.author-name { color: var(--text-primary); font-weight: 600; font-size: 14px; margin-bottom: 1px; }
+.article-date { color: var(--text-secondary); font-size: 11px; }
 .header-bottom-line { width: calc(100% + 40px); margin-left: -20px; height: 1px; background: var(--border-color); flex-shrink: 0; margin-top: 12px; margin-bottom: 12px; }
-.article-title { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; line-height: 1.25; flex-shrink: 0; }
+.article-title { font-size: 19px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; line-height: 1.25; flex-shrink: 0; }
 .article-stats { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; flex-shrink: 0; }
-.stat-item { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text-secondary); }
+.stat-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-secondary); }
 .stat-item.views i { color: var(--accent); }
 .stat-item.likes i { color: #ef4444; }
-.article-content { color: var(--text-primary); font-size: 15px; line-height: 1.6; flex: 1; overflow-y: auto; padding-right: 56px; }
-.article-content::-webkit-scrollbar { width: 4px; }
-.article-content::-webkit-scrollbar-track { background: var(--border-color); }
+.article-content { color: var(--text-primary); font-size: 15px; line-height: 1.6; flex: 1; overflow-y: auto; padding-right: 52px; }
+.article-content::-webkit-scrollbar { width: 3px; }
 .article-content::-webkit-scrollbar-thumb { background: var(--text-secondary); border-radius: 2px; }
 .content-paragraph { margin-bottom: 12px; }
-.media-embed { margin: 12px 0; max-width: 100%; }
-.media-embed img { width: 100%; max-width: 100%; height: auto; border-radius: 8px; display: block; }
-.media-caption { font-size: 13px; color: var(--text-secondary); margin-top: 6px; font-style: italic; }
-.custom-audio-player { background: var(--card-bg); border-radius: 12px; padding: 14px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-color); }
-.play-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; transition: all 0.2s ease; flex-shrink: 0; }
-.play-btn:hover { background: var(--accent-hover); transform: scale(1.05); }
-.audio-info { flex: 1; min-width: 0; overflow: hidden; }
-.audio-title { font-size: 13px; font-weight: 500; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
-.waveform-container { position: relative; height: 28px; background: var(--hover-bg); border-radius: 4px; margin-bottom: 6px; cursor: pointer; overflow: hidden; }
+.media-embed { margin: 10px 0; }
+.media-embed img { width: 100%; height: auto; border-radius: 8px; display: block; }
+.media-caption { font-size: 12px; color: var(--text-secondary); margin-top: 5px; font-style: italic; }
+.custom-audio-player { background: var(--card-bg); border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border-color); }
+.play-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.audio-info { flex: 1; min-width: 0; }
+.audio-title { font-size: 12px; font-weight: 500; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
+.waveform-container { position: relative; height: 26px; background: var(--hover-bg); border-radius: 4px; margin-bottom: 5px; cursor: pointer; overflow: hidden; }
 .waveform-progress { position: absolute; top: 0; left: 0; height: 100%; background: var(--accent); opacity: 0.3; transition: width 0.1s linear; }
 .waveform-bars { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: space-around; padding: 0 4px; }
 .waveform-bar { width: 2px; background: var(--text-secondary); border-radius: 2px; opacity: 0.6; }
-.audio-time { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); }
-.action-buttons { position: absolute; right: 14px; bottom: 80px; display: flex; flex-direction: column; gap: 18px; z-index: 10; }
+.audio-time { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-secondary); }
+
+/* Action buttons — share replaces expand */
+.action-buttons { position: absolute; right: 12px; bottom: 56px; display: flex; flex-direction: column; gap: 18px; z-index: 10; }
 .action-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; cursor: pointer; transition: transform 0.1s; }
 .action-btn:active { transform: scale(0.9); }
-.action-btn svg { width: 26px; height: 26px; stroke: var(--text-primary); fill: none; stroke-width: 2; }
+.action-btn svg { width: 24px; height: 24px; stroke: var(--text-primary); fill: none; stroke-width: 2; }
 .action-btn.liked svg { fill: #ef4444; stroke: #ef4444; }
-.action-btn span { color: var(--text-primary); font-size: 11px; font-weight: 600; }
+.action-btn span { color: var(--text-primary); font-size: 10px; font-weight: 600; }
 
-/* Skeleton for scroller */
+/* Scroller skeleton */
 .skeleton-card {
   position: relative;
-  height: calc(100vh - 53px - env(safe-area-inset-top) - 45px - 56px - env(safe-area-inset-bottom));
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-  background: var(--bg-color);
-  padding: 14px 20px 20px;
-  display: flex;
-  flex-direction: column;
-  border-bottom: 1px solid var(--border-color);
+  height: calc(100vh - 53px - env(safe-area-inset-top) - 45px);
+  scroll-snap-align: start; scroll-snap-stop: always;
+  background: var(--bg-color); padding: 14px 20px 20px;
+  display: flex; flex-direction: column; border-bottom: 1px solid var(--border-color);
 }
 .skeleton-header { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-.skeleton-avatar { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; }
-.skeleton-author-block { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-.skeleton-name  { height: 14px; width: 120px; }
-.skeleton-date  { height: 10px; width: 70px; }
+.skeleton-avatar { width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; }
+.skeleton-author-block { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.skeleton-name  { height: 13px; width: 110px; }
+.skeleton-date  { height: 9px;  width: 65px;  }
 .skeleton-divider { width: calc(100% + 40px); margin-left: -20px; height: 1px; background: var(--border-color); flex-shrink: 0; margin-top: 12px; margin-bottom: 12px; }
-.skeleton-title       { height: 20px; width: 85%; margin-bottom: 8px; }
-.skeleton-title-short { height: 20px; width: 60%; margin-bottom: 10px; }
-.skeleton-stats { display: flex; gap: 12px; margin-bottom: 12px; flex-shrink: 0; }
-.skeleton-stat  { height: 13px; width: 52px; }
-.skeleton-line          { height: 13px; margin-bottom: 10px; width: 100%; }
-.skeleton-line.w90      { width: 90%; }
-.skeleton-line.w75      { width: 75%; }
-.skeleton-line.w80      { width: 80%; }
-.skeleton-line.w65      { width: 65%; }
-.skeleton-line.w95      { width: 95%; }
+.skeleton-title       { height: 19px; width: 85%; margin-bottom: 8px; }
+.skeleton-title-short { height: 19px; width: 58%; margin-bottom: 10px; }
+.skeleton-stats { display: flex; gap: 10px; margin-bottom: 12px; flex-shrink: 0; }
+.skeleton-stat  { height: 12px; width: 48px; }
+.skeleton-line       { height: 12px; margin-bottom: 9px; width: 100%; }
+.skeleton-line.w90   { width: 90%; }
+.skeleton-line.w75   { width: 75%; }
+.skeleton-line.w80   { width: 80%; }
+.skeleton-line.w65   { width: 65%; }
+.skeleton-line.w95   { width: 95%; }
 
-/* Comments popup */
+/* ── LIBRARIES TAB ── */
+.libraries-container {
+  position: fixed; top: calc(53px + env(safe-area-inset-top) + 45px);
+  left: 0; right: 0; bottom: 0;
+  overflow-y: auto; display: none;
+  scrollbar-width: none;
+}
+.libraries-container.active { display: block; }
+.libraries-container::-webkit-scrollbar { display: none; }
+.libraries-inner { max-width: 700px; margin: 0 auto; padding: 20px 20px 40px; }
+.lib-section-title {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.6px; color: var(--text-secondary);
+  margin: 0 0 12px 0; padding: 0 4px;
+}
+.lib-card {
+  background: var(--card-bg); border: 1px solid var(--border-color);
+  border-radius: 12px; padding: 16px; margin-bottom: 12px;
+  cursor: pointer; display: flex; align-items: center; gap: 14px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.lib-card:hover { background: var(--hover-bg); border-color: var(--accent-purple); }
+.lib-icon {
+  width: 46px; height: 46px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent-purple), #8e44ad);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: white; flex-shrink: 0;
+}
+.lib-info { flex: 1; min-width: 0; }
+.lib-name { font-size: 15px; font-weight: 600; margin: 0 0 3px 0; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-meta { font-size: 12px; color: var(--text-secondary); }
+.lib-arrow { color: var(--text-secondary); font-size: 13px; flex-shrink: 0; }
+
+/* skeleton for libraries */
+.lib-skeleton { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 14px; }
+.lib-skeleton-icon { width: 46px; height: 46px; border-radius: 10px; flex-shrink: 0; }
+.lib-skeleton-info { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+.lib-skeleton-name { height: 14px; width: 60%; }
+.lib-skeleton-meta { height: 10px; width: 35%; }
+
+/* ── COMMENTS ── */
 .comments-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 199; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
 .comments-overlay.active { opacity: 1; pointer-events: all; }
 .comments-popup {
@@ -445,124 +370,114 @@ body.light-theme .logo-img { filter: invert(1); }
   transform: translate(-50%, -50%) scale(0.9);
   width: calc(100% - 40px); max-width: 500px;
   height: 70vh; max-height: 600px;
-  background: var(--card-bg);
-  border-radius: 16px; z-index: 200;
+  background: var(--card-bg); border-radius: 16px; z-index: 200;
   opacity: 0; pointer-events: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex; flex-direction: column;
   box-shadow: 0 20px 60px rgba(0,0,0,0.5);
 }
 .comments-popup.active { opacity: 1; pointer-events: all; transform: translate(-50%, -50%) scale(1); }
-.comments-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border-color); }
-.comments-header h3 { font-size: 16px; font-weight: 600; }
-.close-comments { background: none; border: none; color: var(--text-primary); font-size: 24px; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s ease; }
+.comments-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border-color); }
+.comments-header h3 { font-size: 15px; font-weight: 600; margin: 0; }
+.close-comments { background: none; border: none; color: var(--text-primary); font-size: 22px; cursor: pointer; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
 .close-comments:hover { background: var(--hover-bg); }
-.comments-list { flex: 1; overflow-y: auto; padding: 16px 20px; }
-.comments-list::-webkit-scrollbar { width: 6px; }
-.comments-list::-webkit-scrollbar-track { background: transparent; }
-.comments-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
-.comment-item { display: flex; gap: 12px; margin-bottom: 20px; }
-.comment-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white; flex-shrink: 0; overflow: hidden; }
+.comments-list { flex: 1; overflow-y: auto; padding: 14px 18px; }
+.comment-item { display: flex; gap: 10px; margin-bottom: 16px; }
+.comment-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: white; flex-shrink: 0; overflow: hidden; }
 .comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .comment-content { flex: 1; }
-.comment-author { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
-.comment-text { font-size: 14px; line-height: 1.4; margin-bottom: 6px; }
-.comment-time { font-size: 11px; color: var(--text-secondary); }
-.comment-input-wrapper { padding: 12px 20px; border-top: 1px solid var(--border-color); background: var(--bg-color); border-radius: 0 0 16px 16px; }
+.comment-author { font-weight: 600; font-size: 12px; margin-bottom: 3px; }
+.comment-text { font-size: 13px; line-height: 1.4; margin-bottom: 4px; }
+.comment-time { font-size: 10px; color: var(--text-secondary); }
+.comment-input-wrapper { padding: 10px 18px; border-top: 1px solid var(--border-color); background: var(--bg-color); border-radius: 0 0 16px 16px; }
 .comment-input-container { display: flex; gap: 8px; align-items: center; }
-.comment-input { flex: 1; background: var(--hover-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 10px 16px; color: var(--text-primary); font-size: 14px; outline: none; }
+.comment-input { flex: 1; background: var(--hover-bg); border: 1px solid var(--border-color); border-radius: 18px; padding: 9px 14px; color: var(--text-primary); font-size: 13px; outline: none; }
 .comment-input:focus { border-color: var(--accent); }
-.send-comment-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.2s ease; }
-.send-comment-btn:hover { background: var(--accent-hover); }
+.send-comment-btn { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; }
 .send-comment-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.no-comments { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary); gap: 12px; }
-.no-comments i { font-size: 48px; opacity: 0.5; }
+.no-comments { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary); gap: 10px; }
+.no-comments i { font-size: 40px; opacity: 0.5; }
 
-/* Footer Bar Navigation */
-.footer-bar {
-  position: fixed;
-  bottom: 0; left: 50%;
-  transform: translateX(-50%);
-  width: 100%; max-width: 450px;
-  background: var(--card-bg);
-  border-top: 1px solid var(--border-color);
-  padding: 8px 24px;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom));
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  z-index: 100;
+/* ── SHARE TOAST ── */
+.share-toast {
+  position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--card-bg); border: 1px solid var(--border-color);
+  border-radius: 12px; padding: 12px 20px;
+  font-size: 13px; color: var(--text-primary);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  opacity: 0; pointer-events: none;
+  transition: all 0.25s ease; z-index: 300; white-space: nowrap;
 }
-.footer-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: none; color: var(--text-secondary); cursor: pointer; transition: color 0.2s ease; padding: 6px 12px; }
-.footer-btn:hover { color: var(--text-primary); }
-.footer-btn.active { color: var(--accent); }
-.footer-btn i { font-size: 20px; }
-.footer-btn span { font-size: 10px; font-weight: 500; }
+.share-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: all; }
 
 @media (max-width: 768px) {
-  .search-container { padding: 12px 16px; }
-  .search-input { font-size: 14px; padding: 10px 40px 10px 40px; }
-  .filter-tabs { margin-top: 10px; gap: 6px; }
-  .filter-tab { padding: 6px 14px; font-size: 12px; }
-  .content-container { padding: 16px 16px 100px; padding-top: calc(53px + env(safe-area-inset-top) + 45px + 130px); }
-  .result-avatar { width: 42px; height: 42px; font-size: 18px; }
-  .result-title { font-size: 15px; }
-  .result-subtitle { font-size: 12px; }
-  .empty-state { padding: 40px 20px; }
-  .empty-state i { font-size: 40px; }
-  .empty-state h3 { font-size: 16px; }
-  .empty-state p { font-size: 13px; }
-  .auth-buttons { gap: 8px; }
-  .btn-login, .btn-signup { padding: 6px 16px; font-size: 13px; }
-  .footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
-  .footer-btn { padding: 6px 8px; }
-  .footer-btn i { font-size: 18px; }
-  .footer-btn span { font-size: 9px; }
+  .header { padding: 0 16px; }
+  .search-container { padding: 10px 14px; }
+  .content-container { padding: 14px 14px 40px; padding-top: calc(53px + env(safe-area-inset-top) + 45px + 120px); }
+  .user-popup { right: 8px; width: 270px; }
+  .tab-btn { font-size: 12px; padding: 10px 6px; }
 }
 </style>
 </head>
 <body>
-<script>
-if (localStorage.getItem("theme") === "light") {
-  document.body.classList.add("light-theme");
-}
-</script>
+<script>if (localStorage.getItem("theme") === "light") document.body.classList.add("light-theme");</script>
 
 <div class="header-wrapper">
   <div class="header">
-    <img src="IMG_0696.png" class="logo-img" alt="Patholytica Logo" onclick="window.location.href='index.html'">
-    <div class="header-actions">
+    <img src="IMG_0696.png" class="logo-img" alt="Patholytica" onclick="window.location.href='index.html'">
+    <div class="header-right">
+      <!-- Logged-out -->
       <div class="auth-buttons" id="authButtons">
         <a href="login.html" class="btn-login">Log In</a>
       </div>
+      <!-- Logged-in -->
       <div class="user-welcome" id="userWelcome">
-        <span class="welcome-text" id="welcomeText">Welcome</span>
+        <span class="welcome-text" id="welcomeText" onclick="toggleUserPopup()">@user</span>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Tab Bar -->
-<div class="tab-bar">
-  <button class="tab-btn active" id="tabSearch" onclick="switchTab('search')">
-    <i class="fas fa-search" style="margin-right:6px;"></i>Search
+<!-- User popup -->
+<div class="user-popup-overlay" id="userPopupOverlay" onclick="closeUserPopup()"></div>
+<div class="user-popup" id="userPopup">
+  <div class="popup-profile-section">
+    <div class="popup-avatar" id="popupAvatar">?</div>
+    <div class="popup-user-info">
+      <div class="popup-username" id="popupUsername">@username</div>
+      <div class="popup-stats" id="popupStats">Loading…</div>
+    </div>
+  </div>
+  <button class="popup-menu-item" onclick="closeUserPopup(); window.location.href='profile.html'">
+    <i class="fas fa-user"></i> My Profile
   </button>
-  <button class="tab-btn" id="tabFeed" onclick="switchTab('feed')">
-    <i class="fas fa-scroll" style="margin-right:6px;"></i>Feed
+  <div class="popup-divider"></div>
+  <button class="popup-menu-item danger" onclick="closeUserPopup(); logOut()">
+    <i class="fas fa-sign-out-alt"></i> Log Out
   </button>
 </div>
 
-<!-- Search Container -->
+<!-- Tab Bar — 3 tabs -->
+<div class="tab-bar">
+  <button class="tab-btn active" id="tabSearch" onclick="switchTab('search')">
+    <i class="fas fa-search" style="margin-right:5px;"></i>Search
+  </button>
+  <button class="tab-btn" id="tabFeed" onclick="switchTab('feed')">
+    <i class="fas fa-scroll" style="margin-right:5px;"></i>Feed
+  </button>
+  <button class="tab-btn" id="tabLibraries" onclick="switchTab('libraries')">
+    <i class="fas fa-bookmark" style="margin-right:5px;"></i>Libraries
+  </button>
+</div>
+
+<!-- Search UI -->
 <div class="search-container active" id="searchContainer">
   <div class="search-bar">
     <div class="search-input-wrapper">
       <i class="fas fa-search search-icon"></i>
       <input type="text" class="search-input" id="searchInput"
-        placeholder="Search for users, articles, or libraries..."
-        autocomplete="off">
-      <button class="clear-search" id="clearSearch">
-        <i class="fas fa-times"></i>
-      </button>
+        placeholder="Search users, articles, libraries…" autocomplete="off">
+      <button class="clear-search" id="clearSearch"><i class="fas fa-times"></i></button>
     </div>
     <div class="filter-tabs">
       <button class="filter-tab active" data-filter="all">All</button>
@@ -580,12 +495,12 @@ if (localStorage.getItem("theme") === "light") {
     <li class="empty-state" id="initialState">
       <i class="fas fa-search"></i>
       <h3>Discover Content</h3>
-      <p>Search for users, articles, or libraries to explore</p>
+      <p>Search for users, articles, or libraries</p>
     </li>
   </ul>
   <div class="load-more-container" id="loadMoreContainer">
     <button class="btn-load-more" id="loadMoreBtn">
-      <i class="fas fa-chevron-down" style="margin-right: 8px;"></i>Load More
+      <i class="fas fa-chevron-down" style="margin-right:6px;"></i>Load More
     </button>
   </div>
 </div>
@@ -593,59 +508,31 @@ if (localStorage.getItem("theme") === "light") {
 <!-- Scroller Feed -->
 <div class="scroller-container" id="scrollerContainer">
   <div class="posts-wrapper" id="postsWrapper">
-    <!-- Skeleton card 1 -->
     <div class="skeleton-card">
-      <div class="skeleton-header">
-        <div class="skeleton-avatar skeleton-base"></div>
-        <div class="skeleton-author-block">
-          <div class="skeleton-name skeleton-base"></div>
-          <div class="skeleton-date skeleton-base"></div>
-        </div>
-      </div>
+      <div class="skeleton-header"><div class="skeleton-avatar skeleton-base"></div><div class="skeleton-author-block"><div class="skeleton-name skeleton-base"></div><div class="skeleton-date skeleton-base"></div></div></div>
       <div class="skeleton-divider"></div>
-      <div class="skeleton-title skeleton-base"></div>
-      <div class="skeleton-title-short skeleton-base"></div>
-      <div class="skeleton-stats">
-        <div class="skeleton-stat skeleton-base"></div>
-        <div class="skeleton-stat skeleton-base"></div>
-      </div>
-      <div class="skeleton-line skeleton-base"></div>
-      <div class="skeleton-line w90 skeleton-base"></div>
-      <div class="skeleton-line w95 skeleton-base"></div>
-      <div class="skeleton-line w80 skeleton-base"></div>
-      <div class="skeleton-line skeleton-base"></div>
-      <div class="skeleton-line w75 skeleton-base"></div>
-      <div class="skeleton-line w90 skeleton-base"></div>
-      <div class="skeleton-line w65 skeleton-base"></div>
+      <div class="skeleton-title skeleton-base"></div><div class="skeleton-title-short skeleton-base"></div>
+      <div class="skeleton-stats"><div class="skeleton-stat skeleton-base"></div><div class="skeleton-stat skeleton-base"></div></div>
+      <div class="skeleton-line skeleton-base"></div><div class="skeleton-line w90 skeleton-base"></div><div class="skeleton-line w95 skeleton-base"></div><div class="skeleton-line w80 skeleton-base"></div><div class="skeleton-line skeleton-base"></div><div class="skeleton-line w75 skeleton-base"></div>
     </div>
-    <!-- Skeleton card 2 -->
     <div class="skeleton-card">
-      <div class="skeleton-header">
-        <div class="skeleton-avatar skeleton-base"></div>
-        <div class="skeleton-author-block">
-          <div class="skeleton-name skeleton-base"></div>
-          <div class="skeleton-date skeleton-base"></div>
-        </div>
-      </div>
+      <div class="skeleton-header"><div class="skeleton-avatar skeleton-base"></div><div class="skeleton-author-block"><div class="skeleton-name skeleton-base"></div><div class="skeleton-date skeleton-base"></div></div></div>
       <div class="skeleton-divider"></div>
-      <div class="skeleton-title skeleton-base"></div>
-      <div class="skeleton-title-short skeleton-base"></div>
-      <div class="skeleton-stats">
-        <div class="skeleton-stat skeleton-base"></div>
-        <div class="skeleton-stat skeleton-base"></div>
-      </div>
-      <div class="skeleton-line skeleton-base"></div>
-      <div class="skeleton-line w95 skeleton-base"></div>
-      <div class="skeleton-line w80 skeleton-base"></div>
-      <div class="skeleton-line w90 skeleton-base"></div>
-      <div class="skeleton-line w75 skeleton-base"></div>
-      <div class="skeleton-line skeleton-base"></div>
-      <div class="skeleton-line w65 skeleton-base"></div>
+      <div class="skeleton-title skeleton-base"></div><div class="skeleton-title-short skeleton-base"></div>
+      <div class="skeleton-stats"><div class="skeleton-stat skeleton-base"></div><div class="skeleton-stat skeleton-base"></div></div>
+      <div class="skeleton-line skeleton-base"></div><div class="skeleton-line w90 skeleton-base"></div><div class="skeleton-line w80 skeleton-base"></div><div class="skeleton-line w65 skeleton-base"></div>
     </div>
   </div>
 </div>
 
-<!-- Comments overlay -->
+<!-- Libraries Tab -->
+<div class="libraries-container" id="librariesContainer">
+  <div class="libraries-inner" id="librariesInner">
+    <!-- filled by JS -->
+  </div>
+</div>
+
+<!-- Comments -->
 <div class="comments-overlay" id="commentsOverlay" onclick="closeComments()"></div>
 <div class="comments-popup" id="commentsPopup">
   <div class="comments-header">
@@ -653,15 +540,11 @@ if (localStorage.getItem("theme") === "light") {
     <button class="close-comments" onclick="closeComments()">×</button>
   </div>
   <div class="comments-list" id="commentsList">
-    <div class="no-comments">
-      <i class="fas fa-comments"></i>
-      <div>No comments yet</div>
-      <div style="font-size:12px;">Be the first to comment!</div>
-    </div>
+    <div class="no-comments"><i class="fas fa-comments"></i><div>No comments yet</div></div>
   </div>
   <div class="comment-input-wrapper">
     <div class="comment-input-container">
-      <input type="text" class="comment-input" id="commentInput" placeholder="Add a comment...">
+      <input type="text" class="comment-input" id="commentInput" placeholder="Add a comment…">
       <button class="send-comment-btn" id="sendCommentBtn" onclick="sendComment()">
         <i class="fas fa-paper-plane"></i>
       </button>
@@ -669,21 +552,8 @@ if (localStorage.getItem("theme") === "light") {
   </div>
 </div>
 
-<!-- Footer Bar Navigation -->
-<div class="footer-bar">
-  <button class="footer-btn" onclick="window.location.href='index.html'">
-    <i class="fas fa-home"></i><span>Home</span>
-  </button>
-  <button class="footer-btn" onclick="window.location.href='https://patholytica.com/dailyfeed'">
-    <i class="fas fa-scroll"></i><span>Feed</span>
-  </button>
-  <button class="footer-btn active" onclick="window.location.href='explore.html'">
-    <i class="fas fa-search"></i><span>Explore</span>
-  </button>
-  <button class="footer-btn" onclick="window.location.href='profile.html'">
-    <i class="fas fa-user"></i><span>Profile</span>
-  </button>
-</div>
+<!-- Share toast -->
+<div class="share-toast" id="shareToast"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -698,47 +568,72 @@ const firebaseConfig = {
   messagingSenderId: "738430635282",
   appId: "1:738430635282:web:8451ef380447c7611137cb"
 };
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const supabase = window.supabase.createClient(
+  "https://vduqewqyvszfquntmark.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
+);
 
-const SUPABASE_URL = "https://vduqewqyvszfquntmark.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// ─── TAB SWITCHING ───────────────────────────────────────────────────────────
+// ── TAB SWITCHING ─────────────────────────────────────────────────────────────
 let feedLoaded = false;
+let librariesLoaded = false;
+
 window.switchTab = function(tab) {
-  const isSearch = tab === 'search';
-  document.getElementById('tabSearch').classList.toggle('active', isSearch);
-  document.getElementById('tabFeed').classList.toggle('active', !isSearch);
-  document.getElementById('searchContainer').classList.toggle('active', isSearch);
-  document.getElementById('searchResults').classList.toggle('active', isSearch);
-  document.getElementById('scrollerContainer').classList.toggle('active', !isSearch);
-  if (!isSearch && !feedLoaded) {
-    feedLoaded = true;
-    loadArticles(true);
-  }
+  ['search','feed','libraries'].forEach(t => {
+    document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
+  });
+  document.getElementById('searchContainer').classList.toggle('active', tab === 'search');
+  document.getElementById('searchResults').classList.toggle('active', tab === 'search');
+  document.getElementById('scrollerContainer').classList.toggle('active', tab === 'feed');
+  document.getElementById('librariesContainer').classList.toggle('active', tab === 'libraries');
+
+  if (tab === 'feed' && !feedLoaded) { feedLoaded = true; loadArticles(true); }
+  if (tab === 'libraries' && !librariesLoaded) { librariesLoaded = true; loadLibraries(); }
 };
 
-// ─── AUTH ─────────────────────────────────────────────────────────────────────
+// ── USER POPUP ────────────────────────────────────────────────────────────────
+window.toggleUserPopup = function() {
+  const popup = document.getElementById('userPopup');
+  if (popup.classList.contains('show')) closeUserPopup();
+  else { popup.classList.add('show'); document.getElementById('userPopupOverlay').classList.add('show'); }
+};
+window.closeUserPopup = function() {
+  document.getElementById('userPopup').classList.remove('show');
+  document.getElementById('userPopupOverlay').classList.remove('show');
+};
+
+async function populateUserPopup(user) {
+  try {
+    const { data: ud } = await supabase.from('users').select('*').eq('firebase_uid', user.uid).single();
+    if (!ud) return;
+    document.getElementById('welcomeText').textContent = `@${ud.username}`;
+    document.getElementById('popupUsername').textContent = `@${ud.username}`;
+    const av = document.getElementById('popupAvatar');
+    if (ud.pfp) av.innerHTML = `<img src="${ud.pfp}" alt="">`;
+    else av.textContent = (ud.username || 'U')[0].toUpperCase();
+    const [artRes, libRes] = await Promise.all([
+      supabase.from('articles').select('id,views,likes').eq('firebase_user_id', user.uid),
+      supabase.from('playlists').select('id').eq('user_id', ud.user_id)
+    ]);
+    const arts = artRes.data || [], libs = libRes.data || [];
+    const views = arts.reduce((s,a)=>s+(a.views||0),0);
+    document.getElementById('popupStats').textContent = `${arts.length} articles · ${libs.length} libraries · ${views} views`;
+  } catch(e) {}
+}
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
 window.logOut = async function() {
-  try { await signOut(auth); window.location.reload(); }
-  catch (e) { alert("Error logging out. Please try again."); }
+  try { await signOut(auth); window.location.reload(); } catch(e) { alert("Error logging out."); }
 };
 
 onAuthStateChanged(auth, async (user) => {
   const authButtons = document.getElementById('authButtons');
   const userWelcome = document.getElementById('userWelcome');
-  const welcomeText = document.getElementById('welcomeText');
   if (user) {
     authButtons.classList.remove('show');
     userWelcome.classList.add('show');
-    welcomeText.onclick = window.logOut;
-    try {
-      const { data: userData } = await supabase.from('users').select('username').eq('firebase_uid', user.uid).single();
-      if (userData?.username) welcomeText.textContent = `@${userData.username}`;
-    } catch(e) {}
+    await populateUserPopup(user);
     currentUser = await getCurrentUser();
     if (currentUser) await loadUserLikes();
   } else {
@@ -747,750 +642,374 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// ─── SEARCH ──────────────────────────────────────────────────────────────────
-let currentFilter = 'all';
-let searchTimeout;
-let currentQuery = '';
-let currentOffset = 0;
-let hasMoreSearch = false;
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+let currentFilter = 'all', searchTimeout, currentQuery = '', currentOffset = 0, hasMoreSearch = false;
 const RESULTS_PER_PAGE = 10;
-
-const searchInput = document.getElementById('searchInput');
+const searchInput    = document.getElementById('searchInput');
 const clearSearchBtn = document.getElementById('clearSearch');
-const resultsList = document.getElementById('resultsList');
-const initialState = document.getElementById('initialState');
-const filterTabs = document.querySelectorAll('.filter-tab');
+const resultsList    = document.getElementById('resultsList');
+const initialState   = document.getElementById('initialState');
 const loadMoreContainer = document.getElementById('loadMoreContainer');
-const loadMoreBtn = document.getElementById('loadMoreBtn');
+const loadMoreBtn    = document.getElementById('loadMoreBtn');
 
-filterTabs.forEach(tab => {
+document.querySelectorAll('.filter-tab').forEach(tab => {
   tab.addEventListener('click', () => {
-    filterTabs.forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     currentFilter = tab.dataset.filter;
-    const query = searchInput.value.trim();
-    if (query) { currentOffset = 0; performSearch(query, true); }
+    const q = searchInput.value.trim();
+    if (q) { currentOffset = 0; performSearch(q, true); }
   });
 });
 
 clearSearchBtn.addEventListener('click', () => {
-  searchInput.value = '';
-  clearSearchBtn.classList.remove('show');
-  resultsList.innerHTML = '';
-  resultsList.appendChild(initialState);
+  searchInput.value = ''; clearSearchBtn.classList.remove('show');
+  resultsList.innerHTML = ''; resultsList.appendChild(initialState);
   initialState.style.display = 'block';
   loadMoreContainer.classList.remove('show');
-  currentOffset = 0; currentQuery = '';
-  searchInput.focus();
+  currentOffset = 0; currentQuery = ''; searchInput.focus();
 });
 
-searchInput.addEventListener('input', (e) => {
-  const query = e.target.value.trim();
-  if (query) { clearSearchBtn.classList.add('show'); }
-  else {
+searchInput.addEventListener('input', e => {
+  const q = e.target.value.trim();
+  if (!q) {
     clearSearchBtn.classList.remove('show');
-    resultsList.innerHTML = '';
-    resultsList.appendChild(initialState);
+    resultsList.innerHTML = ''; resultsList.appendChild(initialState);
     initialState.style.display = 'block';
     loadMoreContainer.classList.remove('show');
-    currentOffset = 0; currentQuery = '';
-    return;
+    currentOffset = 0; currentQuery = ''; return;
   }
+  clearSearchBtn.classList.add('show');
   clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(() => { currentOffset = 0; performSearch(query, true); }, 300);
+  searchTimeout = setTimeout(() => { currentOffset = 0; performSearch(q, true); }, 300);
 });
 
 loadMoreBtn.addEventListener('click', () => { if (currentQuery) performSearch(currentQuery, false); });
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
+function escapeHtml(t) { const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
 function highlightText(text, query) {
-  if (!text || !query) return escapeHtml(text);
-  const escapedText = escapeHtml(text);
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-  return escapedText.replace(regex, '<mark>$1</mark>');
+  if (!text||!query) return escapeHtml(text);
+  const e = escapeHtml(text);
+  return e.replace(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'), '<mark>$1</mark>');
 }
 
-function handleImageError(img, fallbackText) {
-  img.style.display = 'none';
-  img.parentElement.textContent = fallbackText;
-}
-
-// Skeleton for search loading
 function showSearchSkeleton() {
   resultsList.innerHTML = '';
-  for (let i = 0; i < 5; i++) {
-    const li = document.createElement('li');
-    li.className = 'skeleton-result-item';
-    li.innerHTML = `
-      <div class="skeleton-result-avatar skeleton-base"></div>
-      <div class="skeleton-result-content">
-        <div class="skeleton-result-title skeleton-base"></div>
-        <div class="skeleton-result-sub skeleton-base"></div>
-      </div>
-      <div class="skeleton-result-badge skeleton-base"></div>
-    `;
+  for (let i=0;i<6;i++) {
+    const li = document.createElement('li'); li.className='skeleton-result-item';
+    li.innerHTML=`<div class="skeleton-result-avatar skeleton-base"></div><div class="skeleton-result-content"><div class="skeleton-result-title skeleton-base"></div><div class="skeleton-result-sub skeleton-base"></div></div><div class="skeleton-result-badge skeleton-base"></div>`;
     resultsList.appendChild(li);
   }
 }
 
-async function performSearch(query, isNewSearch = true) {
+async function performSearch(query, isNew=true) {
   if (!query) return;
-  if (isNewSearch) {
-    currentQuery = query;
-    currentOffset = 0;
-    initialState.style.display = 'none';
-    showSearchSkeleton();
-    loadMoreContainer.classList.remove('show');
+  if (isNew) {
+    currentQuery=query; currentOffset=0; initialState.style.display='none';
+    showSearchSkeleton(); loadMoreContainer.classList.remove('show');
   } else {
-    loadMoreBtn.disabled = true;
-    loadMoreBtn.innerHTML = '<div class="loading-spinner" style="margin:0 auto;"></div>';
+    loadMoreBtn.disabled=true;
+    loadMoreBtn.innerHTML='<div class="loading-spinner" style="margin:0 auto;"></div>';
   }
-
   try {
-    let results = [];
-    let totalCount = 0;
-
-    if (currentFilter === 'all' || currentFilter === 'users') {
-      const { data: users, error: usersError, count } = await supabase
-        .from('users').select('*', { count: 'exact' })
-        .ilike('username', `%${query}%`)
-        .range(currentOffset, currentOffset + RESULTS_PER_PAGE - 1);
-      if (!usersError && users) {
-        results.push(...users.map(u => ({ ...u, type: 'user' })));
-        totalCount += count || 0;
+    let results=[], totalCount=0;
+    if (currentFilter==='all'||currentFilter==='users') {
+      const {data:u,count,error} = await supabase.from('users').select('*',{count:'exact'}).ilike('username',`%${query}%`).range(currentOffset,currentOffset+RESULTS_PER_PAGE-1);
+      if (!error&&u) { results.push(...u.map(x=>({...x,type:'user'}))); totalCount+=count||0; }
+    }
+    if (currentFilter==='all'||currentFilter==='articles') {
+      const {data:a,count,error} = await supabase.from('articles').select('*',{count:'exact'}).ilike('title',`%${query}%`).range(currentOffset,currentOffset+RESULTS_PER_PAGE-1);
+      if (!error&&a) {
+        const ids=[...new Set(a.map(x=>x.firebase_user_id).filter(Boolean))]; let um={};
+        if (ids.length) { const {data:u}=await supabase.from('users').select('firebase_uid,username').in('firebase_uid',ids); if(u) u.forEach(x=>{um[x.firebase_uid]=x;}); }
+        results.push(...a.map(x=>({...x,type:'article',authorUsername:um[x.firebase_user_id]?.username||'Unknown'})));
+        totalCount+=count||0;
       }
     }
-
-    if (currentFilter === 'all' || currentFilter === 'articles') {
-      const { data: articles, error: articlesError, count } = await supabase
-        .from('articles').select('*, media(url)', { count: 'exact' })
-        .ilike('title', `%${query}%`)
-        .range(currentOffset, currentOffset + RESULTS_PER_PAGE - 1);
-      if (!articlesError && articles) {
-        const firebaseUserIds = [...new Set(articles.map(a => a.firebase_user_id).filter(Boolean))];
-        let userMap = {};
-        if (firebaseUserIds.length > 0) {
-          const { data: users } = await supabase.from('users').select('firebase_uid, username, pfp').in('firebase_uid', firebaseUserIds);
-          if (users) users.forEach(u => { userMap[u.firebase_uid] = u; });
-        }
-        results.push(...articles.map(a => ({
-          ...a, type: 'article',
-          authorUsername: userMap[a.firebase_user_id]?.username || 'Unknown',
-          articleImage: a.media && a.media.length > 0 ? a.media[0].url : null,
-          articleText: a.content || ''
-        })));
-        totalCount += count || 0;
-      }
-    }
-
-    if (currentFilter === 'article-content') {
-      const { data: articleContent, error: contentError, count } = await supabase
-        .from('articles').select('*, media(url)', { count: 'exact' })
-        .ilike('content', `%${query}%`)
-        .range(currentOffset, currentOffset + RESULTS_PER_PAGE - 1);
-      if (!contentError && articleContent) {
-        const firebaseUserIds = [...new Set(articleContent.map(a => a.firebase_user_id).filter(Boolean))];
-        let userMap = {};
-        if (firebaseUserIds.length > 0) {
-          const { data: users } = await supabase.from('users').select('firebase_uid, username, pfp').in('firebase_uid', firebaseUserIds);
-          if (users) users.forEach(u => { userMap[u.firebase_uid] = u; });
-        }
-        results.push(...articleContent.map(a => {
-          let excerpt = '';
-          if (a.content) {
-            const idx = a.content.toLowerCase().indexOf(query.toLowerCase());
-            if (idx !== -1) {
-              const start = Math.max(0, idx - 50);
-              const end = Math.min(a.content.length, idx + query.length + 100);
-              excerpt = (start > 0 ? '...' : '') + a.content.substring(start, end) + (end < a.content.length ? '...' : '');
-            } else {
-              excerpt = a.content.substring(0, 150) + (a.content.length > 150 ? '...' : '');
-            }
-          }
-          return {
-            ...a, type: 'article-content',
-            authorUsername: userMap[a.firebase_user_id]?.username || 'Unknown',
-            articleImage: a.media && a.media.length > 0 ? a.media[0].url : null,
-            articleText: a.content || '',
-            excerpt
-          };
+    if (currentFilter==='article-content') {
+      const {data:a,count,error} = await supabase.from('articles').select('*',{count:'exact'}).ilike('content',`%${query}%`).range(currentOffset,currentOffset+RESULTS_PER_PAGE-1);
+      if (!error&&a) {
+        const ids=[...new Set(a.map(x=>x.firebase_user_id).filter(Boolean))]; let um={};
+        if (ids.length) { const {data:u}=await supabase.from('users').select('firebase_uid,username').in('firebase_uid',ids); if(u) u.forEach(x=>{um[x.firebase_uid]=x;}); }
+        results.push(...a.map(x=>{
+          let excerpt='';
+          if (x.content) { const idx=x.content.toLowerCase().indexOf(query.toLowerCase()); const s=Math.max(0,idx-40); const e2=Math.min(x.content.length,idx+query.length+80); excerpt=(s>0?'…':'')+x.content.substring(s,e2)+(e2<x.content.length?'…':''); }
+          return {...x,type:'article-content',authorUsername:um[x.firebase_user_id]?.username||'Unknown',excerpt};
         }));
-        totalCount += count || 0;
+        totalCount+=count||0;
       }
     }
-
-    if (currentFilter === 'all' || currentFilter === 'playlists') {
-      const { data: playlists, error: playlistsError, count } = await supabase
-        .from('playlists').select('*', { count: 'exact' })
-        .ilike('name', `%${query}%`)
-        .range(currentOffset, currentOffset + RESULTS_PER_PAGE - 1);
-      if (!playlistsError && playlists) {
-        results.push(...playlists.map(p => ({ ...p, type: 'playlist' })));
-        totalCount += count || 0;
-      }
+    if (currentFilter==='all'||currentFilter==='playlists') {
+      const {data:p,count,error} = await supabase.from('playlists').select('*',{count:'exact'}).ilike('name',`%${query}%`).range(currentOffset,currentOffset+RESULTS_PER_PAGE-1);
+      if (!error&&p) { results.push(...p.map(x=>({...x,type:'playlist'}))); totalCount+=count||0; }
     }
-
-    hasMoreSearch = (currentOffset + results.length) < totalCount;
-    displayResults(results, query, isNewSearch);
-    currentOffset += results.length;
-
-    if (hasMoreSearch && results.length > 0) {
-      loadMoreContainer.classList.add('show');
-      loadMoreBtn.disabled = false;
-      loadMoreBtn.innerHTML = '<i class="fas fa-chevron-down" style="margin-right:8px;"></i>Load More';
-    } else {
-      loadMoreContainer.classList.remove('show');
-    }
-  } catch (error) {
-    console.error('Search error:', error);
-    if (isNewSearch) {
-      resultsList.innerHTML = `<li class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Search Error</h3><p>An error occurred. Please try again.</p></li>`;
-    } else {
-      loadMoreBtn.disabled = false;
-      loadMoreBtn.innerHTML = '<i class="fas fa-chevron-down" style="margin-right:8px;"></i>Load More';
-    }
+    hasMoreSearch=(currentOffset+results.length)<totalCount;
+    displayResults(results,query,isNew);
+    currentOffset+=results.length;
+    if (hasMoreSearch&&results.length>0) {
+      loadMoreContainer.classList.add('show'); loadMoreBtn.disabled=false;
+      loadMoreBtn.innerHTML='<i class="fas fa-chevron-down" style="margin-right:6px;"></i>Load More';
+    } else { loadMoreContainer.classList.remove('show'); }
+  } catch(err) {
+    console.error(err);
+    if (isNew) resultsList.innerHTML=`<li class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Search Error</h3><p>Please try again.</p></li>`;
+    else { loadMoreBtn.disabled=false; loadMoreBtn.innerHTML='<i class="fas fa-chevron-down" style="margin-right:6px;"></i>Load More'; }
   }
 }
 
-function displayResults(results, query, isNewSearch) {
-  if (results.length === 0 && isNewSearch) {
-    resultsList.innerHTML = `<li class="empty-state"><i class="fas fa-search"></i><h3>No results found</h3><p>Try searching with different keywords</p></li>`;
-    return;
-  }
-  if (isNewSearch) resultsList.innerHTML = '';
-
-  results.forEach(result => {
-    const li = document.createElement('li');
-    li.className = 'result-item';
-
-    if (result.type === 'user') {
-      const initial = result.username ? result.username[0].toUpperCase() : 'U';
-      const avatarDiv = document.createElement('div');
-      avatarDiv.className = 'result-avatar';
-      if (result.pfp) {
-        const img = document.createElement('img');
-        img.src = result.pfp; img.alt = result.username || 'User';
-        img.onerror = function() { handleImageError(this, initial); };
-        avatarDiv.appendChild(img);
-      } else { avatarDiv.textContent = initial; }
-      const contentDiv = document.createElement('div');
-      contentDiv.className = 'result-content';
-      contentDiv.innerHTML = `<h3 class="result-title">@${escapeHtml(result.username || 'Unknown')}</h3><p class="result-subtitle">${escapeHtml(result.bio || 'No bio available')}</p>`;
-      const badge = document.createElement('span');
-      badge.className = 'result-type-badge user'; badge.textContent = 'User';
-      li.appendChild(avatarDiv); li.appendChild(contentDiv); li.appendChild(badge);
-      li.onclick = () => window.location.href = `profile.html?username=${result.username}`;
-
-    } else if (result.type === 'article' || result.type === 'article-content') {
-      const initial = result.title ? result.title[0].toUpperCase() : 'A';
-      const avatarDiv = document.createElement('div');
-      const hasMedia = result.articleImage;
-
-      if (hasMedia) {
-        avatarDiv.className = `result-avatar ${result.type}`;
-        const img = document.createElement('img');
-        img.src = result.articleImage; img.alt = result.title || 'Article';
-        img.onerror = function() {
-          // Fallback to text thumbnail
-          img.remove();
-          avatarDiv.className = `result-avatar text-thumb ${result.type}`;
-          avatarDiv.style.background = result.type === 'article' ? 'var(--accent-green)' : 'var(--accent-orange)';
-          avatarDiv.textContent = (result.articleText || result.title || '').substring(0, 60);
-        };
-        avatarDiv.appendChild(img);
-      } else {
-        // Text thumbnail: show first ~60 chars of article content
-        avatarDiv.className = `result-avatar text-thumb ${result.type}`;
-        avatarDiv.style.background = result.type === 'article' ? 'var(--accent-green)' : 'var(--accent-orange)';
-        avatarDiv.textContent = (result.articleText || result.title || '').substring(0, 60);
-      }
-
-      const date = new Date(result.created_at);
-      const formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-      const contentDiv = document.createElement('div');
-      contentDiv.className = 'result-content';
-      let innerHtml = `<h3 class="result-title">${escapeHtml(result.title)}</h3><p class="result-subtitle">by @${escapeHtml(result.authorUsername)} • ${formattedDate}</p>`;
-      if (result.type === 'article-content' && result.excerpt) {
-        innerHtml += `<p class="result-excerpt">${highlightText(result.excerpt, query)}</p>`;
-      }
-      contentDiv.innerHTML = innerHtml;
-
-      const badge = document.createElement('span');
-      badge.className = `result-type-badge ${result.type}`;
-      badge.textContent = result.type === 'article' ? 'Article' : 'Content';
-      li.appendChild(avatarDiv); li.appendChild(contentDiv); li.appendChild(badge);
-      li.onclick = () => window.location.href = `article.html?id=${result.id}`;
-
-    } else if (result.type === 'playlist') {
-      const initial = result.name ? result.name[0].toUpperCase() : 'L';
-      const articleCount = result.article_count || 0;
-      const avatarDiv = document.createElement('div');
-      avatarDiv.className = 'result-avatar playlist'; avatarDiv.textContent = initial;
-      const contentDiv = document.createElement('div');
-      contentDiv.className = 'result-content';
-      contentDiv.innerHTML = `<h3 class="result-title">${escapeHtml(result.name)}</h3><p class="result-subtitle">${articleCount} article${articleCount !== 1 ? 's' : ''}</p>`;
-      const badge = document.createElement('span');
-      badge.className = 'result-type-badge playlist'; badge.textContent = 'Library';
-      li.appendChild(avatarDiv); li.appendChild(contentDiv); li.appendChild(badge);
-      li.onclick = () => window.location.href = `playlist.html?id=${result.id}`;
+function displayResults(results, query, isNew) {
+  if (results.length===0&&isNew) { resultsList.innerHTML=`<li class="empty-state"><i class="fas fa-search"></i><h3>No results</h3><p>Try different keywords</p></li>`; return; }
+  if (isNew) resultsList.innerHTML='';
+  results.forEach(r => {
+    const li=document.createElement('li'); li.className='result-item';
+    const makeAvatar=(cls,letter,pfp)=>{
+      const d=document.createElement('div'); d.className=`result-avatar ${cls}`;
+      if(pfp){const img=document.createElement('img');img.src=pfp;img.onerror=()=>{img.remove();d.textContent=letter;};d.appendChild(img);}
+      else d.textContent=letter;
+      return d;
+    };
+    if (r.type==='user') {
+      const av=makeAvatar('',(r.username||'U')[0].toUpperCase(),r.pfp);
+      const ct=document.createElement('div'); ct.className='result-content';
+      ct.innerHTML=`<h3 class="result-title">@${escapeHtml(r.username||'Unknown')}</h3><p class="result-subtitle">${escapeHtml(r.bio||'No bio')}</p>`;
+      const bd=document.createElement('span'); bd.className='result-type-badge user'; bd.textContent='User';
+      li.appendChild(av); li.appendChild(ct); li.appendChild(bd);
+      li.onclick=()=>window.location.href=`profile.html?username=${r.username}`;
+    } else if (r.type==='article') {
+      const av=makeAvatar('article',(r.title||'A')[0].toUpperCase(),null);
+      const date=new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      const ct=document.createElement('div'); ct.className='result-content';
+      ct.innerHTML=`<h3 class="result-title">${escapeHtml(r.title)}</h3><p class="result-subtitle">@${escapeHtml(r.authorUsername)} · ${date}</p>`;
+      const bd=document.createElement('span'); bd.className='result-type-badge article'; bd.textContent='Article';
+      li.appendChild(av); li.appendChild(ct); li.appendChild(bd);
+      li.onclick=()=>window.location.href=`article.html?id=${r.id}`;
+    } else if (r.type==='article-content') {
+      const av=makeAvatar('article-content',(r.title||'A')[0].toUpperCase(),null);
+      const ct=document.createElement('div'); ct.className='result-content';
+      ct.innerHTML=`<h3 class="result-title">${escapeHtml(r.title)}</h3><p class="result-subtitle">@${escapeHtml(r.authorUsername)}</p>${r.excerpt?`<p class="result-excerpt">${highlightText(r.excerpt,query)}</p>`:''}`;
+      const bd=document.createElement('span'); bd.className='result-type-badge article-content'; bd.textContent='Content';
+      li.appendChild(av); li.appendChild(ct); li.appendChild(bd);
+      li.onclick=()=>window.location.href=`article.html?id=${r.id}`;
+    } else if (r.type==='playlist') {
+      const av=makeAvatar('playlist',(r.name||'L')[0].toUpperCase(),null);
+      const cnt=r.article_count||0;
+      const ct=document.createElement('div'); ct.className='result-content';
+      ct.innerHTML=`<h3 class="result-title">${escapeHtml(r.name)}</h3><p class="result-subtitle">${cnt} article${cnt!==1?'s':''}</p>`;
+      const bd=document.createElement('span'); bd.className='result-type-badge playlist'; bd.textContent='Library';
+      li.appendChild(av); li.appendChild(ct); li.appendChild(bd);
+      li.onclick=()=>window.location.href=`playlist.html?id=${r.id}`;
     }
-
     resultsList.appendChild(li);
   });
 }
-
 searchInput.focus();
 
-// ─── SCROLLER FEED ────────────────────────────────────────────────────────────
-let articles = [];
-let userLikes = new Set();
-let currentArticleId = null;
-let isLoading = false;
-let hasMore = true;
-let offset = 0;
-const LIMIT = 10;
-let currentUser = null;
-let viewTimers = {};
-let viewedArticles = new Set();
-
-function formatNumber(num) {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-  return (num || 0).toString();
+// ── LIBRARIES TAB ─────────────────────────────────────────────────────────────
+async function loadLibraries() {
+  const inner = document.getElementById('librariesInner');
+  // skeleton
+  inner.innerHTML = `<p class="lib-section-title">All Libraries</p>` +
+    Array(5).fill(`<div class="lib-skeleton"><div class="lib-skeleton-icon skeleton-base"></div><div class="lib-skeleton-info"><div class="lib-skeleton-name skeleton-base"></div><div class="lib-skeleton-meta skeleton-base"></div></div></div>`).join('');
+  try {
+    const { data: libs, error } = await supabase
+      .from('playlists')
+      .select('*, users(username)')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    if (!libs || libs.length === 0) {
+      inner.innerHTML = `<div class="empty-state"><i class="fas fa-bookmark"></i><h3>No Libraries Yet</h3><p>Libraries created by users will appear here</p></div>`;
+      return;
+    }
+    inner.innerHTML = `<p class="lib-section-title">${libs.length} Librar${libs.length===1?'y':'ies'}</p>`;
+    libs.forEach(lib => {
+      const username = lib.users?.username || 'Unknown';
+      const date = new Date(lib.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      const card = document.createElement('div');
+      card.className = 'lib-card';
+      card.innerHTML = `
+        <div class="lib-icon"><i class="fas fa-bookmark"></i></div>
+        <div class="lib-info">
+          <div class="lib-name">${escapeHtml(lib.name)}</div>
+          <div class="lib-meta">by @${escapeHtml(username)} · ${date}</div>
+        </div>
+        <i class="fas fa-chevron-right lib-arrow"></i>`;
+      card.onclick = () => window.location.href = `playlist.html?id=${lib.id}`;
+      inner.appendChild(card);
+    });
+  } catch(e) {
+    inner.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Failed to load</h3><p>Please try again later</p></div>`;
+  }
 }
 
-function formatDate(date) {
-  const now = new Date();
-  const diffMs = now - date;
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
+function escapeHtml(t) { const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
 
+// ── SCROLLER FEED ─────────────────────────────────────────────────────────────
+let articles=[], userLikes=new Set(), currentArticleId=null, isLoading=false, hasMore=true, offset=0;
+const LIMIT=10;
+let currentUser=null, viewTimers={}, viewedArticles=new Set();
+
+function formatNumber(n) { if(n>=1e6)return(n/1e6).toFixed(1)+'M'; if(n>=1e3)return(n/1e3).toFixed(1)+'K'; return(n||0).toString(); }
+function formatDate(d) {
+  const now=new Date(),ms=now-d,mins=Math.floor(ms/60000),hrs=Math.floor(ms/3600000),days=Math.floor(ms/86400000);
+  if(mins<60)return`${mins}m ago`; if(hrs<24)return`${hrs}h ago`; if(days<7)return`${days}d ago`;
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
 async function getCurrentUser() {
-  try {
-    const firebaseUser = auth.currentUser;
-    if (!firebaseUser) return null;
-    const { data: userData, error } = await supabase.from('users').select('user_id, firebase_uid, username').eq('firebase_uid', firebaseUser.uid).single();
-    if (error) return null;
-    return userData;
-  } catch(e) { return null; }
+  try { const fu=auth.currentUser; if(!fu)return null; const {data}=await supabase.from('users').select('user_id,firebase_uid,username').eq('firebase_uid',fu.uid).single(); return data||null; } catch(e){return null;}
 }
-
 async function loadUserLikes() {
-  if (!currentUser) return;
-  try {
-    const { data: likes } = await supabase.from('likes').select('article_id').eq('user_id', currentUser.user_id);
-    userLikes.clear();
-    likes.forEach(like => userLikes.add(like.article_id));
-    updateLikeButtons();
-  } catch(e) {}
+  if(!currentUser)return;
+  try { const {data}=await supabase.from('likes').select('article_id').eq('user_id',currentUser.user_id); userLikes.clear(); data.forEach(l=>userLikes.add(l.article_id)); updateLikeButtons(); } catch(e){}
 }
-
-function updateLikeButtons() {
-  document.querySelectorAll('.like-btn').forEach(btn => {
-    if (userLikes.has(btn.dataset.id)) btn.classList.add('liked');
-    else btn.classList.remove('liked');
-  });
-}
+function updateLikeButtons() { document.querySelectorAll('.like-btn').forEach(b=>b.classList.toggle('liked',userLikes.has(b.dataset.id))); }
 
 function skeletonCardHTML() {
-  return `
-    <div class="skeleton-header">
-      <div class="skeleton-avatar skeleton-base"></div>
-      <div class="skeleton-author-block">
-        <div class="skeleton-name skeleton-base"></div>
-        <div class="skeleton-date skeleton-base"></div>
-      </div>
-    </div>
-    <div class="skeleton-divider"></div>
-    <div class="skeleton-title skeleton-base"></div>
-    <div class="skeleton-title-short skeleton-base"></div>
-    <div class="skeleton-stats">
-      <div class="skeleton-stat skeleton-base"></div>
-      <div class="skeleton-stat skeleton-base"></div>
-    </div>
-    <div class="skeleton-line skeleton-base"></div>
-    <div class="skeleton-line w90 skeleton-base"></div>
-    <div class="skeleton-line w95 skeleton-base"></div>
-    <div class="skeleton-line w80 skeleton-base"></div>
-    <div class="skeleton-line skeleton-base"></div>
-    <div class="skeleton-line w75 skeleton-base"></div>
-    <div class="skeleton-line w90 skeleton-base"></div>
-    <div class="skeleton-line w65 skeleton-base"></div>
-  `;
+  return `<div class="skeleton-header"><div class="skeleton-avatar skeleton-base"></div><div class="skeleton-author-block"><div class="skeleton-name skeleton-base"></div><div class="skeleton-date skeleton-base"></div></div></div>
+<div class="skeleton-divider"></div><div class="skeleton-title skeleton-base"></div><div class="skeleton-title-short skeleton-base"></div>
+<div class="skeleton-stats"><div class="skeleton-stat skeleton-base"></div><div class="skeleton-stat skeleton-base"></div></div>
+<div class="skeleton-line skeleton-base"></div><div class="skeleton-line w90 skeleton-base"></div><div class="skeleton-line w95 skeleton-base"></div><div class="skeleton-line w80 skeleton-base"></div><div class="skeleton-line skeleton-base"></div><div class="skeleton-line w75 skeleton-base"></div>`;
 }
 
-async function loadArticles(isInitial = true) {
-  if (isLoading || (!isInitial && !hasMore)) return;
-  isLoading = true;
-
+async function loadArticles(isInitial=true) {
+  if(isLoading||(!isInitial&&!hasMore))return; isLoading=true;
   try {
-    const { data: articlesData, error } = await supabase
-      .from('articles').select('*')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + LIMIT - 1);
-    if (error) throw error;
-    if (!articlesData || articlesData.length === 0) {
-      if (isInitial) {
-        document.getElementById('postsWrapper').innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-secondary);gap:16px;"><i class="fas fa-inbox" style="font-size:48px;opacity:0.5;"></i><div>No articles found</div></div>`;
-      }
-      hasMore = false; isLoading = false; return;
-    }
-    if (articlesData.length < LIMIT) hasMore = false;
-    offset += articlesData.length;
-
-    const userIds = [...new Set(articlesData.map(a => a.firebase_user_id).filter(Boolean))];
-    let usersData = [];
-    if (userIds.length > 0) {
-      const { data: users } = await supabase.from('users').select('firebase_uid, username, full_name, pfp').in('firebase_uid', userIds);
-      usersData = users || [];
-    }
-    const articleIds = articlesData.map(a => a.id);
-    const { data: mediaData } = await supabase.from('media').select('*').in('article_id', articleIds).order('display_order', { ascending: true });
-
-    const newArticles = articlesData.map(article => {
-      const user = usersData.find(u => u.firebase_uid === article.firebase_user_id);
-      return {
-        ...article,
-        author: user?.username ? `@${user.username}` : (user?.full_name || 'Anonymous'),
-        authorPfp: user?.pfp || null,
-        authorUsername: user?.username || null,
-        media: mediaData?.filter(m => m.article_id === article.id) || []
-      };
-    });
-
-    articles = [...articles, ...newArticles];
-    renderArticles(isInitial);
-    isLoading = false;
-  } catch(e) {
-    console.error('Error loading articles:', e);
-    if (isInitial) {
-      document.getElementById('postsWrapper').innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-secondary);gap:16px;"><i class="fas fa-exclamation-triangle" style="font-size:48px;opacity:0.5;"></i><div>Failed to load articles</div></div>`;
-    }
-    isLoading = false;
-  }
+    const {data,error}=await supabase.from('articles').select('*').order('created_at',{ascending:false}).range(offset,offset+LIMIT-1);
+    if(error)throw error;
+    if(!data||data.length===0){ if(isInitial)document.getElementById('postsWrapper').innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-secondary);gap:16px;"><i class="fas fa-inbox" style="font-size:44px;opacity:0.5;"></i><div>No articles</div></div>`; hasMore=false;isLoading=false;return; }
+    if(data.length<LIMIT)hasMore=false; offset+=data.length;
+    const uids=[...new Set(data.map(a=>a.firebase_user_id).filter(Boolean))]; let ud=[];
+    if(uids.length){const {data:u}=await supabase.from('users').select('firebase_uid,username,full_name,pfp').in('firebase_uid',uids);ud=u||[];}
+    const aIds=data.map(a=>a.id); const {data:md}=await supabase.from('media').select('*').in('article_id',aIds).order('display_order',{ascending:true});
+    const newArts=data.map(a=>{const u=ud.find(x=>x.firebase_uid===a.firebase_user_id);return{...a,author:u?.username?`@${u.username}`:(u?.full_name||'Anonymous'),authorPfp:u?.pfp||null,authorUsername:u?.username||null,media:md?.filter(m=>m.article_id===a.id)||[]};});
+    articles=[...articles,...newArts]; renderArticles(isInitial); isLoading=false;
+  } catch(e){ console.error(e); if(isInitial)document.getElementById('postsWrapper').innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-secondary);gap:16px;"><i class="fas fa-exclamation-triangle" style="font-size:44px;opacity:0.5;"></i><div>Failed to load</div></div>`; isLoading=false; }
 }
 
-function createMediaElement(mediaItem) {
-  const mediaDiv = document.createElement('div');
-  mediaDiv.className = 'media-embed';
-  if (mediaItem.type === 'image') {
-    mediaDiv.innerHTML = `<img src="${mediaItem.url}" alt="${mediaItem.caption || 'Article image'}">${mediaItem.caption ? `<div class="media-caption">${mediaItem.caption}</div>` : ''}`;
-  } else if (mediaItem.type === 'audio') {
-    const audioId = 'audio-' + Math.random().toString(36).substr(2, 9);
-    mediaDiv.innerHTML = `
-      <div class="custom-audio-player">
-        <button class="play-btn" onclick="toggleAudio(this,'${audioId}')"><i class="fas fa-play"></i></button>
-        <div class="audio-info">
-          <div class="audio-title">${mediaItem.caption || 'Audio'}</div>
-          <div class="waveform-container" onclick="seekAudio(event,this,'${audioId}')">
-            <div class="waveform-progress"></div>
-            <div class="waveform-bars">${Array(15).fill(0).map(()=>`<div class="waveform-bar" style="height:${Math.random()*60+20}%"></div>`).join('')}</div>
-          </div>
-          <div class="audio-time"><span class="current-time">0:00</span><span class="duration">0:00</span></div>
-        </div>
-        <audio id="${audioId}" src="${mediaItem.url}" style="display:none;"></audio>
-      </div>`;
-    setTimeout(() => {
-      const audio = document.getElementById(audioId);
-      if (audio) {
-        audio.addEventListener('loadedmetadata', function() {
-          const d = Math.floor(audio.duration);
-          const m = Math.floor(d/60), s = d % 60;
-          const span = audio.closest('.custom-audio-player').querySelector('.duration');
-          if (span) span.textContent = `${m}:${s.toString().padStart(2,'0')}`;
-        });
-      }
-    }, 100);
+function createMediaEl(m) {
+  const d=document.createElement('div'); d.className='media-embed';
+  if(m.type==='image'){ d.innerHTML=`<img src="${m.url}" alt="${m.caption||''}">${m.caption?`<div class="media-caption">${m.caption}</div>`:''}`; }
+  else if(m.type==='audio'){
+    const aid='audio-'+Math.random().toString(36).substr(2,9);
+    d.innerHTML=`<div class="custom-audio-player"><button class="play-btn" onclick="toggleAudio(this,'${aid}')"><i class="fas fa-play"></i></button><div class="audio-info"><div class="audio-title">${m.caption||'Audio'}</div><div class="waveform-container" onclick="seekAudio(event,this,'${aid}')"><div class="waveform-progress"></div><div class="waveform-bars">${Array(15).fill(0).map(()=>`<div class="waveform-bar" style="height:${Math.random()*60+20}%"></div>`).join('')}</div></div><div class="audio-time"><span class="current-time">0:00</span><span class="duration">0:00</span></div></div><audio id="${aid}" src="${m.url}" style="display:none;"></audio></div>`;
+    setTimeout(()=>{const a=document.getElementById(aid);if(a)a.addEventListener('loadedmetadata',()=>{const s=Math.floor(a.duration),mn=Math.floor(s/60),sc=s%60;const sp=a.closest('.custom-audio-player').querySelector('.duration');if(sp)sp.textContent=`${mn}:${sc.toString().padStart(2,'0')}`;});},100);
   }
-  return mediaDiv;
+  return d;
 }
 
-function getAvatarContent(article) {
-  if (article.authorPfp) return `<img src="${article.authorPfp}" alt="${article.author}">`;
-  let letter = 'A';
-  if (article.authorUsername) letter = article.authorUsername.charAt(0).toUpperCase();
-  else if (article.author) {
-    const i = article.author.indexOf('@');
-    letter = i !== -1 && article.author.length > i+1 ? article.author.charAt(i+1).toUpperCase() : article.author.charAt(0).toUpperCase();
-  }
-  return letter;
+function getAvatarContent(a) {
+  if(a.authorPfp)return`<img src="${a.authorPfp}" alt="">`;
+  let l='A'; if(a.authorUsername)l=a.authorUsername.charAt(0).toUpperCase(); else if(a.author){const i=a.author.indexOf('@');l=i!==-1&&a.author.length>i+1?a.author.charAt(i+1).toUpperCase():a.author.charAt(0).toUpperCase();}
+  return l;
 }
 
-function renderArticles(isInitial = true) {
-  const wrapper = document.getElementById('postsWrapper');
-  if (isInitial) { wrapper.innerHTML = ''; }
-  else { const last = wrapper.lastElementChild; if (last && last.classList.contains('skeleton-card')) last.remove(); }
+// ── SHARE ──────────────────────────────────────────────────────────────────────
+function showShareToast(msg) {
+  const t=document.getElementById('shareToast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
 
-  const startIndex = isInitial ? 0 : articles.length - LIMIT;
-  for (let i = startIndex; i < articles.length; i++) {
-    const article = articles[i];
-    const div = document.createElement('div');
-    div.className = 'article-card';
-    div.dataset.index = i;
-    div.dataset.articleId = article.id;
+function handleShare(articleId) {
+  const url = `${location.origin}/article.html?id=${articleId}`;
+  if (navigator.share) {
+    navigator.share({ title: 'Patholytica Article', url }).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(url).then(()=>showShareToast('✓ Link copied to clipboard')).catch(()=>showShareToast('Link: ' + url));
+  }
+}
+window.handleShare = handleShare;
 
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'article-content';
-
-    // Check if article has any visual/audio media
-    const hasVisualMedia = article.media && article.media.some(m => m.type === 'image' || m.type === 'video' || m.type === 'audio');
-
-    const paragraphs = (article.content || 'No content available').split('\n\n');
-    paragraphs.forEach((paragraph, pIndex) => {
-      if (paragraph.trim()) {
-        const p = document.createElement('div');
-        p.className = 'content-paragraph';
-        p.textContent = paragraph.trim();
-        contentDiv.appendChild(p);
-        if (article.media?.length > 0) {
-          article.media.filter(m => m.display_order === pIndex).forEach(m => contentDiv.appendChild(createMediaElement(m)));
-        }
-      }
-    });
-    if (article.media) {
-      article.media.filter(m => m.display_order >= paragraphs.length).forEach(m => contentDiv.appendChild(createMediaElement(m)));
-    }
-
-    const isLiked = userLikes.has(article.id);
-    const avatarContent = getAvatarContent(article);
-
-    div.innerHTML = `
+function renderArticles(isInitial=true) {
+  const wrapper=document.getElementById('postsWrapper');
+  if(isInitial){wrapper.innerHTML='';}else{const last=wrapper.lastElementChild;if(last&&last.classList.contains('skeleton-card'))last.remove();}
+  const start=isInitial?0:articles.length-LIMIT;
+  for(let i=start;i<articles.length;i++){
+    const a=articles[i]; const div=document.createElement('div');
+    div.className='article-card'; div.dataset.index=i; div.dataset.articleId=a.id;
+    const contentDiv=document.createElement('div'); contentDiv.className='article-content';
+    const paras=(a.content||'No content available').split('\n\n');
+    paras.forEach((p,pi)=>{ if(p.trim()){const el=document.createElement('div');el.className='content-paragraph';el.textContent=p.trim();contentDiv.appendChild(el); if(a.media?.length>0)a.media.filter(m=>m.display_order===pi).forEach(m=>contentDiv.appendChild(createMediaEl(m))); }});
+    if(a.media)a.media.filter(m=>m.display_order>=paras.length).forEach(m=>contentDiv.appendChild(createMediaEl(m)));
+    const isLiked=userLikes.has(a.id);
+    div.innerHTML=`
       <div class="article-header">
-        <div class="author-avatar">${avatarContent}</div>
-        <div class="author-info">
-          <div class="author-name">${article.author}</div>
-          <div class="article-date">${formatDate(new Date(article.created_at))}</div>
-        </div>
+        <div class="author-avatar">${getAvatarContent(a)}</div>
+        <div class="author-info"><div class="author-name">${a.author}</div><div class="article-date">${formatDate(new Date(a.created_at))}</div></div>
       </div>
       <div class="header-bottom-line"></div>
-      <div class="article-title">${article.title || 'Untitled'}</div>
+      <div class="article-title">${a.title||'Untitled'}</div>
       <div class="article-stats">
-        <div class="stat-item views"><i class="fas fa-eye"></i><span>${formatNumber(article.views||0)}</span></div>
-        <div class="stat-item likes"><i class="fas fa-heart"></i><span>${formatNumber(article.likes||0)}</span></div>
+        <div class="stat-item views"><i class="fas fa-eye"></i><span>${formatNumber(a.views||0)}</span></div>
+        <div class="stat-item likes"><i class="fas fa-heart"></i><span>${formatNumber(a.likes||0)}</span></div>
       </div>
       <div class="action-buttons">
-        <button class="action-btn like-btn ${isLiked?'liked':''}" data-id="${article.id}">
+        <button class="action-btn like-btn ${isLiked?'liked':''}" data-id="${a.id}">
           <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-          <span class="like-count">${article.likes||0}</span>
+          <span class="like-count">${a.likes||0}</span>
         </button>
-        <button class="action-btn comment-btn" data-id="${article.id}">
+        <button class="action-btn comment-btn" data-id="${a.id}">
           <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
           <span class="comment-count">0</span>
         </button>
-        <button class="action-btn expand-btn" data-id="${article.id}">
-          <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
-          <span>Open</span>
+        <button class="action-btn share-btn" data-id="${a.id}">
+          <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+          <span>Share</span>
         </button>
-      </div>
-    `;
-
+      </div>`;
     div.querySelector('.article-stats').insertAdjacentElement('afterend', contentDiv);
     wrapper.appendChild(div);
   }
-
-  if (hasMore) {
-    const sk = document.createElement('div');
-    sk.className = 'skeleton-card';
-    sk.innerHTML = skeletonCardHTML();
-    wrapper.appendChild(sk);
-  }
-
-  document.querySelectorAll('.like-btn').forEach(btn => btn.addEventListener('click', handleLike));
-  document.querySelectorAll('.comment-btn').forEach(btn => btn.addEventListener('click', handleComments));
-  document.querySelectorAll('.expand-btn').forEach(btn => btn.addEventListener('click', e => { window.location.href = `article.html?id=${e.currentTarget.dataset.id}`; }));
-
-  if (isInitial) {
-    wrapper.addEventListener('scroll', handleScroll);
-    loadCommentCounts();
-    setupIntersectionObserver();
-  } else {
-    setupIntersectionObserverForNew(startIndex);
-    loadCommentCounts();
-  }
+  if(hasMore){const sk=document.createElement('div');sk.className='skeleton-card';sk.innerHTML=skeletonCardHTML();wrapper.appendChild(sk);}
+  document.querySelectorAll('.like-btn').forEach(b=>b.addEventListener('click',handleLike));
+  document.querySelectorAll('.comment-btn').forEach(b=>b.addEventListener('click',handleComments));
+  document.querySelectorAll('.share-btn').forEach(b=>b.addEventListener('click',e=>handleShare(e.currentTarget.dataset.id)));
+  if(isInitial){wrapper.addEventListener('scroll',handleScroll);loadCommentCounts();setupIO();}
+  else{setupIOForNew(start);loadCommentCounts();}
 }
 
-function setupIntersectionObserver() {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      const id = entry.target.dataset.articleId;
-      if (!id) return;
-      if (entry.isIntersecting && entry.intersectionRatio >= 0.75) startViewTimer(id);
-      else clearViewTimer(id);
-    });
-  }, { threshold: [0.75] });
-  document.querySelectorAll('.article-card').forEach(card => { if (card.dataset.articleId) observer.observe(card); });
+function setupIO(){const obs=new IntersectionObserver(entries=>entries.forEach(e=>{const id=e.target.dataset.articleId;if(!id)return;if(e.isIntersecting&&e.intersectionRatio>=0.75)startViewTimer(id);else clearViewTimer(id);}),{threshold:[0.75]});document.querySelectorAll('.article-card').forEach(c=>{if(c.dataset.articleId)obs.observe(c);});}
+function setupIOForNew(si){const obs=new IntersectionObserver(entries=>entries.forEach(e=>{const id=e.target.dataset.articleId;if(!id)return;if(e.isIntersecting&&e.intersectionRatio>=0.75)startViewTimer(id);else clearViewTimer(id);}),{threshold:[0.75]});document.querySelectorAll('.article-card').forEach(c=>{if(c.dataset.index>=si&&c.dataset.articleId)obs.observe(c);});}
+function startViewTimer(id){if(viewedArticles.has(id)||viewTimers[id])return;viewTimers[id]=setTimeout(async()=>{await incrementView(id);},5000);}
+function clearViewTimer(id){if(viewTimers[id]){clearTimeout(viewTimers[id]);delete viewTimers[id];}}
+async function incrementView(id){if(viewedArticles.has(id))return;try{viewedArticles.add(id);const {data:a}=await supabase.from('articles').select('views').eq('id',id).single();const nv=(a.views||0)+1;await supabase.from('articles').update({views:nv}).eq('id',id);const idx=articles.findIndex(a=>a.id===id);if(idx!==-1)articles[idx].views=nv;const card=document.querySelector(`.article-card[data-article-id="${id}"]`);if(card){const s=card.querySelector('.stat-item.views span');if(s)s.textContent=formatNumber(nv);}}catch(e){viewedArticles.delete(id);}}
+async function loadCommentCounts(){try{const {data}=await supabase.from('comments').select('article_id');const counts={};data.forEach(c=>{counts[c.article_id]=(counts[c.article_id]||0)+1;});document.querySelectorAll('.comment-btn').forEach(b=>{b.querySelector('.comment-count').textContent=counts[b.dataset.id]||0;});}catch(e){}}
+
+async function handleLike(e){
+  const id=e.currentTarget.dataset.id,btn=e.currentTarget,cs=btn.querySelector('.like-count'),a=articles.find(x=>x.id===id);if(!a)return;
+  if(!currentUser){alert('Please log in to like articles');window.location.href='https://patholytica.com/login';return;}
+  const wasLiked=userLikes.has(id),orig=a.likes||0;
+  if(wasLiked){userLikes.delete(id);btn.classList.remove('liked');a.likes=Math.max(0,orig-1);}else{userLikes.add(id);btn.classList.add('liked');a.likes=orig+1;}
+  cs.textContent=a.likes;const card=btn.closest('.article-card');if(card){const s=card.querySelector('.stat-item.likes span');if(s)s.textContent=formatNumber(a.likes);}
+  try{if(wasLiked)await supabase.from('likes').delete().eq('article_id',id).eq('user_id',currentUser.user_id);else await supabase.from('likes').insert([{article_id:id,user_id:currentUser.user_id}]);await supabase.from('articles').update({likes:a.likes}).eq('id',id);}
+  catch(err){if(wasLiked){userLikes.add(id);btn.classList.add('liked');}else{userLikes.delete(id);btn.classList.remove('liked');}a.likes=orig;cs.textContent=orig;const c2=btn.closest('.article-card');if(c2){const s=c2.querySelector('.stat-item.likes span');if(s)s.textContent=formatNumber(orig);}alert('Failed to update like.');}
 }
 
-function setupIntersectionObserverForNew(startIndex) {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      const id = entry.target.dataset.articleId;
-      if (!id) return;
-      if (entry.isIntersecting && entry.intersectionRatio >= 0.75) startViewTimer(id);
-      else clearViewTimer(id);
-    });
-  }, { threshold: [0.75] });
-  document.querySelectorAll('.article-card').forEach(card => { if (card.dataset.index >= startIndex && card.dataset.articleId) observer.observe(card); });
+async function handleComments(e){const id=e.currentTarget.dataset.id;currentArticleId=id;await loadComments(id);openComments();}
+async function loadComments(id){
+  const list=document.getElementById('commentsList');
+  list.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:80px;"><div style="width:26px;height:26px;border:3px solid var(--border-color);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;"></div></div>';
+  try{
+    const {data:comments}=await supabase.from('comments').select('*').eq('article_id',id).order('created_at',{ascending:true});
+    if(!comments||comments.length===0){list.innerHTML='<div class="no-comments"><i class="fas fa-comments"></i><div>No comments yet</div></div>';return;}
+    const uids=[...new Set(comments.map(c=>c.user_id).filter(Boolean))];let umap={};
+    if(uids.length){const {data:u}=await supabase.from('users').select('user_id,username,full_name,pfp').in('user_id',uids);if(u)u.forEach(x=>{umap[x.user_id]=x;});}
+    list.innerHTML=comments.map(c=>{const u=umap[c.user_id];const author=u?.username?`@${u.username}`:(u?.full_name||'Anonymous');const av=u?.pfp?`<img src="${u.pfp}" alt="">`:(u?.username||'A')[0].toUpperCase();return`<div class="comment-item"><div class="comment-avatar">${av}</div><div class="comment-content"><div class="comment-author">${author}</div><div class="comment-text">${c.comment_text}</div><div class="comment-time">${formatDate(new Date(c.created_at))}</div></div></div>`;}).join('');
+  }catch(e){list.innerHTML='<div class="no-comments"><i class="fas fa-exclamation-triangle"></i><div>Failed to load</div></div>';}
 }
-
-function startViewTimer(articleId) {
-  if (viewedArticles.has(articleId) || viewTimers[articleId]) return;
-  viewTimers[articleId] = setTimeout(async () => { await incrementView(articleId); }, 5000);
-}
-function clearViewTimer(articleId) {
-  if (viewTimers[articleId]) { clearTimeout(viewTimers[articleId]); delete viewTimers[articleId]; }
-}
-async function incrementView(articleId) {
-  if (viewedArticles.has(articleId)) return;
-  try {
-    viewedArticles.add(articleId);
-    const { data: article } = await supabase.from('articles').select('views').eq('id', articleId).single();
-    const newViews = (article.views || 0) + 1;
-    await supabase.from('articles').update({ views: newViews }).eq('id', articleId);
-    const idx = articles.findIndex(a => a.id === articleId);
-    if (idx !== -1) articles[idx].views = newViews;
-    const card = document.querySelector(`.article-card[data-article-id="${articleId}"]`);
-    if (card) { const vs = card.querySelector('.stat-item.views span'); if (vs) vs.textContent = formatNumber(newViews); }
-  } catch(e) { viewedArticles.delete(articleId); }
-}
-
-async function loadCommentCounts() {
-  try {
-    const { data: comments } = await supabase.from('comments').select('article_id');
-    const counts = {};
-    comments.forEach(c => { counts[c.article_id] = (counts[c.article_id] || 0) + 1; });
-    document.querySelectorAll('.comment-btn').forEach(btn => { btn.querySelector('.comment-count').textContent = counts[btn.dataset.id] || 0; });
-  } catch(e) {}
-}
-
-async function handleLike(e) {
-  const articleId = e.currentTarget.dataset.id;
-  const btn = e.currentTarget;
-  const countSpan = btn.querySelector('.like-count');
-  const article = articles.find(a => a.id === articleId);
-  if (!article) return;
-  if (!currentUser) { alert('Please log in to like articles'); window.location.href = 'https://patholytica.com/login'; return; }
-
-  const wasLiked = userLikes.has(articleId);
-  const originalCount = article.likes || 0;
-  if (wasLiked) { userLikes.delete(articleId); btn.classList.remove('liked'); article.likes = Math.max(0, originalCount - 1); }
-  else { userLikes.add(articleId); btn.classList.add('liked'); article.likes = originalCount + 1; }
-  countSpan.textContent = article.likes;
-  const card = btn.closest('.article-card');
-  if (card) { const s = card.querySelector('.stat-item.likes span'); if (s) s.textContent = formatNumber(article.likes); }
-
-  try {
-    if (wasLiked) { await supabase.from('likes').delete().eq('article_id', articleId).eq('user_id', currentUser.user_id); }
-    else { await supabase.from('likes').insert([{ article_id: articleId, user_id: currentUser.user_id }]); }
-    await supabase.from('articles').update({ likes: article.likes }).eq('id', articleId);
-  } catch(e) {
-    if (wasLiked) { userLikes.add(articleId); btn.classList.add('liked'); } else { userLikes.delete(articleId); btn.classList.remove('liked'); }
-    article.likes = originalCount; countSpan.textContent = article.likes;
-    const card2 = btn.closest('.article-card');
-    if (card2) { const s = card2.querySelector('.stat-item.likes span'); if (s) s.textContent = formatNumber(originalCount); }
-    alert('Failed to update like. Please try again.');
-  }
-}
-
-async function handleComments(e) {
-  const articleId = e.currentTarget.dataset.id;
-  currentArticleId = articleId;
-  await loadComments(articleId);
-  openComments();
-}
-
-async function loadComments(articleId) {
-  const list = document.getElementById('commentsList');
-  list.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;"><div style="width:32px;height:32px;border:3px solid var(--border-color);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;"></div></div>';
-  try {
-    const { data: comments } = await supabase.from('comments').select('*').eq('article_id', articleId).order('created_at', { ascending: true });
-    if (!comments || comments.length === 0) { list.innerHTML = '<div class="no-comments"><i class="fas fa-comments"></i><div>No comments yet</div><div style="font-size:12px;">Be the first to comment!</div></div>'; return; }
-    const userIds = [...new Set(comments.map(c => c.user_id).filter(Boolean))];
-    let usersMap = {};
-    if (userIds.length > 0) {
-      const { data: users } = await supabase.from('users').select('user_id, username, full_name, pfp').in('user_id', userIds);
-      if (users) users.forEach(u => { usersMap[u.user_id] = u; });
-    }
-    list.innerHTML = comments.map(comment => {
-      const user = usersMap[comment.user_id];
-      const author = user?.username ? `@${user.username}` : (user?.full_name || 'Anonymous');
-      let avatarContent = user?.pfp ? `<img src="${user.pfp}" alt="${author}">` : (user?.username ? user.username.charAt(0).toUpperCase() : 'A');
-      return `<div class="comment-item"><div class="comment-avatar">${avatarContent}</div><div class="comment-content"><div class="comment-author">${author}</div><div class="comment-text">${comment.comment_text}</div><div class="comment-time">${formatDate(new Date(comment.created_at))}</div></div></div>`;
-    }).join('');
-  } catch(e) { list.innerHTML = '<div class="no-comments"><i class="fas fa-exclamation-triangle"></i><div>Failed to load comments</div></div>'; }
-}
-
-window.openComments = function() {
-  document.getElementById('commentsPopup').classList.add('active');
-  document.getElementById('commentsOverlay').classList.add('active');
+window.openComments=()=>{document.getElementById('commentsPopup').classList.add('active');document.getElementById('commentsOverlay').classList.add('active');};
+window.closeComments=()=>{document.getElementById('commentsPopup').classList.remove('active');document.getElementById('commentsOverlay').classList.remove('active');};
+window.sendComment=async function(){
+  const input=document.getElementById('commentInput'),text=input.value.trim();if(!text||!currentArticleId)return;
+  const btn=document.getElementById('sendCommentBtn');btn.disabled=true;
+  try{if(!currentUser)currentUser=await getCurrentUser();if(!currentUser){window.location.href='https://patholytica.com/login';return;}
+  await supabase.from('comments').insert([{article_id:currentArticleId,user_id:currentUser.user_id,comment_text:text}]);input.value='';await loadComments(currentArticleId);const cb=document.querySelector(`.comment-btn[data-id="${currentArticleId}"]`);if(cb){const cs=cb.querySelector('.comment-count');cs.textContent=parseInt(cs.textContent)+1;}}catch(e){alert('Failed to post comment.');}finally{btn.disabled=false;}
 };
-window.closeComments = function() {
-  document.getElementById('commentsPopup').classList.remove('active');
-  document.getElementById('commentsOverlay').classList.remove('active');
-};
-
-window.sendComment = async function() {
-  const input = document.getElementById('commentInput');
-  const text = input.value.trim();
-  if (!text || !currentArticleId) return;
-  const btn = document.getElementById('sendCommentBtn');
-  btn.disabled = true;
-  try {
-    if (!currentUser) currentUser = await getCurrentUser();
-    if (!currentUser) { window.location.href = 'https://patholytica.com/login'; return; }
-    await supabase.from('comments').insert([{ article_id: currentArticleId, user_id: currentUser.user_id, comment_text: text }]);
-    input.value = '';
-    await loadComments(currentArticleId);
-    const cb = document.querySelector(`.comment-btn[data-id="${currentArticleId}"]`);
-    if (cb) { const cs = cb.querySelector('.comment-count'); cs.textContent = parseInt(cs.textContent) + 1; }
-  } catch(e) { alert('Failed to post comment. Please try again.'); }
-  finally { btn.disabled = false; }
-};
-
-document.getElementById('commentInput').addEventListener('keypress', e => { if (e.key === 'Enter') window.sendComment(); });
-
-function handleScroll(e) {
-  const c = e.target;
-  if (c.scrollTop + c.clientHeight >= c.scrollHeight * 0.8 && hasMore && !isLoading) loadArticles(false);
-}
+document.getElementById('commentInput').addEventListener('keypress',e=>{if(e.key==='Enter')window.sendComment();});
+function handleScroll(e){const c=e.target;if(c.scrollTop+c.clientHeight>=c.scrollHeight*0.8&&hasMore&&!isLoading)loadArticles(false);}
 </script>
 
 <script>
-window.toggleAudio = function(btn, audioId) {
-  const player = btn.closest('.custom-audio-player');
-  const audio = document.getElementById(audioId);
-  const icon = btn.querySelector('i');
-  if (audio.paused) {
-    audio.play(); icon.className = 'fas fa-pause';
-    audio.ontimeupdate = function() {
-      const progress = (audio.currentTime / audio.duration) * 100;
-      player.querySelector('.waveform-progress').style.width = progress + '%';
-      const m = Math.floor(audio.currentTime / 60), s = Math.floor(audio.currentTime % 60);
-      player.querySelector('.current-time').textContent = `${m}:${s.toString().padStart(2,'0')}`;
-    };
-    audio.onended = function() {
-      icon.className = 'fas fa-play';
-      player.querySelector('.waveform-progress').style.width = '0%';
-      player.querySelector('.current-time').textContent = '0:00';
-    };
-  } else { audio.pause(); icon.className = 'fas fa-play'; }
-};
-window.seekAudio = function(event, container, audioId) {
-  const audio = document.getElementById(audioId);
-  const rect = container.getBoundingClientRect();
-  audio.currentTime = ((event.clientX - rect.left) / rect.width) * audio.duration;
-};
+window.toggleAudio=function(btn,aid){const player=btn.closest('.custom-audio-player'),audio=document.getElementById(aid),icon=btn.querySelector('i');if(audio.paused){audio.play();icon.className='fas fa-pause';audio.ontimeupdate=()=>{const p=(audio.currentTime/audio.duration)*100;player.querySelector('.waveform-progress').style.width=p+'%';const m=Math.floor(audio.currentTime/60),s=Math.floor(audio.currentTime%60);player.querySelector('.current-time').textContent=`${m}:${s.toString().padStart(2,'0')}`;};audio.onended=()=>{icon.className='fas fa-play';player.querySelector('.waveform-progress').style.width='0%';player.querySelector('.current-time').textContent='0:00';};}else{audio.pause();icon.className='fas fa-play';}};
+window.seekAudio=function(e,container,aid){const audio=document.getElementById(aid),rect=container.getBoundingClientRect();audio.currentTime=((e.clientX-rect.left)/rect.width)*audio.duration;};
 </script>
 </body>
 </html>
