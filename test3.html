@@ -1,1422 +1,331 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
-    <title>Article Scroller - Patholytica</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root {
-            --bg-color: #1f1f1f;
-            --text-primary: #fff;
-            --text-secondary: #aaa;
-            --card-bg: #1f1f1f;
-            --hover-bg: #2a2a2a;
-            --border-color: #303030;
-            --accent: #3ea6ff;
-            --accent-hover: #2d8ed6;
-        }
-
-        body.light-theme {
-            --bg-color: #f9f9f9;
-            --text-primary: #0f0f0f;
-            --text-secondary: #606060;
-            --card-bg: #f9f9f9;
-            --hover-bg: #f0f0f0;
-            --border-color: #e5e5e5;
-            --accent: #065fd4;
-            --accent-hover: #0448a3;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-color);
-            color: var(--text-primary);
-            overflow: hidden;
-            transition: background 0.2s ease, color 0.2s ease;
-            position: fixed;
-            width: 100%;
-            height: 100%;
-        }
-
-        .app-container {
-            position: fixed;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            max-width: 450px;
-            height: 100vh;
-            background: var(--bg-color);
-        }
-
-        .scroller-container {
-            position: relative;
-            width: 100%;
-            height: 100vh;
-            background: var(--bg-color);
-            overflow: hidden;
-        }
-
-        .posts-wrapper {
-            height: 100%;
-            overflow-y: scroll;
-            scroll-snap-type: y mandatory;
-            scrollbar-width: none;
-        }
-
-        .posts-wrapper::-webkit-scrollbar {
-            display: none;
-        }
-
-        .article-card {
-            position: relative;
-            height: 100vh;
-            scroll-snap-align: start;
-            scroll-snap-stop: always;
-            background: var(--bg-color);
-            padding: 8px 20px 100px;
-            padding-top: calc(16px + env(safe-area-inset-top));
-            display: flex;
-            flex-direction: column;
-        }
-
-        .card-top-line {
-            width: calc(100% + 40px);
-            margin-left: -20px;
-            height: 1px;
-            background: var(--border-color);
-            flex-shrink: 0;
-            margin-bottom: 14px;
-        }
-
-        .article-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 0;
-            flex-shrink: 0;
-            position: relative;
-            z-index: 50;
-        }
-
-        .author-avatar {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: var(--accent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            font-weight: bold;
-            color: white;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-
-        .author-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .author-info {
-            flex: 1;
-        }
-
-        .author-name {
-            color: var(--text-primary);
-            font-weight: 600;
-            font-size: 17px;
-            margin-bottom: 2px;
-        }
-
-        .article-date {
-            color: var(--text-secondary);
-            font-size: 12px;
-        }
-
-        .header-bottom-line {
-            width: calc(100% + 40px);
-            margin-left: -20px;
-            height: 1px;
-            background: var(--border-color);
-            flex-shrink: 0;
-            margin-top: 14px;
-            margin-bottom: 14px;
-        }
-
-        .article-title {
-            font-size: 22px;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 10px;
-            line-height: 1.25;
-        }
-
-        .article-stats {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 12px;
-            flex-shrink: 0;
-        }
-
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-
-        .stat-item.views i { color: var(--accent); }
-        .stat-item.likes i { color: #ef4444; }
-
-        .article-content {
-            color: var(--text-primary);
-            font-size: 16px;
-            line-height: 1.6;
-            flex: 1;
-            overflow-y: auto;
-            padding-right: 60px;
-        }
-
-        .article-content::-webkit-scrollbar { width: 4px; }
-        .article-content::-webkit-scrollbar-track { background: var(--border-color); }
-        .article-content::-webkit-scrollbar-thumb { background: var(--text-secondary); border-radius: 2px; }
-
-        .content-paragraph { margin-bottom: 14px; }
-
-        .media-embed { margin: 16px 0; max-width: 100%; }
-
-        .media-embed img {
-            width: 100%;
-            max-width: 100%;
-            height: auto;
-            border-radius: 8px;
-            display: block;
-        }
-
-        .media-caption {
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-top: 6px;
-            font-style: italic;
-        }
-
-        .custom-audio-player {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            max-width: 100%;
-            border: 1px solid var(--border-color);
-        }
-
-        .play-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: var(--accent);
-            border: none;
-            color: white;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            transition: all 0.2s ease;
-            flex-shrink: 0;
-        }
-
-        .play-btn:hover { background: var(--accent-hover); transform: scale(1.05); }
-
-        .audio-info { flex: 1; min-width: 0; overflow: hidden; }
-
-        .audio-title {
-            font-size: 13px;
-            font-weight: 500;
-            margin-bottom: 8px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            color: var(--text-primary);
-        }
-
-        .waveform-container {
-            position: relative;
-            height: 32px;
-            background: var(--hover-bg);
-            border-radius: 4px;
-            margin-bottom: 6px;
-            cursor: pointer;
-            overflow: hidden;
-        }
-
-        .waveform-progress {
-            position: absolute;
-            top: 0; left: 0;
-            height: 100%;
-            background: var(--accent);
-            opacity: 0.3;
-            transition: width 0.1s linear;
-        }
-
-        .waveform-bars {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-around;
-            padding: 0 4px;
-        }
-
-        .waveform-bar {
-            width: 2px;
-            background: var(--text-secondary);
-            border-radius: 2px;
-            opacity: 0.6;
-        }
-
-        .audio-time {
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            color: var(--text-secondary);
-        }
-
-        .action-buttons {
-            position: absolute;
-            right: 16px;
-            bottom: 143px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            z-index: 10;
-        }
-
-        .action-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 3px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-
-        .action-btn:active { transform: scale(0.9); }
-
-        .action-btn svg {
-            width: 28px;
-            height: 28px;
-            stroke: var(--text-primary);
-            fill: none;
-            stroke-width: 2;
-        }
-
-        .action-btn.liked svg { fill: #ef4444; stroke: #ef4444; }
-
-        .action-btn span {
-            color: var(--text-primary);
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        .comments-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 199;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-
-        .comments-overlay.active { opacity: 1; pointer-events: all; }
-
-        .comments-popup {
-            position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%) scale(0.9);
-            width: calc(100% - 40px);
-            max-width: 500px;
-            height: 70vh;
-            max-height: 600px;
-            background: var(--card-bg);
-            border-radius: 16px;
-            z-index: 200;
-            opacity: 0;
-            pointer-events: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-        }
-
-        .comments-popup.active {
-            opacity: 1;
-            pointer-events: all;
-            transform: translate(-50%, -50%) scale(1);
-        }
-
-        .comments-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .comments-header h3 { font-size: 16px; font-weight: 600; }
-
-        .close-comments {
-            background: none;
-            border: none;
-            color: var(--text-primary);
-            font-size: 24px;
-            cursor: pointer;
-            padding: 0;
-            width: 32px; height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            transition: background 0.2s ease;
-        }
-
-        .close-comments:hover { background: var(--hover-bg); }
-
-        .comments-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px 20px;
-        }
-
-        .comments-list::-webkit-scrollbar { width: 6px; }
-        .comments-list::-webkit-scrollbar-track { background: transparent; }
-        .comments-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
-
-        .comment-item { display: flex; gap: 12px; margin-bottom: 20px; }
-
-        .comment-avatar {
-            width: 32px; height: 32px;
-            border-radius: 50%;
-            background: var(--accent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
-            color: white;
-            flex-shrink: 0;
-            overflow: hidden;
-        }
-
-        .comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
-        .comment-content { flex: 1; }
-        .comment-author { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
-        .comment-text { font-size: 14px; line-height: 1.4; margin-bottom: 6px; }
-        .comment-time { font-size: 11px; color: var(--text-secondary); }
-
-        .comment-input-wrapper {
-            padding: 12px 20px;
-            border-top: 1px solid var(--border-color);
-            background: var(--bg-color);
-            border-radius: 0 0 16px 16px;
-        }
-
-        .comment-input-container { display: flex; gap: 8px; align-items: center; }
-
-        .comment-input {
-            flex: 1;
-            background: var(--hover-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 10px 16px;
-            color: var(--text-primary);
-            font-size: 14px;
-            outline: none;
-        }
-
-        .comment-input:focus { border-color: var(--accent); }
-
-        .send-comment-btn {
-            width: 36px; height: 36px;
-            border-radius: 50%;
-            background: var(--accent);
-            border: none;
-            color: white;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            transition: all 0.2s ease;
-        }
-
-        .send-comment-btn:hover { background: var(--accent-hover); }
-        .send-comment-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .no-comments {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: var(--text-secondary);
-            gap: 12px;
-        }
-
-        .no-comments i { font-size: 48px; opacity: 0.5; }
-
-        .loading-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: var(--text-primary);
-            gap: 16px;
-        }
-
-        .spinner {
-            width: 48px; height: 48px;
-            border: 4px solid var(--border-color);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* ── SKELETON ── */
-        @keyframes shimmer {
-            0%   { background-position: -400px 0; }
-            100% { background-position:  400px 0; }
-        }
-
-        .skeleton-base {
-            background: linear-gradient(
-                90deg,
-                var(--hover-bg) 25%,
-                var(--border-color) 50%,
-                var(--hover-bg) 75%
-            );
-            background-size: 800px 100%;
-            animation: shimmer 1.4s infinite linear;
-            border-radius: 6px;
-        }
-
-        .skeleton-card {
-            position: relative;
-            height: 100vh;
-            scroll-snap-align: start;
-            scroll-snap-stop: always;
-            background: var(--bg-color);
-            padding: 8px 20px 100px;
-            padding-top: calc(16px + env(safe-area-inset-top));
-            display: flex;
-            flex-direction: column;
-        }
-
-        .skeleton-card .card-top-line {
-            width: calc(100% + 40px);
-            margin-left: -20px;
-            height: 1px;
-            background: var(--border-color);
-            flex-shrink: 0;
-            margin-bottom: 14px;
-        }
-
-        .skeleton-header { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-
-        .skeleton-avatar { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
-
-        .skeleton-author-block { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-
-        .skeleton-name  { height: 14px; width: 120px; }
-        .skeleton-date  { height: 10px; width: 70px; }
-
-        .skeleton-divider {
-            width: calc(100% + 40px);
-            margin-left: -20px;
-            height: 1px;
-            background: var(--border-color);
-            flex-shrink: 0;
-            margin-top: 14px;
-            margin-bottom: 14px;
-        }
-
-        .skeleton-title       { height: 22px; width: 85%; margin-bottom: 8px; }
-        .skeleton-title-short { height: 22px; width: 60%; margin-bottom: 10px; }
-
-        .skeleton-stats { display: flex; gap: 12px; margin-bottom: 14px; flex-shrink: 0; }
-        .skeleton-stat  { height: 13px; width: 52px; }
-
-        .skeleton-line          { height: 13px; margin-bottom: 10px; width: 100%; }
-        .skeleton-line.w90      { width: 90%; }
-        .skeleton-line.w75      { width: 75%; }
-        .skeleton-line.w80      { width: 80%; }
-        .skeleton-line.w65      { width: 65%; }
-        .skeleton-line.w95      { width: 95%; }
-        /* ── END SKELETON ── */
-
-        .footer-bar {
-            position: fixed;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            max-width: 450px;
-            background: var(--card-bg);
-            border-top: 1px solid var(--border-color);
-            padding: 8px 24px;
-            padding-bottom: calc(8px + env(safe-area-inset-bottom));
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 100;
-        }
-
-        .footer-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: color 0.2s ease;
-            padding: 6px 12px;
-        }
-
-        .footer-btn:hover  { color: var(--text-primary); }
-        .footer-btn.active { color: var(--accent); }
-        .footer-btn i      { font-size: 20px; }
-        .footer-btn span   { font-size: 10px; font-weight: 500; }
-
-        @media (max-width: 768px) {
-            .footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
-            .footer-btn { padding: 6px 8px; }
-            .footer-btn i { font-size: 18px; }
-            .footer-btn span { font-size: 9px; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Patholytica — Home</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg-color: #0f0f0f; /* YouTube Dark Black */
+  --text-primary: #ffffff;
+  --text-secondary: #aaaaaa;
+  --card-bg: transparent;
+  --hover-bg: #272727;
+  --border-color: #3f3f3f;
+  --accent: #3ea6ff;
+  --yt-red: #ff0000;
+}
+
+body.light-theme {
+  --bg-color: #ffffff;
+  --text-primary: #0f0f0f;
+  --text-secondary: #606060;
+  --card-bg: transparent;
+  --hover-bg: #f2f2f2;
+  --border-color: #e5e5e5;
+  --accent: #065fd4;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Roboto", Arial, sans-serif;
+  background: var(--bg-color);
+  color: var(--text-primary);
+  transition: background 0.2s;
+}
+
+/* Header */
+.header-wrapper {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background: var(--bg-color);
+  z-index: 100;
+  padding: 0 16px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo-img { height: 20px; cursor: pointer; }
+body.light-theme .logo-img { filter: invert(1); }
+
+/* Main Grid Container */
+.list-container {
+  padding: 80px 16px 100px;
+  max-width: 2200px;
+  margin: 0 auto;
+}
+
+/* Stories / Profiles */
+.stories-section {
+  padding-bottom: 20px;
+  border-bottom: 4px solid var(--border-color);
+  margin-bottom: 24px;
+}
+.stories-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.story-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+  cursor: pointer;
+}
+.story-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--hover-bg);
+  overflow: hidden;
+  margin-bottom: 8px;
+  border: 2px solid transparent;
+}
+.story-item:hover .story-avatar { border-color: var(--text-secondary); }
+.story-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.story-username { font-size: 12px; color: var(--text-secondary); text-align: center; }
+
+/* YouTube Style Grid */
+.article-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 40px 16px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.article-item {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Thumbnail */
+.article-thumbnail {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  background: #2a2a2a;
+  overflow: hidden;
+  position: relative;
+}
+.article-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+.article-item:hover img { transform: scale(1.03); }
+
+/* Duration/Badge placeholder */
+.media-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Content Info */
+.article-info {
+  display: flex;
+  gap: 12px;
+}
+.author-pfp {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--hover-bg);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+.article-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.article-title {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0;
+  color: var(--text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.article-meta {
+  font-size: 14px;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Footer Nav */
+.footer-bar {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background: var(--bg-color);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0 env(safe-area-inset-bottom);
+  z-index: 100;
+}
+.footer-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 10px;
+  gap: 4px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.footer-btn.active { opacity: 1; }
+.footer-btn i { font-size: 20px; }
+
+/* FAB */
+.fab-create {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--hover-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  z-index: 90;
+}
+.fab-create.show { display: flex; }
+
+@media (max-width: 600px) {
+  .article-grid { grid-template-columns: 1fr; gap: 30px; }
+  .article-thumbnail { border-radius: 0; margin: 0 -16px; width: calc(100% + 32px); }
+  .article-info { padding: 0 4px; }
+}
+</style>
 </head>
 <body>
 
-    <div class="app-container">
-        <div class="scroller-container">
-            <div class="posts-wrapper" id="postsWrapper">
-                <!-- Skeleton card 1 -->
-                <div class="skeleton-card">
-                    <div class="card-top-line"></div>
-                    <div class="skeleton-header">
-                        <div class="skeleton-avatar skeleton-base"></div>
-                        <div class="skeleton-author-block">
-                            <div class="skeleton-name skeleton-base"></div>
-                            <div class="skeleton-date skeleton-base"></div>
-                        </div>
-                    </div>
-                    <div class="skeleton-divider"></div>
-                    <div class="skeleton-title skeleton-base"></div>
-                    <div class="skeleton-title-short skeleton-base"></div>
-                    <div class="skeleton-stats">
-                        <div class="skeleton-stat skeleton-base"></div>
-                        <div class="skeleton-stat skeleton-base"></div>
-                    </div>
-                    <div class="skeleton-line skeleton-base"></div>
-                    <div class="skeleton-line w90 skeleton-base"></div>
-                    <div class="skeleton-line w95 skeleton-base"></div>
-                    <div class="skeleton-line w80 skeleton-base"></div>
-                    <div class="skeleton-line skeleton-base"></div>
-                    <div class="skeleton-line w75 skeleton-base"></div>
-                    <div class="skeleton-line w90 skeleton-base"></div>
-                    <div class="skeleton-line w65 skeleton-base"></div>
-                    <div class="skeleton-line skeleton-base"></div>
-                    <div class="skeleton-line w80 skeleton-base"></div>
-                </div>
-                <!-- Skeleton card 2 -->
-                <div class="skeleton-card">
-                    <div class="card-top-line"></div>
-                    <div class="skeleton-header">
-                        <div class="skeleton-avatar skeleton-base"></div>
-                        <div class="skeleton-author-block">
-                            <div class="skeleton-name skeleton-base"></div>
-                            <div class="skeleton-date skeleton-base"></div>
-                        </div>
-                    </div>
-                    <div class="skeleton-divider"></div>
-                    <div class="skeleton-title skeleton-base"></div>
-                    <div class="skeleton-title-short skeleton-base"></div>
-                    <div class="skeleton-stats">
-                        <div class="skeleton-stat skeleton-base"></div>
-                        <div class="skeleton-stat skeleton-base"></div>
-                    </div>
-                    <div class="skeleton-line skeleton-base"></div>
-                    <div class="skeleton-line w95 skeleton-base"></div>
-                    <div class="skeleton-line w80 skeleton-base"></div>
-                    <div class="skeleton-line w90 skeleton-base"></div>
-                    <div class="skeleton-line w75 skeleton-base"></div>
-                    <div class="skeleton-line skeleton-base"></div>
-                    <div class="skeleton-line w65 skeleton-base"></div>
-                    <div class="skeleton-line w90 skeleton-base"></div>
-                </div>
-            </div>
-        </div>
+<div class="header-wrapper">
+  <img src="IMG_0696.png" class="logo-img" alt="Patholytica" onclick="location.reload()">
+  <div id="authButtons" class="auth-buttons">
+    <button class="footer-btn" onclick="toggleTheme()"><i class="fas fa-circle-half-stroke"></i></button>
+  </div>
+</div>
+
+<div class="list-container">
+  <div class="stories-section">
+    <div class="stories-scroll" id="storiesScroll"></div>
+  </div>
+
+  <div class="article-grid" id="articleList">
     </div>
+</div>
 
-    <div class="comments-overlay" id="commentsOverlay" onclick="closeComments()"></div>
+<button class="fab-create" id="fabCreateBtn" onclick="location.href='https://patholytica.com/create'">
+  <i class="fas fa-plus"></i>
+</button>
 
-    <div class="comments-popup" id="commentsPopup">
-        <div class="comments-header">
-            <h3>Comments</h3>
-            <button class="close-comments" onclick="closeComments()">×</button>
+<div class="footer-bar">
+  <button class="footer-btn active"><i class="fas fa-home"></i><span>Home</span></button>
+  <button class="footer-btn" onclick="location.href='explore.html'"><i class="fas fa-compass"></i><span>Explore</span></button>
+  <button class="footer-btn" onclick="location.href='profile.html'"><i class="fas fa-user"></i><span>Profile</span></button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = { /* Your Config */ };
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+const supabase = window.supabase.createClient(
+  "https://vduqewqyvszfquntmark.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." // Shared in your code
+);
+
+async function loadFeed() {
+  const grid = document.getElementById('articleList');
+  const { data: articles } = await supabase
+    .from('articles')
+    .select('*, media(url)')
+    .order('created_at', { ascending: false });
+
+  const uids = articles.map(a => a.firebase_user_id);
+  const { data: users } = await supabase.from('users').select('firebase_uid, username, pfp').in('firebase_uid', uids);
+  const userMap = Object.fromEntries(users.map(u => [u.firebase_uid, u]));
+
+  grid.innerHTML = '';
+  articles.forEach(art => {
+    const user = userMap[art.firebase_user_id] || { username: 'Unknown', pfp: null };
+    const imageUrl = art.media?.[0]?.url || 'https://via.placeholder.com/600x340/2a2a2a/ffffff?text=No+Preview';
+    
+    const card = document.createElement('div');
+    card.className = 'article-item';
+    card.onclick = () => window.location.href = `article.html?id=${art.id}`;
+    
+    card.innerHTML = `
+      <div class="article-thumbnail">
+        <img src="${imageUrl}" loading="lazy">
+        <div class="media-badge">${art.views > 100 ? 'HOT' : 'NEW'}</div>
+      </div>
+      <div class="article-info">
+        <div class="author-pfp">
+          ${user.pfp ? `<img src="${user.pfp}" style="width:100%;height:100%;border-radius:50%">` : (user.username[0] || '?')}
         </div>
-        <div class="comments-list" id="commentsList">
-            <div class="no-comments">
-                <i class="fas fa-comments"></i>
-                <div>No comments yet</div>
-                <div style="font-size: 12px;">Be the first to comment!</div>
-            </div>
+        <div class="article-details">
+          <h3 class="article-title">${art.title}</h3>
+          <div class="article-meta">
+            <span>${user.username}</span>
+            <span>${art.views} views • ${new Date(art.created_at).toLocaleDateString()}</span>
+          </div>
         </div>
-        <div class="comment-input-wrapper">
-            <div class="comment-input-container">
-                <input type="text" class="comment-input" id="commentInput" placeholder="Add a comment...">
-                <button class="send-comment-btn" id="sendCommentBtn" onclick="sendComment()">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div class="footer-bar">
-        <button class="footer-btn" onclick="window.location.href='index.html'">
-            <i class="fas fa-home"></i>
-            <span>Home</span>
-        </button>
-        <button class="footer-btn active" onclick="window.location.href='https://patholytica.com/dailyfeed'">
-            <i class="fas fa-scroll"></i>
-            <span>Feed</span>
-        </button>
-        <button class="footer-btn" onclick="window.location.href='explore.html'">
-            <i class="fas fa-search"></i>
-            <span>Explore</span>
-        </button>
-        <button class="footer-btn" onclick="window.location.href='profile.html'">
-            <i class="fas fa-user"></i>
-            <span>Profile</span>
-        </button>
-    </div>
-
-    <script>
-        if (localStorage.getItem("theme") === "light") {
-            document.body.classList.add("light-theme");
-        }
-    </script>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import {
-            getAuth,
-            onAuthStateChanged
-        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
-            authDomain: "patholytica.firebaseapp.com",
-            databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "patholytica",
-            storageBucket: "patholytica.firebasestorage.app",
-            messagingSenderId: "738430635282",
-            appId: "1:738430635282:web:8451ef380447c7611137cb"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-
-        const supabase = window.supabase.createClient(
-            "https://vduqewqyvszfquntmark.supabase.co",
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
-        );
-
-        let articles = [];
-        let userLikes = new Set();
-        let currentArticleId = null;
-        let isLoading = false;
-        let hasMore = true;
-        let offset = 0;
-        const LIMIT = 10;
-        let currentUser = null;
-        let viewTimers = {};
-        let viewedArticles = new Set();
-
-        function formatNumber(num) {
-            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-            return (num || 0).toString();
-        }
-
-        function skeletonCardHTML() {
-            return `
-                <div class="card-top-line"></div>
-                <div class="skeleton-header">
-                    <div class="skeleton-avatar skeleton-base"></div>
-                    <div class="skeleton-author-block">
-                        <div class="skeleton-name skeleton-base"></div>
-                        <div class="skeleton-date skeleton-base"></div>
-                    </div>
-                </div>
-                <div class="skeleton-divider"></div>
-                <div class="skeleton-title skeleton-base"></div>
-                <div class="skeleton-title-short skeleton-base"></div>
-                <div class="skeleton-stats">
-                    <div class="skeleton-stat skeleton-base"></div>
-                    <div class="skeleton-stat skeleton-base"></div>
-                </div>
-                <div class="skeleton-line skeleton-base"></div>
-                <div class="skeleton-line w90 skeleton-base"></div>
-                <div class="skeleton-line w95 skeleton-base"></div>
-                <div class="skeleton-line w80 skeleton-base"></div>
-                <div class="skeleton-line skeleton-base"></div>
-                <div class="skeleton-line w75 skeleton-base"></div>
-                <div class="skeleton-line w90 skeleton-base"></div>
-                <div class="skeleton-line w65 skeleton-base"></div>
-                <div class="skeleton-line skeleton-base"></div>
-                <div class="skeleton-line w80 skeleton-base"></div>
-            `;
-        }
-
-        async function getCurrentUser() {
-            try {
-                const firebaseUser = auth.currentUser;
-                if (!firebaseUser) return null;
-                const { data: userData, error } = await supabase
-                    .from('users')
-                    .select('user_id, firebase_uid, username')
-                    .eq('firebase_uid', firebaseUser.uid)
-                    .single();
-                if (error) return null;
-                return userData;
-            } catch (error) {
-                console.error('Error getting current user:', error);
-                return null;
-            }
-        }
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = await getCurrentUser();
-                if (currentUser) await loadUserLikes();
-            } else {
-                currentUser = null;
-                userLikes.clear();
-            }
-        });
-
-        async function loadUserLikes() {
-            if (!currentUser) return;
-            try {
-                const { data: likes, error } = await supabase
-                    .from('likes')
-                    .select('article_id')
-                    .eq('user_id', currentUser.user_id);
-                if (error) throw error;
-                userLikes.clear();
-                likes.forEach(like => userLikes.add(like.article_id));
-                updateLikeButtons();
-            } catch (error) {
-                console.error('Error loading user likes:', error);
-            }
-        }
-
-        function updateLikeButtons() {
-            document.querySelectorAll('.like-btn').forEach(btn => {
-                if (userLikes.has(btn.dataset.id)) btn.classList.add('liked');
-                else btn.classList.remove('liked');
-            });
-        }
-
-        async function loadArticles(isInitial = true) {
-            if (isLoading || (!isInitial && !hasMore)) return;
-            isLoading = true;
-
-            try {
-                const { data: articlesData, error: articlesError } = await supabase
-                    .from('articles')
-                    .select('*')
-                    .order('created_at', { ascending: false })
-                    .range(offset, offset + LIMIT - 1);
-
-                if (articlesError) throw articlesError;
-
-                if (!articlesData || articlesData.length === 0) {
-                    if (isInitial) {
-                        document.getElementById('postsWrapper').innerHTML = `
-                            <div class="loading-container">
-                                <i class="fas fa-inbox" style="font-size: 48px;"></i>
-                                <div>No articles found</div>
-                            </div>`;
-                    }
-                    hasMore = false;
-                    isLoading = false;
-                    return;
-                }
-
-                if (articlesData.length < LIMIT) hasMore = false;
-                offset += articlesData.length;
-
-                const userIds = [...new Set(articlesData.map(a => a.firebase_user_id).filter(Boolean))];
-                let usersData = [];
-                if (userIds.length > 0) {
-                    const { data: users } = await supabase
-                        .from('users')
-                        .select('firebase_uid, username, full_name, pfp')
-                        .in('firebase_uid', userIds);
-                    usersData = users || [];
-                }
-
-                const articleIds = articlesData.map(a => a.id);
-                const { data: mediaData } = await supabase
-                    .from('media')
-                    .select('*')
-                    .in('article_id', articleIds)
-                    .order('display_order', { ascending: true });
-
-                const newArticles = articlesData.map(article => {
-                    const user = usersData?.find(u => u.firebase_uid === article.firebase_user_id);
-                    return {
-                        ...article,
-                        author: user?.username ? `@${user.username}` : (user?.full_name || 'Anonymous'),
-                        authorPfp: user?.pfp || null,
-                        authorUsername: user?.username || null,
-                        media: mediaData?.filter(m => m.article_id === article.id) || []
-                    };
-                });
-
-                articles = [...articles, ...newArticles];
-                renderArticles(isInitial);
-                isLoading = false;
-
-            } catch (error) {
-                console.error('Error loading articles:', error);
-                if (isInitial) {
-                    document.getElementById('postsWrapper').innerHTML = `
-                        <div class="loading-container">
-                            <i class="fas fa-exclamation-triangle" style="font-size: 48px;"></i>
-                            <div>Failed to load articles</div>
-                        </div>`;
-                }
-                isLoading = false;
-            }
-        }
-
-        function createMediaElement(mediaItem) {
-            const mediaDiv = document.createElement('div');
-            mediaDiv.className = 'media-embed';
-
-            if (mediaItem.type === 'image') {
-                mediaDiv.innerHTML = `
-                    <img src="${mediaItem.url}" alt="${mediaItem.caption || 'Article image'}">
-                    ${mediaItem.caption ? `<div class="media-caption">${mediaItem.caption}</div>` : ''}
-                `;
-            } else if (mediaItem.type === 'audio') {
-                const audioId = 'audio-' + Math.random().toString(36).substr(2, 9);
-                mediaDiv.innerHTML = `
-                    <div class="custom-audio-player">
-                        <button class="play-btn" onclick="toggleAudio(this, '${audioId}')">
-                            <i class="fas fa-play"></i>
-                        </button>
-                        <div class="audio-info">
-                            <div class="audio-title">${mediaItem.caption || 'Audio'}</div>
-                            <div class="waveform-container" onclick="seekAudio(event, this, '${audioId}')">
-                                <div class="waveform-progress"></div>
-                                <div class="waveform-bars">
-                                    ${Array(15).fill(0).map(() => `<div class="waveform-bar" style="height: ${Math.random() * 60 + 20}%"></div>`).join('')}
-                                </div>
-                            </div>
-                            <div class="audio-time">
-                                <span class="current-time">0:00</span>
-                                <span class="duration">0:00</span>
-                            </div>
-                        </div>
-                        <audio id="${audioId}" src="${mediaItem.url}" style="display: none;"></audio>
-                    </div>
-                    ${mediaItem.caption ? `<div class="media-caption">${mediaItem.caption}</div>` : ''}
-                `;
-                setTimeout(() => {
-                    const audio = document.getElementById(audioId);
-                    if (audio) {
-                        audio.addEventListener('loadedmetadata', function () {
-                            const duration = Math.floor(audio.duration);
-                            const mins = Math.floor(duration / 60);
-                            const secs = duration % 60;
-                            const durationSpan = audio.closest('.custom-audio-player').querySelector('.duration');
-                            if (durationSpan) durationSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
-                        });
-                    }
-                }, 100);
-            }
-            return mediaDiv;
-        }
-
-        function getAvatarContent(article) {
-            if (article.authorPfp) return `<img src="${article.authorPfp}" alt="${article.author}">`;
-            let letter = 'A';
-            if (article.authorUsername) {
-                letter = article.authorUsername.charAt(0).toUpperCase();
-            } else if (article.author) {
-                const atIndex = article.author.indexOf('@');
-                letter = atIndex !== -1 && article.author.length > atIndex + 1
-                    ? article.author.charAt(atIndex + 1).toUpperCase()
-                    : article.author.charAt(0).toUpperCase();
-            }
-            return letter;
-        }
-
-        function renderArticles(isInitial = true) {
-            const wrapper = document.getElementById('postsWrapper');
-
-            if (isInitial) {
-                wrapper.innerHTML = '';
-            } else {
-                // Remove the trailing skeleton "load more" card
-                const lastChild = wrapper.lastElementChild;
-                if (lastChild && lastChild.classList.contains('skeleton-card')) lastChild.remove();
-            }
-
-            const startIndex = isInitial ? 0 : articles.length - LIMIT;
-
-            for (let index = startIndex; index < articles.length; index++) {
-                const article = articles[index];
-                const articleDiv = document.createElement('div');
-                articleDiv.className = 'article-card';
-                articleDiv.dataset.index = index;
-                articleDiv.dataset.articleId = article.id;
-
-                const contentDiv = document.createElement('div');
-                contentDiv.className = 'article-content';
-
-                const paragraphs = (article.content || 'No content available').split('\n\n');
-                paragraphs.forEach((paragraph, pIndex) => {
-                    if (paragraph.trim()) {
-                        const p = document.createElement('div');
-                        p.className = 'content-paragraph';
-                        p.textContent = paragraph.trim();
-                        contentDiv.appendChild(p);
-                        if (article.media?.length > 0) {
-                            article.media.filter(m => m.display_order === pIndex)
-                                .forEach(m => contentDiv.appendChild(createMediaElement(m)));
-                        }
-                    }
-                });
-
-                if (article.media) {
-                    article.media.filter(m => m.display_order >= paragraphs.length)
-                        .forEach(m => contentDiv.appendChild(createMediaElement(m)));
-                }
-
-                const isLiked = userLikes.has(article.id);
-                const avatarContent = getAvatarContent(article);
-
-                articleDiv.innerHTML = `
-                    <div class="card-top-line"></div>
-                    <div class="article-header">
-                        <div class="author-avatar">${avatarContent}</div>
-                        <div class="author-info">
-                            <div class="author-name">${article.author}</div>
-                            <div class="article-date">${formatDate(new Date(article.created_at))}</div>
-                        </div>
-                    </div>
-                    <div class="header-bottom-line"></div>
-                    <div class="article-title">${article.title || 'Untitled'}</div>
-                    <div class="article-stats">
-                        <div class="stat-item views">
-                            <i class="fas fa-eye"></i>
-                            <span>${formatNumber(article.views || 0)}</span>
-                        </div>
-                        <div class="stat-item likes">
-                            <i class="fas fa-heart"></i>
-                            <span>${formatNumber(article.likes || 0)}</span>
-                        </div>
-                    </div>
-                    <div class="action-buttons">
-                        <button class="action-btn like-btn ${isLiked ? 'liked' : ''}" data-id="${article.id}">
-                            <svg viewBox="0 0 24 24">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                            </svg>
-                            <span class="like-count">${article.likes || 0}</span>
-                        </button>
-                        <button class="action-btn comment-btn" data-id="${article.id}">
-                            <svg viewBox="0 0 24 24">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                            </svg>
-                            <span class="comment-count">0</span>
-                        </button>
-                        <button class="action-btn expand-btn" data-id="${article.id}">
-                            <svg viewBox="0 0 24 24">
-                                <polyline points="15 3 21 3 21 9"></polyline>
-                                <polyline points="9 21 3 21 3 15"></polyline>
-                                <line x1="21" y1="3" x2="14" y2="10"></line>
-                                <line x1="3" y1="21" x2="10" y2="14"></line>
-                            </svg>
-                            <span>Open</span>
-                        </button>
-                    </div>
-                `;
-
-                articleDiv.querySelector('.article-stats').insertAdjacentElement('afterend', contentDiv);
-                wrapper.appendChild(articleDiv);
-            }
-
-            // Append skeleton card as "load more" placeholder
-            if (hasMore) {
-                const skeletonDiv = document.createElement('div');
-                skeletonDiv.className = 'skeleton-card';
-                skeletonDiv.innerHTML = skeletonCardHTML();
-                wrapper.appendChild(skeletonDiv);
-            }
-
-            document.querySelectorAll('.like-btn').forEach(btn => btn.addEventListener('click', handleLike));
-            document.querySelectorAll('.comment-btn').forEach(btn => btn.addEventListener('click', handleComments));
-            document.querySelectorAll('.expand-btn').forEach(btn => btn.addEventListener('click', handleExpand));
-
-            if (isInitial) {
-                wrapper.addEventListener('scroll', handleScroll);
-                loadCommentCounts();
-                setupIntersectionObserver();
-            } else {
-                // Observe newly added cards
-                setupIntersectionObserverForNew(startIndex);
-                loadCommentCounts();
-            }
-        }
-
-        function setupIntersectionObserver() {
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    const articleId = entry.target.dataset.articleId;
-                    if (!articleId) return;
-                    if (entry.isIntersecting && entry.intersectionRatio >= 0.75) startViewTimer(articleId);
-                    else clearViewTimer(articleId);
-                });
-            }, { threshold: [0.75] });
-
-            document.querySelectorAll('.article-card').forEach(card => {
-                if (card.dataset.articleId) observer.observe(card);
-            });
-        }
-
-        function setupIntersectionObserverForNew(startIndex) {
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    const articleId = entry.target.dataset.articleId;
-                    if (!articleId) return;
-                    if (entry.isIntersecting && entry.intersectionRatio >= 0.75) startViewTimer(articleId);
-                    else clearViewTimer(articleId);
-                });
-            }, { threshold: [0.75] });
-
-            document.querySelectorAll('.article-card').forEach(card => {
-                if (card.dataset.index >= startIndex && card.dataset.articleId) observer.observe(card);
-            });
-        }
-
-        function startViewTimer(articleId) {
-            if (viewedArticles.has(articleId) || viewTimers[articleId]) return;
-            viewTimers[articleId] = setTimeout(async () => { await incrementView(articleId); }, 5000);
-        }
-
-        function clearViewTimer(articleId) {
-            if (viewTimers[articleId]) { clearTimeout(viewTimers[articleId]); delete viewTimers[articleId]; }
-        }
-
-        async function incrementView(articleId) {
-            if (viewedArticles.has(articleId)) return;
-            try {
-                viewedArticles.add(articleId);
-                const { data: article, error: fetchError } = await supabase
-                    .from('articles').select('views').eq('id', articleId).single();
-                if (fetchError) throw fetchError;
-                const newViews = (article.views || 0) + 1;
-                const { error: updateError } = await supabase
-                    .from('articles').update({ views: newViews }).eq('id', articleId);
-                if (updateError) throw updateError;
-                const idx = articles.findIndex(a => a.id === articleId);
-                if (idx !== -1) articles[idx].views = newViews;
-                const card = document.querySelector(`.article-card[data-article-id="${articleId}"]`);
-                if (card) {
-                    const viewSpan = card.querySelector('.stat-item.views span');
-                    if (viewSpan) viewSpan.textContent = formatNumber(newViews);
-                }
-            } catch (error) {
-                console.error('Error incrementing view:', error);
-                viewedArticles.delete(articleId);
-            }
-        }
-
-        async function loadCommentCounts() {
-            try {
-                const { data: comments, error } = await supabase.from('comments').select('article_id');
-                if (error) throw error;
-                const counts = {};
-                comments.forEach(c => { counts[c.article_id] = (counts[c.article_id] || 0) + 1; });
-                document.querySelectorAll('.comment-btn').forEach(btn => {
-                    btn.querySelector('.comment-count').textContent = counts[btn.dataset.id] || 0;
-                });
-            } catch (error) {
-                console.error('Error loading comment counts:', error);
-            }
-        }
-
-        function formatDate(date) {
-            const now = new Date();
-            const diffMs = now - date;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMs / 3600000);
-            const diffDays = Math.floor(diffMs / 86400000);
-            if (diffMins < 60) return `${diffMins}m ago`;
-            if (diffHours < 24) return `${diffHours}h ago`;
-            if (diffDays < 7) return `${diffDays}d ago`;
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }
-
-        async function handleLike(e) {
-            const articleId = e.currentTarget.dataset.id;
-            const btn = e.currentTarget;
-            const countSpan = btn.querySelector('.like-count');
-            const article = articles.find(a => a.id === articleId);
-            if (!article) return;
-
-            if (!currentUser) {
-                alert('Please log in to like articles');
-                window.location.href = 'https://patholytica.com/login';
-                return;
-            }
-
-            const wasLiked = userLikes.has(articleId);
-            const originalCount = article.likes || 0;
-
-            if (wasLiked) {
-                userLikes.delete(articleId);
-                btn.classList.remove('liked');
-                article.likes = Math.max(0, originalCount - 1);
-            } else {
-                userLikes.add(articleId);
-                btn.classList.add('liked');
-                article.likes = originalCount + 1;
-            }
-            countSpan.textContent = article.likes;
-
-            const card = btn.closest('.article-card');
-            if (card) {
-                const likeStatSpan = card.querySelector('.stat-item.likes span');
-                if (likeStatSpan) likeStatSpan.textContent = formatNumber(article.likes);
-            }
-
-            try {
-                if (wasLiked) {
-                    const { error } = await supabase.from('likes').delete()
-                        .eq('article_id', articleId).eq('user_id', currentUser.user_id);
-                    if (error) throw error;
-                } else {
-                    const { error } = await supabase.from('likes')
-                        .insert([{ article_id: articleId, user_id: currentUser.user_id }]);
-                    if (error) throw error;
-                }
-                await supabase.from('articles').update({ likes: article.likes }).eq('id', articleId);
-            } catch (error) {
-                console.error('Error updating like:', error);
-                if (wasLiked) { userLikes.add(articleId); btn.classList.add('liked'); }
-                else { userLikes.delete(articleId); btn.classList.remove('liked'); }
-                article.likes = originalCount;
-                countSpan.textContent = article.likes;
-                const card2 = btn.closest('.article-card');
-                if (card2) {
-                    const s = card2.querySelector('.stat-item.likes span');
-                    if (s) s.textContent = formatNumber(originalCount);
-                }
-                alert('Failed to update like. Please try again.');
-            }
-        }
-
-        async function handleComments(e) {
-            const articleId = e.currentTarget.dataset.id;
-            currentArticleId = articleId;
-            await loadComments(articleId);
-            openComments();
-        }
-
-        async function loadComments(articleId) {
-            const commentsList = document.getElementById('commentsList');
-            commentsList.innerHTML = '<div class="loading-container"><div class="spinner" style="width: 32px; height: 32px; border-width: 3px;"></div></div>';
-
-            try {
-                const { data: comments, error } = await supabase
-                    .from('comments').select('*').eq('article_id', articleId)
-                    .order('created_at', { ascending: true });
-                if (error) throw error;
-
-                if (!comments || comments.length === 0) {
-                    commentsList.innerHTML = `
-                        <div class="no-comments">
-                            <i class="fas fa-comments"></i>
-                            <div>No comments yet</div>
-                            <div style="font-size: 12px;">Be the first to comment!</div>
-                        </div>`;
-                    return;
-                }
-
-                const userIds = [...new Set(comments.map(c => c.user_id).filter(Boolean))];
-                let usersMap = {};
-                if (userIds.length > 0) {
-                    const { data: users } = await supabase
-                        .from('users').select('user_id, username, full_name, pfp').in('user_id', userIds);
-                    if (users) users.forEach(u => { usersMap[u.user_id] = u; });
-                }
-
-                commentsList.innerHTML = comments.map(comment => {
-                    const user = usersMap[comment.user_id];
-                    const author = user?.username ? `@${user.username}` : (user?.full_name || 'Anonymous');
-                    let avatarContent;
-                    if (user?.pfp) {
-                        avatarContent = `<img src="${user.pfp}" alt="${author}">`;
-                    } else {
-                        let letter = 'A';
-                        if (user?.username) letter = user.username.charAt(0).toUpperCase();
-                        else if (author) {
-                            const atIndex = author.indexOf('@');
-                            letter = atIndex !== -1 && author.length > atIndex + 1
-                                ? author.charAt(atIndex + 1).toUpperCase()
-                                : author.charAt(0).toUpperCase();
-                        }
-                        avatarContent = letter;
-                    }
-                    return `
-                        <div class="comment-item">
-                            <div class="comment-avatar">${avatarContent}</div>
-                            <div class="comment-content">
-                                <div class="comment-author">${author}</div>
-                                <div class="comment-text">${comment.comment_text}</div>
-                                <div class="comment-time">${formatDate(new Date(comment.created_at))}</div>
-                            </div>
-                        </div>`;
-                }).join('');
-
-            } catch (error) {
-                console.error('Error loading comments:', error);
-                commentsList.innerHTML = `
-                    <div class="no-comments">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <div>Failed to load comments</div>
-                    </div>`;
-            }
-        }
-
-        window.openComments = function () {
-            document.getElementById('commentsPopup').classList.add('active');
-            document.getElementById('commentsOverlay').classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        window.closeComments = function () {
-            document.getElementById('commentsPopup').classList.remove('active');
-            document.getElementById('commentsOverlay').classList.remove('active');
-            document.body.style.overflow = '';
-        }
-
-        window.sendComment = async function () {
-            const input = document.getElementById('commentInput');
-            const text = input.value.trim();
-            if (!text || !currentArticleId) return;
-            const sendBtn = document.getElementById('sendCommentBtn');
-            sendBtn.disabled = true;
-            try {
-                if (!currentUser) currentUser = await getCurrentUser();
-                if (!currentUser) { window.location.href = 'https://patholytica.com/login'; return; }
-                const { error } = await supabase.from('comments')
-                    .insert([{ article_id: currentArticleId, user_id: currentUser.user_id, comment_text: text }]);
-                if (error) throw error;
-                input.value = '';
-                await loadComments(currentArticleId);
-                const commentBtn = document.querySelector(`.comment-btn[data-id="${currentArticleId}"]`);
-                if (commentBtn) {
-                    const countSpan = commentBtn.querySelector('.comment-count');
-                    countSpan.textContent = parseInt(countSpan.textContent) + 1;
-                }
-            } catch (error) {
-                console.error('Error posting comment:', error);
-                alert('Failed to post comment. Please try again.');
-            } finally {
-                sendBtn.disabled = false;
-            }
-        }
-
-        document.getElementById('commentInput').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') window.sendComment();
-        });
-
-        function handleExpand(e) {
-            window.location.href = `article.html?id=${e.currentTarget.dataset.id}`;
-        }
-
-        function handleScroll(e) {
-            const container = e.target;
-            if (container.scrollTop + container.clientHeight >= container.scrollHeight * 0.8 && hasMore && !isLoading) {
-                loadArticles(false);
-            }
-        }
-
-        loadArticles(true);
-    </script>
-
-    <script>
-        window.toggleAudio = function (btn, audioId) {
-            const player = btn.closest('.custom-audio-player');
-            const audio = document.getElementById(audioId);
-            const icon = btn.querySelector('i');
-            if (audio.paused) {
-                audio.play();
-                icon.className = 'fas fa-pause';
-                audio.ontimeupdate = function () {
-                    const progress = (audio.currentTime / audio.duration) * 100;
-                    player.querySelector('.waveform-progress').style.width = progress + '%';
-                    const currentMins = Math.floor(audio.currentTime / 60);
-                    const currentSecs = Math.floor(audio.currentTime % 60);
-                    player.querySelector('.current-time').textContent = `${currentMins}:${currentSecs.toString().padStart(2, '0')}`;
-                };
-                audio.onended = function () {
-                    icon.className = 'fas fa-play';
-                    player.querySelector('.waveform-progress').style.width = '0%';
-                    player.querySelector('.current-time').textContent = '0:00';
-                };
-            } else {
-                audio.pause();
-                icon.className = 'fas fa-play';
-            }
-        };
-
-        window.seekAudio = function (event, container, audioId) {
-            const audio = document.getElementById(audioId);
-            const rect = container.getBoundingClientRect();
-            const percentage = (event.clientX - rect.left) / rect.width;
-            audio.currentTime = percentage * audio.duration;
-        };
-    </script>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function toggleTheme() {
+  document.body.classList.toggle('light-theme');
+}
+window.toggleTheme = toggleTheme;
+
+onAuthStateChanged(auth, (user) => {
+  if (user) document.getElementById('fabCreateBtn').classList.add('show');
+  loadFeed();
+});
+</script>
 </body>
 </html>
