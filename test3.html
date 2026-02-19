@@ -1,852 +1,1422 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
-<title>Feed - Patholytica</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-:root {
-  --bg: #0a0a0e;
-  --bg-2: #111118;
-  --bg-3: #18181f;
-  --surface: #16161e;
-  --surface-2: #1e1e28;
-  --surface-3: #26262f;
-  --border: rgba(255,255,255,0.07);
-  --border-2: rgba(255,255,255,0.12);
-  --text-1: #f2f2f8;
-  --text-2: #9090a8;
-  --text-3: #55556a;
-  --accent: #7c6dfa;
-  --accent-2: #a855f7;
-  --accent-3: #ec4899;
-  --accent-green: #22d3a5;
-  --accent-blue: #38bdf8;
-  --grad-main: linear-gradient(135deg, #7c6dfa 0%, #a855f7 50%, #ec4899 100%);
-  --grad-green: linear-gradient(135deg, #22d3a5, #0ea5e9);
-  --glow-accent: rgba(124,109,250,0.2);
-  --skeleton-base: #1a1a24;
-  --skeleton-shine: #22222f;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Article Scroller - Patholytica</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-color: #1f1f1f;
+            --text-primary: #fff;
+            --text-secondary: #aaa;
+            --card-bg: #1f1f1f;
+            --hover-bg: #2a2a2a;
+            --border-color: #303030;
+            --accent: #3ea6ff;
+            --accent-hover: #2d8ed6;
+        }
 
-- { margin: 0; padding: 0; box-sizing: border-box; }
+        body.light-theme {
+            --bg-color: #f9f9f9;
+            --text-primary: #0f0f0f;
+            --text-secondary: #606060;
+            --card-bg: #f9f9f9;
+            --hover-bg: #f0f0f0;
+            --border-color: #e5e5e5;
+            --accent: #065fd4;
+            --accent-hover: #0448a3;
+        }
 
-body {
-font-family: ‘Inter’, -apple-system, sans-serif;
-background: var(–bg); color: var(–text-1);
-overflow: hidden; position: fixed; width: 100%; height: 100%;
-}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-body::before {
-content: ‘’; position: fixed; inset: 0;
-background-image: url(“data:image/svg+xml,%3Csvg viewBox=‘0 0 200 200’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cfilter id=‘n’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.9’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3C/filter%3E%3Crect width=‘100%25’ height=‘100%25’ filter=‘url(%23n)’ opacity=‘0.03’/%3E%3C/svg%3E”);
-pointer-events: none; z-index: 0; opacity: 0.4;
-}
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            overflow: hidden;
+            transition: background 0.2s ease, color 0.2s ease;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
 
-.ambient { position: fixed; pointer-events: none; z-index: 0; border-radius: 50%; filter: blur(80px); }
-.ambient-1 { width: 500px; height: 500px; top: -150px; right: -100px; background: var(–accent); opacity: 0.08; }
-.ambient-2 { width: 400px; height: 400px; bottom: 100px; left: -150px; background: var(–accent-3); opacity: 0.06; }
+        .app-container {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            background: var(--bg-color);
+        }
 
-.app-container {
-position: fixed; top: 0; left: 50%; transform: translateX(-50%);
-width: 100%; max-width: 450px; height: 100vh;
-background: var(–bg); z-index: 1;
-}
+        .scroller-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            background: var(--bg-color);
+            overflow: hidden;
+        }
 
-.scroller-container { position: relative; width: 100%; height: 100vh; overflow: hidden; }
+        .posts-wrapper {
+            height: 100%;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+        }
 
-.posts-wrapper {
-height: 100%; overflow-y: scroll;
-scroll-snap-type: y mandatory; scrollbar-width: none;
-}
-.posts-wrapper::-webkit-scrollbar { display: none; }
+        .posts-wrapper::-webkit-scrollbar {
+            display: none;
+        }
 
-/* ─── Skeleton card ─── */
-.skeleton-card {
-position: relative; height: 100vh;
-scroll-snap-align: start; scroll-snap-stop: always;
-background: var(–bg);
-padding: 0 0 80px 0; padding-top: env(safe-area-inset-top);
-display: flex; flex-direction: column; overflow: hidden;
-}
+        .article-card {
+            position: relative;
+            height: 100vh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            background: var(--bg-color);
+            padding: 8px 20px 100px;
+            padding-top: calc(16px + env(safe-area-inset-top));
+            display: flex;
+            flex-direction: column;
+        }
 
-.skeleton-card::before {
-content: ‘’; position: absolute; top: 0; left: 0; right: 0;
-height: 2px;
-background: linear-gradient(90deg, var(–surface-2) 0%, var(–surface-3) 50%, var(–surface-2) 100%);
-background-size: 200% 100%;
-animation: shimmer 1.6s infinite; z-index: 10;
-}
+        .card-top-line {
+            width: calc(100% + 40px);
+            margin-left: -20px;
+            height: 1px;
+            background: var(--border-color);
+            flex-shrink: 0;
+            margin-bottom: 14px;
+        }
 
-/* Skeleton header */
-.skeleton-header {
-display: flex; align-items: center; gap: 12px;
-padding: 16px 20px 14px; flex-shrink: 0;
-border-bottom: 1px solid var(–border);
-}
-.skeleton-avatar {
-width: 42px; height: 42px; border-radius: 50%;
-background: var(–skeleton-base); flex-shrink: 0;
-animation: pulse 1.6s ease-in-out infinite;
-}
-.skeleton-meta { display: flex; flex-direction: column; gap: 7px; }
-.skeleton-name {
-width: 110px; height: 13px; border-radius: 6px;
-background: var(–skeleton-base);
-animation: pulse 1.6s ease-in-out infinite;
-}
-.skeleton-date {
-width: 70px; height: 10px; border-radius: 6px;
-background: var(–skeleton-base);
-animation: pulse 1.6s ease-in-out infinite 0.1s;
-}
+        .article-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 0;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 50;
+        }
 
-/* Skeleton body */
-.skeleton-body {
-flex: 1; padding: 24px 72px 24px 20px;
-display: flex; flex-direction: column; gap: 14px;
-}
-.skeleton-title-1 {
-width: 88%; height: 22px; border-radius: 8px;
-background: var(–skeleton-base);
-animation: pulse 1.6s ease-in-out infinite 0.05s;
-}
-.skeleton-title-2 {
-width: 64%; height: 22px; border-radius: 8px;
-background: var(–skeleton-base);
-animation: pulse 1.6s ease-in-out infinite 0.1s;
-margin-bottom: 6px;
-}
-.skeleton-line {
-height: 13px; border-radius: 6px;
-background: var(–skeleton-base);
-animation: pulse 1.6s ease-in-out infinite;
-}
-.skeleton-line:nth-child(3)  { width: 100%; animation-delay: 0.08s; }
-.skeleton-line:nth-child(4)  { width: 96%;  animation-delay: 0.12s; }
-.skeleton-line:nth-child(5)  { width: 100%; animation-delay: 0.16s; }
-.skeleton-line:nth-child(6)  { width: 82%;  animation-delay: 0.20s; }
-.skeleton-line:nth-child(7)  { width: 100%; animation-delay: 0.24s; margin-top: 4px; }
-.skeleton-line:nth-child(8)  { width: 91%;  animation-delay: 0.28s; }
-.skeleton-line:nth-child(9)  { width: 100%; animation-delay: 0.32s; }
-.skeleton-line:nth-child(10) { width: 75%;  animation-delay: 0.36s; }
-.skeleton-line:nth-child(11) { width: 100%; animation-delay: 0.40s; margin-top: 4px; }
-.skeleton-line:nth-child(12) { width: 95%;  animation-delay: 0.44s; }
-.skeleton-line:nth-child(13) { width: 60%;  animation-delay: 0.48s; }
+        .author-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
 
-/* Skeleton side buttons */
-.skeleton-actions {
-position: absolute; right: 14px;
-bottom: calc(100px + env(safe-area-inset-bottom));
-display: flex; flex-direction: column; gap: 26px;
-}
-.skeleton-action-btn {
-display: flex; flex-direction: column; align-items: center; gap: 5px;
-}
-.skeleton-action-icon {
-width: 26px; height: 26px; border-radius: 50%;
-background: var(–skeleton-base);
-animation: pulse 1.6s ease-in-out infinite;
-}
-.skeleton-action-label {
-width: 22px; height: 9px; border-radius: 4px;
-background: var(–skeleton-base);
-animation: pulse 1.6s ease-in-out infinite 0.1s;
-}
+        .author-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
 
-@keyframes pulse {
-0%, 100% { opacity: 0.5; }
-50%       { opacity: 1; }
-}
-@keyframes shimmer {
-0%   { background-position: -200% 0; }
-100% { background-position:  200% 0; }
-}
+        .author-info {
+            flex: 1;
+        }
 
-/* ─── Article card ─── */
-.article-card {
-position: relative; height: 100vh;
-scroll-snap-align: start; scroll-snap-stop: always;
-background: var(–bg); padding: 0 0 80px 0;
-padding-top: env(safe-area-inset-top);
-display: flex; flex-direction: column; overflow: hidden;
-}
-.article-card::before {
-content: ‘’; position: absolute; top: 0; left: 0; right: 0;
-height: 2px; background: var(–grad-main); z-index: 10;
-}
+        .author-name {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 17px;
+            margin-bottom: 2px;
+        }
 
-.article-header {
-display: flex; align-items: center; gap: 12px;
-padding: 16px 20px 14px; flex-shrink: 0;
-background: rgba(10,10,14,0.7);
-backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-border-bottom: 1px solid var(–border); position: relative; z-index: 5;
-}
-.author-avatar {
-width: 42px; height: 42px; border-radius: 50%; background: var(–grad-main);
-display: flex; align-items: center; justify-content: center;
-font-size: 16px; font-weight: 800; color: white;
-overflow: hidden; flex-shrink: 0;
-box-shadow: 0 0 0 2px rgba(124,109,250,0.3); cursor: pointer;
-}
-.author-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.author-info { flex: 1; }
-.author-name {
-color: var(–text-1); font-weight: 700; font-size: 15px; margin-bottom: 2px;
-cursor: pointer; transition: color 0.2s;
-}
-.author-name:hover { color: var(–accent); }
-.article-date { color: var(–text-3); font-size: 11px; font-weight: 500; }
+        .article-date {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
 
-.article-body-scroll {
-flex: 1; overflow-y: auto; padding: 20px 68px 20px 20px; scrollbar-width: none;
-}
-.article-body-scroll::-webkit-scrollbar { display: none; }
-.article-title {
-font-family: ‘Merriweather’, Georgia, serif;
-font-size: 26px; font-weight: 700; color: var(–text-1);
-margin-bottom: 16px; line-height: 1.25;
-}
-.article-content { color: var(–text-2); font-size: 15px; line-height: 1.7; }
-.content-paragraph { margin-bottom: 14px; }
+        .header-bottom-line {
+            width: calc(100% + 40px);
+            margin-left: -20px;
+            height: 1px;
+            background: var(--border-color);
+            flex-shrink: 0;
+            margin-top: 14px;
+            margin-bottom: 14px;
+        }
 
-.media-embed { margin: 16px 0; }
-.media-embed img { width: 100%; border-radius: 12px; display: block; border: 1px solid var(–border); }
-.media-caption { font-size: 12px; color: var(–text-3); margin-top: 6px; font-style: italic; }
+        .article-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            line-height: 1.25;
+        }
 
-.custom-audio-player {
-background: var(–surface); border-radius: 14px; padding: 14px;
-display: flex; align-items: center; gap: 12px; border: 1px solid var(–border-2);
-}
-.play-btn {
-width: 40px; height: 40px; border-radius: 50%; background: var(–grad-main);
-border: none; color: white; cursor: pointer;
-display: flex; align-items: center; justify-content: center;
-font-size: 14px; transition: all 0.2s; flex-shrink: 0;
-}
-.play-btn:hover { transform: scale(1.05); box-shadow: 0 4px 12px var(–glow-accent); }
-.audio-info { flex: 1; min-width: 0; }
-.audio-title { font-size: 12px; font-weight: 600; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(–text-1); }
-.waveform-container { position: relative; height: 30px; background: var(–surface-3); border-radius: 6px; margin-bottom: 5px; cursor: pointer; overflow: hidden; }
-.waveform-progress { position: absolute; top: 0; left: 0; height: 100%; background: var(–accent); opacity: 0.3; transition: width 0.1s linear; }
-.waveform-bars { position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-around; padding: 0 4px; }
-.waveform-bar { width: 2px; background: var(–text-2); border-radius: 2px; opacity: 0.5; }
-.audio-time { display: flex; justify-content: space-between; font-size: 10px; color: var(–text-3); }
+        .article-stats {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 12px;
+            flex-shrink: 0;
+        }
 
-/* ─── Action buttons — raised above footer ─── */
-.action-buttons {
-position: absolute; right: 14px;
-bottom: calc(100px + env(safe-area-inset-bottom));
-display: flex; flex-direction: column; gap: 22px; z-index: 10;
-}
-.action-btn {
-display: flex; flex-direction: column; align-items: center; gap: 4px;
-background: none; border: none; border-radius: 0;
-padding: 4px; cursor: pointer; transition: all 0.2s; min-width: 44px;
-}
-.action-btn:active { transform: scale(0.88); }
-.action-btn svg {
-width: 26px; height: 26px; stroke: var(–text-2); fill: none; stroke-width: 2;
-filter: drop-shadow(0 1px 4px rgba(0,0,0,0.6)); transition: stroke 0.2s;
-}
-.action-btn:hover svg { stroke: var(–text-1); }
-.action-btn.liked svg { fill: var(–accent-3); stroke: var(–accent-3); }
-.action-btn span {
-color: var(–text-2); font-size: 10px; font-weight: 700;
-letter-spacing: 0.02em; text-shadow: 0 1px 4px rgba(0,0,0,0.8);
-}
-.expand-btn svg { stroke: var(–accent); }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
 
-/* ─── Comments ─── */
-.comments-overlay {
-position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-backdrop-filter: blur(6px); z-index: 199;
-opacity: 0; pointer-events: none; transition: opacity 0.3s;
-}
-.comments-overlay.active { opacity: 1; pointer-events: all; }
+        .stat-item.views i { color: var(--accent); }
+        .stat-item.likes i { color: #ef4444; }
 
-.comments-popup {
-position: fixed; top: 50%; left: 50%;
-transform: translate(-50%,-50%) scale(0.92);
-width: calc(100% - 32px); max-width: 460px;
-height: 72vh; max-height: 580px;
-background: var(–bg-3); border: 1px solid var(–border-2);
-border-radius: 24px; z-index: 200; opacity: 0; pointer-events: none;
-transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-display: flex; flex-direction: column;
-box-shadow: 0 32px 80px rgba(0,0,0,0.6); overflow: hidden;
-}
-.comments-popup::before {
-content: ‘’; position: absolute; top: 0; left: 0; right: 0;
-height: 2px; background: var(–grad-main);
-}
-.comments-popup.active { opacity: 1; pointer-events: all; transform: translate(-50%,-50%) scale(1); }
+        .article-content {
+            color: var(--text-primary);
+            font-size: 16px;
+            line-height: 1.6;
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 60px;
+        }
 
-.comments-header {
-display: flex; align-items: center; justify-content: space-between;
-padding: 18px 22px; border-bottom: 1px solid var(–border);
-}
-.comments-header h3 { font-size: 16px; font-weight: 700; color: var(–text-1); }
-.close-comments {
-background: var(–surface-3); border: 1px solid var(–border);
-color: var(–text-2); font-size: 18px; cursor: pointer;
-width: 30px; height: 30px; border-radius: 50%;
-display: flex; align-items: center; justify-content: center; transition: all 0.2s;
-}
-.close-comments:hover { color: var(–text-1); background: var(–surface-2); }
+        .article-content::-webkit-scrollbar { width: 4px; }
+        .article-content::-webkit-scrollbar-track { background: var(--border-color); }
+        .article-content::-webkit-scrollbar-thumb { background: var(--text-secondary); border-radius: 2px; }
 
-.comments-list { flex: 1; overflow-y: auto; padding: 16px 20px; }
-.comments-list::-webkit-scrollbar { width: 4px; }
-.comments-list::-webkit-scrollbar-thumb { background: var(–border-2); border-radius: 2px; }
+        .content-paragraph { margin-bottom: 14px; }
 
-.comment-item { display: flex; gap: 12px; margin-bottom: 18px; }
-.comment-avatar {
-width: 30px; height: 30px; border-radius: 50%; background: var(–grad-main);
-display: flex; align-items: center; justify-content: center;
-font-size: 11px; font-weight: 800; color: white; flex-shrink: 0; overflow: hidden;
-}
-.comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.comment-content { flex: 1; }
-.comment-author { font-weight: 700; font-size: 12px; color: var(–accent); margin-bottom: 3px; }
-.comment-text { font-size: 13px; line-height: 1.5; color: var(–text-1); margin-bottom: 5px; }
-.comment-time { font-size: 10px; color: var(–text-3); }
+        .media-embed { margin: 16px 0; max-width: 100%; }
 
-.comment-input-wrapper { padding: 12px 18px; border-top: 1px solid var(–border); background: var(–bg-3); }
-.comment-input-container { display: flex; gap: 10px; align-items: center; }
-.comment-input {
-flex: 1; background: var(–surface-2); border: 1px solid var(–border-2);
-border-radius: 100px; padding: 10px 16px; color: var(–text-1);
-font-size: 13px; font-family: ‘Inter’, sans-serif; outline: none; transition: border-color 0.2s;
-}
-.comment-input:focus { border-color: var(–accent); }
-.comment-input::placeholder { color: var(–text-3); }
-.send-comment-btn {
-width: 36px; height: 36px; border-radius: 50%; background: var(–grad-main);
-border: none; color: white; cursor: pointer;
-display: flex; align-items: center; justify-content: center;
-font-size: 14px; transition: all 0.2s; flex-shrink: 0;
-}
-.send-comment-btn:hover { transform: scale(1.05); box-shadow: 0 4px 12px var(–glow-accent); }
-.send-comment-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .media-embed img {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+        }
 
-.no-comments {
-display: flex; flex-direction: column; align-items: center; justify-content: center;
-height: 100%; color: var(–text-3); gap: 10px;
-}
-.no-comments i { font-size: 40px; opacity: 0.3; }
-.no-comments div { font-size: 14px; font-weight: 500; }
+        .media-caption {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            font-style: italic;
+        }
 
-/* ─── Loading (fallback) ─── */
-.loading-container {
-display: flex; flex-direction: column; align-items: center; justify-content: center;
-height: 100%; color: var(–text-2); gap: 16px; font-size: 14px;
-}
-.spinner {
-width: 44px; height: 44px; border: 3px solid var(–border-2);
-border-top-color: var(–accent); border-radius: 50%;
-animation: spin 0.9s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
+        .custom-audio-player {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 100%;
+            border: 1px solid var(--border-color);
+        }
 
-.loading-more {
-height: 100vh; scroll-snap-align: start;
-display: flex; align-items: center; justify-content: center;
-gap: 10px; color: var(–text-3); font-size: 13px;
-}
-.loading-more .spinner { width: 20px; height: 20px; border-width: 2px; }
+        .play-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
 
-/* ─── Footer ─── */
-.footer-bar {
-position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-width: 100%; max-width: 450px;
-background: rgba(10,10,14,0.88);
-backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
-border-top: 1px solid var(–border);
-padding: 10px 24px; padding-bottom: calc(10px + env(safe-area-inset-bottom));
-display: flex; justify-content: space-around; align-items: center; z-index: 100;
-}
-.footer-btn {
-display: flex; flex-direction: column; align-items: center; gap: 3px;
-background: none; border: none; color: var(–text-3);
-cursor: pointer; transition: color 0.2s; padding: 4px 14px; border-radius: 10px;
-}
-.footer-btn:hover { color: var(–text-2); }
-.footer-btn.active { color: var(–accent); }
-.footer-btn i { font-size: 18px; }
-.footer-btn span { font-size: 10px; font-weight: 600; letter-spacing: 0.03em; }
+        .play-btn:hover { background: var(--accent-hover); transform: scale(1.05); }
 
-@media (max-width: 400px) {
-.article-title { font-size: 22px; }
-.article-body-scroll { padding: 16px 62px 16px 16px; }
-.footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
-.footer-btn { padding: 4px 10px; }
-}
-</style>
+        .audio-info { flex: 1; min-width: 0; overflow: hidden; }
 
+        .audio-title {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-primary);
+        }
+
+        .waveform-container {
+            position: relative;
+            height: 32px;
+            background: var(--hover-bg);
+            border-radius: 4px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .waveform-progress {
+            position: absolute;
+            top: 0; left: 0;
+            height: 100%;
+            background: var(--accent);
+            opacity: 0.3;
+            transition: width 0.1s linear;
+        }
+
+        .waveform-bars {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 4px;
+        }
+
+        .waveform-bar {
+            width: 2px;
+            background: var(--text-secondary);
+            border-radius: 2px;
+            opacity: 0.6;
+        }
+
+        .audio-time {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .action-buttons {
+            position: absolute;
+            right: 16px;
+            bottom: 143px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .action-btn:active { transform: scale(0.9); }
+
+        .action-btn svg {
+            width: 28px;
+            height: 28px;
+            stroke: var(--text-primary);
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .action-btn.liked svg { fill: #ef4444; stroke: #ef4444; }
+
+        .action-btn span {
+            color: var(--text-primary);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .comments-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 199;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .comments-overlay.active { opacity: 1; pointer-events: all; }
+
+        .comments-popup {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: calc(100% - 40px);
+            max-width: 500px;
+            height: 70vh;
+            max-height: 600px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .comments-popup.active {
+            opacity: 1;
+            pointer-events: all;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .comments-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .comments-header h3 { font-size: 16px; font-weight: 600; }
+
+        .close-comments {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px; height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s ease;
+        }
+
+        .close-comments:hover { background: var(--hover-bg); }
+
+        .comments-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+        }
+
+        .comments-list::-webkit-scrollbar { width: 6px; }
+        .comments-list::-webkit-scrollbar-track { background: transparent; }
+        .comments-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+        .comment-item { display: flex; gap: 12px; margin-bottom: 20px; }
+
+        .comment-avatar {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .comment-content { flex: 1; }
+        .comment-author { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+        .comment-text { font-size: 14px; line-height: 1.4; margin-bottom: 6px; }
+        .comment-time { font-size: 11px; color: var(--text-secondary); }
+
+        .comment-input-wrapper {
+            padding: 12px 20px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-color);
+            border-radius: 0 0 16px 16px;
+        }
+
+        .comment-input-container { display: flex; gap: 8px; align-items: center; }
+
+        .comment-input {
+            flex: 1;
+            background: var(--hover-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 10px 16px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+        }
+
+        .comment-input:focus { border-color: var(--accent); }
+
+        .send-comment-btn {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .send-comment-btn:hover { background: var(--accent-hover); }
+        .send-comment-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .no-comments {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+            gap: 12px;
+        }
+
+        .no-comments i { font-size: 48px; opacity: 0.5; }
+
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-primary);
+            gap: 16px;
+        }
+
+        .spinner {
+            width: 48px; height: 48px;
+            border: 4px solid var(--border-color);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── SKELETON ── */
+        @keyframes shimmer {
+            0%   { background-position: -400px 0; }
+            100% { background-position:  400px 0; }
+        }
+
+        .skeleton-base {
+            background: linear-gradient(
+                90deg,
+                var(--hover-bg) 25%,
+                var(--border-color) 50%,
+                var(--hover-bg) 75%
+            );
+            background-size: 800px 100%;
+            animation: shimmer 1.4s infinite linear;
+            border-radius: 6px;
+        }
+
+        .skeleton-card {
+            position: relative;
+            height: 100vh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            background: var(--bg-color);
+            padding: 8px 20px 100px;
+            padding-top: calc(16px + env(safe-area-inset-top));
+            display: flex;
+            flex-direction: column;
+        }
+
+        .skeleton-card .card-top-line {
+            width: calc(100% + 40px);
+            margin-left: -20px;
+            height: 1px;
+            background: var(--border-color);
+            flex-shrink: 0;
+            margin-bottom: 14px;
+        }
+
+        .skeleton-header { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+
+        .skeleton-avatar { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
+
+        .skeleton-author-block { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+
+        .skeleton-name  { height: 14px; width: 120px; }
+        .skeleton-date  { height: 10px; width: 70px; }
+
+        .skeleton-divider {
+            width: calc(100% + 40px);
+            margin-left: -20px;
+            height: 1px;
+            background: var(--border-color);
+            flex-shrink: 0;
+            margin-top: 14px;
+            margin-bottom: 14px;
+        }
+
+        .skeleton-title       { height: 22px; width: 85%; margin-bottom: 8px; }
+        .skeleton-title-short { height: 22px; width: 60%; margin-bottom: 10px; }
+
+        .skeleton-stats { display: flex; gap: 12px; margin-bottom: 14px; flex-shrink: 0; }
+        .skeleton-stat  { height: 13px; width: 52px; }
+
+        .skeleton-line          { height: 13px; margin-bottom: 10px; width: 100%; }
+        .skeleton-line.w90      { width: 90%; }
+        .skeleton-line.w75      { width: 75%; }
+        .skeleton-line.w80      { width: 80%; }
+        .skeleton-line.w65      { width: 65%; }
+        .skeleton-line.w95      { width: 95%; }
+        /* ── END SKELETON ── */
+
+        .footer-bar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 450px;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            padding: 8px 24px;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .footer-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.2s ease;
+            padding: 6px 12px;
+        }
+
+        .footer-btn:hover  { color: var(--text-primary); }
+        .footer-btn.active { color: var(--accent); }
+        .footer-btn i      { font-size: 20px; }
+        .footer-btn span   { font-size: 10px; font-weight: 500; }
+
+        @media (max-width: 768px) {
+            .footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+            .footer-btn { padding: 6px 8px; }
+            .footer-btn i { font-size: 18px; }
+            .footer-btn span { font-size: 9px; }
+        }
+    </style>
 </head>
 <body>
-<div class="ambient ambient-1"></div>
-<div class="ambient ambient-2"></div>
 
-<div class="app-container">
-  <div class="scroller-container">
-    <div class="posts-wrapper" id="postsWrapper">
-      <!-- Skeletons shown while loading -->
-      <div id="skeletonContainer">
-        <!-- 2 skeleton cards -->
-        <div class="skeleton-card">
-          <div class="skeleton-header">
-            <div class="skeleton-avatar"></div>
-            <div class="skeleton-meta">
-              <div class="skeleton-name"></div>
-              <div class="skeleton-date"></div>
+    <div class="app-container">
+        <div class="scroller-container">
+            <div class="posts-wrapper" id="postsWrapper">
+                <!-- Skeleton card 1 -->
+                <div class="skeleton-card">
+                    <div class="card-top-line"></div>
+                    <div class="skeleton-header">
+                        <div class="skeleton-avatar skeleton-base"></div>
+                        <div class="skeleton-author-block">
+                            <div class="skeleton-name skeleton-base"></div>
+                            <div class="skeleton-date skeleton-base"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-divider"></div>
+                    <div class="skeleton-title skeleton-base"></div>
+                    <div class="skeleton-title-short skeleton-base"></div>
+                    <div class="skeleton-stats">
+                        <div class="skeleton-stat skeleton-base"></div>
+                        <div class="skeleton-stat skeleton-base"></div>
+                    </div>
+                    <div class="skeleton-line skeleton-base"></div>
+                    <div class="skeleton-line w90 skeleton-base"></div>
+                    <div class="skeleton-line w95 skeleton-base"></div>
+                    <div class="skeleton-line w80 skeleton-base"></div>
+                    <div class="skeleton-line skeleton-base"></div>
+                    <div class="skeleton-line w75 skeleton-base"></div>
+                    <div class="skeleton-line w90 skeleton-base"></div>
+                    <div class="skeleton-line w65 skeleton-base"></div>
+                    <div class="skeleton-line skeleton-base"></div>
+                    <div class="skeleton-line w80 skeleton-base"></div>
+                </div>
+                <!-- Skeleton card 2 -->
+                <div class="skeleton-card">
+                    <div class="card-top-line"></div>
+                    <div class="skeleton-header">
+                        <div class="skeleton-avatar skeleton-base"></div>
+                        <div class="skeleton-author-block">
+                            <div class="skeleton-name skeleton-base"></div>
+                            <div class="skeleton-date skeleton-base"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-divider"></div>
+                    <div class="skeleton-title skeleton-base"></div>
+                    <div class="skeleton-title-short skeleton-base"></div>
+                    <div class="skeleton-stats">
+                        <div class="skeleton-stat skeleton-base"></div>
+                        <div class="skeleton-stat skeleton-base"></div>
+                    </div>
+                    <div class="skeleton-line skeleton-base"></div>
+                    <div class="skeleton-line w95 skeleton-base"></div>
+                    <div class="skeleton-line w80 skeleton-base"></div>
+                    <div class="skeleton-line w90 skeleton-base"></div>
+                    <div class="skeleton-line w75 skeleton-base"></div>
+                    <div class="skeleton-line skeleton-base"></div>
+                    <div class="skeleton-line w65 skeleton-base"></div>
+                    <div class="skeleton-line w90 skeleton-base"></div>
+                </div>
             </div>
-          </div>
-          <div class="skeleton-body">
-            <div class="skeleton-title-1"></div>
-            <div class="skeleton-title-2"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line"></div>
-          </div>
-          <div class="skeleton-actions">
-            <div class="skeleton-action-btn"><div class="skeleton-action-icon"></div><div class="skeleton-action-label"></div></div>
-            <div class="skeleton-action-btn"><div class="skeleton-action-icon"></div><div class="skeleton-action-label"></div></div>
-            <div class="skeleton-action-btn"><div class="skeleton-action-icon"></div><div class="skeleton-action-label"></div></div>
-          </div>
         </div>
-        <div class="skeleton-card" style="opacity:0.6;">
-          <div class="skeleton-header">
-            <div class="skeleton-avatar"></div>
-            <div class="skeleton-meta">
-              <div class="skeleton-name"></div>
-              <div class="skeleton-date"></div>
+    </div>
+
+    <div class="comments-overlay" id="commentsOverlay" onclick="closeComments()"></div>
+
+    <div class="comments-popup" id="commentsPopup">
+        <div class="comments-header">
+            <h3>Comments</h3>
+            <button class="close-comments" onclick="closeComments()">×</button>
+        </div>
+        <div class="comments-list" id="commentsList">
+            <div class="no-comments">
+                <i class="fas fa-comments"></i>
+                <div>No comments yet</div>
+                <div style="font-size: 12px;">Be the first to comment!</div>
             </div>
-          </div>
-          <div class="skeleton-body">
-            <div class="skeleton-title-1" style="width:76%"></div>
-            <div class="skeleton-title-2" style="width:52%"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line"></div>
-          </div>
-          <div class="skeleton-actions">
-            <div class="skeleton-action-btn"><div class="skeleton-action-icon"></div><div class="skeleton-action-label"></div></div>
-            <div class="skeleton-action-btn"><div class="skeleton-action-icon"></div><div class="skeleton-action-label"></div></div>
-            <div class="skeleton-action-btn"><div class="skeleton-action-icon"></div><div class="skeleton-action-label"></div></div>
-          </div>
         </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="comments-overlay" id="commentsOverlay" onclick="closeComments()"></div>
-<div class="comments-popup" id="commentsPopup">
-  <div class="comments-header">
-    <h3>Comments</h3>
-    <button class="close-comments" onclick="closeComments()">×</button>
-  </div>
-  <div class="comments-list" id="commentsList">
-    <div class="no-comments">
-      <i class="fas fa-comments"></i>
-      <div>No comments yet</div>
-      <div style="font-size:12px;color:var(--text-3);">Be the first!</div>
-    </div>
-  </div>
-  <div class="comment-input-wrapper">
-    <div class="comment-input-container">
-      <input type="text" class="comment-input" id="commentInput" placeholder="Add a comment…">
-      <button class="send-comment-btn" id="sendCommentBtn" onclick="sendComment()">
-        <i class="fas fa-paper-plane"></i>
-      </button>
-    </div>
-  </div>
-</div>
-
-<div class="footer-bar">
-  <button class="footer-btn active" onclick="window.location.href='https://patholytica.com/dailyfeed'">
-    <i class="fas fa-scroll"></i><span>Feed</span>
-  </button>
-  <button class="footer-btn" onclick="window.location.href='explore.html'">
-    <i class="fas fa-search"></i><span>Explore</span>
-  </button>
-  <button class="footer-btn" onclick="window.location.href='profile.html'">
-    <i class="fas fa-user"></i><span>Profile</span>
-  </button>
-</div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-const app = initializeApp({
-  apiKey:"AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
-  authDomain:"patholytica.firebaseapp.com",
-  databaseURL:"https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId:"patholytica",
-  storageBucket:"patholytica.firebasestorage.app",
-  messagingSenderId:"738430635282",
-  appId:"1:738430635282:web:8451ef380447c7611137cb"
-});
-const auth = getAuth(app);
-const supabase = window.supabase.createClient(
-  "https://vduqewqyvszfquntmark.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
-);
-
-let articles=[], userLikes=new Set(), currentArticleId=null;
-let isLoading=false, hasMore=true, offset=0;
-const LIMIT=10;
-let currentUser=null;
-let viewTimers={}, viewedArticles=new Set();
-
-async function getCurrentUser() {
-  try {
-    const fu=auth.currentUser; if(!fu)return null;
-    const {data,error}=await supabase.from('users').select('user_id,firebase_uid,username').eq('firebase_uid',fu.uid).single();
-    return error?null:data;
-  } catch(e){return null;}
-}
-
-onAuthStateChanged(auth, async user=>{
-  if(user){currentUser=await getCurrentUser();if(currentUser)await loadUserLikes();}
-  else{currentUser=null;userLikes.clear();}
-});
-
-async function loadUserLikes(){
-  if(!currentUser)return;
-  try{
-    const {data:likes}=await supabase.from('likes').select('article_id').eq('user_id',currentUser.user_id);
-    userLikes.clear();likes?.forEach(l=>userLikes.add(l.article_id));updateLikeButtons();
-  }catch(e){}
-}
-
-function updateLikeButtons(){
-  document.querySelectorAll('.like-btn').forEach(btn=>{
-    userLikes.has(btn.dataset.id)?btn.classList.add('liked'):btn.classList.remove('liked');
-  });
-}
-
-async function loadArticles(isInitial=true){
-  if(isLoading||(!isInitial&&!hasMore))return;
-  isLoading=true;
-  try{
-    const {data:articlesData,error}=await supabase
-      .from('articles').select('*')
-      .order('created_at',{ascending:false})
-      .range(offset,offset+LIMIT-1);
-    if(error)throw error;
-
-    // Remove skeletons on first load
-    if(isInitial) document.getElementById('skeletonContainer')?.remove();
-
-    if(!articlesData||articlesData.length===0){
-      if(isInitial){
-        const w=document.getElementById('postsWrapper');
-        const e=document.createElement('div');
-        e.className='loading-container';e.style.cssText='height:100vh;scroll-snap-align:start;';
-        e.innerHTML=`<i class="fas fa-inbox" style="font-size:44px;opacity:0.3;"></i><div>No articles found</div>`;
-        w.appendChild(e);
-      }
-      hasMore=false;isLoading=false;return;
-    }
-    if(articlesData.length<LIMIT)hasMore=false;
-    offset+=articlesData.length;
-
-    const uids=[...new Set(articlesData.map(a=>a.firebase_user_id).filter(Boolean))];
-    let usersData=[];
-    if(uids.length>0){
-      const {data:u}=await supabase.from('users').select('firebase_uid,username,full_name,pfp').in('firebase_uid',uids);
-      usersData=u||[];
-    }
-    const {data:mediaData}=await supabase.from('media').select('*')
-      .in('article_id',articlesData.map(a=>a.id))
-      .order('display_order',{ascending:true});
-
-    const newArticles=articlesData.map(article=>{
-      const user=usersData.find(u=>u.firebase_uid===article.firebase_user_id);
-      return{...article,
-        author:user?.username?`@${user.username}`:(user?.full_name||'Anonymous'),
-        authorPfp:user?.pfp||null,
-        authorUsername:user?.username||null,
-        media:mediaData?.filter(m=>m.article_id===article.id)||[]};
-    });
-    articles=[...articles,...newArticles];
-    renderArticles(isInitial);
-    isLoading=false;
-  }catch(e){
-    if(isInitial) document.getElementById('skeletonContainer')?.remove();
-    if(isInitial){
-      const w=document.getElementById('postsWrapper');
-      const err=document.createElement('div');
-      err.className='loading-container';err.style.cssText='height:100vh;scroll-snap-align:start;';
-      err.innerHTML=`<i class="fas fa-exclamation-triangle" style="font-size:44px;opacity:0.4;"></i><div>Failed to load</div>`;
-      w.appendChild(err);
-    }
-    isLoading=false;
-  }
-}
-
-function createMediaElement(m){
-  const d=document.createElement('div');d.className='media-embed';
-  if(m.type==='image'){
-    d.innerHTML=`<img src="${m.url}" alt="${m.caption||''}">${m.caption?`<div class="media-caption">${m.caption}</div>`:''}`;
-  }else if(m.type==='audio'){
-    const aid='audio-'+Math.random().toString(36).substr(2,9);
-    d.innerHTML=`<div class="custom-audio-player">
-      <button class="play-btn" onclick="toggleAudio(this,'${aid}')"><i class="fas fa-play"></i></button>
-      <div class="audio-info">
-        <div class="audio-title">${m.caption||'Audio'}</div>
-        <div class="waveform-container" onclick="seekAudio(event,this,'${aid}')">
-          <div class="waveform-progress"></div>
-          <div class="waveform-bars">${Array(15).fill(0).map(()=>`<div class="waveform-bar" style="height:${Math.random()*60+20}%"></div>`).join('')}</div>
+        <div class="comment-input-wrapper">
+            <div class="comment-input-container">
+                <input type="text" class="comment-input" id="commentInput" placeholder="Add a comment...">
+                <button class="send-comment-btn" id="sendCommentBtn" onclick="sendComment()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
         </div>
-        <div class="audio-time"><span class="current-time">0:00</span><span class="duration">0:00</span></div>
-      </div>
-      <audio id="${aid}" src="${m.url}" style="display:none;"></audio>
-    </div>${m.caption?`<div class="media-caption">${m.caption}</div>`:''}`;
-    setTimeout(()=>{
-      const audio=document.getElementById(aid);
-      if(audio){audio.addEventListener('loadedmetadata',()=>{
-        const s=Math.floor(audio.duration);
-        audio.closest('.custom-audio-player').querySelector('.duration').textContent=`${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
-      });}
-    },100);
-  }
-  return d;
-}
+    </div>
 
-function getAvatarContent(article){
-  if(article.authorPfp)return`<img src="${article.authorPfp}" alt="${article.author}">`;
-  let l='A';
-  if(article.authorUsername)l=article.authorUsername.charAt(0).toUpperCase();
-  else if(article.author){const i=article.author.indexOf('@');l=i!==-1&&article.author.length>i+1?article.author.charAt(i+1).toUpperCase():article.author.charAt(0).toUpperCase();}
-  return l;
-}
-
-function formatDate(date){
-  const diff=Date.now()-date,m=Math.floor(diff/6e4),h=Math.floor(diff/36e5),d=Math.floor(diff/864e5);
-  if(m<60)return`${m}m ago`;if(h<24)return`${h}h ago`;if(d<7)return`${d}d ago`;
-  return date.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-}
-
-function openProfile(username){
-  if(username){const c=username.replace('@','');window.location.href=`https://patholytica.com/profile.html?username=${c}`;}
-}
-
-function renderArticles(isInitial=true){
-  const wrapper=document.getElementById('postsWrapper');
-  if(!isInitial)wrapper.querySelector('.loading-more')?.remove();
-  const start=isInitial?0:articles.length-LIMIT;
-  for(let i=start;i<articles.length;i++){
-    const article=articles[i];
-    const card=document.createElement('div');
-    card.className='article-card';card.dataset.index=i;card.dataset.articleId=article.id;
-    const isLiked=userLikes.has(article.id);
-    card.innerHTML=`
-      <div class="article-header">
-        <div class="author-avatar">${getAvatarContent(article)}</div>
-        <div class="author-info">
-          <div class="author-name">${article.author}</div>
-          <div class="article-date">${formatDate(new Date(article.created_at))}</div>
-        </div>
-      </div>
-      <div class="article-body-scroll"></div>
-      <div class="action-buttons">
-        <button class="action-btn like-btn ${isLiked?'liked':''}" data-id="${article.id}">
-          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-          <span class="like-count">${article.likes||0}</span>
+    <div class="footer-bar">
+        <button class="footer-btn" onclick="window.location.href='index.html'">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
         </button>
-        <button class="action-btn comment-btn" data-id="${article.id}">
-          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-          <span class="comment-count">0</span>
+        <button class="footer-btn active" onclick="window.location.href='https://patholytica.com/dailyfeed'">
+            <i class="fas fa-scroll"></i>
+            <span>Feed</span>
         </button>
-        <button class="action-btn expand-btn" data-id="${article.id}">
-          <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
-          <span>Open</span>
+        <button class="footer-btn" onclick="window.location.href='explore.html'">
+            <i class="fas fa-search"></i>
+            <span>Explore</span>
         </button>
-      </div>`;
+        <button class="footer-btn" onclick="window.location.href='profile.html'">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </button>
+    </div>
 
-    card.querySelector('.author-avatar').addEventListener('click',()=>{if(article.authorUsername)openProfile(article.authorUsername);});
-    card.querySelector('.author-name').addEventListener('click',()=>{if(article.authorUsername)openProfile(article.authorUsername);});
+    <script>
+        if (localStorage.getItem("theme") === "light") {
+            document.body.classList.add("light-theme");
+        }
+    </script>
 
-    const bodyScroll=card.querySelector('.article-body-scroll');
-    const titleEl=document.createElement('div');titleEl.className='article-title';titleEl.textContent=article.title||'Untitled';
-    bodyScroll.appendChild(titleEl);
-    const contentEl=document.createElement('div');contentEl.className='article-content';
-    const paras=(article.content||'').split('\n\n');
-    paras.forEach((p,pi)=>{
-      if(p.trim()){const d=document.createElement('div');d.className='content-paragraph';d.textContent=p.trim();contentEl.appendChild(d);}
-      article.media.filter(m=>m.display_order===pi).forEach(m=>contentEl.appendChild(createMediaElement(m)));
-    });
-    article.media.filter(m=>m.display_order>=paras.length).forEach(m=>contentEl.appendChild(createMediaElement(m)));
-    bodyScroll.appendChild(contentEl);
-    wrapper.appendChild(card);
-  }
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import {
+            getAuth,
+            onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-  if(hasMore){
-    const ld=document.createElement('div');ld.className='loading-more';
-    ld.innerHTML=`<div class="spinner"></div><span>Loading more…</span>`;
-    wrapper.appendChild(ld);
-  }
+        const firebaseConfig = {
+            apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+            authDomain: "patholytica.firebaseapp.com",
+            databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "patholytica",
+            storageBucket: "patholytica.firebasestorage.app",
+            messagingSenderId: "738430635282",
+            appId: "1:738430635282:web:8451ef380447c7611137cb"
+        };
 
-  wrapper.querySelectorAll('.like-btn').forEach(b=>b.addEventListener('click',handleLike));
-  wrapper.querySelectorAll('.comment-btn').forEach(b=>b.addEventListener('click',handleComments));
-  wrapper.querySelectorAll('.expand-btn').forEach(b=>b.addEventListener('click',e=>window.location.href=`article.html?id=${e.currentTarget.dataset.id}`));
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
 
-  if(isInitial){
-    wrapper.addEventListener('scroll',handleScroll);
-    loadCommentCounts();
-    setupIntersectionObserver();
-  }
-}
+        const supabase = window.supabase.createClient(
+            "https://vduqewqyvszfquntmark.supabase.co",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
+        );
 
-function setupIntersectionObserver(){
-  const obs=new IntersectionObserver(entries=>{
-    entries.forEach(e=>{
-      const id=e.target.dataset.articleId;
-      if(e.isIntersecting&&e.intersectionRatio>=0.75)startViewTimer(id);
-      else clearViewTimer(id);
-    });
-  },{threshold:[0.75]});
-  document.querySelectorAll('.article-card').forEach(c=>{if(c.dataset.articleId)obs.observe(c);});
-}
+        let articles = [];
+        let userLikes = new Set();
+        let currentArticleId = null;
+        let isLoading = false;
+        let hasMore = true;
+        let offset = 0;
+        const LIMIT = 10;
+        let currentUser = null;
+        let viewTimers = {};
+        let viewedArticles = new Set();
 
-function startViewTimer(id){if(viewedArticles.has(id)||viewTimers[id])return;viewTimers[id]=setTimeout(async()=>await incrementView(id),5000);}
-function clearViewTimer(id){if(viewTimers[id]){clearTimeout(viewTimers[id]);delete viewTimers[id];}}
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return (num || 0).toString();
+        }
 
-async function incrementView(id){
-  if(viewedArticles.has(id))return;
-  try{
-    viewedArticles.add(id);
-    const {data:a}=await supabase.from('articles').select('views').eq('id',id).single();
-    const nv=(a.views||0)+1;
-    await supabase.from('articles').update({views:nv}).eq('id',id);
-    const idx=articles.findIndex(a=>a.id===id);if(idx!==-1)articles[idx].views=nv;
-  }catch(e){viewedArticles.delete(id);}
-}
+        function skeletonCardHTML() {
+            return `
+                <div class="card-top-line"></div>
+                <div class="skeleton-header">
+                    <div class="skeleton-avatar skeleton-base"></div>
+                    <div class="skeleton-author-block">
+                        <div class="skeleton-name skeleton-base"></div>
+                        <div class="skeleton-date skeleton-base"></div>
+                    </div>
+                </div>
+                <div class="skeleton-divider"></div>
+                <div class="skeleton-title skeleton-base"></div>
+                <div class="skeleton-title-short skeleton-base"></div>
+                <div class="skeleton-stats">
+                    <div class="skeleton-stat skeleton-base"></div>
+                    <div class="skeleton-stat skeleton-base"></div>
+                </div>
+                <div class="skeleton-line skeleton-base"></div>
+                <div class="skeleton-line w90 skeleton-base"></div>
+                <div class="skeleton-line w95 skeleton-base"></div>
+                <div class="skeleton-line w80 skeleton-base"></div>
+                <div class="skeleton-line skeleton-base"></div>
+                <div class="skeleton-line w75 skeleton-base"></div>
+                <div class="skeleton-line w90 skeleton-base"></div>
+                <div class="skeleton-line w65 skeleton-base"></div>
+                <div class="skeleton-line skeleton-base"></div>
+                <div class="skeleton-line w80 skeleton-base"></div>
+            `;
+        }
 
-async function loadCommentCounts(){
-  try{
-    const {data:c}=await supabase.from('comments').select('article_id');
-    const counts={};c?.forEach(x=>{counts[x.article_id]=(counts[x.article_id]||0)+1;});
-    document.querySelectorAll('.comment-btn').forEach(b=>{b.querySelector('.comment-count').textContent=counts[b.dataset.id]||0;});
-  }catch(e){}
-}
+        async function getCurrentUser() {
+            try {
+                const firebaseUser = auth.currentUser;
+                if (!firebaseUser) return null;
+                const { data: userData, error } = await supabase
+                    .from('users')
+                    .select('user_id, firebase_uid, username')
+                    .eq('firebase_uid', firebaseUser.uid)
+                    .single();
+                if (error) return null;
+                return userData;
+            } catch (error) {
+                console.error('Error getting current user:', error);
+                return null;
+            }
+        }
 
-async function handleLike(e){
-  const id=e.currentTarget.dataset.id,btn=e.currentTarget,span=btn.querySelector('.like-count');
-  const article=articles.find(a=>a.id===id);if(!article)return;
-  if(!currentUser){window.location.href='https://patholytica.com/login';return;}
-  const wasLiked=userLikes.has(id),orig=article.likes||0;
-  if(wasLiked){userLikes.delete(id);btn.classList.remove('liked');article.likes=Math.max(0,orig-1);}
-  else{userLikes.add(id);btn.classList.add('liked');article.likes=orig+1;}
-  span.textContent=article.likes;
-  try{
-    if(wasLiked){const {error:er}=await supabase.from('likes').delete().eq('article_id',id).eq('user_id',currentUser.user_id);if(er)throw er;}
-    else{const {error:er}=await supabase.from('likes').insert([{article_id:id,user_id:currentUser.user_id}]);if(er)throw er;}
-    const {error:ue}=await supabase.from('articles').update({likes:article.likes}).eq('id',id);if(ue)throw ue;
-  }catch(e){
-    if(wasLiked){userLikes.add(id);btn.classList.add('liked');}
-    else{userLikes.delete(id);btn.classList.remove('liked');}
-    article.likes=orig;span.textContent=orig;
-  }
-}
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = await getCurrentUser();
+                if (currentUser) await loadUserLikes();
+            } else {
+                currentUser = null;
+                userLikes.clear();
+            }
+        });
 
-async function handleComments(e){
-  currentArticleId=e.currentTarget.dataset.id;
-  await loadComments(currentArticleId);
-  openComments();
-}
+        async function loadUserLikes() {
+            if (!currentUser) return;
+            try {
+                const { data: likes, error } = await supabase
+                    .from('likes')
+                    .select('article_id')
+                    .eq('user_id', currentUser.user_id);
+                if (error) throw error;
+                userLikes.clear();
+                likes.forEach(like => userLikes.add(like.article_id));
+                updateLikeButtons();
+            } catch (error) {
+                console.error('Error loading user likes:', error);
+            }
+        }
 
-async function loadComments(id){
-  const list=document.getElementById('commentsList');
-  list.innerHTML='<div class="loading-container"><div class="spinner" style="width:28px;height:28px;border-width:2px;"></div></div>';
-  try{
-    const {data:comments,error}=await supabase.from('comments').select('*').eq('article_id',id).order('created_at',{ascending:true});
-    if(error)throw error;
-    if(!comments||comments.length===0){
-      list.innerHTML='<div class="no-comments"><i class="fas fa-comments"></i><div>No comments yet</div><div style="font-size:12px;color:var(--text-3);">Be the first!</div></div>';
-      return;
-    }
-    const uids=[...new Set(comments.map(c=>c.user_id).filter(Boolean))];
-    let umap={};
-    if(uids.length>0){const {data:users}=await supabase.from('users').select('user_id,username,full_name,pfp').in('user_id',uids);users?.forEach(u=>umap[u.user_id]=u);}
-    list.innerHTML=comments.map(c=>{
-      const u=umap[c.user_id];
-      const author=u?.username?`@${u.username}`:(u?.full_name||'Anonymous');
-      const av=u?.pfp?`<img src="${u.pfp}" alt="${author}">`:(u?.username?u.username.charAt(0).toUpperCase():'A');
-      return`<div class="comment-item"><div class="comment-avatar">${av}</div><div class="comment-content"><div class="comment-author">${author}</div><div class="comment-text">${c.comment_text}</div><div class="comment-time">${formatDate(new Date(c.created_at))}</div></div></div>`;
-    }).join('');
-  }catch(e){
-    list.innerHTML='<div class="no-comments"><i class="fas fa-exclamation-triangle"></i><div>Failed to load</div></div>';
-  }
-}
+        function updateLikeButtons() {
+            document.querySelectorAll('.like-btn').forEach(btn => {
+                if (userLikes.has(btn.dataset.id)) btn.classList.add('liked');
+                else btn.classList.remove('liked');
+            });
+        }
 
-window.openComments=()=>{document.getElementById('commentsPopup').classList.add('active');document.getElementById('commentsOverlay').classList.add('active');}
-window.closeComments=()=>{document.getElementById('commentsPopup').classList.remove('active');document.getElementById('commentsOverlay').classList.remove('active');}
+        async function loadArticles(isInitial = true) {
+            if (isLoading || (!isInitial && !hasMore)) return;
+            isLoading = true;
 
-window.sendComment=async()=>{
-  const input=document.getElementById('commentInput'),text=input.value.trim();
-  if(!text||!currentArticleId)return;
-  const btn=document.getElementById('sendCommentBtn');btn.disabled=true;
-  try{
-    if(!currentUser)currentUser=await getCurrentUser();
-    if(!currentUser){window.location.href='https://patholytica.com/login';return;}
-    await supabase.from('comments').insert([{article_id:currentArticleId,user_id:currentUser.user_id,comment_text:text}]);
-    input.value='';
-    await loadComments(currentArticleId);
-    const cb=document.querySelector(`.comment-btn[data-id="${currentArticleId}"]`);
-    if(cb){const s=cb.querySelector('.comment-count');s.textContent=parseInt(s.textContent)+1;}
-  }catch(e){}finally{btn.disabled=false;}
-}
+            try {
+                const { data: articlesData, error: articlesError } = await supabase
+                    .from('articles')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .range(offset, offset + LIMIT - 1);
 
-document.getElementById('commentInput').addEventListener('keypress',e=>{if(e.key==='Enter')window.sendComment();});
+                if (articlesError) throw articlesError;
 
-function handleScroll(e){
-  const c=e.target;
-  if(c.scrollTop+c.clientHeight>=c.scrollHeight*0.8&&hasMore&&!isLoading)loadArticles(false);
-}
+                if (!articlesData || articlesData.length === 0) {
+                    if (isInitial) {
+                        document.getElementById('postsWrapper').innerHTML = `
+                            <div class="loading-container">
+                                <i class="fas fa-inbox" style="font-size: 48px;"></i>
+                                <div>No articles found</div>
+                            </div>`;
+                    }
+                    hasMore = false;
+                    isLoading = false;
+                    return;
+                }
 
-loadArticles(true);
-</script>
+                if (articlesData.length < LIMIT) hasMore = false;
+                offset += articlesData.length;
 
-<script>
-window.toggleAudio=function(btn,id){
-  const player=btn.closest('.custom-audio-player'),audio=document.getElementById(id),icon=btn.querySelector('i');
-  if(audio.paused){
-    audio.play();icon.className='fas fa-pause';
-    audio.ontimeupdate=()=>{
-      const p=(audio.currentTime/audio.duration)*100;
-      player.querySelector('.waveform-progress').style.width=p+'%';
-      const m=Math.floor(audio.currentTime/60),s=Math.floor(audio.currentTime%60);
-      player.querySelector('.current-time').textContent=`${m}:${s.toString().padStart(2,'0')}`;
-    };
-    audio.onended=()=>{icon.className='fas fa-play';player.querySelector('.waveform-progress').style.width='0%';player.querySelector('.current-time').textContent='0:00';};
-  }else{audio.pause();icon.className='fas fa-play';}
-};
-window.seekAudio=function(e,container,id){
-  const audio=document.getElementById(id),r=container.getBoundingClientRect();
-  audio.currentTime=((e.clientX-r.left)/r.width)*audio.duration;
-};
-</script>
+                const userIds = [...new Set(articlesData.map(a => a.firebase_user_id).filter(Boolean))];
+                let usersData = [];
+                if (userIds.length > 0) {
+                    const { data: users } = await supabase
+                        .from('users')
+                        .select('firebase_uid, username, full_name, pfp')
+                        .in('firebase_uid', userIds);
+                    usersData = users || [];
+                }
 
+                const articleIds = articlesData.map(a => a.id);
+                const { data: mediaData } = await supabase
+                    .from('media')
+                    .select('*')
+                    .in('article_id', articleIds)
+                    .order('display_order', { ascending: true });
+
+                const newArticles = articlesData.map(article => {
+                    const user = usersData?.find(u => u.firebase_uid === article.firebase_user_id);
+                    return {
+                        ...article,
+                        author: user?.username ? `@${user.username}` : (user?.full_name || 'Anonymous'),
+                        authorPfp: user?.pfp || null,
+                        authorUsername: user?.username || null,
+                        media: mediaData?.filter(m => m.article_id === article.id) || []
+                    };
+                });
+
+                articles = [...articles, ...newArticles];
+                renderArticles(isInitial);
+                isLoading = false;
+
+            } catch (error) {
+                console.error('Error loading articles:', error);
+                if (isInitial) {
+                    document.getElementById('postsWrapper').innerHTML = `
+                        <div class="loading-container">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 48px;"></i>
+                            <div>Failed to load articles</div>
+                        </div>`;
+                }
+                isLoading = false;
+            }
+        }
+
+        function createMediaElement(mediaItem) {
+            const mediaDiv = document.createElement('div');
+            mediaDiv.className = 'media-embed';
+
+            if (mediaItem.type === 'image') {
+                mediaDiv.innerHTML = `
+                    <img src="${mediaItem.url}" alt="${mediaItem.caption || 'Article image'}">
+                    ${mediaItem.caption ? `<div class="media-caption">${mediaItem.caption}</div>` : ''}
+                `;
+            } else if (mediaItem.type === 'audio') {
+                const audioId = 'audio-' + Math.random().toString(36).substr(2, 9);
+                mediaDiv.innerHTML = `
+                    <div class="custom-audio-player">
+                        <button class="play-btn" onclick="toggleAudio(this, '${audioId}')">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <div class="audio-info">
+                            <div class="audio-title">${mediaItem.caption || 'Audio'}</div>
+                            <div class="waveform-container" onclick="seekAudio(event, this, '${audioId}')">
+                                <div class="waveform-progress"></div>
+                                <div class="waveform-bars">
+                                    ${Array(15).fill(0).map(() => `<div class="waveform-bar" style="height: ${Math.random() * 60 + 20}%"></div>`).join('')}
+                                </div>
+                            </div>
+                            <div class="audio-time">
+                                <span class="current-time">0:00</span>
+                                <span class="duration">0:00</span>
+                            </div>
+                        </div>
+                        <audio id="${audioId}" src="${mediaItem.url}" style="display: none;"></audio>
+                    </div>
+                    ${mediaItem.caption ? `<div class="media-caption">${mediaItem.caption}</div>` : ''}
+                `;
+                setTimeout(() => {
+                    const audio = document.getElementById(audioId);
+                    if (audio) {
+                        audio.addEventListener('loadedmetadata', function () {
+                            const duration = Math.floor(audio.duration);
+                            const mins = Math.floor(duration / 60);
+                            const secs = duration % 60;
+                            const durationSpan = audio.closest('.custom-audio-player').querySelector('.duration');
+                            if (durationSpan) durationSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+                        });
+                    }
+                }, 100);
+            }
+            return mediaDiv;
+        }
+
+        function getAvatarContent(article) {
+            if (article.authorPfp) return `<img src="${article.authorPfp}" alt="${article.author}">`;
+            let letter = 'A';
+            if (article.authorUsername) {
+                letter = article.authorUsername.charAt(0).toUpperCase();
+            } else if (article.author) {
+                const atIndex = article.author.indexOf('@');
+                letter = atIndex !== -1 && article.author.length > atIndex + 1
+                    ? article.author.charAt(atIndex + 1).toUpperCase()
+                    : article.author.charAt(0).toUpperCase();
+            }
+            return letter;
+        }
+
+        function renderArticles(isInitial = true) {
+            const wrapper = document.getElementById('postsWrapper');
+
+            if (isInitial) {
+                wrapper.innerHTML = '';
+            } else {
+                // Remove the trailing skeleton "load more" card
+                const lastChild = wrapper.lastElementChild;
+                if (lastChild && lastChild.classList.contains('skeleton-card')) lastChild.remove();
+            }
+
+            const startIndex = isInitial ? 0 : articles.length - LIMIT;
+
+            for (let index = startIndex; index < articles.length; index++) {
+                const article = articles[index];
+                const articleDiv = document.createElement('div');
+                articleDiv.className = 'article-card';
+                articleDiv.dataset.index = index;
+                articleDiv.dataset.articleId = article.id;
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'article-content';
+
+                const paragraphs = (article.content || 'No content available').split('\n\n');
+                paragraphs.forEach((paragraph, pIndex) => {
+                    if (paragraph.trim()) {
+                        const p = document.createElement('div');
+                        p.className = 'content-paragraph';
+                        p.textContent = paragraph.trim();
+                        contentDiv.appendChild(p);
+                        if (article.media?.length > 0) {
+                            article.media.filter(m => m.display_order === pIndex)
+                                .forEach(m => contentDiv.appendChild(createMediaElement(m)));
+                        }
+                    }
+                });
+
+                if (article.media) {
+                    article.media.filter(m => m.display_order >= paragraphs.length)
+                        .forEach(m => contentDiv.appendChild(createMediaElement(m)));
+                }
+
+                const isLiked = userLikes.has(article.id);
+                const avatarContent = getAvatarContent(article);
+
+                articleDiv.innerHTML = `
+                    <div class="card-top-line"></div>
+                    <div class="article-header">
+                        <div class="author-avatar">${avatarContent}</div>
+                        <div class="author-info">
+                            <div class="author-name">${article.author}</div>
+                            <div class="article-date">${formatDate(new Date(article.created_at))}</div>
+                        </div>
+                    </div>
+                    <div class="header-bottom-line"></div>
+                    <div class="article-title">${article.title || 'Untitled'}</div>
+                    <div class="article-stats">
+                        <div class="stat-item views">
+                            <i class="fas fa-eye"></i>
+                            <span>${formatNumber(article.views || 0)}</span>
+                        </div>
+                        <div class="stat-item likes">
+                            <i class="fas fa-heart"></i>
+                            <span>${formatNumber(article.likes || 0)}</span>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="action-btn like-btn ${isLiked ? 'liked' : ''}" data-id="${article.id}">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                            <span class="like-count">${article.likes || 0}</span>
+                        </button>
+                        <button class="action-btn comment-btn" data-id="${article.id}">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            <span class="comment-count">0</span>
+                        </button>
+                        <button class="action-btn expand-btn" data-id="${article.id}">
+                            <svg viewBox="0 0 24 24">
+                                <polyline points="15 3 21 3 21 9"></polyline>
+                                <polyline points="9 21 3 21 3 15"></polyline>
+                                <line x1="21" y1="3" x2="14" y2="10"></line>
+                                <line x1="3" y1="21" x2="10" y2="14"></line>
+                            </svg>
+                            <span>Open</span>
+                        </button>
+                    </div>
+                `;
+
+                articleDiv.querySelector('.article-stats').insertAdjacentElement('afterend', contentDiv);
+                wrapper.appendChild(articleDiv);
+            }
+
+            // Append skeleton card as "load more" placeholder
+            if (hasMore) {
+                const skeletonDiv = document.createElement('div');
+                skeletonDiv.className = 'skeleton-card';
+                skeletonDiv.innerHTML = skeletonCardHTML();
+                wrapper.appendChild(skeletonDiv);
+            }
+
+            document.querySelectorAll('.like-btn').forEach(btn => btn.addEventListener('click', handleLike));
+            document.querySelectorAll('.comment-btn').forEach(btn => btn.addEventListener('click', handleComments));
+            document.querySelectorAll('.expand-btn').forEach(btn => btn.addEventListener('click', handleExpand));
+
+            if (isInitial) {
+                wrapper.addEventListener('scroll', handleScroll);
+                loadCommentCounts();
+                setupIntersectionObserver();
+            } else {
+                // Observe newly added cards
+                setupIntersectionObserverForNew(startIndex);
+                loadCommentCounts();
+            }
+        }
+
+        function setupIntersectionObserver() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const articleId = entry.target.dataset.articleId;
+                    if (!articleId) return;
+                    if (entry.isIntersecting && entry.intersectionRatio >= 0.75) startViewTimer(articleId);
+                    else clearViewTimer(articleId);
+                });
+            }, { threshold: [0.75] });
+
+            document.querySelectorAll('.article-card').forEach(card => {
+                if (card.dataset.articleId) observer.observe(card);
+            });
+        }
+
+        function setupIntersectionObserverForNew(startIndex) {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const articleId = entry.target.dataset.articleId;
+                    if (!articleId) return;
+                    if (entry.isIntersecting && entry.intersectionRatio >= 0.75) startViewTimer(articleId);
+                    else clearViewTimer(articleId);
+                });
+            }, { threshold: [0.75] });
+
+            document.querySelectorAll('.article-card').forEach(card => {
+                if (card.dataset.index >= startIndex && card.dataset.articleId) observer.observe(card);
+            });
+        }
+
+        function startViewTimer(articleId) {
+            if (viewedArticles.has(articleId) || viewTimers[articleId]) return;
+            viewTimers[articleId] = setTimeout(async () => { await incrementView(articleId); }, 5000);
+        }
+
+        function clearViewTimer(articleId) {
+            if (viewTimers[articleId]) { clearTimeout(viewTimers[articleId]); delete viewTimers[articleId]; }
+        }
+
+        async function incrementView(articleId) {
+            if (viewedArticles.has(articleId)) return;
+            try {
+                viewedArticles.add(articleId);
+                const { data: article, error: fetchError } = await supabase
+                    .from('articles').select('views').eq('id', articleId).single();
+                if (fetchError) throw fetchError;
+                const newViews = (article.views || 0) + 1;
+                const { error: updateError } = await supabase
+                    .from('articles').update({ views: newViews }).eq('id', articleId);
+                if (updateError) throw updateError;
+                const idx = articles.findIndex(a => a.id === articleId);
+                if (idx !== -1) articles[idx].views = newViews;
+                const card = document.querySelector(`.article-card[data-article-id="${articleId}"]`);
+                if (card) {
+                    const viewSpan = card.querySelector('.stat-item.views span');
+                    if (viewSpan) viewSpan.textContent = formatNumber(newViews);
+                }
+            } catch (error) {
+                console.error('Error incrementing view:', error);
+                viewedArticles.delete(articleId);
+            }
+        }
+
+        async function loadCommentCounts() {
+            try {
+                const { data: comments, error } = await supabase.from('comments').select('article_id');
+                if (error) throw error;
+                const counts = {};
+                comments.forEach(c => { counts[c.article_id] = (counts[c.article_id] || 0) + 1; });
+                document.querySelectorAll('.comment-btn').forEach(btn => {
+                    btn.querySelector('.comment-count').textContent = counts[btn.dataset.id] || 0;
+                });
+            } catch (error) {
+                console.error('Error loading comment counts:', error);
+            }
+        }
+
+        function formatDate(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        async function handleLike(e) {
+            const articleId = e.currentTarget.dataset.id;
+            const btn = e.currentTarget;
+            const countSpan = btn.querySelector('.like-count');
+            const article = articles.find(a => a.id === articleId);
+            if (!article) return;
+
+            if (!currentUser) {
+                alert('Please log in to like articles');
+                window.location.href = 'https://patholytica.com/login';
+                return;
+            }
+
+            const wasLiked = userLikes.has(articleId);
+            const originalCount = article.likes || 0;
+
+            if (wasLiked) {
+                userLikes.delete(articleId);
+                btn.classList.remove('liked');
+                article.likes = Math.max(0, originalCount - 1);
+            } else {
+                userLikes.add(articleId);
+                btn.classList.add('liked');
+                article.likes = originalCount + 1;
+            }
+            countSpan.textContent = article.likes;
+
+            const card = btn.closest('.article-card');
+            if (card) {
+                const likeStatSpan = card.querySelector('.stat-item.likes span');
+                if (likeStatSpan) likeStatSpan.textContent = formatNumber(article.likes);
+            }
+
+            try {
+                if (wasLiked) {
+                    const { error } = await supabase.from('likes').delete()
+                        .eq('article_id', articleId).eq('user_id', currentUser.user_id);
+                    if (error) throw error;
+                } else {
+                    const { error } = await supabase.from('likes')
+                        .insert([{ article_id: articleId, user_id: currentUser.user_id }]);
+                    if (error) throw error;
+                }
+                await supabase.from('articles').update({ likes: article.likes }).eq('id', articleId);
+            } catch (error) {
+                console.error('Error updating like:', error);
+                if (wasLiked) { userLikes.add(articleId); btn.classList.add('liked'); }
+                else { userLikes.delete(articleId); btn.classList.remove('liked'); }
+                article.likes = originalCount;
+                countSpan.textContent = article.likes;
+                const card2 = btn.closest('.article-card');
+                if (card2) {
+                    const s = card2.querySelector('.stat-item.likes span');
+                    if (s) s.textContent = formatNumber(originalCount);
+                }
+                alert('Failed to update like. Please try again.');
+            }
+        }
+
+        async function handleComments(e) {
+            const articleId = e.currentTarget.dataset.id;
+            currentArticleId = articleId;
+            await loadComments(articleId);
+            openComments();
+        }
+
+        async function loadComments(articleId) {
+            const commentsList = document.getElementById('commentsList');
+            commentsList.innerHTML = '<div class="loading-container"><div class="spinner" style="width: 32px; height: 32px; border-width: 3px;"></div></div>';
+
+            try {
+                const { data: comments, error } = await supabase
+                    .from('comments').select('*').eq('article_id', articleId)
+                    .order('created_at', { ascending: true });
+                if (error) throw error;
+
+                if (!comments || comments.length === 0) {
+                    commentsList.innerHTML = `
+                        <div class="no-comments">
+                            <i class="fas fa-comments"></i>
+                            <div>No comments yet</div>
+                            <div style="font-size: 12px;">Be the first to comment!</div>
+                        </div>`;
+                    return;
+                }
+
+                const userIds = [...new Set(comments.map(c => c.user_id).filter(Boolean))];
+                let usersMap = {};
+                if (userIds.length > 0) {
+                    const { data: users } = await supabase
+                        .from('users').select('user_id, username, full_name, pfp').in('user_id', userIds);
+                    if (users) users.forEach(u => { usersMap[u.user_id] = u; });
+                }
+
+                commentsList.innerHTML = comments.map(comment => {
+                    const user = usersMap[comment.user_id];
+                    const author = user?.username ? `@${user.username}` : (user?.full_name || 'Anonymous');
+                    let avatarContent;
+                    if (user?.pfp) {
+                        avatarContent = `<img src="${user.pfp}" alt="${author}">`;
+                    } else {
+                        let letter = 'A';
+                        if (user?.username) letter = user.username.charAt(0).toUpperCase();
+                        else if (author) {
+                            const atIndex = author.indexOf('@');
+                            letter = atIndex !== -1 && author.length > atIndex + 1
+                                ? author.charAt(atIndex + 1).toUpperCase()
+                                : author.charAt(0).toUpperCase();
+                        }
+                        avatarContent = letter;
+                    }
+                    return `
+                        <div class="comment-item">
+                            <div class="comment-avatar">${avatarContent}</div>
+                            <div class="comment-content">
+                                <div class="comment-author">${author}</div>
+                                <div class="comment-text">${comment.comment_text}</div>
+                                <div class="comment-time">${formatDate(new Date(comment.created_at))}</div>
+                            </div>
+                        </div>`;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error loading comments:', error);
+                commentsList.innerHTML = `
+                    <div class="no-comments">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>Failed to load comments</div>
+                    </div>`;
+            }
+        }
+
+        window.openComments = function () {
+            document.getElementById('commentsPopup').classList.add('active');
+            document.getElementById('commentsOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        window.closeComments = function () {
+            document.getElementById('commentsPopup').classList.remove('active');
+            document.getElementById('commentsOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        window.sendComment = async function () {
+            const input = document.getElementById('commentInput');
+            const text = input.value.trim();
+            if (!text || !currentArticleId) return;
+            const sendBtn = document.getElementById('sendCommentBtn');
+            sendBtn.disabled = true;
+            try {
+                if (!currentUser) currentUser = await getCurrentUser();
+                if (!currentUser) { window.location.href = 'https://patholytica.com/login'; return; }
+                const { error } = await supabase.from('comments')
+                    .insert([{ article_id: currentArticleId, user_id: currentUser.user_id, comment_text: text }]);
+                if (error) throw error;
+                input.value = '';
+                await loadComments(currentArticleId);
+                const commentBtn = document.querySelector(`.comment-btn[data-id="${currentArticleId}"]`);
+                if (commentBtn) {
+                    const countSpan = commentBtn.querySelector('.comment-count');
+                    countSpan.textContent = parseInt(countSpan.textContent) + 1;
+                }
+            } catch (error) {
+                console.error('Error posting comment:', error);
+                alert('Failed to post comment. Please try again.');
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+
+        document.getElementById('commentInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') window.sendComment();
+        });
+
+        function handleExpand(e) {
+            window.location.href = `article.html?id=${e.currentTarget.dataset.id}`;
+        }
+
+        function handleScroll(e) {
+            const container = e.target;
+            if (container.scrollTop + container.clientHeight >= container.scrollHeight * 0.8 && hasMore && !isLoading) {
+                loadArticles(false);
+            }
+        }
+
+        loadArticles(true);
+    </script>
+
+    <script>
+        window.toggleAudio = function (btn, audioId) {
+            const player = btn.closest('.custom-audio-player');
+            const audio = document.getElementById(audioId);
+            const icon = btn.querySelector('i');
+            if (audio.paused) {
+                audio.play();
+                icon.className = 'fas fa-pause';
+                audio.ontimeupdate = function () {
+                    const progress = (audio.currentTime / audio.duration) * 100;
+                    player.querySelector('.waveform-progress').style.width = progress + '%';
+                    const currentMins = Math.floor(audio.currentTime / 60);
+                    const currentSecs = Math.floor(audio.currentTime % 60);
+                    player.querySelector('.current-time').textContent = `${currentMins}:${currentSecs.toString().padStart(2, '0')}`;
+                };
+                audio.onended = function () {
+                    icon.className = 'fas fa-play';
+                    player.querySelector('.waveform-progress').style.width = '0%';
+                    player.querySelector('.current-time').textContent = '0:00';
+                };
+            } else {
+                audio.pause();
+                icon.className = 'fas fa-play';
+            }
+        };
+
+        window.seekAudio = function (event, container, audioId) {
+            const audio = document.getElementById(audioId);
+            const rect = container.getBoundingClientRect();
+            const percentage = (event.clientX - rect.left) / rect.width;
+            audio.currentTime = percentage * audio.duration;
+        };
+    </script>
 </body>
 </html>
