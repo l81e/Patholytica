@@ -3,329 +3,751 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Patholytica — Home</title>
+<title>Patholytica</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
 :root {
-  --bg-color: #0f0f0f; /* YouTube Dark Black */
-  --text-primary: #ffffff;
-  --text-secondary: #aaaaaa;
-  --card-bg: transparent;
-  --hover-bg: #272727;
-  --border-color: #3f3f3f;
+  --bg: #0f0f0f;
+  --surface: #212121;
+  --surface2: #272727;
+  --text: #f1f1f1;
+  --muted: #aaa;
+  --border: #303030;
   --accent: #3ea6ff;
-  --yt-red: #ff0000;
+  --red: #ef4444;
+  --green: #2ecc71;
+  --purple: #9b59b6;
 }
 
-body.light-theme {
-  --bg-color: #ffffff;
-  --text-primary: #0f0f0f;
-  --text-secondary: #606060;
-  --card-bg: transparent;
-  --hover-bg: #f2f2f2;
-  --border-color: #e5e5e5;
-  --accent: #065fd4;
-}
-
-* { box-sizing: border-box; }
 body {
-  margin: 0;
-  padding: 0;
+  background: var(--bg);
+  color: var(--text);
   font-family: "Roboto", Arial, sans-serif;
-  background: var(--bg-color);
-  color: var(--text-primary);
-  transition: background 0.2s;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-/* Header */
-.header-wrapper {
+/* ── Shimmer keyframe ── */
+@keyframes shimmer {
+  0%   { background-position: -800px 0; }
+  100% { background-position:  800px 0; }
+}
+.skel {
+  background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 6px;
+}
+
+/* ── Header ── */
+.header {
   position: fixed;
-  top: 0;
-  width: 100%;
-  background: var(--bg-color);
-  z-index: 100;
-  padding: 0 16px;
+  top: 0; left: 0; right: 0;
   height: 56px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 0 16px;
+  z-index: 100;
+  padding-top: env(safe-area-inset-top);
 }
+.logo { height: 26px; cursor: pointer; }
+.header-right { display: flex; align-items: center; gap: 8px; }
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: none; border: none; color: var(--text);
+  cursor: pointer; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.icon-btn:hover { background: var(--surface2); }
+.auth-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border: 1px solid var(--accent);
+  border-radius: 20px; background: none; color: var(--accent);
+  font-size: 14px; font-weight: 500; cursor: pointer;
+  text-decoration: none; transition: background .15s;
+}
+.auth-pill:hover { background: rgba(62,166,255,.1); }
+.user-chip {
+  display: none; align-items: center; gap: 8px;
+  font-size: 14px; color: var(--text); cursor: pointer;
+  padding: 6px 10px; border-radius: 20px; transition: background .15s;
+}
+.user-chip:hover { background: var(--surface2); }
+.user-chip.show { display: flex; }
 
-.logo-img { height: 20px; cursor: pointer; }
-body.light-theme .logo-img { filter: invert(1); }
+/* ── Chip row ── */
+.chip-row {
+  position: fixed;
+  top: 56px; left: 0; right: 0;
+  background: var(--bg);
+  padding: 10px 16px;
+  display: flex; gap: 8px;
+  overflow-x: auto; scrollbar-width: none;
+  z-index: 90;
+  border-bottom: 1px solid var(--border);
+}
+.chip-row::-webkit-scrollbar { display: none; }
+.chip {
+  flex-shrink: 0; padding: 6px 14px; border-radius: 8px;
+  background: var(--surface); color: var(--text);
+  font-size: 14px; font-weight: 500; cursor: pointer;
+  border: none; transition: background .15s; white-space: nowrap;
+}
+.chip:hover { background: var(--surface2); }
+.chip.active { background: var(--text); color: var(--bg); }
 
-/* Main Grid Container */
-.list-container {
-  padding: 80px 16px 100px;
-  max-width: 2200px;
+/* ── Main ── */
+.main {
+  padding-top: calc(56px + 50px + env(safe-area-inset-top));
+  padding-bottom: calc(64px + env(safe-area-inset-bottom) + 16px);
+  max-width: 1280px;
   margin: 0 auto;
 }
 
-/* Stories / Profiles */
-.stories-section {
-  padding-bottom: 20px;
-  border-bottom: 4px solid var(--border-color);
-  margin-bottom: 24px;
+.section-label {
+  font-size: 16px; font-weight: 600;
+  padding: 20px 16px 8px;
+  color: var(--text);
 }
-.stories-scroll {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.story-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 80px;
-  cursor: pointer;
-}
-.story-avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--hover-bg);
-  overflow: hidden;
-  margin-bottom: 8px;
-  border: 2px solid transparent;
-}
-.story-item:hover .story-avatar { border-color: var(--text-secondary); }
-.story-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.story-username { font-size: 12px; color: var(--text-secondary); text-align: center; }
 
-/* YouTube Style Grid */
-.article-grid {
+/* ── Channels row ── */
+.channels-row {
+  display: flex; gap: 20px;
+  overflow-x: auto; scrollbar-width: none;
+  padding: 8px 16px 16px;
+}
+.channels-row::-webkit-scrollbar { display: none; }
+.channel-item {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 6px;
+  cursor: pointer; flex-shrink: 0;
+}
+.ch-ring {
+  width: 64px; height: 64px; border-radius: 50%;
+  padding: 2px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  transition: opacity .2s;
+}
+.channel-item:hover .ch-ring { opacity: .75; }
+.ch-ring-inner {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: var(--bg); padding: 2px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.ch-avatar {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 700; color: #fff; overflow: hidden;
+}
+.ch-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.ch-name {
+  font-size: 12px; color: var(--text);
+  max-width: 64px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; text-align: center;
+}
+
+/* skeleton channels */
+.skel-ch-ring {
+  width: 64px; height: 64px; border-radius: 50%;
+}
+.skel-ch-name { height: 10px; width: 50px; border-radius: 5px; margin: 0 auto; }
+
+/* ── Library shelf ── */
+.shelf {
+  display: flex; gap: 12px;
+  overflow-x: auto; scrollbar-width: none;
+  padding: 8px 16px 20px;
+}
+.shelf::-webkit-scrollbar { display: none; }
+
+.shelf-card {
+  flex-shrink: 0; width: 180px; cursor: pointer;
+}
+.shelf-card:hover .shelf-thumb { opacity: .8; }
+
+.shelf-thumb {
+  width: 180px; height: 100px; border-radius: 10px;
+  overflow: hidden; position: relative;
+  background: linear-gradient(135deg, var(--purple), #6c3de8);
+  margin-bottom: 8px; transition: opacity .2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.shelf-thumb img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.shelf-thumb-fallback {
+  font-size: 32px; color: rgba(255,255,255,.85);
+}
+.shelf-count-badge {
+  position: absolute; bottom: 6px; right: 6px;
+  background: rgba(0,0,0,.75); color: #fff;
+  font-size: 11px; font-weight: 600;
+  padding: 3px 7px; border-radius: 4px;
+}
+.shelf-title {
+  font-size: 13px; font-weight: 500; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.shelf-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* skeleton shelf */
+.skel-shelf-thumb { width: 180px; height: 100px; border-radius: 10px; }
+.skel-shelf-title { height: 12px; width: 140px; border-radius: 5px; margin-top: 8px; }
+.skel-shelf-meta  { height: 10px; width: 80px; border-radius: 5px; margin-top: 6px; }
+
+/* ── Article grid ── */
+.grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 40px 16px;
-  list-style: none;
-  padding: 0;
-  margin: 0;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px 16px;
+  padding: 8px 16px 8px;
 }
 
-.article-item {
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* Article card (YouTube style) */
+.card { cursor: pointer; }
+.card:hover .card-thumb-wrap { filter: brightness(.82); }
+
+.card-thumb-wrap {
+  width: 100%; aspect-ratio: 16/9;
+  border-radius: 12px; overflow: hidden;
+  position: relative; background: var(--surface);
+  transition: filter .2s;
+}
+.card-thumb-wrap img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
 }
 
-/* Thumbnail */
-.article-thumbnail {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 12px;
-  background: #2a2a2a;
-  overflow: hidden;
-  position: relative;
-}
-.article-thumbnail img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s;
-}
-.article-item:hover img { transform: scale(1.03); }
-
-/* Duration/Badge placeholder */
-.media-badge {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  background: rgba(0,0,0,0.8);
-  color: white;
-  padding: 2px 4px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-/* Content Info */
-.article-info {
-  display: flex;
-  gap: 12px;
-}
-.author-pfp {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--hover-bg);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-}
-.article-details {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.article-title {
-  font-size: 16px;
-  font-weight: 600;
+/* text-only thumb */
+.text-thumb {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px; text-align: center;
+  font-size: 15px; font-weight: 600; color: rgba(255,255,255,.9);
   line-height: 1.4;
-  margin: 0;
-  color: var(--text-primary);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.article-meta {
-  font-size: 14px;
-  color: var(--text-secondary);
-  display: flex;
-  flex-direction: column;
+
+.audio-badge {
+  position: absolute; bottom: 8px; right: 8px;
+  background: rgba(0,0,0,.8); color: #fff;
+  font-size: 11px; font-weight: 600;
+  padding: 3px 7px; border-radius: 4px;
+  display: flex; align-items: center; gap: 4px;
 }
 
-/* Footer Nav */
-.footer-bar {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  background: var(--bg-color);
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-around;
-  padding: 8px 0 env(safe-area-inset-bottom);
-  z-index: 100;
+.card-info {
+  display: flex; gap: 12px;
+  padding: 12px 4px 4px;
 }
-.footer-btn {
-  background: none;
-  border: none;
-  color: var(--text-primary);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 10px;
-  gap: 4px;
+.card-ch-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; color: #fff;
+  overflow: hidden; cursor: pointer;
+}
+.card-ch-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.card-meta { flex: 1; min-width: 0; }
+.card-title {
+  font-size: 14px; font-weight: 500; line-height: 1.4;
+  color: var(--text);
+  display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+  margin-bottom: 4px;
+}
+.card-sub { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.card-sub span + span::before { content: " · "; }
+.card-stats {
+  display: flex; gap: 10px;
+  margin-top: 4px; font-size: 12px; color: var(--muted);
+}
+.card-stat { display: flex; align-items: center; gap: 4px; }
+.card-stat.views i { color: var(--accent); }
+.card-stat.likes i { color: var(--red); }
+
+/* skeleton card */
+.skel-thumb  { width: 100%; aspect-ratio: 16/9; border-radius: 12px; }
+.skel-info   { display: flex; gap: 12px; padding: 12px 4px 4px; }
+.skel-avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
+.skel-lines  { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.skel-line   { height: 12px; border-radius: 5px; }
+.skel-line.w100 { width: 100%; }
+.skel-line.w80  { width: 80%; }
+.skel-line.w60  { width: 60%; }
+.skel-line.w40  { width: 40%; }
+
+/* ── FAB ── */
+.fab {
+  position: fixed;
+  bottom: calc(64px + env(safe-area-inset-bottom) + 14px);
+  right: 16px;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--accent); color: #fff; border: none;
+  font-size: 22px;
+  display: none; align-items: center; justify-content: center;
   cursor: pointer;
-  opacity: 0.7;
+  box-shadow: 0 4px 14px rgba(62,166,255,.45);
+  z-index: 80; transition: transform .2s, box-shadow .2s;
 }
-.footer-btn.active { opacity: 1; }
-.footer-btn i { font-size: 20px; }
+.fab.show { display: flex; }
+.fab:hover { transform: scale(1.08); }
+.fab:active { transform: scale(.94); }
 
-/* FAB */
-.fab-create {
-  position: fixed;
-  bottom: 80px;
-  right: 20px;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: var(--hover-bg);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  z-index: 90;
+/* ── Modal ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.75); z-index: 200;
+  align-items: center; justify-content: center; padding: 20px;
 }
-.fab-create.show { display: flex; }
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--surface); border-radius: 16px;
+  width: 100%; max-width: 360px; overflow: hidden;
+  border: 1px solid var(--border);
+}
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px; border-bottom: 1px solid var(--border);
+}
+.modal-head h2 { font-size: 18px; font-weight: 600; }
+.modal-close {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: none; border: none; color: var(--text);
+  font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, transform .2s;
+}
+.modal-close:hover { background: var(--surface2); transform: rotate(90deg); }
+.modal-body { padding: 16px 24px 24px; }
+.modal-opt {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px; border-radius: 10px;
+  background: var(--bg); border: 1.5px solid var(--border);
+  cursor: pointer; transition: border-color .2s, background .2s;
+  margin-bottom: 10px;
+}
+.modal-opt:last-child { margin-bottom: 0; }
+.modal-opt:hover { border-color: var(--accent); background: var(--surface2); }
+.modal-opt-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: #fff; flex-shrink: 0;
+}
+.modal-opt-icon.article { background: linear-gradient(135deg,var(--green),#27ae60); }
+.modal-opt-icon.library { background: linear-gradient(135deg,var(--purple),#8e44ad); }
+.modal-opt-title { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+.modal-opt-desc { font-size: 12px; color: var(--muted); }
 
+/* ── Bottom nav ── */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: calc(56px + env(safe-area-inset-bottom));
+  background: var(--bg); border-top: 1px solid var(--border);
+  display: flex; align-items: flex-start;
+  justify-content: space-around; padding-top: 8px; z-index: 100;
+}
+.nav-btn {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 2px;
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; padding: 4px 12px;
+  transition: color .15s; font-size: 10px; font-weight: 500;
+}
+.nav-btn.active { color: var(--text); }
+.nav-btn i { font-size: 22px; }
+
+/* ── Responsive ── */
 @media (max-width: 600px) {
-  .article-grid { grid-template-columns: 1fr; gap: 30px; }
-  .article-thumbnail { border-radius: 0; margin: 0 -16px; width: calc(100% + 32px); }
-  .article-info { padding: 0 4px; }
+  .grid { grid-template-columns: 1fr; gap: 28px 0; padding: 8px 0; }
+  .card-thumb-wrap { border-radius: 0; }
+  .card-info { padding: 10px 16px 4px; }
+}
+@media (min-width: 600px) and (max-width: 960px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
 </head>
 <body>
 
-<div class="header-wrapper">
-  <img src="IMG_0696.png" class="logo-img" alt="Patholytica" onclick="location.reload()">
-  <div id="authButtons" class="auth-buttons">
-    <button class="footer-btn" onclick="toggleTheme()"><i class="fas fa-circle-half-stroke"></i></button>
-  </div>
-</div>
-
-<div class="list-container">
-  <div class="stories-section">
-    <div class="stories-scroll" id="storiesScroll"></div>
-  </div>
-
-  <div class="article-grid" id="articleList">
+<!-- Header -->
+<div class="header">
+  <img src="IMG_0696.png" class="logo" alt="Patholytica" onclick="location.href='index.html'">
+  <div class="header-right">
+    <button class="icon-btn" onclick="location.href='explore.html'"><i class="fas fa-search"></i></button>
+    <a href="login.html" class="auth-pill" id="loginBtn"><i class="fas fa-user"></i> Sign in</a>
+    <div class="user-chip" id="userChip" onclick="handleChipClick()">
+      <i class="fas fa-user-circle" style="font-size:20px"></i>
+      <span id="userChipName">Me</span>
     </div>
+  </div>
 </div>
 
-<button class="fab-create" id="fabCreateBtn" onclick="location.href='https://patholytica.com/create'">
+<!-- Chips -->
+<div class="chip-row">
+  <button class="chip active" onclick="filterChip(this,'all')">All</button>
+  <button class="chip" onclick="filterChip(this,'article')">Articles</button>
+  <button class="chip" onclick="filterChip(this,'audio')">Audio</button>
+  <button class="chip" onclick="filterChip(this,'image')">Visual</button>
+  <button class="chip" onclick="location.href='explore.html'">Explore</button>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="document.getElementById('createModal').classList.add('show')">
   <i class="fas fa-plus"></i>
 </button>
 
-<div class="footer-bar">
-  <button class="footer-btn active"><i class="fas fa-home"></i><span>Home</span></button>
-  <button class="footer-btn" onclick="location.href='explore.html'"><i class="fas fa-compass"></i><span>Explore</span></button>
-  <button class="footer-btn" onclick="location.href='profile.html'"><i class="fas fa-user"></i><span>Profile</span></button>
+<!-- Create Modal -->
+<div class="modal-overlay" id="createModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Create</h2>
+      <button class="modal-close" onclick="document.getElementById('createModal').classList.remove('show')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-opt" onclick="location.href='https://patholytica.com/create'">
+        <div class="modal-opt-icon article"><i class="fas fa-file-alt"></i></div>
+        <div><div class="modal-opt-title">Article</div><div class="modal-opt-desc">Write & publish a new article</div></div>
+      </div>
+      <div class="modal-opt" onclick="location.href='https://patholytica.com/librarycreate'">
+        <div class="modal-opt-icon library"><i class="fas fa-bookmark"></i></div>
+        <div><div class="modal-opt-title">Library</div><div class="modal-opt-desc">Create a collection</div></div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+<!-- Main -->
+<div class="main" id="main">
 
-const firebaseConfig = { /* Your Config */ };
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+  <!-- Writers -->
+  <div class="section-label">Writers</div>
+  <div class="channels-row" id="channelsRow">
+    <!-- skeleton -->
+    ${[1,2,3,4,5,6].map(()=>`
+    <div class="channel-item">
+      <div class="ch-ring" style="padding:0"><div class="skel-ch-ring skel" style="width:64px;height:64px;border-radius:50%"></div></div>
+      <div class="skel-ch-name skel" style="margin-top:6px"></div>
+    </div>`).join('')}
+  </div>
 
-const supabase = window.supabase.createClient(
-  "https://vduqewqyvszfquntmark.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." // Shared in your code
-);
+  <!-- Libraries -->
+  <div class="section-label">Libraries</div>
+  <div class="shelf" id="libraryShelf">
+    ${[1,2,3,4].map(()=>`
+    <div style="flex-shrink:0;width:180px">
+      <div class="skel-shelf-thumb skel"></div>
+      <div class="skel-shelf-title skel"></div>
+      <div class="skel-shelf-meta skel"></div>
+    </div>`).join('')}
+  </div>
 
-async function loadFeed() {
-  const grid = document.getElementById('articleList');
-  const { data: articles } = await supabase
-    .from('articles')
-    .select('*, media(url)')
-    .order('created_at', { ascending: false });
-
-  const uids = articles.map(a => a.firebase_user_id);
-  const { data: users } = await supabase.from('users').select('firebase_uid, username, pfp').in('firebase_uid', uids);
-  const userMap = Object.fromEntries(users.map(u => [u.firebase_uid, u]));
-
-  grid.innerHTML = '';
-  articles.forEach(art => {
-    const user = userMap[art.firebase_user_id] || { username: 'Unknown', pfp: null };
-    const imageUrl = art.media?.[0]?.url || 'https://via.placeholder.com/600x340/2a2a2a/ffffff?text=No+Preview';
-    
-    const card = document.createElement('div');
-    card.className = 'article-item';
-    card.onclick = () => window.location.href = `article.html?id=${art.id}`;
-    
-    card.innerHTML = `
-      <div class="article-thumbnail">
-        <img src="${imageUrl}" loading="lazy">
-        <div class="media-badge">${art.views > 100 ? 'HOT' : 'NEW'}</div>
-      </div>
-      <div class="article-info">
-        <div class="author-pfp">
-          ${user.pfp ? `<img src="${user.pfp}" style="width:100%;height:100%;border-radius:50%">` : (user.username[0] || '?')}
+  <!-- Articles -->
+  <div class="section-label" id="gridLabel">Recent</div>
+  <div class="grid" id="articleGrid">
+    ${[1,2,3,4,5,6].map(()=>`
+    <div>
+      <div class="skel-thumb skel"></div>
+      <div class="skel-info">
+        <div class="skel-avatar skel"></div>
+        <div class="skel-lines">
+          <div class="skel-line w100 skel"></div>
+          <div class="skel-line w80 skel"></div>
+          <div class="skel-line w60 skel"></div>
+          <div class="skel-line w40 skel"></div>
         </div>
-        <div class="article-details">
-          <h3 class="article-title">${art.title}</h3>
-          <div class="article-meta">
-            <span>${user.username}</span>
-            <span>${art.views} views • ${new Date(art.created_at).toLocaleDateString()}</span>
+      </div>
+    </div>`).join('')}
+  </div>
+
+</div>
+
+<!-- Bottom nav -->
+<div class="bottom-nav">
+  <button class="nav-btn active" onclick="location.href='index.html'"><i class="fas fa-home"></i><span>Home</span></button>
+  <button class="nav-btn" onclick="location.href='https://patholytica.com/dailyfeed'"><i class="fas fa-scroll"></i><span>Feed</span></button>
+  <button class="nav-btn" onclick="location.href='explore.html'"><i class="fas fa-search"></i><span>Explore</span></button>
+  <button class="nav-btn" onclick="location.href='profile.html'"><i class="fas fa-user"></i><span>Profile</span></button>
+</div>
+
+<script>
+if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-theme');
+
+function fmtNum(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+  if (n >= 1000) return (n/1000).toFixed(1)+'K';
+  return (n||0).toString();
+}
+function timeAgo(iso) {
+  const d = Math.floor((Date.now()-new Date(iso))/1000);
+  if (d < 3600) return Math.floor(d/60)+'m ago';
+  if (d < 86400) return Math.floor(d/3600)+'h ago';
+  if (d < 604800) return Math.floor(d/86400)+'d ago';
+  return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+function gradientFor(str) {
+  const colors=[['#1a73e8','#6c3de8'],['#e84a1a','#e8a01a'],['#1ae86c','#1a73e8'],['#e81a9b','#6c3de8'],['#f9a825','#f44336']];
+  let h=0; for(let c of (str||'')) h=(h*31+c.charCodeAt(0))%colors.length;
+  return `linear-gradient(135deg,${colors[h][0]},${colors[h][1]})`;
+}
+function detectType(article) {
+  if (!article.media || !article.media.length) return 'text';
+  const url = (article.media[0].url||'').toLowerCase();
+  if (/\.(mp3|wav|ogg|m4a|aac)(\?|$)/.test(url)) return 'audio';
+  return 'image';
+}
+function truncateText(str, max) {
+  if (!str) return '';
+  return str.length > max ? str.slice(0, max).trimEnd() + '…' : str;
+}
+
+let allArticles = [];
+let currentFilter = 'all';
+
+function filterChip(el, type) {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentFilter = type;
+  renderGrid();
+}
+
+function renderGrid() {
+  const grid = document.getElementById('articleGrid');
+  let filtered = allArticles;
+  if (currentFilter === 'audio')   filtered = allArticles.filter(a => detectType(a) === 'audio');
+  else if (currentFilter === 'image')   filtered = allArticles.filter(a => detectType(a) === 'image');
+  else if (currentFilter === 'article') filtered = allArticles.filter(a => detectType(a) === 'text');
+
+  if (!filtered.length) {
+    grid.innerHTML = '<div style="padding:40px 16px;color:var(--muted);text-align:center">No content found</div>';
+    return;
+  }
+  grid.innerHTML = '';
+  filtered.forEach(article => {
+    const type = detectType(article);
+    const firstMedia = article.media && article.media[0] ? article.media[0].url : null;
+    const initial    = (article.title||'A')[0].toUpperCase();
+    const authorName = article._username ? '@'+article._username : 'Author';
+    const authorInit = (article._username||'A')[0].toUpperCase();
+
+    // Thumbnail inner HTML
+    let thumbInner = '';
+    if (type === 'audio') {
+      thumbInner = `
+        <div class="text-thumb" style="background:${gradientFor(article.title)}">
+          <i class="fas fa-headphones" style="font-size:44px;opacity:.85"></i>
+        </div>
+        <div class="audio-badge"><i class="fas fa-music"></i> Audio</div>`;
+    } else if (type === 'image' && firstMedia) {
+      thumbInner = `<img src="${firstMedia}" alt="" loading="lazy"
+        onerror="this.parentElement.innerHTML='<div class=\\'text-thumb\\'style=\\'background:${gradientFor(article.title)};\\'>${initial}</div>'">`;
+    } else {
+      // text-only: show snippet of content in thumb
+      const snippet = truncateText(article.content || article.title || '', 120);
+      thumbInner = `<div class="text-thumb" style="background:${gradientFor(article.title)}">${snippet}</div>`;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.onclick = () => location.href = `article.html?id=${article.id}`;
+
+    card.innerHTML = `
+      <div class="card-thumb-wrap">${thumbInner}</div>
+      <div class="card-info">
+        <div class="card-ch-avatar" style="background:${gradientFor(article._username)}"
+             onclick="event.stopPropagation();location.href='profile.html?username=${article._username||''}'">
+          ${article._pfp
+            ? `<img src="${article._pfp}" alt="" onerror="this.remove()">`
+            : authorInit}
+        </div>
+        <div class="card-meta">
+          <div class="card-title">${article.title||'Untitled'}</div>
+          <div class="card-sub">
+            <span>${authorName}</span>
+            <span>${timeAgo(article.created_at)}</span>
+          </div>
+          <div class="card-stats">
+            <div class="card-stat views"><i class="fas fa-eye"></i><span>${fmtNum(article.views)}</span></div>
+            <div class="card-stat likes"><i class="fas fa-heart"></i><span>${fmtNum(article.likes)}</span></div>
           </div>
         </div>
-      </div>
-    `;
+      </div>`;
     grid.appendChild(card);
   });
 }
+</script>
 
-function toggleTheme() {
-  document.body.classList.toggle('light-theme');
-}
-window.toggleTheme = toggleTheme;
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-onAuthStateChanged(auth, (user) => {
-  if (user) document.getElementById('fabCreateBtn').classList.add('show');
-  loadFeed();
+const app = initializeApp({
+  apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+  authDomain: "patholytica.firebaseapp.com",
+  databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "patholytica",
+  storageBucket: "patholytica.firebasestorage.app",
+  messagingSenderId: "738430635282",
+  appId: "1:738430635282:web:8451ef380447c7611137cb"
 });
+const auth = getAuth(app);
+const sb = window.supabase.createClient(
+  "https://vduqewqyvszfquntmark.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
+);
+
+window.handleChipClick = async () => { await signOut(auth); location.reload(); };
+
+onAuthStateChanged(auth, async user => {
+  const loginBtn  = document.getElementById('loginBtn');
+  const userChip  = document.getElementById('userChip');
+  const fab       = document.getElementById('fab');
+  if (user) {
+    loginBtn.style.display = 'none';
+    userChip.classList.add('show');
+    fab.classList.add('show');
+    const { data } = await sb.from('users').select('username').eq('firebase_uid', user.uid).single();
+    if (data?.username) document.getElementById('userChipName').textContent = '@'+data.username;
+  } else {
+    loginBtn.style.display = '';
+    userChip.classList.remove('show');
+    fab.classList.remove('show');
+  }
+  loadAll();
+});
+
+async function loadAll() {
+  await Promise.all([loadChannels(), loadLibraries(), loadArticles()]);
+}
+
+/* ── Articles ── */
+async function loadArticles() {
+  const { data: articles } = await sb
+    .from('articles')
+    .select('id, title, content, created_at, views, likes, firebase_user_id, media(url, type)')
+    .order('created_at', { ascending: false })
+    .limit(24);
+
+  if (!articles?.length) {
+    document.getElementById('articleGrid').innerHTML =
+      '<div style="padding:40px 16px;color:var(--muted);text-align:center">No articles yet</div>';
+    return;
+  }
+
+  const uids = [...new Set(articles.map(a => a.firebase_user_id).filter(Boolean))];
+  const { data: users } = await sb.from('users').select('firebase_uid,username,pfp').in('firebase_uid', uids);
+  const uMap = {};
+  (users||[]).forEach(u => uMap[u.firebase_uid] = u);
+
+  allArticles = articles.map(a => ({
+    ...a,
+    _username: uMap[a.firebase_user_id]?.username || null,
+    _pfp:      uMap[a.firebase_user_id]?.pfp      || null,
+  }));
+
+  renderGrid();
+}
+
+/* ── Channels ── */
+async function loadChannels() {
+  const row = document.getElementById('channelsRow');
+  const { data: articles } = await sb.from('articles').select('firebase_user_id, views');
+  if (!articles?.length) { row.innerHTML = ''; return; }
+
+  const views = {};
+  articles.forEach(a => { views[a.firebase_user_id] = (views[a.firebase_user_id]||0) + (a.views||0); });
+  const topUids = Object.entries(views).sort((a,b)=>b[1]-a[1]).slice(0,12).map(e=>e[0]);
+
+  const { data: users } = await sb.from('users').select('firebase_uid,username,pfp').in('firebase_uid', topUids);
+  if (!users?.length) { row.innerHTML = ''; return; }
+
+  row.innerHTML = '';
+  topUids.forEach(uid => {
+    const u = users.find(x => x.firebase_uid === uid);
+    if (!u) return;
+    const init = (u.username||'?')[0].toUpperCase();
+    const item = document.createElement('div');
+    item.className = 'channel-item';
+    item.onclick = () => location.href = `profile.html?username=${u.username}`;
+    item.innerHTML = `
+      <div class="ch-ring">
+        <div class="ch-ring-inner">
+          <div class="ch-avatar">
+            ${u.pfp ? `<img src="${u.pfp}" alt="" onerror="this.remove()">` : init}
+          </div>
+        </div>
+      </div>
+      <div class="ch-name">${u.username||'User'}</div>`;
+    row.appendChild(item);
+  });
+}
+
+/* ── Libraries with thumbnails from article media ── */
+async function loadLibraries() {
+  const shelf = document.getElementById('libraryShelf');
+  const { data: libs } = await sb
+    .from('playlists')
+    .select('id, name, description, article_count, article_ids')
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  if (!libs?.length) {
+    shelf.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:14px">No libraries yet</div>';
+    return;
+  }
+
+  // Collect first article IDs from each library to fetch thumbnails
+  const firstArticleIds = libs
+    .map(l => Array.isArray(l.article_ids) && l.article_ids.length ? l.article_ids[0] : null)
+    .filter(Boolean);
+
+  let thumbMap = {};
+  if (firstArticleIds.length) {
+    const { data: mediaRows } = await sb
+      .from('media')
+      .select('article_id, url, type')
+      .in('article_id', firstArticleIds)
+      .eq('type', 'image')
+      .order('display_order', { ascending: true });
+
+    (mediaRows||[]).forEach(m => {
+      if (!thumbMap[m.article_id]) thumbMap[m.article_id] = m.url;
+    });
+  }
+
+  shelf.innerHTML = '';
+  libs.forEach(lib => {
+    const firstId  = Array.isArray(lib.article_ids) && lib.article_ids.length ? lib.article_ids[0] : null;
+    const thumbUrl = firstId ? thumbMap[firstId] : null;
+    const count    = lib.article_count || (Array.isArray(lib.article_ids) ? lib.article_ids.length : 0);
+
+    const card = document.createElement('div');
+    card.className = 'shelf-card';
+    card.onclick = () => location.href = `playlist.html?id=${lib.id}`;
+
+    const thumbInner = thumbUrl
+      ? `<img src="${thumbUrl}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'shelf-thumb-fallback\\'><i class=\\'fas fa-bookmark\\'></i></div>'">`
+      : `<div class="shelf-thumb-fallback"><i class="fas fa-bookmark"></i></div>`;
+
+    card.innerHTML = `
+      <div class="shelf-thumb">
+        ${thumbInner}
+        <div class="shelf-count-badge">${count} articles</div>
+      </div>
+      <div class="shelf-title">${lib.name||'Library'}</div>
+      <div class="shelf-meta">${lib.description||''}</div>`;
+    shelf.appendChild(card);
+  });
+}
 </script>
 </body>
 </html>
