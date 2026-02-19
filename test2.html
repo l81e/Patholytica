@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
-    <title>Article Scroller - Patholytica</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Patholytica — Create Article</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -16,6 +16,8 @@
             --border-color: #303030;
             --accent: #3ea6ff;
             --accent-hover: #2d8ed6;
+            --success: #2ecc71;
+            --error: #e74c3c;
         }
 
         body.light-theme {
@@ -27,23 +29,17 @@
             --border-color: #e5e5e5;
             --accent: #065fd4;
             --accent-hover: #0448a3;
+            --success: #27ae60;
+            --error: #c0392b;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--bg-color);
             color: var(--text-primary);
-            overflow: hidden;
             transition: background 0.2s ease, color 0.2s ease;
-            position: fixed;
-            width: 100%;
-            height: 100%;
         }
 
         .app-container {
@@ -55,1485 +51,675 @@
             max-width: 450px;
             height: 100vh;
             background: var(--bg-color);
+            overflow-y: auto;
         }
 
-        .scroller-container {
-            position: relative;
-            width: 100%;
-            height: 100vh;
+        .app-container::-webkit-scrollbar { width: 4px; }
+        .app-container::-webkit-scrollbar-track { background: var(--border-color); }
+        .app-container::-webkit-scrollbar-thumb { background: var(--text-secondary); border-radius: 2px; }
+
+        .header-bar {
+            position: sticky;
+            top: 0;
             background: var(--bg-color);
-            overflow: hidden;
-        }
-
-        .posts-wrapper {
-            height: 100%;
-            overflow-y: scroll;
-            scroll-snap-type: y mandatory;
-            scrollbar-width: none;
-        }
-
-        .posts-wrapper::-webkit-scrollbar {
-            display: none;
-        }
-
-        .article-card {
-            position: relative;
-            height: 100vh;
-            scroll-snap-align: start;
-            scroll-snap-stop: always;
-            background: var(--bg-color);
-            padding: 8px 20px 100px;
-            padding-top: calc(16px + env(safe-area-inset-top));
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* LINE ABOVE USERNAME AREA */
-        .card-top-line {
-            width: calc(100% + 40px);
-            margin-left: -20px;
-            height: 1px;
-            background: var(--border-color);
-            flex-shrink: 0;
-            margin-bottom: 14px;
-        }
-
-        .article-header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 20px;
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 0;
-            flex-shrink: 0;
-            position: relative;
+            justify-content: space-between;
             z-index: 50;
         }
 
-        .author-avatar {
-            width: 44px;
-            height: 44px;
+        .back-btn {
+            width: 36px; height: 36px;
             border-radius: 50%;
-            background: var(--accent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            font-weight: bold;
-            color: white;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-
-        .author-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .author-info {
-            flex: 1;
-        }
-
-        .author-name {
+            background: var(--hover-bg);
+            border: none;
             color: var(--text-primary);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            transition: background 0.2s ease;
+        }
+        .back-btn:hover { background: var(--border-color); }
+
+        .header-actions { display: flex; gap: 12px; align-items: center; }
+
+        .icon-btn {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: var(--hover-bg);
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+            transition: background 0.2s ease;
+        }
+        .icon-btn:hover { background: var(--border-color); }
+
+        .icon-btn.bolt-btn {
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            color: white;
+            box-shadow: 0 2px 8px rgba(245,158,11,0.4);
+            transition: all 0.2s ease;
+        }
+        .icon-btn.bolt-btn:hover {
+            background: linear-gradient(135deg, #d97706, #dc2626);
+            box-shadow: 0 4px 16px rgba(245,158,11,0.5);
+            transform: scale(1.08);
+        }
+        .icon-btn.bolt-btn.loading {
+            animation: boltPulse 0.8s ease-in-out infinite;
+            cursor: not-allowed;
+        }
+        @keyframes boltPulse {
+            0%, 100% { box-shadow: 0 2px 8px rgba(245,158,11,0.4); transform: scale(1); }
+            50% { box-shadow: 0 4px 20px rgba(245,158,11,0.8); transform: scale(1.1); }
+        }
+
+        .publish-btn {
+            padding: 8px 20px;
+            border-radius: 24px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
             font-weight: 600;
-            font-size: 17px;
-            margin-bottom: 2px;
+            transition: all 0.2s ease;
+        }
+        .publish-btn:hover { background: var(--accent-hover); }
+        .publish-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .editor-wrapper {
+            padding: 20px;
+            padding-bottom: 100px;
         }
 
-        .article-date {
-            color: var(--text-secondary);
-            font-size: 12px;
-        }
-
-        /* LINE BELOW USERNAME AREA */
-        .header-bottom-line {
-            width: calc(100% + 40px);
-            margin-left: -20px;
-            height: 1px;
-            background: var(--border-color);
-            flex-shrink: 0;
-            margin-top: 14px;
-            margin-bottom: 14px;
-        }
-
-        /* SMALLER TITLE */
-        .article-title {
-            font-size: 22px;
+        .article-title-input {
+            font-size: 32px;
             font-weight: 700;
             color: var(--text-primary);
-            margin-bottom: 10px;
-            line-height: 1.25;
+            margin-bottom: 16px;
+            line-height: 1.2;
+            border: none;
+            outline: none;
+            background: transparent;
+            width: 100%;
+            resize: none;
+            overflow: hidden;
+            padding: 0;
+            font-family: inherit;
         }
+        .article-title-input::placeholder { color: var(--text-secondary); opacity: 0.5; }
 
-        /* STATS ROW under title */
-        .article-stats {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 12px;
-            flex-shrink: 0;
-        }
+        .content-item { margin-bottom: 14px; }
 
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-
-        .stat-item.views i { color: var(--accent); }
-        .stat-item.likes i { color: #ef4444; }
-
-        .article-content {
-            color: var(--text-primary);
+        .content-line {
             font-size: 16px;
             line-height: 1.6;
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .content-editable {
+            outline: none;
+            min-height: 1.6em;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
             flex: 1;
-            overflow-y: auto;
-            padding-right: 60px;
+            cursor: text;
+            color: var(--text-primary);
         }
-
-        .article-content::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .article-content::-webkit-scrollbar-track {
-            background: var(--border-color);
-        }
-
-        .article-content::-webkit-scrollbar-thumb {
-            background: var(--text-secondary);
-            border-radius: 2px;
-        }
-
-        .content-paragraph {
-            margin-bottom: 14px;
-        }
-
-        .media-embed {
-            margin: 16px 0;
-            max-width: 100%;
-        }
-
-        .media-embed img {
-            width: 100%;
-            max-width: 100%;
-            height: auto;
-            border-radius: 8px;
-            display: block;
-        }
-
-        .media-caption {
-            font-size: 13px;
+        .content-editable:empty::before {
+            content: 'Start writing...';
             color: var(--text-secondary);
-            margin-top: 6px;
-            font-style: italic;
+            opacity: 0.5;
         }
+        .content-editable:focus {
+            background: var(--hover-bg);
+            padding: 4px 8px;
+            margin: -4px -8px;
+            border-radius: 4px;
+        }
+
+        .line-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s ease; }
+        .content-line:hover .line-actions { opacity: 1; }
+
+        .line-btn {
+            width: 28px; height: 28px; min-width: 28px;
+            border-radius: 50%;
+            background: var(--hover-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .line-btn:hover { background: var(--border-color); color: var(--accent); }
+
+        .media-embed { margin: 16px 0; max-width: 100%; position: relative; }
+        .media-embed img { width: 100%; max-width: 100%; height: auto; border-radius: 8px; display: block; }
+        .media-caption { font-size: 13px; color: var(--text-secondary); margin-top: 6px; font-style: italic; outline: none; cursor: text; }
+        .media-caption:empty::before { content: 'Add a caption...'; opacity: 0.5; }
+
+        .remove-media-btn {
+            position: absolute; top: 8px; right: 8px;
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.7);
+            color: white; border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.2s ease; z-index: 10;
+        }
+        .media-embed:hover .remove-media-btn { opacity: 1; }
+        .remove-media-btn:hover { background: var(--error); }
 
         .custom-audio-player {
             background: var(--card-bg);
-            border-radius: 12px;
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            border-radius: 12px; padding: 16px;
+            display: flex; align-items: center; gap: 12px;
             max-width: 100%;
             border: 1px solid var(--border-color);
         }
 
         .play-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: var(--accent);
-            border: none;
-            color: white;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            transition: all 0.2s ease;
-            flex-shrink: 0;
+            width: 44px; height: 44px; border-radius: 50%;
+            background: var(--accent); border: none; color: white;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 16px; transition: all 0.2s ease; flex-shrink: 0;
         }
+        .play-btn:hover { background: var(--accent-hover); transform: scale(1.05); }
 
-        .play-btn:hover {
-            background: var(--accent-hover);
-            transform: scale(1.05);
-        }
-
-        .audio-info {
-            flex: 1;
-            min-width: 0;
-            overflow: hidden;
-        }
-
-        .audio-title {
-            font-size: 13px;
-            font-weight: 500;
-            margin-bottom: 8px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            color: var(--text-primary);
-        }
+        .audio-info { flex: 1; min-width: 0; overflow: hidden; }
+        .audio-title { font-size: 13px; font-weight: 500; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
 
         .waveform-container {
-            position: relative;
-            height: 32px;
-            background: var(--hover-bg);
-            border-radius: 4px;
-            margin-bottom: 6px;
-            cursor: pointer;
-            overflow: hidden;
+            position: relative; height: 32px;
+            background: var(--hover-bg); border-radius: 4px; margin-bottom: 6px;
+            cursor: pointer; overflow: hidden;
         }
+        .waveform-progress { position: absolute; top: 0; left: 0; height: 100%; background: var(--accent); opacity: 0.3; transition: width 0.1s linear; }
+        .waveform-bars { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: space-around; padding: 0 4px; }
+        .waveform-bar { width: 2px; background: var(--text-secondary); border-radius: 2px; opacity: 0.6; }
+        .audio-time { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); }
 
-        .waveform-progress {
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            background: var(--accent);
-            opacity: 0.3;
-            transition: width 0.1s linear;
-        }
-
-        .waveform-bars {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-around;
-            padding: 0 4px;
-        }
-
-        .waveform-bar {
-            width: 2px;
-            background: var(--text-secondary);
-            border-radius: 2px;
-            opacity: 0.6;
-        }
-
-        .audio-time {
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            color: var(--text-secondary);
-        }
-
-        .action-buttons {
-            position: absolute;
-            right: 16px;
-            bottom: 143px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            z-index: 10;
+        .action-bar {
+            position: fixed; bottom: 0;
+            left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: 450px;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            padding: 12px 20px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom));
+            display: flex; gap: 12px; z-index: 100;
         }
 
         .action-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 3px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-
-        .action-btn:active {
-            transform: scale(0.9);
-        }
-
-        .action-btn svg {
-            width: 28px;
-            height: 28px;
-            stroke: var(--text-primary);
-            fill: none;
-            stroke-width: 2;
-        }
-
-        .action-btn.liked svg {
-            fill: #ef4444;
-            stroke: #ef4444;
-        }
-
-        .action-btn span {
-            color: var(--text-primary);
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        .comments-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 199;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-
-        .comments-overlay.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-
-        .comments-popup {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.9);
-            width: calc(100% - 40px);
-            max-width: 500px;
-            height: 70vh;
-            max-height: 600px;
-            background: var(--card-bg);
-            border-radius: 16px;
-            z-index: 200;
-            opacity: 0;
-            pointer-events: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-        }
-
-        .comments-popup.active {
-            opacity: 1;
-            pointer-events: all;
-            transform: translate(-50%, -50%) scale(1);
-        }
-
-        .comments-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .comments-header h3 {
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .close-comments {
-            background: none;
-            border: none;
-            color: var(--text-primary);
-            font-size: 24px;
-            cursor: pointer;
-            padding: 0;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            transition: background 0.2s ease;
-        }
-
-        .close-comments:hover {
-            background: var(--hover-bg);
-        }
-
-        .comments-list {
             flex: 1;
-            overflow-y: auto;
-            padding: 16px 20px;
-        }
-
-        .comments-list::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .comments-list::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .comments-list::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 3px;
-        }
-
-        .comment-item {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .comment-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: var(--accent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
-            color: white;
-            flex-shrink: 0;
-            overflow: hidden;
-        }
-
-        .comment-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .comment-content {
-            flex: 1;
-        }
-
-        .comment-author {
-            font-weight: 600;
-            font-size: 13px;
-            margin-bottom: 4px;
-        }
-
-        .comment-text {
-            font-size: 14px;
-            line-height: 1.4;
-            margin-bottom: 6px;
-        }
-
-        .comment-time {
-            font-size: 11px;
-            color: var(--text-secondary);
-        }
-
-        .comment-input-wrapper {
-            padding: 12px 20px;
-            border-top: 1px solid var(--border-color);
-            background: var(--bg-color);
-            border-radius: 0 0 16px 16px;
-        }
-
-        .comment-input-container {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .comment-input {
-            flex: 1;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
             background: var(--hover-bg);
             border: 1px solid var(--border-color);
-            border-radius: 20px;
+            border-radius: 24px;
             padding: 10px 16px;
-            color: var(--text-primary);
-            font-size: 14px;
-            outline: none;
-        }
-
-        .comment-input:focus {
-            border-color: var(--accent);
-        }
-
-        .send-comment-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: var(--accent);
-            border: none;
-            color: white;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
             transition: all 0.2s ease;
+            font-size: 14px; font-weight: 600; color: var(--text-primary);
         }
+        .action-btn:active { transform: scale(0.95); }
+        .action-btn svg { width: 20px; height: 20px; stroke: var(--text-primary); fill: none; stroke-width: 2; }
 
-        .send-comment-btn:hover {
-            background: var(--accent-hover);
-        }
+        .divider { width: 1px; height: 24px; background: var(--border-color); margin: 0; }
 
-        .send-comment-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .no-comments {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: var(--text-secondary);
-            gap: 12px;
-        }
-
-        .no-comments i {
-            font-size: 48px;
-            opacity: 0.5;
-        }
-
-        .loading-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: var(--text-primary);
-            gap: 16px;
-        }
-
-        .spinner {
-            width: 48px;
-            height: 48px;
-            border: 4px solid var(--border-color);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* ── SKELETON STYLES ── */
-        @keyframes shimmer {
-            0%   { background-position: -400px 0; }
-            100% { background-position:  400px 0; }
-        }
-
-        .skeleton-base {
-            background: linear-gradient(
-                90deg,
-                var(--hover-bg) 25%,
-                var(--border-color) 50%,
-                var(--hover-bg) 75%
-            );
-            background-size: 800px 100%;
-            animation: shimmer 1.4s infinite linear;
-            border-radius: 6px;
-        }
-
-        .skeleton-card {
-            position: relative;
-            height: 100vh;
-            scroll-snap-align: start;
-            scroll-snap-stop: always;
-            background: var(--bg-color);
-            padding: 8px 20px 100px;
-            padding-top: calc(16px + env(safe-area-inset-top));
-            display: flex;
-            flex-direction: column;
-        }
-
-        .skeleton-card .card-top-line {
-            width: calc(100% + 40px);
-            margin-left: -20px;
-            height: 1px;
-            background: var(--border-color);
-            flex-shrink: 0;
-            margin-bottom: 14px;
-        }
-
-        .skeleton-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-shrink: 0;
-        }
-
-        .skeleton-avatar {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        .skeleton-author-block {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .skeleton-name  { height: 14px; width: 120px; }
-        .skeleton-date  { height: 10px; width: 70px; }
-
-        .skeleton-divider {
-            width: calc(100% + 40px);
-            margin-left: -20px;
-            height: 1px;
-            background: var(--border-color);
-            flex-shrink: 0;
-            margin-top: 14px;
-            margin-bottom: 14px;
-        }
-
-        .skeleton-title       { height: 22px; width: 85%; margin-bottom: 8px; }
-        .skeleton-title-short { height: 22px; width: 60%; margin-bottom: 10px; }
-
-        /* skeleton stats row */
-        .skeleton-stats {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 14px;
-            flex-shrink: 0;
-        }
-        .skeleton-stat { height: 13px; width: 52px; }
-
-        .skeleton-line          { height: 13px; margin-bottom: 10px; width: 100%; }
-        .skeleton-line.w90      { width: 90%; }
-        .skeleton-line.w75      { width: 75%; }
-        .skeleton-line.w80      { width: 80%; }
-        .skeleton-line.w65      { width: 65%; }
-        .skeleton-line.w95      { width: 95%; }
-        /* ── END SKELETON ── */
-
-        .footer-bar {
-            position: fixed;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            max-width: 450px;
+        /* Toast notification */
+        .notification {
+            position: fixed; top: 70px;
+            left: 50%; transform: translateX(-50%);
             background: var(--card-bg);
-            border-top: 1px solid var(--border-color);
-            padding: 8px 24px;
-            padding-bottom: calc(8px + env(safe-area-inset-bottom));
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 100;
+            border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 14px 18px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: none; align-items: center; gap: 12px;
+            min-width: 260px; max-width: 400px;
         }
+        .notification.show { display: flex; animation: slideDown 0.3s ease; }
+        .notification.success { border-left: 4px solid var(--success); }
+        .notification.error { border-left: 4px solid var(--error); }
 
-        .footer-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: color 0.2s ease;
-            padding: 6px 12px;
-        }
-
-        .footer-btn:hover  { color: var(--text-primary); }
-        .footer-btn.active { color: var(--accent); }
-        .footer-btn i      { font-size: 20px; }
-        .footer-btn span   { font-size: 10px; font-weight: 500; }
-
-        .loading-more {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            color: var(--text-secondary);
-            font-size: 14px;
-        }
-
-        .loading-more .spinner {
-            width: 24px;
-            height: 24px;
-            border-width: 3px;
-            margin-right: 8px;
+        @keyframes slideDown {
+            from { transform: translateX(-50%) translateY(-80px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
         }
 
         @media (max-width: 768px) {
-            .footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
-            .footer-btn { padding: 6px 8px; }
-            .footer-btn i { font-size: 18px; }
-            .footer-btn span { font-size: 9px; }
+            .editor-wrapper { padding: 16px; }
+            .article-title-input { font-size: 26px; }
+            .notification { left: 16px; right: 16px; transform: none; min-width: auto; max-width: none; }
+            .notification.show { animation: slideDownMobile 0.3s ease; }
+            @keyframes slideDownMobile {
+                from { transform: translateY(-80px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
         }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
-        <div class="scroller-container">
-            <div class="posts-wrapper" id="postsWrapper">
-                <!-- Skeleton card 1 -->
-                <div class="skeleton-card">
-                    <div class="card-top-line"></div>
-                    <div class="skeleton-header">
-                        <div class="skeleton-avatar skeleton-base"></div>
-                        <div class="skeleton-author-block">
-                            <div class="skeleton-name skeleton-base"></div>
-                            <div class="skeleton-date skeleton-base"></div>
-                        </div>
+<div class="app-container" id="appContainer">
+    <div class="header-bar">
+        <button class="back-btn" onclick="goBack()">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="header-actions">
+            <button class="icon-btn bolt-btn" id="boltBtn" onclick="generateTrendingArticle()" title="Generate Trending Article">
+                <i class="fas fa-bolt"></i>
+            </button>
+            <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
+                <i class="fas fa-circle-half-stroke"></i>
+            </button>
+            <button class="publish-btn" id="publishBtn" onclick="publishArticle()">Publish</button>
+        </div>
+    </div>
+
+    <div class="editor-wrapper" id="editorContainer">
+        <textarea class="article-title-input" id="articleTitle" placeholder="Article Title" rows="1" oninput="autoResizeTitle(this)"></textarea>
+
+        <div id="contentItems">
+            <div class="content-item">
+                <div class="content-line" data-line="1">
+                    <div class="content-editable" contenteditable="true"></div>
+                    <div class="line-actions">
+                        <button class="line-btn" onclick="deleteLine(this)" title="Delete line">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
-                    <div class="skeleton-divider"></div>
-                    <div class="skeleton-title skeleton-base"></div>
-                    <div class="skeleton-title-short skeleton-base"></div>
-                    <div class="skeleton-stats">
-                        <div class="skeleton-stat skeleton-base"></div>
-                        <div class="skeleton-stat skeleton-base"></div>
-                    </div>
-                    <div class="skeleton-line skeleton-base"></div>
-                    <div class="skeleton-line w90 skeleton-base"></div>
-                    <div class="skeleton-line w95 skeleton-base"></div>
-                    <div class="skeleton-line w80 skeleton-base"></div>
-                    <div class="skeleton-line skeleton-base"></div>
-                    <div class="skeleton-line w75 skeleton-base"></div>
-                    <div class="skeleton-line w90 skeleton-base"></div>
-                    <div class="skeleton-line w65 skeleton-base"></div>
-                    <div class="skeleton-line skeleton-base"></div>
-                    <div class="skeleton-line w80 skeleton-base"></div>
-                </div>
-                <!-- Skeleton card 2 -->
-                <div class="skeleton-card">
-                    <div class="card-top-line"></div>
-                    <div class="skeleton-header">
-                        <div class="skeleton-avatar skeleton-base"></div>
-                        <div class="skeleton-author-block">
-                            <div class="skeleton-name skeleton-base"></div>
-                            <div class="skeleton-date skeleton-base"></div>
-                        </div>
-                    </div>
-                    <div class="skeleton-divider"></div>
-                    <div class="skeleton-title skeleton-base"></div>
-                    <div class="skeleton-title-short skeleton-base"></div>
-                    <div class="skeleton-stats">
-                        <div class="skeleton-stat skeleton-base"></div>
-                        <div class="skeleton-stat skeleton-base"></div>
-                    </div>
-                    <div class="skeleton-line skeleton-base"></div>
-                    <div class="skeleton-line w95 skeleton-base"></div>
-                    <div class="skeleton-line w80 skeleton-base"></div>
-                    <div class="skeleton-line w90 skeleton-base"></div>
-                    <div class="skeleton-line w75 skeleton-base"></div>
-                    <div class="skeleton-line skeleton-base"></div>
-                    <div class="skeleton-line w65 skeleton-base"></div>
-                    <div class="skeleton-line w90 skeleton-base"></div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="comments-overlay" id="commentsOverlay" onclick="closeComments()"></div>
+<div class="action-bar">
+    <button class="action-btn" onclick="addNewParagraph()" title="Add text">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span>Text</span>
+    </button>
+    <div class="divider"></div>
+    <label class="action-btn" title="Upload image">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+        <span>Image</span>
+        <input type="file" accept="image/*" onchange="handleImageUpload(event)" style="display: none;">
+    </label>
+    <label class="action-btn" title="Upload audio">
+        <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+        <span>Audio</span>
+        <input type="file" accept="audio/*" onchange="handleAudioUpload(event)" style="display: none;">
+    </label>
+</div>
 
-    <div class="comments-popup" id="commentsPopup">
-        <div class="comments-header">
-            <h3>Comments</h3>
-            <button class="close-comments" onclick="closeComments()">×</button>
-        </div>
-        <div class="comments-list" id="commentsList">
-            <div class="no-comments">
-                <i class="fas fa-comments"></i>
-                <div>No comments yet</div>
-                <div style="font-size: 12px;">Be the first to comment!</div>
-            </div>
-        </div>
-        <div class="comment-input-wrapper">
-            <div class="comment-input-container">
-                <input type="text" class="comment-input" id="commentInput" placeholder="Add a comment...">
-                <button class="send-comment-btn" id="sendCommentBtn" onclick="sendComment()">
-                    <i class="fas fa-paper-plane"></i>
+<div class="notification" id="notification">
+    <i class="fas fa-check-circle" style="font-size: 20px;"></i>
+    <span id="notificationText"></span>
+</div>
+
+<script>
+let lineCounter = 1;
+
+function goBack() {
+    if (document.referrer && document.referrer.includes(window.location.host)) {
+        window.history.back();
+    } else {
+        window.location.href = 'index.html';
+    }
+}
+
+function toggleTheme() {
+    document.body.classList.toggle('light-theme');
+    localStorage.setItem("theme", document.body.classList.contains("light-theme") ? "light" : "dark");
+}
+
+if (localStorage.getItem("theme") === "light") {
+    document.body.classList.add("light-theme");
+}
+
+function autoResizeTitle(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+}
+
+// ⚡ Generate Trending Article from Google News RSS
+async function generateTrendingArticle() {
+    const btn = document.getElementById('boltBtn');
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    showNotification("Fetching trending news...", "success");
+
+    try {
+        const response = await fetch(
+            "https://api.allorigins.win/get?url=" +
+            encodeURIComponent("https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en")
+        );
+
+        if (!response.ok) throw new Error("Network error");
+
+        const data = await response.json();
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(data.contents, "text/xml");
+        const items = xml.querySelectorAll("item");
+
+        if (!items.length) {
+            showNotification("No news found. Try again.", "error");
+            return;
+        }
+
+        // Pick a random trending item
+        const randomItem = items[Math.floor(Math.random() * Math.min(items.length, 20))];
+
+        const rawTitle = randomItem.querySelector("title")?.textContent || "Trending Now";
+        const rawDesc  = randomItem.querySelector("description")?.textContent || "";
+        const pubDate  = randomItem.querySelector("pubDate")?.textContent || "";
+        const source   = randomItem.querySelector("source")?.textContent || "News";
+
+        // Strip any HTML tags from description
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = rawDesc;
+        const cleanDesc = tempDiv.textContent || tempDiv.innerText || "";
+
+        // Clean title — remove " - Source" suffix Google News appends
+        const cleanTitle = rawTitle.replace(/\s*-\s*[^-]+$/, "").trim();
+
+        // Format publish date nicely
+        const formattedDate = pubDate
+            ? new Date(pubDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+            : "";
+
+        // Build expanded article paragraphs
+        const paragraphs = [
+            cleanDesc || "Details on this breaking story are still emerging.",
+            `Reported by ${source}${formattedDate ? " on " + formattedDate : ""}, this story has quickly gained traction across major news platforms and social media.`,
+            "Analysts and experts are closely watching developments, with many anticipating significant implications for the industry, region, or communities involved.",
+            "Public reaction has been swift, with stakeholders from various sectors weighing in on the potential short- and long-term impact of these events.",
+            "Further updates are expected as the situation continues to evolve. Stay tuned to Patholytica for in-depth coverage and expert analysis."
+        ];
+
+        // Set title
+        const titleInput = document.getElementById("articleTitle");
+        titleInput.value = cleanTitle;
+        autoResizeTitle(titleInput);
+
+        // Clear old content
+        document.getElementById("contentItems").innerHTML = "";
+        lineCounter = 0;
+
+        // Insert paragraphs
+        paragraphs.forEach(text => {
+            if (!text.trim()) return;
+            lineCounter++;
+            const contentItem = document.createElement("div");
+            contentItem.className = "content-item";
+            contentItem.innerHTML = `
+                <div class="content-line" data-line="${lineCounter}">
+                    <div class="content-editable" contenteditable="true">${text}</div>
+                    <div class="line-actions">
+                        <button class="line-btn" onclick="deleteLine(this)" title="Delete line">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.getElementById("contentItems").appendChild(contentItem);
+        });
+
+        document.getElementById("appContainer").scrollTo({ top: 0, behavior: "smooth" });
+        showNotification("Trending article generated! ⚡", "success");
+
+    } catch (error) {
+        console.error(error);
+        showNotification("Failed to fetch news. Check your connection.", "error");
+    } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+    }
+}
+
+function addNewParagraph() {
+    lineCounter++;
+    const contentItem = document.createElement('div');
+    contentItem.className = 'content-item';
+    contentItem.innerHTML = `
+        <div class="content-line" data-line="${lineCounter}">
+            <div class="content-editable" contenteditable="true"></div>
+            <div class="line-actions">
+                <button class="line-btn" onclick="deleteLine(this)" title="Delete line">
+                    <i class="fas fa-trash"></i>
                 </button>
             </div>
         </div>
-    </div>
+    `;
+    document.getElementById('contentItems').appendChild(contentItem);
+    contentItem.querySelector('.content-editable').focus();
+}
 
-    <div class="footer-bar">
-        <button class="footer-btn" onclick="window.location.href='index.html'">
-            <i class="fas fa-home"></i>
-            <span>Home</span>
-        </button>
-        <button class="footer-btn active" onclick="window.location.href='https://patholytica.com/dailyfeed'">
-            <i class="fas fa-scroll"></i>
-            <span>Feed</span>
-        </button>
-        <button class="footer-btn" onclick="window.location.href='explore.html'">
-            <i class="fas fa-search"></i>
-            <span>Explore</span>
-        </button>
-        <button class="footer-btn" onclick="window.location.href='profile.html'">
-            <i class="fas fa-user"></i>
-            <span>Profile</span>
-        </button>
-    </div>
+function deleteLine(btn) {
+    const contentItem = btn.closest('.content-item');
+    const allItems = document.querySelectorAll('.content-item .content-line');
+    if (allItems.length > 1) {
+        contentItem.remove();
+    } else {
+        showNotification('Cannot delete the last line', 'error');
+    }
+}
 
-    <script>
-        if (localStorage.getItem("theme") === "light") {
-            document.body.classList.add("light-theme");
-        }
-    </script>
+function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const contentItem = document.createElement('div');
+        contentItem.className = 'content-item';
+        contentItem.innerHTML = `
+            <div class="media-embed">
+                <button class="remove-media-btn" onclick="removeMedia(this)"><i class="fas fa-times"></i></button>
+                <img src="${e.target.result}" alt="Uploaded image">
+                <div class="media-caption" contenteditable="true"></div>
+            </div>
+        `;
+        document.getElementById('contentItems').appendChild(contentItem);
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+}
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import {
-            getAuth,
-            onAuthStateChanged
-        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
-            authDomain: "patholytica.firebaseapp.com",
-            databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "patholytica",
-            storageBucket: "patholytica.firebasestorage.app",
-            messagingSenderId: "738430635282",
-            appId: "1:738430635282:web:8451ef380447c7611137cb"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-
-        const supabase = window.supabase.createClient(
-            "https://vduqewqyvszfquntmark.supabase.co",
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
-        );
-
-        let articles = [];
-        let userLikes = new Set();
-        let currentArticleId = null;
-        let currentIndex = 0;
-        let isLoading = false;
-        let hasMore = true;
-        let offset = 0;
-        const LIMIT = 10;
-        let currentUser = null;
-
-        let viewTimers = {};
-        let viewedArticles = new Set();
-
-        function formatNumber(num) {
-            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-            return (num || 0).toString();
-        }
-
-        async function getCurrentUser() {
-            try {
-                const firebaseUser = auth.currentUser;
-                if (!firebaseUser) return null;
-                const { data: userData, error } = await supabase
-                    .from('users')
-                    .select('user_id, firebase_uid, username')
-                    .eq('firebase_uid', firebaseUser.uid)
-                    .single();
-                if (error) return null;
-                return userData;
-            } catch (error) {
-                console.error('Error getting current user:', error);
-                return null;
-            }
-        }
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = await getCurrentUser();
-                if (currentUser) await loadUserLikes();
-            } else {
-                currentUser = null;
-                userLikes.clear();
-            }
-        });
-
-        async function loadUserLikes() {
-            if (!currentUser) return;
-            try {
-                const { data: likes, error } = await supabase
-                    .from('likes')
-                    .select('article_id')
-                    .eq('user_id', currentUser.user_id);
-                if (error) throw error;
-                userLikes.clear();
-                likes.forEach(like => userLikes.add(like.article_id));
-                updateLikeButtons();
-            } catch (error) {
-                console.error('Error loading user likes:', error);
-            }
-        }
-
-        function updateLikeButtons() {
-            document.querySelectorAll('.like-btn').forEach(btn => {
-                const articleId = btn.dataset.id;
-                if (userLikes.has(articleId)) btn.classList.add('liked');
-                else btn.classList.remove('liked');
-            });
-        }
-
-        async function loadArticles(isInitial = true) {
-            if (isLoading || (!isInitial && !hasMore)) return;
-            isLoading = true;
-
-            try {
-                const { data: articlesData, error: articlesError } = await supabase
-                    .from('articles')
-                    .select('*')
-                    .order('created_at', { ascending: false })
-                    .range(offset, offset + LIMIT - 1);
-
-                if (articlesError) throw articlesError;
-
-                if (!articlesData || articlesData.length === 0) {
-                    if (isInitial) {
-                        document.getElementById('postsWrapper').innerHTML = `
-                            <div class="loading-container">
-                                <i class="fas fa-inbox" style="font-size: 48px;"></i>
-                                <div>No articles found</div>
-                            </div>`;
-                    }
-                    hasMore = false;
-                    isLoading = false;
-                    return;
-                }
-
-                if (articlesData.length < LIMIT) hasMore = false;
-                offset += articlesData.length;
-
-                const userIds = [...new Set(articlesData.map(a => a.firebase_user_id).filter(id => id))];
-                let usersData = [];
-                if (userIds.length > 0) {
-                    const { data: users } = await supabase
-                        .from('users')
-                        .select('firebase_uid, username, full_name, pfp')
-                        .in('firebase_uid', userIds);
-                    usersData = users || [];
-                }
-
-                const articleIds = articlesData.map(a => a.id);
-                const { data: mediaData } = await supabase
-                    .from('media')
-                    .select('*')
-                    .in('article_id', articleIds)
-                    .order('display_order', { ascending: true });
-
-                const newArticles = articlesData.map(article => {
-                    const user = usersData?.find(u => u.firebase_uid === article.firebase_user_id);
-                    const articleMedia = mediaData?.filter(m => m.article_id === article.id) || [];
-                    return {
-                        ...article,
-                        author: user?.username ? `@${user.username}` : (user?.full_name || 'Anonymous'),
-                        authorPfp: user?.pfp || null,
-                        authorUsername: user?.username || null,
-                        media: articleMedia
-                    };
-                });
-
-                articles = [...articles, ...newArticles];
-                renderArticles(isInitial);
-                isLoading = false;
-
-            } catch (error) {
-                console.error('Error loading articles:', error);
-                if (isInitial) {
-                    document.getElementById('postsWrapper').innerHTML = `
-                        <div class="loading-container">
-                            <i class="fas fa-exclamation-triangle" style="font-size: 48px;"></i>
-                            <div>Failed to load articles</div>
-                        </div>`;
-                }
-                isLoading = false;
-            }
-        }
-
-        function createMediaElement(mediaItem) {
-            const mediaDiv = document.createElement('div');
-            mediaDiv.className = 'media-embed';
-
-            if (mediaItem.type === 'image') {
-                mediaDiv.innerHTML = `
-                    <img src="${mediaItem.url}" alt="${mediaItem.caption || 'Article image'}">
-                    ${mediaItem.caption ? `<div class="media-caption">${mediaItem.caption}</div>` : ''}
-                `;
-            } else if (mediaItem.type === 'audio') {
-                const audioId = 'audio-' + Math.random().toString(36).substr(2, 9);
-                mediaDiv.innerHTML = `
-                    <div class="custom-audio-player">
-                        <button class="play-btn" onclick="toggleAudio(this, '${audioId}')">
-                            <i class="fas fa-play"></i>
-                        </button>
-                        <div class="audio-info">
-                            <div class="audio-title">${mediaItem.caption || 'Audio'}</div>
-                            <div class="waveform-container" onclick="seekAudio(event, this, '${audioId}')">
-                                <div class="waveform-progress"></div>
-                                <div class="waveform-bars">
-                                    ${Array(15).fill(0).map(() => `<div class="waveform-bar" style="height: ${Math.random() * 60 + 20}%"></div>`).join('')}
-                                </div>
-                            </div>
-                            <div class="audio-time">
-                                <span class="current-time">0:00</span>
-                                <span class="duration">0:00</span>
-                            </div>
+function handleAudioUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const audioId = 'audio-' + Math.random().toString(36).substr(2, 9);
+        const contentItem = document.createElement('div');
+        contentItem.className = 'content-item';
+        contentItem.innerHTML = `
+            <div class="media-embed">
+                <button class="remove-media-btn" onclick="removeMedia(this)"><i class="fas fa-times"></i></button>
+                <div class="custom-audio-player">
+                    <button class="play-btn" onclick="toggleAudio(this, '${audioId}')"><i class="fas fa-play"></i></button>
+                    <div class="audio-info">
+                        <div class="audio-title">${file.name}</div>
+                        <div class="waveform-container" onclick="seekAudio(event, this, '${audioId}')">
+                            <div class="waveform-progress"></div>
+                            <div class="waveform-bars">${Array(15).fill(0).map(() => `<div class="waveform-bar" style="height:${Math.random()*60+20}%"></div>`).join('')}</div>
                         </div>
-                        <audio id="${audioId}" src="${mediaItem.url}" style="display: none;"></audio>
+                        <div class="audio-time"><span class="current-time">0:00</span><span class="duration">0:00</span></div>
                     </div>
-                    ${mediaItem.caption ? `<div class="media-caption">${mediaItem.caption}</div>` : ''}
-                `;
-                setTimeout(() => {
-                    const audio = document.getElementById(audioId);
-                    if (audio) {
-                        audio.addEventListener('loadedmetadata', function () {
-                            const duration = Math.floor(audio.duration);
-                            const mins = Math.floor(duration / 60);
-                            const secs = duration % 60;
-                            const durationSpan = audio.closest('.custom-audio-player').querySelector('.duration');
-                            if (durationSpan) durationSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
-                        });
-                    }
-                }, 100);
-            }
-
-            return mediaDiv;
-        }
-
-        function getAvatarContent(article) {
-            if (article.authorPfp) return `<img src="${article.authorPfp}" alt="${article.author}">`;
-            let letter = 'A';
-            if (article.authorUsername) {
-                letter = article.authorUsername.charAt(0).toUpperCase();
-            } else if (article.author) {
-                const atIndex = article.author.indexOf('@');
-                letter = atIndex !== -1 && article.author.length > atIndex + 1
-                    ? article.author.charAt(atIndex + 1).toUpperCase()
-                    : article.author.charAt(0).toUpperCase();
-            }
-            return letter;
-        }
-
-        function renderArticles(isInitial = true) {
-            const wrapper = document.getElementById('postsWrapper');
-
-            if (isInitial) {
-                wrapper.innerHTML = '';
-            } else {
-                const loadingMore = wrapper.querySelector('.loading-more');
-                if (loadingMore) loadingMore.remove();
-            }
-
-            const startIndex = isInitial ? 0 : articles.length - LIMIT;
-            const endIndex = articles.length;
-
-            for (let index = startIndex; index < endIndex; index++) {
-                const article = articles[index];
-                const articleDiv = document.createElement('div');
-                articleDiv.className = 'article-card';
-                articleDiv.dataset.index = index;
-                articleDiv.dataset.articleId = article.id;
-
-                const contentDiv = document.createElement('div');
-                contentDiv.className = 'article-content';
-
-                const paragraphs = (article.content || 'No content available').split('\n\n');
-                paragraphs.forEach((paragraph, pIndex) => {
-                    if (paragraph.trim()) {
-                        const p = document.createElement('div');
-                        p.className = 'content-paragraph';
-                        p.textContent = paragraph.trim();
-                        contentDiv.appendChild(p);
-
-                        if (article.media && article.media.length > 0) {
-                            article.media.filter(m => m.display_order === pIndex)
-                                .forEach(m => contentDiv.appendChild(createMediaElement(m)));
-                        }
-                    }
-                });
-
-                if (article.media) {
-                    article.media.filter(m => m.display_order >= paragraphs.length)
-                        .forEach(m => contentDiv.appendChild(createMediaElement(m)));
-                }
-
-                const isLiked = userLikes.has(article.id);
-                const avatarContent = getAvatarContent(article);
-
-                articleDiv.innerHTML = `
-                    <div class="card-top-line"></div>
-
-                    <div class="article-header">
-                        <div class="author-avatar">${avatarContent}</div>
-                        <div class="author-info">
-                            <div class="author-name">${article.author}</div>
-                            <div class="article-date">${formatDate(new Date(article.created_at))}</div>
-                        </div>
-                    </div>
-
-                    <div class="header-bottom-line"></div>
-
-                    <div class="article-title">${article.title || 'Untitled'}</div>
-
-                    <div class="article-stats">
-                        <div class="stat-item views">
-                            <i class="fas fa-eye"></i>
-                            <span>${formatNumber(article.views || 0)}</span>
-                        </div>
-                        <div class="stat-item likes">
-                            <i class="fas fa-heart"></i>
-                            <span>${formatNumber(article.likes || 0)}</span>
-                        </div>
-                    </div>
-
-                    <div class="action-buttons">
-                        <button class="action-btn like-btn ${isLiked ? 'liked' : ''}" data-id="${article.id}">
-                            <svg viewBox="0 0 24 24">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                            </svg>
-                            <span class="like-count">${article.likes || 0}</span>
-                        </button>
-
-                        <button class="action-btn comment-btn" data-id="${article.id}">
-                            <svg viewBox="0 0 24 24">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                            </svg>
-                            <span class="comment-count">0</span>
-                        </button>
-
-                        <button class="action-btn expand-btn" data-id="${article.id}">
-                            <svg viewBox="0 0 24 24">
-                                <polyline points="15 3 21 3 21 9"></polyline>
-                                <polyline points="9 21 3 21 3 15"></polyline>
-                                <line x1="21" y1="3" x2="14" y2="10"></line>
-                                <line x1="3" y1="21" x2="10" y2="14"></line>
-                            </svg>
-                            <span>Open</span>
-                        </button>
-                    </div>
-                `;
-
-                articleDiv.querySelector('.article-stats').insertAdjacentElement('afterend', contentDiv);
-                wrapper.appendChild(articleDiv);
-            }
-
-            if (hasMore) {
-                const loadingDiv = document.createElement('div');
-                loadingDiv.className = 'article-card loading-more';
-                loadingDiv.innerHTML = `<div class="spinner"></div><span>Loading more...</span>`;
-                wrapper.appendChild(loadingDiv);
-            }
-
-            document.querySelectorAll('.like-btn').forEach(btn => btn.addEventListener('click', handleLike));
-            document.querySelectorAll('.comment-btn').forEach(btn => btn.addEventListener('click', handleComments));
-            document.querySelectorAll('.expand-btn').forEach(btn => btn.addEventListener('click', handleExpand));
-
-            if (isInitial) {
-                wrapper.addEventListener('scroll', handleScroll);
-                loadCommentCounts();
-                setupIntersectionObserver();
-            }
-        }
-
-        function setupIntersectionObserver() {
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    const articleId = entry.target.dataset.articleId;
-                    if (entry.isIntersecting && entry.intersectionRatio >= 0.75) {
-                        startViewTimer(articleId);
-                    } else {
-                        clearViewTimer(articleId);
-                    }
-                });
-            }, { threshold: [0.75] });
-
-            document.querySelectorAll('.article-card').forEach(card => {
-                if (card.dataset.articleId) observer.observe(card);
-            });
-        }
-
-        function startViewTimer(articleId) {
-            if (viewedArticles.has(articleId) || viewTimers[articleId]) return;
-            viewTimers[articleId] = setTimeout(async () => {
-                await incrementView(articleId);
-            }, 5000);
-        }
-
-        function clearViewTimer(articleId) {
-            if (viewTimers[articleId]) {
-                clearTimeout(viewTimers[articleId]);
-                delete viewTimers[articleId];
-            }
-        }
-
-        async function incrementView(articleId) {
-            if (viewedArticles.has(articleId)) return;
-            try {
-                viewedArticles.add(articleId);
-                const { data: article, error: fetchError } = await supabase
-                    .from('articles').select('views').eq('id', articleId).single();
-                if (fetchError) throw fetchError;
-                const newViews = (article.views || 0) + 1;
-                const { error: updateError } = await supabase
-                    .from('articles').update({ views: newViews }).eq('id', articleId);
-                if (updateError) throw updateError;
-                const articleIndex = articles.findIndex(a => a.id === articleId);
-                if (articleIndex !== -1) articles[articleIndex].views = newViews;
-                // Update the displayed view count live
-                const card = document.querySelector(`.article-card[data-article-id="${articleId}"]`);
-                if (card) {
-                    const viewSpan = card.querySelector('.stat-item.views span');
-                    if (viewSpan) viewSpan.textContent = formatNumber(newViews);
-                }
-            } catch (error) {
-                console.error('Error incrementing view:', error);
-                viewedArticles.delete(articleId);
-            }
-        }
-
-        async function loadCommentCounts() {
-            try {
-                const { data: comments, error } = await supabase.from('comments').select('article_id');
-                if (error) throw error;
-                const counts = {};
-                comments.forEach(comment => {
-                    counts[comment.article_id] = (counts[comment.article_id] || 0) + 1;
-                });
-                document.querySelectorAll('.comment-btn').forEach(btn => {
-                    btn.querySelector('.comment-count').textContent = counts[btn.dataset.id] || 0;
-                });
-            } catch (error) {
-                console.error('Error loading comment counts:', error);
-            }
-        }
-
-        function formatDate(date) {
-            const now = new Date();
-            const diffMs = now - date;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMs / 3600000);
-            const diffDays = Math.floor(diffMs / 86400000);
-            if (diffMins < 60) return `${diffMins}m ago`;
-            if (diffHours < 24) return `${diffHours}h ago`;
-            if (diffDays < 7) return `${diffDays}d ago`;
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }
-
-        async function handleLike(e) {
-            const articleId = e.currentTarget.dataset.id;
-            const btn = e.currentTarget;
-            const countSpan = btn.querySelector('.like-count');
-            const article = articles.find(a => a.id === articleId);
-            if (!article) return;
-
-            if (!currentUser) {
-                alert('Please log in to like articles');
-                window.location.href = 'https://patholytica.com/login';
-                return;
-            }
-
-            const wasLiked = userLikes.has(articleId);
-            const originalCount = article.likes || 0;
-
-            if (wasLiked) {
-                userLikes.delete(articleId);
-                btn.classList.remove('liked');
-                article.likes = Math.max(0, originalCount - 1);
-            } else {
-                userLikes.add(articleId);
-                btn.classList.add('liked');
-                article.likes = originalCount + 1;
-            }
-            countSpan.textContent = article.likes;
-
-            // Update inline stats too
-            const card = btn.closest('.article-card');
-            if (card) {
-                const likeStatSpan = card.querySelector('.stat-item.likes span');
-                if (likeStatSpan) likeStatSpan.textContent = formatNumber(article.likes);
-            }
-
-            try {
-                if (wasLiked) {
-                    const { error } = await supabase.from('likes').delete()
-                        .eq('article_id', articleId).eq('user_id', currentUser.user_id);
-                    if (error) throw error;
-                } else {
-                    const { error } = await supabase.from('likes')
-                        .insert([{ article_id: articleId, user_id: currentUser.user_id }]);
-                    if (error) throw error;
-                }
-                await supabase.from('articles').update({ likes: article.likes }).eq('id', articleId);
-            } catch (error) {
-                console.error('Error updating like:', error);
-                if (wasLiked) { userLikes.add(articleId); btn.classList.add('liked'); }
-                else { userLikes.delete(articleId); btn.classList.remove('liked'); }
-                article.likes = originalCount;
-                countSpan.textContent = article.likes;
-                const card2 = btn.closest('.article-card');
-                if (card2) {
-                    const likeStatSpan = card2.querySelector('.stat-item.likes span');
-                    if (likeStatSpan) likeStatSpan.textContent = formatNumber(originalCount);
-                }
-                alert('Failed to update like. Please try again.');
-            }
-        }
-
-        async function handleComments(e) {
-            const articleId = e.currentTarget.dataset.id;
-            currentArticleId = articleId;
-            await loadComments(articleId);
-            openComments();
-        }
-
-        async function loadComments(articleId) {
-            const commentsList = document.getElementById('commentsList');
-            commentsList.innerHTML = '<div class="loading-container"><div class="spinner" style="width: 32px; height: 32px; border-width: 3px;"></div></div>';
-
-            try {
-                const { data: comments, error } = await supabase
-                    .from('comments').select('*').eq('article_id', articleId)
-                    .order('created_at', { ascending: true });
-                if (error) throw error;
-
-                if (!comments || comments.length === 0) {
-                    commentsList.innerHTML = `
-                        <div class="no-comments">
-                            <i class="fas fa-comments"></i>
-                            <div>No comments yet</div>
-                            <div style="font-size: 12px;">Be the first to comment!</div>
-                        </div>`;
-                    return;
-                }
-
-                const userIds = [...new Set(comments.map(c => c.user_id).filter(id => id))];
-                let usersMap = {};
-                if (userIds.length > 0) {
-                    const { data: users } = await supabase
-                        .from('users').select('user_id, username, full_name, pfp').in('user_id', userIds);
-                    if (users) users.forEach(user => { usersMap[user.user_id] = user; });
-                }
-
-                commentsList.innerHTML = comments.map(comment => {
-                    const user = usersMap[comment.user_id];
-                    const author = user?.username ? `@${user.username}` : (user?.full_name || 'Anonymous');
-                    let avatarContent;
-                    if (user?.pfp) {
-                        avatarContent = `<img src="${user.pfp}" alt="${author}">`;
-                    } else {
-                        let letter = 'A';
-                        if (user?.username) letter = user.username.charAt(0).toUpperCase();
-                        else if (author) {
-                            const atIndex = author.indexOf('@');
-                            letter = atIndex !== -1 && author.length > atIndex + 1
-                                ? author.charAt(atIndex + 1).toUpperCase()
-                                : author.charAt(0).toUpperCase();
-                        }
-                        avatarContent = letter;
-                    }
-                    return `
-                        <div class="comment-item">
-                            <div class="comment-avatar">${avatarContent}</div>
-                            <div class="comment-content">
-                                <div class="comment-author">${author}</div>
-                                <div class="comment-text">${comment.comment_text}</div>
-                                <div class="comment-time">${formatDate(new Date(comment.created_at))}</div>
-                            </div>
-                        </div>`;
-                }).join('');
-
-            } catch (error) {
-                console.error('Error loading comments:', error);
-                commentsList.innerHTML = `
-                    <div class="no-comments">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <div>Failed to load comments</div>
-                    </div>`;
-            }
-        }
-
-        window.openComments = function () {
-            document.getElementById('commentsPopup').classList.add('active');
-            document.getElementById('commentsOverlay').classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        window.closeComments = function () {
-            document.getElementById('commentsPopup').classList.remove('active');
-            document.getElementById('commentsOverlay').classList.remove('active');
-            document.body.style.overflow = '';
-        }
-
-        window.sendComment = async function () {
-            const input = document.getElementById('commentInput');
-            const text = input.value.trim();
-            if (!text || !currentArticleId) return;
-
-            const sendBtn = document.getElementById('sendCommentBtn');
-            sendBtn.disabled = true;
-
-            try {
-                if (!currentUser) currentUser = await getCurrentUser();
-                if (!currentUser) {
-                    window.location.href = 'https://patholytica.com/login';
-                    return;
-                }
-
-                const { data, error } = await supabase.from('comments')
-                    .insert([{ article_id: currentArticleId, user_id: currentUser.user_id, comment_text: text }])
-                    .select();
-                if (error) throw error;
-
-                input.value = '';
-                await loadComments(currentArticleId);
-
-                const commentBtn = document.querySelector(`.comment-btn[data-id="${currentArticleId}"]`);
-                if (commentBtn) {
-                    const countSpan = commentBtn.querySelector('.comment-count');
-                    countSpan.textContent = parseInt(countSpan.textContent) + 1;
-                }
-            } catch (error) {
-                console.error('Error posting comment:', error);
-                alert('Failed to post comment. Please try again.');
-            } finally {
-                sendBtn.disabled = false;
-            }
-        }
-
-        document.getElementById('commentInput').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') window.sendComment();
-        });
-
-        function handleExpand(e) {
-            window.location.href = `article.html?id=${e.currentTarget.dataset.id}`;
-        }
-
-        function handleScroll(e) {
-            const container = e.target;
-            if (container.scrollTop + container.clientHeight >= container.scrollHeight * 0.8 && hasMore && !isLoading) {
-                loadArticles(false);
-            }
-        }
-
-        loadArticles(true);
-    </script>
-
-    <script>
-        window.toggleAudio = function (btn, audioId) {
-            const player = btn.closest('.custom-audio-player');
+                    <audio id="${audioId}" src="${e.target.result}" style="display:none;"></audio>
+                </div>
+                <div class="media-caption" contenteditable="true"></div>
+            </div>
+        `;
+        document.getElementById('contentItems').appendChild(contentItem);
+        setTimeout(() => {
             const audio = document.getElementById(audioId);
-            const icon = btn.querySelector('i');
-            if (audio.paused) {
-                audio.play();
-                icon.className = 'fas fa-pause';
-                audio.ontimeupdate = function () {
-                    const progress = (audio.currentTime / audio.duration) * 100;
-                    player.querySelector('.waveform-progress').style.width = progress + '%';
-                    const currentMins = Math.floor(audio.currentTime / 60);
-                    const currentSecs = Math.floor(audio.currentTime % 60);
-                    player.querySelector('.current-time').textContent = `${currentMins}:${currentSecs.toString().padStart(2, '0')}`;
-                };
-                audio.onended = function () {
-                    icon.className = 'fas fa-play';
-                    player.querySelector('.waveform-progress').style.width = '0%';
-                    player.querySelector('.current-time').textContent = '0:00';
-                };
-            } else {
-                audio.pause();
-                icon.className = 'fas fa-play';
+            if (audio) {
+                audio.addEventListener('loadedmetadata', function() {
+                    const d = Math.floor(audio.duration);
+                    const m = Math.floor(d/60), s = d%60;
+                    const span = audio.closest('.custom-audio-player').querySelector('.duration');
+                    if (span) span.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+                });
             }
-        };
+        }, 100);
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+}
 
-        window.seekAudio = function (event, container, audioId) {
-            const audio = document.getElementById(audioId);
-            const rect = container.getBoundingClientRect();
-            const percentage = (event.clientX - rect.left) / rect.width;
-            audio.currentTime = percentage * audio.duration;
+function removeMedia(btn) { btn.closest('.content-item').remove(); }
+
+function toggleAudio(btn, audioId) {
+    const player = btn.closest('.custom-audio-player');
+    const audio = document.getElementById(audioId);
+    const icon = btn.querySelector('i');
+    if (audio.paused) {
+        audio.play(); icon.className = 'fas fa-pause';
+        audio.ontimeupdate = function() {
+            const p = (audio.currentTime / audio.duration) * 100;
+            player.querySelector('.waveform-progress').style.width = p + '%';
+            const cm = Math.floor(audio.currentTime / 60), cs = Math.floor(audio.currentTime % 60);
+            player.querySelector('.current-time').textContent = `${cm}:${cs.toString().padStart(2,'0')}`;
         };
-    </script>
+        audio.onended = function() {
+            icon.className = 'fas fa-play';
+            player.querySelector('.waveform-progress').style.width = '0%';
+            player.querySelector('.current-time').textContent = '0:00';
+        };
+    } else {
+        audio.pause(); icon.className = 'fas fa-play';
+    }
+}
+
+function seekAudio(event, container, audioId) {
+    const audio = document.getElementById(audioId);
+    const rect = container.getBoundingClientRect();
+    audio.currentTime = ((event.clientX - rect.left) / rect.width) * audio.duration;
+}
+
+function showNotification(message, type = 'success') {
+    const notification = document.getElementById('notification');
+    const notificationText = document.getElementById('notificationText');
+    const icon = notification.querySelector('i');
+    notificationText.textContent = message;
+    notification.className = `notification ${type} show`;
+    icon.className = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+    icon.style.color = type === 'success' ? 'var(--success)' : 'var(--error)';
+    setTimeout(() => notification.classList.remove('show'), 4000);
+}
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+    authDomain: "patholytica.firebaseapp.com",
+    databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "patholytica",
+    storageBucket: "patholytica.firebasestorage.app",
+    messagingSenderId: "738430635282",
+    appId: "1:738430635282:web:8451ef380447c7611137cb"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+let currentUser = null;
+
+const supabase = window.supabase.createClient(
+    "https://vduqewqyvszfquntmark.supabase.co",
+    "sb_publishable_YseP73aoHam8YT6B0b9EQQ_iAUEWARI"
+);
+
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        currentUser = user;
+    } else {
+        window.location.href = 'login.html';
+    }
+});
+
+window.publishArticle = async function() {
+    if (!currentUser) { showNotification('Please log in to publish articles', 'error'); return; }
+
+    const title = document.getElementById('articleTitle').value.trim();
+    if (!title) { showNotification('Please add a title', 'error'); return; }
+
+    const contentLines = [];
+    const mediaItems = [];
+
+    document.querySelectorAll('.content-line').forEach(line => {
+        const text = line.querySelector('.content-editable').textContent.trim();
+        if (text) contentLines.push(text);
+    });
+
+    document.querySelectorAll('.media-embed').forEach((media, index) => {
+        const img = media.querySelector('img');
+        const audio = media.querySelector('audio');
+        const caption = media.querySelector('.media-caption')?.textContent.trim() || '';
+        if (img) mediaItems.push({ type: 'image', src: img.src, caption, order: index });
+        else if (audio) mediaItems.push({ type: 'audio', src: audio.src, caption, order: index });
+    });
+
+    const content = contentLines.join('\n\n');
+    if (!content) { showNotification('Please add some content', 'error'); return; }
+
+    const publishBtn = document.getElementById('publishBtn');
+    publishBtn.disabled = true;
+    publishBtn.textContent = 'Publishing...';
+
+    try {
+        let { data: userData, error: userError } = await supabase
+            .from('users').select('firebase_uid').eq('firebase_uid', currentUser.uid).single();
+
+        if (userError && userError.code !== 'PGRST116') throw new Error('Error looking up user: ' + userError.message);
+
+        if (!userData) {
+            let { data: emailUser } = await supabase.from('users').select('firebase_uid, username, email').eq('email', currentUser.email).single();
+            if (emailUser) {
+                await supabase.from('users').update({ firebase_uid: currentUser.uid, username: emailUser.username || currentUser.email?.split('@')[0], full_name: currentUser.displayName || currentUser.email?.split('@')[0] }).eq('email', currentUser.email);
+            } else {
+                await supabase.from('users').insert([{ firebase_uid: currentUser.uid, email: currentUser.email, full_name: currentUser.displayName || currentUser.email?.split('@')[0], username: currentUser.email?.split('@')[0] || 'user' }]);
+            }
+        }
+
+        const { data: article, error: articleError } = await supabase
+            .from('articles')
+            .insert([{ title, content, firebase_user_id: currentUser.uid, views: 0, likes: 0 }])
+            .select().single();
+
+        if (articleError) throw articleError;
+
+        if (mediaItems.length > 0) {
+            await supabase.from('media').insert(mediaItems.map(item => ({ article_id: article.id, type: item.type, url: item.src, caption: item.caption, display_order: item.order })));
+        }
+
+        showNotification('Article published successfully!', 'success');
+        setTimeout(() => { window.location.href = `article.html?id=${article.id}`; }, 1500);
+
+    } catch (error) {
+        console.error('Error publishing article:', error);
+        showNotification('Error publishing: ' + error.message, 'error');
+        publishBtn.disabled = false;
+        publishBtn.textContent = 'Publish';
+    }
+};
+</script>
+
 </body>
 </html>
