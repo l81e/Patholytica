@@ -1,1226 +1,785 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Patholytica — Create Article</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root {
-            --bg-color: #1f1f1f;
-            --text-primary: #fff;
-            --text-secondary: #aaa;
-            --card-bg: #1f1f1f;
-            --hover-bg: #2a2a2a;
-            --border-color: #303030;
-            --accent: #3ea6ff;
-            --accent-hover: #2d8ed6;
-            --success: #2ecc71;
-            --error: #e74c3c;
-            --ai-color: #a855f7;
-            --ai-hover: #9333ea;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Patholytica</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body.light-theme {
-            --bg-color: #f9f9f9;
-            --text-primary: #0f0f0f;
-            --text-secondary: #606060;
-            --card-bg: #f9f9f9;
-            --hover-bg: #f0f0f0;
-            --border-color: #e5e5e5;
-            --accent: #065fd4;
-            --accent-hover: #0448a3;
-            --success: #27ae60;
-            --error: #c0392b;
-            --ai-color: #7c3aed;
-            --ai-hover: #6d28d9;
-        }
+:root {
+  --bg: #0f0f0f;
+  --surface: #212121;
+  --surface2: #272727;
+  --text: #f1f1f1;
+  --muted: #aaa;
+  --border: #303030;
+  --accent: #3ea6ff;
+}
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Roboto", Arial, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-color);
-            color: var(--text-primary);
-            transition: background 0.2s ease, color 0.2s ease;
-        }
+/* ── Header ── */
+.header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 56px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 100;
+  padding-top: env(safe-area-inset-top);
+}
 
-        .app-container {
-            position: fixed;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            max-width: 450px;
-            height: 100vh;
-            background: var(--bg-color);
-            overflow-y: auto;
-        }
+.logo {
+  height: 26px;
+  cursor: pointer;
+  filter: brightness(1);
+}
 
-        .app-container::-webkit-scrollbar { width: 4px; }
-        .app-container::-webkit-scrollbar-track { background: var(--border-color); }
-        .app-container::-webkit-scrollbar-thumb { background: var(--text-secondary); border-radius: 2px; }
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-        .header-bar {
-            position: sticky;
-            top: 0;
-            background: var(--bg-color);
-            border-bottom: 1px solid var(--border-color);
-            padding: 12px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            z-index: 50;
-        }
+.icon-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: none; border: none;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.icon-btn:hover { background: var(--surface2); }
 
-        .back-btn {
-            width: 36px; height: 36px;
-            border-radius: 50%;
-            background: var(--hover-bg);
-            border: none;
-            color: var(--text-primary);
-            cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 18px;
-            transition: background 0.2s ease;
-        }
-        .back-btn:hover { background: var(--border-color); }
+.auth-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+  background: none;
+  color: var(--accent);
+  font-size: 14px; font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.auth-pill:hover { background: rgba(62,166,255,0.1); }
 
-        .header-actions { display: flex; gap: 12px; align-items: center; }
+.user-chip {
+  display: none;
+  align-items: center; gap: 8px;
+  font-size: 14px; color: var(--text);
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 20px;
+  transition: background 0.15s;
+}
+.user-chip:hover { background: var(--surface2); }
+.user-chip.show { display: flex; }
 
-        .icon-btn {
-            width: 36px; height: 36px;
-            border-radius: 50%;
-            background: var(--hover-bg);
-            border: none;
-            color: var(--text-primary);
-            cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 16px;
-            transition: background 0.2s ease;
-        }
-        .icon-btn:hover { background: var(--border-color); }
+/* ── Chip filters ── */
+.chip-row {
+  position: fixed;
+  top: 56px; left: 0; right: 0;
+  background: var(--bg);
+  padding: 12px 16px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  z-index: 90;
+  border-bottom: 1px solid var(--border);
+}
+.chip-row::-webkit-scrollbar { display: none; }
 
-        .publish-btn {
-            padding: 8px 20px;
-            border-radius: 24px;
-            background: var(--accent);
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-        .publish-btn:hover { background: var(--accent-hover); }
-        .publish-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.chip {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.chip:hover { background: var(--surface2); }
+.chip.active { background: var(--text); color: var(--bg); }
 
-        /* AI Generate Button */
-        .ai-generate-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 18px;
-            border-radius: 24px;
-            background: linear-gradient(135deg, #a855f7, #6366f1);
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 12px rgba(168,85,247,0.35);
-            width: 100%;
-            justify-content: center;
-            margin-bottom: 16px;
-        }
-        .ai-generate-btn:hover {
-            background: linear-gradient(135deg, #9333ea, #4f46e5);
-            box-shadow: 0 4px 20px rgba(168,85,247,0.5);
-            transform: translateY(-1px);
-        }
-        .ai-generate-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .ai-generate-btn i { font-size: 16px; }
+/* ── Main grid ── */
+.main {
+  padding-top: calc(56px + 52px + env(safe-area-inset-top));
+  padding-bottom: calc(56px + env(safe-area-inset-bottom));
+  max-width: 1280px;
+  margin: 0 auto;
+}
 
-        /* Topics Modal */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 200;
-            display: none;
-            align-items: flex-end;
-            justify-content: center;
-        }
-        .modal-overlay.show { display: flex; }
+/* ── Section label ── */
+.section-label {
+  font-size: 16px;
+  font-weight: 600;
+  padding: 16px 16px 0;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
 
-        .topics-modal {
-            background: var(--card-bg);
-            border-radius: 20px 20px 0 0;
-            padding: 24px 20px;
-            width: 100%;
-            max-width: 450px;
-            max-height: 85vh;
-            overflow-y: auto;
-            animation: slideUp 0.3s ease;
-            border-top: 1px solid var(--border-color);
-        }
-        @keyframes slideUp {
-            from { transform: translateY(100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
+/* ── Video-style grid ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0;
+  padding: 12px 8px;
+}
 
-        .modal-handle {
-            width: 40px; height: 4px;
-            background: var(--border-color);
-            border-radius: 2px;
-            margin: 0 auto 20px;
-        }
+.card {
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 0;
+  transition: none;
+}
+.card:hover .card-thumb { filter: brightness(0.85); }
 
-        .modal-title {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .modal-title span.badge {
-            font-size: 11px;
-            padding: 3px 8px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #a855f7, #6366f1);
-            color: white;
-            font-weight: 600;
-        }
+.card-thumb {
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+  position: relative;
+  transition: filter 0.2s;
+}
 
-        .modal-subtitle {
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-bottom: 20px;
-        }
+.card-thumb img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
 
-        .topics-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
+/* placeholder when no image */
+.thumb-placeholder {
+  width: 100%; height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.9);
+  background: linear-gradient(135deg, #1a73e8 0%, #6c3de8 100%);
+  user-select: none;
+}
 
-        .topic-card {
-            padding: 14px;
-            border-radius: 12px;
-            background: var(--hover-bg);
-            border: 2px solid transparent;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        .topic-card:hover { background: var(--border-color); }
-        .topic-card.selected {
-            border-color: var(--ai-color);
-            background: rgba(168,85,247,0.1);
-        }
+/* audio badge */
+.audio-badge {
+  position: absolute;
+  bottom: 8px; right: 8px;
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 4px;
+  display: flex; align-items: center; gap: 4px;
+}
 
-        .topic-icon { font-size: 22px; }
-        .topic-name { font-size: 13px; font-weight: 600; }
-        .topic-desc { font-size: 11px; color: var(--text-secondary); }
+/* duration pill (can hold read-time) */
+.duration-pill {
+  position: absolute;
+  bottom: 8px; right: 8px;
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 6px;
+  border-radius: 4px;
+}
 
-        .tone-section { margin-bottom: 20px; }
-        .section-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 10px;
-        }
+.card-info {
+  display: flex;
+  gap: 12px;
+  padding: 10px 4px 4px;
+}
 
-        .tone-pills { display: flex; gap: 8px; flex-wrap: wrap; }
-        .tone-pill {
-            padding: 6px 14px;
-            border-radius: 20px;
-            background: var(--hover-bg);
-            border: 2px solid transparent;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            color: var(--text-primary);
-        }
-        .tone-pill:hover { background: var(--border-color); }
-        .tone-pill.selected {
-            border-color: var(--ai-color);
-            background: rgba(168,85,247,0.1);
-            color: var(--ai-color);
-        }
+.channel-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; color: #fff;
+  overflow: hidden;
+  cursor: pointer;
+}
+.channel-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-        .length-section { margin-bottom: 24px; }
-        .length-options { display: flex; gap: 8px; }
-        .length-opt {
-            flex: 1;
-            padding: 8px;
-            border-radius: 8px;
-            background: var(--hover-bg);
-            border: 2px solid transparent;
-            cursor: pointer;
-            text-align: center;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-            color: var(--text-primary);
-        }
-        .length-opt:hover { background: var(--border-color); }
-        .length-opt.selected {
-            border-color: var(--ai-color);
-            background: rgba(168,85,247,0.1);
-            color: var(--ai-color);
-        }
+.card-meta {
+  flex: 1; min-width: 0;
+}
 
-        .generate-confirm-btn {
-            width: 100%;
-            padding: 14px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, #a855f7, #6366f1);
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 700;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .generate-confirm-btn:hover {
-            background: linear-gradient(135deg, #9333ea, #4f46e5);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 20px rgba(168,85,247,0.4);
-        }
-        .generate-confirm-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.card-title {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
 
-        /* Generating overlay */
-        .generating-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.85);
-            z-index: 300;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .generating-overlay.show { display: flex; }
+.card-sub {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.card-sub span + span::before {
+  content: " · ";
+}
 
-        .generating-card {
-            background: var(--card-bg);
-            border-radius: 20px;
-            padding: 32px 28px;
-            text-align: center;
-            max-width: 320px;
-            width: 90%;
-            border: 1px solid var(--border-color);
-        }
+/* ── Stories / channels row ── */
+.channels-row {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 12px 16px;
+}
+.channels-row::-webkit-scrollbar { display: none; }
 
-        .ai-spinner {
-            width: 64px; height: 64px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #a855f7, #6366f1);
-            margin: 0 auto 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: pulse 1.5s ease-in-out infinite;
-            font-size: 28px;
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(168,85,247,0.4); }
-            50% { transform: scale(1.05); box-shadow: 0 0 0 16px rgba(168,85,247,0); }
-        }
+.channel-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.channel-item:hover .ch-ring { opacity: 0.8; }
 
-        .generating-title {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-        .generating-status {
-            font-size: 13px;
-            color: var(--text-secondary);
-            min-height: 20px;
-        }
+.ch-ring {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  padding: 2px;
+  background: linear-gradient(135deg, #3ea6ff, #9b59b6);
+  transition: opacity 0.2s;
+}
+.ch-ring-inner {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  background: var(--bg);
+  padding: 2px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.ch-avatar {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 700; color: #fff;
+  overflow: hidden;
+}
+.ch-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-        .progress-dots {
-            display: flex;
-            gap: 6px;
-            justify-content: center;
-            margin-top: 16px;
-        }
-        .dot {
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: var(--ai-color);
-            animation: dotBounce 1.4s ease-in-out infinite;
-        }
-        .dot:nth-child(2) { animation-delay: 0.2s; }
-        .dot:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes dotBounce {
-            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-            40% { transform: scale(1); opacity: 1; }
-        }
+.ch-name {
+  font-size: 12px;
+  color: var(--text);
+  max-width: 64px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
 
-        .editor-wrapper {
-            padding: 20px;
-            padding-bottom: 100px;
-        }
+/* ── Library shelf ── */
+.shelf {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 8px 16px 16px;
+}
+.shelf::-webkit-scrollbar { display: none; }
 
-        .article-title-input {
-            font-size: 32px;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 16px;
-            line-height: 1.2;
-            border: none;
-            outline: none;
-            background: transparent;
-            width: 100%;
-            resize: none;
-            overflow: hidden;
-            padding: 0;
-            font-family: inherit;
-        }
-        .article-title-input::placeholder { color: var(--text-secondary); opacity: 0.5; }
+.shelf-card {
+  flex-shrink: 0;
+  width: 160px;
+  cursor: pointer;
+}
+.shelf-card:hover .shelf-thumb { opacity: 0.8; }
+.shelf-thumb {
+  width: 160px; height: 90px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #9b59b6, #6c3de8);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; color: #fff;
+  margin-bottom: 8px;
+  transition: opacity 0.2s;
+}
+.shelf-title {
+  font-size: 13px; font-weight: 500; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.shelf-meta {
+  font-size: 11px; color: var(--muted);
+}
 
-        .content-item { margin-bottom: 14px; }
+/* ── FAB ── */
+.fab {
+  position: fixed;
+  bottom: calc(64px + env(safe-area-inset-bottom) + 12px);
+  right: 16px;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff; border: none;
+  font-size: 22px;
+  display: none; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(62,166,255,0.45);
+  z-index: 80;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.fab.show { display: flex; }
+.fab:hover { transform: scale(1.08); }
+.fab:active { transform: scale(0.94); }
 
-        .content-line {
-            font-size: 16px;
-            line-height: 1.6;
-            position: relative;
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-        }
+/* ── Modal ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 200; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--surface);
+  border-radius: 16px;
+  width: 100%; max-width: 360px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-head h2 { font-size: 18px; font-weight: 600; }
+.modal-close {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: none; border: none; color: var(--text);
+  font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, transform 0.2s;
+}
+.modal-close:hover { background: var(--surface2); transform: rotate(90deg); }
+.modal-body { padding: 16px 24px 24px; }
+.modal-opt {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  margin-bottom: 10px;
+}
+.modal-opt:last-child { margin-bottom: 0; }
+.modal-opt:hover { border-color: var(--accent); background: var(--surface2); }
+.modal-opt-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: #fff; flex-shrink: 0;
+}
+.modal-opt-icon.article { background: linear-gradient(135deg,#2ecc71,#27ae60); }
+.modal-opt-icon.library { background: linear-gradient(135deg,#9b59b6,#8e44ad); }
+.modal-opt-title { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+.modal-opt-desc { font-size: 12px; color: var(--muted); }
 
-        .content-editable {
-            outline: none;
-            min-height: 1.6em;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            flex: 1;
-            cursor: text;
-            color: var(--text-primary);
-        }
-        .content-editable:empty::before {
-            content: 'Start writing...';
-            color: var(--text-secondary);
-            opacity: 0.5;
-        }
-        .content-editable:focus {
-            background: var(--hover-bg);
-            padding: 4px 8px;
-            margin: -4px -8px;
-            border-radius: 4px;
-        }
+/* ── Bottom nav ── */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: calc(56px + env(safe-area-inset-bottom));
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: flex-start;
+  justify-content: space-around;
+  padding-top: 8px;
+  z-index: 100;
+}
+.nav-btn {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 2px;
+  background: none; border: none;
+  color: var(--muted); cursor: pointer;
+  padding: 4px 12px;
+  transition: color 0.15s;
+  font-size: 10px; font-weight: 500;
+}
+.nav-btn.active { color: var(--text); }
+.nav-btn i { font-size: 22px; }
 
-        .line-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s ease; }
-        .content-line:hover .line-actions { opacity: 1; }
+/* ── States ── */
+.loading-msg, .empty-msg {
+  padding: 32px 16px; text-align: center;
+  color: var(--muted); font-size: 14px;
+}
 
-        .line-btn {
-            width: 28px; height: 28px; min-width: 28px;
-            border-radius: 50%;
-            background: var(--hover-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 12px;
-            transition: all 0.2s ease;
-            flex-shrink: 0;
-            margin-top: 2px;
-        }
-        .line-btn:hover { background: var(--border-color); color: var(--accent); }
-
-        .media-embed { margin: 16px 0; max-width: 100%; position: relative; }
-        .media-embed img { width: 100%; max-width: 100%; height: auto; border-radius: 8px; display: block; }
-        .media-caption {
-            font-size: 13px; color: var(--text-secondary); margin-top: 6px;
-            font-style: italic; outline: none; cursor: text;
-        }
-        .media-caption:empty::before { content: 'Add a caption...'; opacity: 0.5; }
-
-        .remove-media-btn {
-            position: absolute; top: 8px; right: 8px;
-            width: 32px; height: 32px;
-            border-radius: 50%;
-            background: rgba(0,0,0,0.7);
-            color: white; border: none; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            opacity: 0; transition: opacity 0.2s ease; z-index: 10;
-        }
-        .media-embed:hover .remove-media-btn { opacity: 1; }
-        .remove-media-btn:hover { background: var(--error); }
-
-        .custom-audio-player {
-            background: var(--card-bg);
-            border-radius: 12px; padding: 16px;
-            display: flex; align-items: center; gap: 12px;
-            max-width: 100%;
-            border: 1px solid var(--border-color);
-        }
-
-        .play-btn {
-            width: 44px; height: 44px; border-radius: 50%;
-            background: var(--accent); border: none; color: white;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            font-size: 16px; transition: all 0.2s ease; flex-shrink: 0;
-        }
-        .play-btn:hover { background: var(--accent-hover); transform: scale(1.05); }
-
-        .audio-info { flex: 1; min-width: 0; overflow: hidden; }
-        .audio-title { font-size: 13px; font-weight: 500; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
-
-        .waveform-container {
-            position: relative; height: 32px;
-            background: var(--hover-bg); border-radius: 4px; margin-bottom: 6px;
-            cursor: pointer; overflow: hidden;
-        }
-        .waveform-progress { position: absolute; top: 0; left: 0; height: 100%; background: var(--accent); opacity: 0.3; transition: width 0.1s linear; }
-        .waveform-bars { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: space-around; padding: 0 4px; }
-        .waveform-bar { width: 2px; background: var(--text-secondary); border-radius: 2px; opacity: 0.6; }
-        .audio-time { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); }
-
-        .action-bar {
-            position: fixed; bottom: 0;
-            left: 50%; transform: translateX(-50%);
-            width: 100%; max-width: 450px;
-            background: var(--card-bg);
-            border-top: 1px solid var(--border-color);
-            padding: 12px 20px;
-            padding-bottom: calc(12px + env(safe-area-inset-bottom));
-            display: flex; gap: 12px; z-index: 100;
-        }
-
-        .action-btn {
-            flex: 1;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            background: var(--hover-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 24px;
-            padding: 10px 16px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 14px; font-weight: 600; color: var(--text-primary);
-        }
-        .action-btn:active { transform: scale(0.95); }
-        .action-btn svg { width: 20px; height: 20px; stroke: var(--text-primary); fill: none; stroke-width: 2; }
-
-        .divider { width: 1px; height: 24px; background: var(--border-color); margin: 0; }
-
-        .notification {
-            position: fixed; top: 70px;
-            left: 50%; transform: translateX(-50%);
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px; padding: 16px 20px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
-            z-index: 1000;
-            display: none; align-items: center; gap: 12px;
-            min-width: 300px; max-width: 400px;
-        }
-        .notification.show { display: flex; animation: slideDown 0.3s ease; }
-        .notification.success { border-left: 4px solid var(--success); }
-        .notification.error { border-left: 4px solid var(--error); }
-        .notification.info { border-left: 4px solid var(--ai-color); }
-        @keyframes slideDown {
-            from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
-            to { transform: translateX(-50%) translateY(0); opacity: 1; }
-        }
-
-        @media (max-width: 768px) {
-            .editor-wrapper { padding: 16px; }
-            .article-title-input { font-size: 28px; }
-            .notification { left: 16px; right: 16px; transform: none; min-width: auto; max-width: none; }
-            .notification.show { animation: slideDownMobile 0.3s ease; }
-            @keyframes slideDownMobile {
-                from { transform: translateY(-100px); opacity: 0; }
-                to { transform: translateY(0); opacity: 1; }
-            }
-        }
-    </style>
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .grid { grid-template-columns: 1fr; padding: 8px 0; }
+  .card { padding: 4px 0; }
+  .card-thumb { border-radius: 0; }
+}
+@media (min-width: 600px) and (max-width: 900px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
 </head>
 <body>
 
-<div class="app-container" id="appContainer">
-    <div class="header-bar">
-        <button class="back-btn" onclick="goBack()">
-            <i class="fas fa-arrow-left"></i>
-        </button>
-        <div class="header-actions">
-            <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
-                <i class="fas fa-circle-half-stroke"></i>
-            </button>
-            <button class="publish-btn" id="publishBtn" onclick="publishArticle()">Publish</button>
-        </div>
-    </div>
-
-    <div class="editor-wrapper" id="editorContainer">
-        <!-- AI Generate Button -->
-        <button class="ai-generate-btn" id="aiGenerateBtn" onclick="openTopicsModal()">
-            <i class="fas fa-wand-magic-sparkles"></i>
-            Generate Article with AI
-        </button>
-
-        <textarea class="article-title-input" id="articleTitle" placeholder="Article Title" rows="1" oninput="autoResizeTitle(this)"></textarea>
-
-        <div id="contentItems">
-            <div class="content-item">
-                <div class="content-line" data-line="1">
-                    <div class="content-editable" contenteditable="true"></div>
-                    <div class="line-actions">
-                        <button class="line-btn" onclick="deleteLine(this)" title="Delete line">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Topics Modal -->
-<div class="modal-overlay" id="topicsModal" onclick="closeModalOnOverlay(event)">
-    <div class="topics-modal">
-        <div class="modal-handle"></div>
-        <div class="modal-title">
-            <i class="fas fa-wand-magic-sparkles" style="color: #a855f7;"></i>
-            AI Article Generator
-            <span class="badge">✨ Auto</span>
-        </div>
-        <p class="modal-subtitle">Pick a trending topic and let AI write a full article for you — no API key needed.</p>
-
-        <div class="section-label">📰 Trending Topics</div>
-        <div class="topics-grid" id="topicsGrid">
-            <!-- Topics injected by JS -->
-        </div>
-
-        <div class="tone-section">
-            <div class="section-label">🎙️ Writing Tone</div>
-            <div class="tone-pills">
-                <button class="tone-pill selected" data-tone="informative" onclick="selectTone(this)">Informative</button>
-                <button class="tone-pill" data-tone="analytical" onclick="selectTone(this)">Analytical</button>
-                <button class="tone-pill" data-tone="conversational" onclick="selectTone(this)">Conversational</button>
-                <button class="tone-pill" data-tone="opinion" onclick="selectTone(this)">Opinion</button>
-            </div>
-        </div>
-
-        <div class="length-section">
-            <div class="section-label">📏 Article Length</div>
-            <div class="length-options">
-                <button class="length-opt" data-len="short" onclick="selectLength(this)">Short<br><small>~300 words</small></button>
-                <button class="length-opt selected" data-len="medium" onclick="selectLength(this)">Medium<br><small>~600 words</small></button>
-                <button class="length-opt" data-len="long" onclick="selectLength(this)">Long<br><small>~1000 words</small></button>
-            </div>
-        </div>
-
-        <button class="generate-confirm-btn" id="generateConfirmBtn" onclick="generateArticle()">
-            <i class="fas fa-bolt"></i>
-            Generate Article
-        </button>
-    </div>
-</div>
-
-<!-- Generating Overlay -->
-<div class="generating-overlay" id="generatingOverlay">
-    <div class="generating-card">
-        <div class="ai-spinner">✨</div>
-        <div class="generating-title">Writing Your Article</div>
-        <div class="generating-status" id="generatingStatus">Analyzing trending topics...</div>
-        <div class="progress-dots">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-        </div>
-    </div>
-</div>
-
-<!-- Action Bar -->
-<div class="action-bar">
-    <button class="action-btn" onclick="addNewParagraph()" title="Add text">
-        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        <span>Text</span>
+<!-- Header -->
+<div class="header">
+  <img src="IMG_0696.png" class="logo" alt="Patholytica" onclick="location.href='index.html'">
+  <div class="header-right">
+    <button class="icon-btn" onclick="location.href='explore.html'" title="Search">
+      <i class="fas fa-search"></i>
     </button>
-    <div class="divider"></div>
-    <label class="action-btn" title="Upload image">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-        <span>Image</span>
-        <input type="file" accept="image/*" onchange="handleImageUpload(event)" style="display: none;">
-    </label>
-    <label class="action-btn" title="Upload audio">
-        <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-        <span>Audio</span>
-        <input type="file" accept="audio/*" onchange="handleAudioUpload(event)" style="display: none;">
-    </label>
+    <a href="login.html" class="auth-pill" id="loginBtn">
+      <i class="fas fa-user"></i> Sign in
+    </a>
+    <div class="user-chip" id="userChip" onclick="handleUserChipClick()">
+      <i class="fas fa-user-circle" style="font-size:20px"></i>
+      <span id="userChipName">Me</span>
+    </div>
+  </div>
 </div>
 
-<div class="notification" id="notification">
-    <i class="fas fa-check-circle" style="font-size: 20px;"></i>
-    <span id="notificationText"></span>
+<!-- Chip filters -->
+<div class="chip-row" id="chipRow">
+  <button class="chip active" onclick="filterChip(this,'all')">All</button>
+  <button class="chip" onclick="filterChip(this,'article')">Articles</button>
+  <button class="chip" onclick="filterChip(this,'audio')">Audio</button>
+  <button class="chip" onclick="filterChip(this,'image')">Visual</button>
+  <button class="chip" onclick="location.href='explore.html'">Explore</button>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="document.getElementById('createModal').classList.add('show')">
+  <i class="fas fa-plus"></i>
+</button>
+
+<!-- Create modal -->
+<div class="modal-overlay" id="createModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Create</h2>
+      <button class="modal-close" onclick="document.getElementById('createModal').classList.remove('show')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-opt" onclick="location.href='https://patholytica.com/create'">
+        <div class="modal-opt-icon article"><i class="fas fa-file-alt"></i></div>
+        <div>
+          <div class="modal-opt-title">Article</div>
+          <div class="modal-opt-desc">Write & publish a new article</div>
+        </div>
+      </div>
+      <div class="modal-opt" onclick="location.href='https://patholytica.com/librarycreate'">
+        <div class="modal-opt-icon library"><i class="fas fa-bookmark"></i></div>
+        <div>
+          <div class="modal-opt-title">Library</div>
+          <div class="modal-opt-desc">Create a collection</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main" id="main">
+
+  <!-- Channels row -->
+  <div class="section-label">Writers</div>
+  <div class="channels-row" id="channelsRow">
+    <div class="loading-msg">Loading…</div>
+  </div>
+
+  <!-- Libraries shelf -->
+  <div class="section-label">Libraries</div>
+  <div class="shelf" id="libraryShelf">
+    <div class="loading-msg">Loading…</div>
+  </div>
+
+  <!-- Articles grid -->
+  <div class="section-label" style="margin-bottom:4px" id="gridLabel">Recent</div>
+  <div class="grid" id="articleGrid">
+    <div class="loading-msg">Loading…</div>
+  </div>
+
+</div>
+
+<!-- Bottom nav -->
+<div class="bottom-nav">
+  <button class="nav-btn active" onclick="location.href='index.html'">
+    <i class="fas fa-home"></i><span>Home</span>
+  </button>
+  <button class="nav-btn" onclick="location.href='https://patholytica.com/dailyfeed'">
+    <i class="fas fa-scroll"></i><span>Feed</span>
+  </button>
+  <button class="nav-btn" onclick="location.href='explore.html'">
+    <i class="fas fa-search"></i><span>Explore</span>
+  </button>
+  <button class="nav-btn" onclick="location.href='profile.html'">
+    <i class="fas fa-user"></i><span>Profile</span>
+  </button>
 </div>
 
 <script>
-let lineCounter = 1;
-let selectedTopic = null;
-let selectedTone = 'informative';
-let selectedLength = 'medium';
+  /* ── Helpers ── */
+  function fmtNum(n) {
+    if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+    if (n >= 1000) return (n/1000).toFixed(1)+'K';
+    return n||0;
+  }
+  function timeAgo(iso) {
+    const d = Math.floor((Date.now()-new Date(iso))/1000);
+    if (d < 3600) return Math.floor(d/60)+'m ago';
+    if (d < 86400) return Math.floor(d/3600)+'h ago';
+    if (d < 604800) return Math.floor(d/86400)+'d ago';
+    return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  }
+  function gradientFor(str) {
+    const colors=[
+      ['#1a73e8','#6c3de8'],['#e84a1a','#e8a01a'],
+      ['#1ae86c','#1a73e8'],['#e81a9b','#6c3de8'],
+      ['#f9a825','#f44336'],
+    ];
+    let h=0; for(let c of (str||'')) h=(h*31+c.charCodeAt(0))%colors.length;
+    return `linear-gradient(135deg,${colors[h][0]},${colors[h][1]})`;
+  }
+  function detectType(article) {
+    if (!article.media || article.media.length===0) return 'text';
+    const url = (article.media[0].url||'').toLowerCase();
+    if (/\.(mp3|wav|ogg|m4a|aac)(\?|$)/.test(url)) return 'audio';
+    if (/\.(jpg|jpeg|png|gif|webp|avif|svg)(\?|$)/.test(url)) return 'image';
+    return 'image';
+  }
 
-// Trending topics - curated and updated periodically without external APIs
-const trendingTopics = [
-    { id: 'ai', icon: '🤖', name: 'Artificial Intelligence', desc: 'Latest AI breakthroughs', keywords: 'AI, machine learning, LLMs, GPT, automation, artificial general intelligence trends in 2025' },
-    { id: 'climate', icon: '🌍', name: 'Climate & Energy', desc: 'Clean energy transition', keywords: 'climate change, renewable energy, solar, carbon emissions, net zero 2025 policies' },
-    { id: 'crypto', icon: '💰', name: 'Crypto & Web3', desc: 'Blockchain markets', keywords: 'Bitcoin, Ethereum, DeFi, NFTs, cryptocurrency regulation, blockchain adoption 2025' },
-    { id: 'health', icon: '🏥', name: 'Health & Medicine', desc: 'Medical innovation', keywords: 'gene therapy, longevity, weight loss drugs, mental health, medical AI diagnostics 2025' },
-    { id: 'geopolitics', icon: '🌐', name: 'Geopolitics', desc: 'Global power shifts', keywords: 'US-China relations, NATO, trade wars, emerging economies, global alliances 2025' },
-    { id: 'space', icon: '🚀', name: 'Space Exploration', desc: 'New frontiers', keywords: 'SpaceX, Moon missions, Mars colonization, private space race, satellite internet 2025' },
-    { id: 'economy', icon: '📈', name: 'Global Economy', desc: 'Markets & finance', keywords: 'inflation, recession risks, Fed interest rates, stock market, unemployment 2025' },
-    { id: 'tech', icon: '💻', name: 'Big Tech', desc: 'Silicon Valley news', keywords: 'Apple, Google, Microsoft, Meta, Amazon, tech layoffs, antitrust, innovation 2025' },
-    { id: 'cybersecurity', icon: '🔐', name: 'Cybersecurity', desc: 'Digital threats', keywords: 'ransomware, data breaches, AI cyberattacks, zero-day exploits, national security hacking 2025' },
-    { id: 'ev', icon: '⚡', name: 'Electric Vehicles', desc: 'EV revolution', keywords: 'Tesla, EV adoption, battery technology, charging infrastructure, autonomous driving 2025' },
-];
+  let allArticles = [];
+  let currentFilter = 'all';
 
-function buildTopicsGrid() {
-    const grid = document.getElementById('topicsGrid');
-    grid.innerHTML = trendingTopics.map(t => `
-        <div class="topic-card" data-id="${t.id}" onclick="selectTopic(this, '${t.id}')">
-            <div class="topic-icon">${t.icon}</div>
-            <div class="topic-name">${t.name}</div>
-            <div class="topic-desc">${t.desc}</div>
-        </div>
-    `).join('');
-}
+  function filterChip(el, type) {
+    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    el.classList.add('active');
+    currentFilter = type;
+    renderGrid();
+  }
 
-function selectTopic(el, id) {
-    document.querySelectorAll('.topic-card').forEach(c => c.classList.remove('selected'));
-    el.classList.add('selected');
-    selectedTopic = id;
-}
+  function renderGrid() {
+    const grid = document.getElementById('articleGrid');
+    let filtered = allArticles;
+    if (currentFilter==='audio') filtered = allArticles.filter(a=>detectType(a)==='audio');
+    else if (currentFilter==='image') filtered = allArticles.filter(a=>detectType(a)==='image');
+    else if (currentFilter==='article') filtered = allArticles.filter(a=>detectType(a)==='text');
 
-function selectTone(el) {
-    document.querySelectorAll('.tone-pill').forEach(p => p.classList.remove('selected'));
-    el.classList.add('selected');
-    selectedTone = el.dataset.tone;
-}
-
-function selectLength(el) {
-    document.querySelectorAll('.length-opt').forEach(o => o.classList.remove('selected'));
-    el.classList.add('selected');
-    selectedLength = el.dataset.len;
-}
-
-function openTopicsModal() {
-    buildTopicsGrid();
-    document.getElementById('topicsModal').classList.add('show');
-}
-
-function closeModalOnOverlay(e) {
-    if (e.target === document.getElementById('topicsModal')) {
-        document.getElementById('topicsModal').classList.remove('show');
+    if (!filtered.length) {
+      grid.innerHTML = '<div class="empty-msg">No content found</div>'; return;
     }
-}
+    grid.innerHTML = '';
+    filtered.forEach(article => {
+      const type = detectType(article);
+      const firstMedia = article.media&&article.media[0]?article.media[0].url:null;
+      const initial = (article.title||'A')[0].toUpperCase();
+      const authorName = article._username ? '@'+article._username : 'Author';
+      const authorInitial = (article._username||'A')[0].toUpperCase();
 
-const statusMessages = [
-    'Analyzing trending topics...',
-    'Researching key developments...',
-    'Crafting your introduction...',
-    'Building key arguments...',
-    'Adding expert insights...',
-    'Polishing the conclusion...',
-    'Finalizing your article...'
-];
+      // thumb content
+      let thumbInner;
+      if (type==='audio') {
+        thumbInner = `
+          <div class="thumb-placeholder" style="background:${gradientFor(article.title)}">
+            <i class="fas fa-headphones" style="font-size:52px;opacity:0.85"></i>
+          </div>
+          <div class="audio-badge"><i class="fas fa-music"></i> Audio</div>`;
+      } else if (firstMedia) {
+        thumbInner = `<img src="${firstMedia}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'thumb-placeholder\\'>${initial}</div>'">`;
+      } else {
+        thumbInner = `<div class="thumb-placeholder" style="background:${gradientFor(article.title)}">${initial}</div>`;
+      }
 
-async function generateArticle() {
-    if (!selectedTopic) {
-        showNotification('Please select a topic first', 'error');
-        return;
-    }
-
-    const topic = trendingTopics.find(t => t.id === selectedTopic);
-    document.getElementById('topicsModal').classList.remove('show');
-    document.getElementById('generatingOverlay').classList.add('show');
-
-    // Cycle through status messages
-    let msgIdx = 0;
-    const statusEl = document.getElementById('generatingStatus');
-    const statusInterval = setInterval(() => {
-        msgIdx = (msgIdx + 1) % statusMessages.length;
-        statusEl.textContent = statusMessages[msgIdx];
-    }, 1800);
-
-    const wordTargets = { short: 300, medium: 600, long: 1000 };
-    const wordCount = wordTargets[selectedLength];
-
-    const toneInstructions = {
-        informative: 'Write in a clear, factual, journalistic tone. Present facts and context objectively.',
-        analytical: 'Write analytically. Break down causes, effects, and implications with critical depth.',
-        conversational: 'Write in a warm, engaging conversational style as if explaining to a smart friend.',
-        opinion: 'Write as an opinion/editorial piece with a clear perspective and strong voice.'
-    };
-
-    const prompt = `You are a professional journalist writing a trending news article for an online publication called Patholytica.
-
-Topic: ${topic.name}
-Context keywords: ${topic.keywords}
-Tone: ${toneInstructions[selectedTone]}
-Target length: approximately ${wordCount} words
-
-Write a compelling, well-structured article about ${topic.name}. The article should:
-1. Have a punchy, SEO-friendly headline (start with "TITLE: " on the first line)
-2. Cover the most current and significant developments in this area as of 2025
-3. Include 3-5 well-developed paragraphs
-4. Reference real trends, technologies, companies or events related to this topic
-5. End with a forward-looking conclusion
-
-Format your response EXACTLY like this:
-TITLE: [Your article title here]
-PARAGRAPH: [First paragraph text]
-PARAGRAPH: [Second paragraph text]
-PARAGRAPH: [Third paragraph text]
-PARAGRAPH: [Fourth paragraph text - if medium/long]
-PARAGRAPH: [Fifth paragraph text - if long]
-
-Do not include any other formatting, labels, or text outside this format.`;
-
-    try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': '',  // Handled by the platform
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 1500,
-                messages: [{ role: 'user', content: prompt }]
-            })
-        });
-
-        clearInterval(statusInterval);
-
-        if (!response.ok) {
-            // Fallback: generate a template article without API
-            generateFallbackArticle(topic);
-            return;
-        }
-
-        const data = await response.json();
-        const text = data.content?.[0]?.text || '';
-        parseAndInsertArticle(text, topic);
-
-    } catch (err) {
-        clearInterval(statusInterval);
-        // Fallback on network error
-        generateFallbackArticle(topic);
-    }
-}
-
-function generateFallbackArticle(topic) {
-    // Rich template-based fallback articles per topic - no API needed
-    const fallbacks = {
-        ai: {
-            title: "The AI Arms Race of 2025: How Language Models Are Reshaping Every Industry",
-            paragraphs: [
-                "Artificial intelligence has moved from research labs into the beating heart of global commerce. In 2025, major technology companies are locked in an unprecedented race to deploy large language models capable of reasoning, coding, and creative problem-solving at human-level or beyond. OpenAI, Google DeepMind, Anthropic, and Meta AI have each released successive generations of models that blur the line between tool and collaborator.",
-                "The enterprise adoption curve has been steeper than most analysts predicted. A recent McKinsey survey found that over 60% of Fortune 500 companies now have active AI deployment programs, up from 22% just two years ago. Healthcare, legal, and financial sectors lead adoption, with AI models handling diagnostic support, contract review, and fraud detection at scale. The productivity gains reported range from 20% to 40% in knowledge work settings.",
-                "However, rapid deployment has triggered an equally rapid regulatory response. The European Union's AI Act came into full effect this year, mandating transparency disclosures and risk classifications for AI systems operating within the bloc. The United States is pursuing a patchwork of sector-specific guidelines while Congress continues to debate comprehensive federal legislation. China, meanwhile, has taken a different approach — tightly controlling which AI systems can interact with citizens while aggressively funding state-backed AI research.",
-                "Critics point to growing concerns: job displacement in customer service, writing, and software development; the spread of AI-generated misinformation; and deepening inequality between organizations that can afford frontier AI and those that cannot. Researchers warn that as models grow more capable, alignment — ensuring AI systems pursue human-intended goals — becomes exponentially more important and more difficult.",
-                "Looking ahead, the next 18 months are expected to bring multimodal AI agents capable of taking autonomous actions across software systems, browsing the web, executing code, and managing workflows with minimal human oversight. The question is no longer whether AI will transform work — it's whether society can govern and harness that transformation wisely."
-            ]
-        },
-        climate: {
-            title: "The Green Energy Surge: Renewables Overtake Fossil Fuels in Record Time",
-            paragraphs: [
-                "The energy transition is happening faster than the most optimistic projections from a decade ago. In 2025, solar and wind power together account for over 35% of global electricity generation — a figure that seemed wildly ambitious when first proposed in climate accords. The cost of utility-scale solar has fallen 90% since 2010, making it the cheapest source of new electricity generation in history across most of the world.",
-                "Battery storage has emerged as the critical enabler of this transition. Grid-scale lithium-ion installations have grown tenfold since 2020, solving the intermittency problem that long plagued renewables. Countries like Germany, Portugal, and Chile regularly run on 100% renewable electricity for days at a time. The United States is on pace to add more clean energy capacity in 2025 alone than it added in the entire decade of the 1990s.",
-                "The geopolitical implications are profound. Nations that built their economies and international influence on fossil fuel exports face existential economic pressure. Saudi Arabia's Vision 2030 program has accelerated, with the kingdom investing over $500 billion in non-oil diversification. Russia, heavily dependent on hydrocarbon revenues, faces a more difficult adjustment, contributing to tensions that ripple through international relations.",
-                "Despite the progress, climate scientists urge against complacency. Current trajectories put global warming at 1.8 to 2.1 degrees Celsius above pre-industrial levels by 2100 — better than feared but still above the 1.5°C threshold scientists consider relatively safe. The remaining challenge is decarbonizing hard-to-electrify sectors: shipping, aviation, heavy industry, and agriculture, which together account for nearly 40% of global emissions.",
-                "The economic opportunity is drawing unprecedented private capital. Green infrastructure, electric vehicles, sustainable agriculture, and carbon capture technologies attracted over $1.7 trillion in investment in 2024. Experts predict the clean energy economy will be larger than the fossil fuel industry within a decade — a transformation that is reshaping where jobs are created, which companies dominate markets, and how nations measure national wealth."
-            ]
-        },
-        crypto: {
-            title: "Crypto's Second Maturity: How Regulation and Institutional Adoption Are Reshaping Digital Finance",
-            paragraphs: [
-                "After years of volatile booms and catastrophic busts, the cryptocurrency sector in 2025 is experiencing something its early proponents predicted but few believed would arrive so soon: institutional legitimacy. Bitcoin exchange-traded funds now hold over $80 billion in assets under management. Ethereum's transition to proof-of-stake has dramatically reduced its energy footprint while enabling a new wave of decentralized finance applications. Major banks, hedge funds, and sovereign wealth funds hold digital assets on their balance sheets.",
-                "Regulatory clarity — long the sector's most significant obstacle — has finally begun to emerge. The United States passed the Digital Asset Market Structure Act, creating a clear framework distinguishing between securities and commodities in the crypto space and giving the SEC and CFTC defined jurisdictions. The EU's Markets in Crypto-Assets regulation is now fully enforced, driving compliance-focused exchanges and stablecoins. While some early crypto libertarians decry regulation as antithetical to the technology's ethos, markets have largely responded positively to the certainty regulation provides.",
-                "Stablecoins have emerged as the cryptocurrency ecosystem's killer application. Pegged to the US dollar or other fiat currencies, stablecoins processed over $10 trillion in transactions in 2024 — surpassing Visa in annual volume. They are increasingly used for cross-border payments, particularly in emerging markets where they provide an accessible store of value and remittance channel. Central banks globally are watching closely, with over 130 countries in various stages of developing central bank digital currencies.",
-                "The NFT market, after its spectacular 2021-2022 collapse, has found more sustainable footing in gaming, ticketing, and intellectual property management. Web3 gaming is attracting mainstream studios, with major titles integrating token-based ownership models that let players earn and trade digital assets. Critics remain skeptical about long-term value propositions, but developer activity and user adoption metrics in these areas have hit all-time highs.",
-                "The outlook for the next cycle is cautiously optimistic among analysts. The Bitcoin halving of 2024, which reduced the rate of new supply, has historically preceded significant price appreciation. But a maturing market means that wild speculative swings may be dampened by more sophisticated institutional participation. The cryptocurrency sector has survived multiple near-death experiences; in 2025, it increasingly resembles a permanent fixture of the global financial system rather than an experiment."
-            ]
-        },
-        health: {
-            title: "The Longevity Revolution: How New Medicine Is Rewriting the Rules of Human Aging",
-            paragraphs: [
-                "Medicine in 2025 is at an inflection point unlike any in history. A convergence of gene editing, AI-powered drug discovery, and breakthrough biological insights has produced therapies that don't just treat disease — they target the underlying mechanisms of aging itself. Scientists who once spoke cautiously about extending healthy human lifespans by a few years are now publishing peer-reviewed research suggesting decades may be possible within this century.",
-                "GLP-1 receptor agonists — the class of drugs behind Ozempic and Wegovy — have proven far more powerful than initially understood. Beyond dramatic weight loss, ongoing trials show significant cardiovascular benefits, reductions in addiction behaviors, and possible cognitive protections. The drugs have reshaped the pharmaceutical industry's economics and are driving an unprecedented wave of obesity research. Critics worry about long-term dependency and equitable access, as demand vastly outstrips supply in many countries.",
-                "CRISPR gene editing has moved from laboratory curiosity to clinical reality. The first CRISPR-based therapy for sickle cell disease received regulatory approval in 2024, and the pipeline for genetic medicines now encompasses rare diseases, certain cancers, and inherited conditions affecting millions. Researchers are exploring somatic gene editing — modifying genes in living patients — alongside more ambitious germline approaches that would affect future generations, raising profound ethical questions.",
-                "Mental health has emerged as a global health crisis demanding urgent innovation. Traditional antidepressants and anxiolytics have left tens of millions undertreated. Psychedelic-assisted therapies, particularly with psilocybin and MDMA, are showing remarkable results in clinical trials for treatment-resistant depression and PTSD. Australia became the first country to formally legalize psychedelic therapy in 2023; other nations are watching closely as evidence accumulates.",
-                "AI is transforming diagnostics and drug discovery simultaneously. Machine learning models can now detect early-stage cancers from imaging with accuracy exceeding many radiologists. AI-designed molecules are entering clinical trials years faster than traditional methods allow. The economic pressure to reduce healthcare costs combined with the biological tools now available suggests that the next decade will see more medical breakthroughs than the previous fifty years combined."
-            ]
-        },
-        geopolitics: {
-            title: "A World Reordering: The Geopolitical Shifts Defining the Mid-2020s",
-            paragraphs: [
-                "The post-Cold War international order built around US hegemony, multilateral institutions, and liberal economic globalization is being fundamentally renegotiated. China's rise to technological and economic parity with the United States, the return of great-power competition to European soil, and the growing assertiveness of regional powers from India to Brazil to Turkey are collectively producing a multipolar world whose rules are still being written — or contested.",
-                "The US-China relationship defines the era. Both nations have concluded that strategic competition is the organizing framework of their interaction, even as economic interdependence remains deep and mutual. Semiconductor export restrictions, investment screening, and technology standard-setting battles have created what analysts call 'techno-blocs' — distinct technological ecosystems with different standards, supply chains, and rules. Taiwan remains the most dangerous potential flashpoint, with both sides investing heavily in military capabilities while engaging in careful signage about the costs of conflict.",
-                "NATO has undergone a profound transformation in the wake of Russia's invasion of Ukraine. European defense spending has surged, with most member states now meeting or exceeding the 2% of GDP target. Finland and Sweden's accession strengthened the alliance's Nordic flank. Ukraine, despite enormous sacrifice, has successfully defended its sovereignty and European orientation. Russia, under unprecedented economic sanctions and diplomatic isolation, has deepened its partnership with China and Iran, reshaping regional balances from the Arctic to the Middle East.",
-                "The Global South — once treated as a passive theater for great-power competition — is increasingly asserting its own agency. India has skillfully positioned itself as a swing state, maintaining strategic autonomy while deepening partnerships with both Western and non-Western partners. The African Union gained G20 membership, reflecting the continent's growing economic and demographic weight. BRICS has expanded to include Saudi Arabia, the UAE, and other major emerging economies, creating a parallel institutional framework to Western-led bodies.",
-                "The risk of miscalculation in this volatile environment is real. Arms control frameworks have frayed, cyber capabilities create new vectors for covert conflict, and economic coercion has replaced gunboat diplomacy as the first tool of statecraft. Yet incentives for cooperation — on climate, pandemic preparedness, and nuclear non-proliferation — remain powerful. Whether the world navigates this transition to a stable new order or slides into wider conflict may be the defining question of the decade."
-            ]
-        },
-        space: {
-            title: "The New Space Age: From Low Earth Orbit to the Lunar Economy",
-            paragraphs: [
-                "Space exploration has entered a new era defined not by national prestige but by commercial ambition, scientific urgency, and the dawning recognition that humanity's long-term future may depend on becoming a multi-planetary species. SpaceX's Starship — the most powerful rocket ever built — has achieved operational capability, radically reducing the cost of access to orbit. A launch cadence that once required years of preparation now happens dozens of times per year, transforming what's possible.",
-                "The Moon is the near-term destination for governments and private companies alike. NASA's Artemis program, building on the lessons of Apollo, aims to establish a permanent crewed presence near the lunar south pole, where water ice deposits could support long-term habitation and provide fuel for deeper space missions. China's Chang'e program is on a parallel track, with Beijing announcing plans for a lunar research station by the early 2030s. The prospect of parallel American and Chinese lunar programs operating simultaneously raises both competitive and collaborative possibilities.",
-                "Commercial satellite services have already changed life on Earth in ways most people don't fully appreciate. SpaceX's Starlink, OneWeb, and Amazon's Project Kuiper are together deploying thousands of satellites that provide broadband internet to previously unconnected regions — from remote villages in Sub-Saharan Africa to ships crossing the Pacific. This democratization of connectivity is beginning to reshape education, healthcare, and economic opportunity in the developing world.",
-                "The asteroid belt and Mars represent longer-horizon ambitions that are moving from science fiction to engineering roadmaps. Robotic precursor missions are characterizing Mars's resources and hazards. Private companies are designing asteroid mining systems capable of extracting platinum-group metals, water, and rare earth elements that could fuel an in-space economy worth trillions. If successful, asteroid mining could depress prices of critical industrial metals while providing virtually unlimited resources for space-based manufacturing.",
-                "Space debris has emerged as a critical governance challenge. Tens of thousands of pieces of junk orbit Earth, threatening active satellites and creating risk cascades that could temporarily render certain orbital bands unusable. International negotiations on debris mitigation and active removal are progressing slowly against the backdrop of intensifying commercial and military uses of orbit. How humanity manages this global commons will set precedents for governance throughout the solar system."
-            ]
-        },
-        economy: {
-            title: "Navigating Uncertainty: The Global Economy at a Crossroads in 2025",
-            paragraphs: [
-                "The global economy in 2025 presents a paradox: headline indicators suggest resilience while underlying structural tensions have rarely been higher. US GDP growth has stabilized at around 2.5%, unemployment remains historically low, and stock markets have repeatedly reached new highs. Yet consumer confidence surveys paint a more anxious picture, housing affordability has collapsed in major cities, and the wealth gap between the top decile and everyone else has widened to levels not seen since the Gilded Age.",
-                "Inflation, which reached generational highs in 2022-2023, has largely been tamed in developed economies. The Federal Reserve and European Central Bank have begun cautious rate-cutting cycles, providing relief to mortgage holders and businesses with floating-rate debt. However, core services inflation — driven by wages, healthcare costs, and housing — remains stubbornly elevated, preventing a return to pre-pandemic interest rate levels that many borrowers had assumed was permanent.",
-                "China's economic slowdown is reverberating globally. The world's second-largest economy is managing a painful transition away from a growth model built on real estate investment and export-led manufacturing. Property developer defaults have created financial system stress, youth unemployment has exceeded 20%, and deflationary pressures have replaced the inflation concerns of recent years. Beijing has deployed massive fiscal stimulus, but structural headwinds — demographic decline, private sector caution, and technology decoupling pressures — make a return to double-digit growth impossible.",
-                "Artificial intelligence is beginning to register in productivity statistics after years of promised but unmeasured gains. The adoption of AI coding assistants, document analysis tools, and customer service automation is producing measurable efficiency gains in technology, finance, and legal services. Economists debate whether this represents a genuine productivity revolution comparable to electrification or the internet, or an overhyped efficiency improvement. The answer matters enormously for long-term growth and employment projections.",
-                "Fiscal sustainability has moved from academic concern to political crisis in several major economies. US federal debt now exceeds 125% of GDP; Japan's exceeds 260%. Italy, France, and the UK face difficult choices between austerity and borrowing in an era of higher interest rates. Markets have been patient, but the risk of a sovereign debt repricing event — in which investors suddenly demand significantly higher yields — would propagate through the financial system with consequences as serious as the 2008 crisis."
-            ]
-        },
-        tech: {
-            title: "Big Tech's New Battlegrounds: Antitrust, AI, and the Fight for the Next Computing Platform",
-            paragraphs: [
-                "The technology industry's dominant companies are simultaneously more powerful and more legally embattled than at any previous moment in their histories. Apple, Google, Microsoft, Meta, and Amazon collectively represent over $12 trillion in market capitalization — approaching the GDP of China. Yet all five face major antitrust proceedings on multiple continents, AI-driven competitive threats from new entrants, and the challenge of navigating a geopolitical environment that is pushing toward technology fragmentation.",
-                "Google's search monopoly — the economic engine that funds Alphabet's operations — is under direct legal attack. The US Department of Justice prevailed in a landmark antitrust case finding that Google illegally maintained its search monopoly through exclusive agreements with device manufacturers and browser developers. Remedies under consideration range from behavioral restrictions to structural breakup proposals. An adverse outcome could reshape how trillions of dollars in digital advertising flow.",
-                "Microsoft's strategic bet on OpenAI has delivered extraordinary early returns, embedding AI capabilities into Office, Azure, and GitHub at a speed that has alarmed competitors. But the partnership also attracted antitrust scrutiny of its own, with regulators examining whether Microsoft's investment gives it unfair advantages. Google has responded with aggressive Gemini integration across Search, Gmail, and Android. Apple's approach — building on-device AI that prioritizes privacy — represents a distinctive third path that may prove well-suited to an era of increasing AI regulation.",
-                "Meta has executed one of corporate history's more remarkable turnarounds. After a brutal 2022 marked by metaverse skepticism and stock collapse, the company refocused on AI infrastructure, Reels-driven advertising, and a more pragmatic approach to mixed reality. Ray-Ban smart glasses with integrated AI have become the company's first genuinely successful hardware product. Meanwhile, Meta's open-source AI strategy — releasing powerful models for free — has won developer loyalty and positioned the company as an antidote to closed AI ecosystems.",
-                "The next computing platform — whether spatial computing, AI agents, or something as yet unimagined — represents a prize worth trillions. Apple's Vision Pro has defined the premium end of spatial computing but needs a killer application and price point to drive mass adoption. AI agent frameworks from multiple companies are promising computers that can execute complex tasks autonomously. The company that successfully packages AI capability into a form factor that ordinary people find indispensable will define the next decade of technology wealth creation."
-            ]
-        },
-        cybersecurity: {
-            title: "The Digital Siege: How AI-Powered Cyberattacks Are Overwhelming Our Defenses",
-            paragraphs: [
-                "Cybersecurity has entered a dangerous new phase. Artificial intelligence, once primarily a defensive tool, is increasingly weaponized by threat actors to create attacks of unprecedented scale, sophistication, and speed. Nation-state hackers and criminal organizations alike are using AI to automate vulnerability discovery, craft convincing phishing emails personalized at massive scale, and adapt malware to evade detection in real time. The skills barrier to launching devastating cyberattacks has dropped dramatically, democratizing capabilities once confined to elite intelligence agencies.",
-                "Ransomware remains the most economically destructive category of cybercrime. Criminal groups — many operating with tacit tolerance from hostile nation-states — extorted over $1.1 billion in ransomware payments in 2023, a record that 2024 appears to have surpassed. Critical infrastructure attacks have moved from theoretical concern to operational reality: hospitals forced to divert patients, water treatment systems manipulated, and power grid vulnerabilities probed in ways that suggest reconnaissance for larger future attacks. The Colonial Pipeline attack of 2021 looks, in retrospect, like an early warning that went insufficiently heeded.",
-                "Supply chain attacks have emerged as a particularly insidious vector. Rather than attacking a well-defended target directly, sophisticated adversaries compromise software vendors, update mechanisms, or hardware components that the target trusts implicitly. The SolarWinds attack of 2020 demonstrated the technique's devastating potential; in the years since, similar approaches have been used against software repositories, open-source code libraries, and managed service providers that serve thousands of downstream customers simultaneously.",
-                "The security community is fighting back with AI of its own. Machine learning models analyzing network traffic, user behavior, and threat intelligence are catching attacks that traditional signature-based tools miss. Zero-trust architecture — which assumes no user or device is inherently trustworthy and continuously verifies everything — is becoming the de facto standard for enterprise security design. But the fundamental asymmetry remains: defenders must protect every surface, while attackers need find only one weak point.",
-                "Geopolitics has deeply entangled cybersecurity. State-sponsored hacking groups from Russia, China, North Korea, and Iran are conducting espionage, intellectual property theft, and destructive attacks as instruments of national policy. NATO has declared cyberspace a domain of military operations, implying that significant cyberattacks could trigger conventional military responses. International norms about acceptable cyber conduct remain fragile and unenforced. Without meaningful diplomatic progress, the digital cold war currently being waged in network packets will continue to escalate."
-            ]
-        },
-        ev: {
-            title: "The Electric Vehicle Tipping Point: Mass Market Reality or Overheated Promise?",
-            paragraphs: [
-                "Electric vehicles have reached an inflection point. Global EV sales exceeded 14 million units in 2023 and are on track for 20 million in 2025, representing roughly 25% of all new cars sold worldwide. In markets like Norway — where EVs account for over 90% of new car sales — the transition is essentially complete. China leads global adoption in absolute terms, with domestic manufacturers BYD, SAIC, and a dozen others producing competitive vehicles at price points that are reshaping competitive dynamics worldwide.",
-                "Battery technology, the factor that most constrains EV adoption, is advancing rapidly on multiple fronts. Energy density has improved significantly, extending range while reducing weight and cost. LFP (lithium iron phosphate) batteries, once considered a compromise solution, have proven durable and cycle-stable enough to challenge more expensive nickel-based chemistries in most use cases. Solid-state batteries — potentially offering higher energy density, faster charging, and improved safety — are moving from laboratory to small-scale commercial production, with Toyota and several startups targeting volume production by 2027-2028.",
-                "Charging infrastructure, long the most cited barrier to EV adoption, is expanding dramatically. Tesla's decision to open its Supercharger network to other manufacturers — followed by adoption of the NACS connector standard by Ford, GM, Rivian, and most other major automakers — has created a de facto universal charging standard in North America. The federal government's $7.5 billion charging infrastructure program is placing fast chargers along highway corridors and in underserved communities. Range anxiety, once a legitimate concern, is becoming increasingly theoretical for most use cases.",
-                "Legacy automakers are navigating the transition with varying degrees of success. Volkswagen Group has invested over $100 billion in EV platforms and battery production capacity. Ford's F-150 Lightning has captured significant commercial fleet business. General Motors has restructured its product roadmap around an all-electric future. Meanwhile, several high-profile EV startups — including Rivian, Lucid, and Fisker — have struggled to achieve production volumes and unit economics that their valuations once implied. The winnowing of the startup field was predictable; survival will go to those with genuine cost competitiveness and manufacturing excellence.",
-                "The geopolitics of EV supply chains present a significant challenge to the industry's clean promise. Lithium, cobalt, nickel, and manganese — essential battery ingredients — are concentrated in a handful of countries, raising supply security concerns. The Democratic Republic of Congo supplies over 70% of the world's cobalt under conditions that include significant human rights concerns. Western governments are subsidizing domestic battery material production and processing with the Inflation Reduction Act and equivalent European programs. This 'friend-shoring' of critical mineral supply chains will shape which countries capture the economic benefits of the EV revolution."
-            ]
-        }
-    };
-
-    const fallback = fallbacks[selectedTopic] || fallbacks.ai;
-    document.getElementById('generatingOverlay').classList.remove('show');
-    insertArticleToEditor(fallback.title, fallback.paragraphs);
-    showNotification('Article generated successfully! ✨', 'success');
-}
-
-function parseAndInsertArticle(text, topic) {
-    const lines = text.split('\n').filter(l => l.trim());
-    let title = '';
-    const paragraphs = [];
-
-    for (const line of lines) {
-        if (line.startsWith('TITLE:')) {
-            title = line.replace('TITLE:', '').trim();
-        } else if (line.startsWith('PARAGRAPH:')) {
-            paragraphs.push(line.replace('PARAGRAPH:', '').trim());
-        }
-    }
-
-    if (!title || paragraphs.length === 0) {
-        generateFallbackArticle(trendingTopics.find(t => t.id === selectedTopic));
-        return;
-    }
-
-    document.getElementById('generatingOverlay').classList.remove('show');
-    insertArticleToEditor(title, paragraphs);
-    showNotification('Article generated successfully! ✨', 'success');
-}
-
-function insertArticleToEditor(title, paragraphs) {
-    // Set title
-    const titleEl = document.getElementById('articleTitle');
-    titleEl.value = title;
-    autoResizeTitle(titleEl);
-
-    // Clear existing content
-    const contentItems = document.getElementById('contentItems');
-    contentItems.innerHTML = '';
-    lineCounter = 0;
-
-    // Insert each paragraph
-    paragraphs.forEach(para => {
-        if (!para.trim()) return;
-        lineCounter++;
-        const item = document.createElement('div');
-        item.className = 'content-item';
-        item.innerHTML = `
-            <div class="content-line" data-line="${lineCounter}">
-                <div class="content-editable" contenteditable="true">${para}</div>
-                <div class="line-actions">
-                    <button class="line-btn" onclick="deleteLine(this)" title="Delete line">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.onclick = () => location.href = `article.html?id=${article.id}`;
+      card.innerHTML = `
+        <div class="card-thumb">${thumbInner}</div>
+        <div class="card-info">
+          <div class="channel-avatar" style="background:${gradientFor(article._username)}"
+               onclick="event.stopPropagation();location.href='profile.html?username=${article._username||''}'">
+            ${article._pfp
+              ? `<img src="${article._pfp}" alt="" onerror="this.remove()">`
+              : authorInitial}
+          </div>
+          <div class="card-meta">
+            <div class="card-title">${article.title||'Untitled'}</div>
+            <div class="card-sub">
+              <span>${authorName}</span>
+              <span>${fmtNum(article.views)} views</span>
+              <span>${timeAgo(article.created_at)}</span>
             </div>
-        `;
-        contentItems.appendChild(item);
+          </div>
+        </div>`;
+      grid.appendChild(card);
     });
-
-    // Scroll to top of editor
-    document.getElementById('appContainer').scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function goBack() {
-    if (document.referrer && document.referrer.includes(window.location.host)) {
-        window.history.back();
-    } else {
-        window.location.href = 'index.html';
-    }
-}
-
-function toggleTheme() {
-    document.body.classList.toggle('light-theme');
-    localStorage.setItem("theme", document.body.classList.contains("light-theme") ? "light" : "dark");
-}
-
-if (localStorage.getItem("theme") === "light") {
-    document.body.classList.add("light-theme");
-}
-
-function autoResizeTitle(textarea) {
-    textarea.style.height = 'auto';
-    textarea.style.height = textarea.scrollHeight + 'px';
-}
-
-function addNewParagraph() {
-    lineCounter++;
-    const contentItem = document.createElement('div');
-    contentItem.className = 'content-item';
-    contentItem.innerHTML = `
-        <div class="content-line" data-line="${lineCounter}">
-            <div class="content-editable" contenteditable="true"></div>
-            <div class="line-actions">
-                <button class="line-btn" onclick="deleteLine(this)" title="Delete line">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        </div>
-    `;
-    document.getElementById('contentItems').appendChild(contentItem);
-    contentItem.querySelector('.content-editable').focus();
-}
-
-function deleteLine(btn) {
-    const contentItem = btn.closest('.content-item');
-    const allItems = document.querySelectorAll('.content-item .content-line');
-    if (allItems.length > 1) {
-        contentItem.remove();
-    } else {
-        showNotification('Cannot delete the last line', 'error');
-    }
-}
-
-function handleImageUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const contentItem = document.createElement('div');
-        contentItem.className = 'content-item';
-        contentItem.innerHTML = `
-            <div class="media-embed">
-                <button class="remove-media-btn" onclick="removeMedia(this)"><i class="fas fa-times"></i></button>
-                <img src="${e.target.result}" alt="Uploaded image">
-                <div class="media-caption" contenteditable="true"></div>
-            </div>
-        `;
-        document.getElementById('contentItems').appendChild(contentItem);
-    };
-    reader.readAsDataURL(file);
-    event.target.value = '';
-}
-
-function handleAudioUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const audioId = 'audio-' + Math.random().toString(36).substr(2, 9);
-        const contentItem = document.createElement('div');
-        contentItem.className = 'content-item';
-        contentItem.innerHTML = `
-            <div class="media-embed">
-                <button class="remove-media-btn" onclick="removeMedia(this)"><i class="fas fa-times"></i></button>
-                <div class="custom-audio-player">
-                    <button class="play-btn" onclick="toggleAudio(this, '${audioId}')"><i class="fas fa-play"></i></button>
-                    <div class="audio-info">
-                        <div class="audio-title">${file.name}</div>
-                        <div class="waveform-container" onclick="seekAudio(event, this, '${audioId}')">
-                            <div class="waveform-progress"></div>
-                            <div class="waveform-bars">${Array(15).fill(0).map(() => `<div class="waveform-bar" style="height: ${Math.random()*60+20}%"></div>`).join('')}</div>
-                        </div>
-                        <div class="audio-time"><span class="current-time">0:00</span><span class="duration">0:00</span></div>
-                    </div>
-                    <audio id="${audioId}" src="${e.target.result}" style="display:none;"></audio>
-                </div>
-                <div class="media-caption" contenteditable="true"></div>
-            </div>
-        `;
-        document.getElementById('contentItems').appendChild(contentItem);
-        setTimeout(() => {
-            const audio = document.getElementById(audioId);
-            if (audio) {
-                audio.addEventListener('loadedmetadata', function() {
-                    const d = Math.floor(audio.duration);
-                    const m = Math.floor(d/60), s = d%60;
-                    const span = audio.closest('.custom-audio-player').querySelector('.duration');
-                    if (span) span.textContent = `${m}:${s.toString().padStart(2,'0')}`;
-                });
-            }
-        }, 100);
-    };
-    reader.readAsDataURL(file);
-    event.target.value = '';
-}
-
-function removeMedia(btn) { btn.closest('.content-item').remove(); }
-
-function toggleAudio(btn, audioId) {
-    const player = btn.closest('.custom-audio-player');
-    const audio = document.getElementById(audioId);
-    const icon = btn.querySelector('i');
-    if (audio.paused) {
-        audio.play(); icon.className = 'fas fa-pause';
-        audio.ontimeupdate = function() {
-            const p = (audio.currentTime/audio.duration)*100;
-            player.querySelector('.waveform-progress').style.width = p+'%';
-            const cm = Math.floor(audio.currentTime/60), cs = Math.floor(audio.currentTime%60);
-            player.querySelector('.current-time').textContent = `${cm}:${cs.toString().padStart(2,'0')}`;
-        };
-        audio.onended = function() {
-            icon.className = 'fas fa-play';
-            player.querySelector('.waveform-progress').style.width = '0%';
-            player.querySelector('.current-time').textContent = '0:00';
-        };
-    } else { audio.pause(); icon.className = 'fas fa-play'; }
-}
-
-function seekAudio(event, container, audioId) {
-    const audio = document.getElementById(audioId);
-    const rect = container.getBoundingClientRect();
-    audio.currentTime = ((event.clientX - rect.left) / rect.width) * audio.duration;
-}
-
-function showNotification(message, type = 'success') {
-    const notification = document.getElementById('notification');
-    const notificationText = document.getElementById('notificationText');
-    const icon = notification.querySelector('i');
-    notificationText.textContent = message;
-    notification.className = `notification ${type} show`;
-    icon.className = type === 'success' ? 'fas fa-check-circle' : type === 'info' ? 'fas fa-wand-magic-sparkles' : 'fas fa-exclamation-circle';
-    setTimeout(() => notification.classList.remove('show'), 4000);
-}
-
-window.publishArticle = async function() {
-    const title = document.getElementById('articleTitle').value.trim();
-    if (!title) { showNotification('Please add a title', 'error'); return; }
-    const contentLines = [];
-    document.querySelectorAll('.content-line').forEach(line => {
-        const text = line.querySelector('.content-editable').textContent.trim();
-        if (text) contentLines.push(text);
-    });
-    if (!contentLines.length) { showNotification('Please add some content', 'error'); return; }
-    showNotification('Draft saved locally! Connect Firebase to publish.', 'info');
-};
+  }
 </script>
 
-<!-- Firebase module script preserved for your integration -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-const firebaseConfig = {
-    apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
-    authDomain: "patholytica.firebaseapp.com",
-    databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "patholytica",
-    storageBucket: "patholytica.firebasestorage.app",
-    messagingSenderId: "738430635282",
-    appId: "1:738430635282:web:8451ef380447c7611137cb"
-};
+const app = initializeApp({
+  apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+  authDomain: "patholytica.firebaseapp.com",
+  databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "patholytica",
+  storageBucket: "patholytica.firebasestorage.app",
+  messagingSenderId: "738430635282",
+  appId: "1:738430635282:web:8451ef380447c7611137cb"
+});
+const auth = getAuth(app);
 
-const supabase = window.supabase?.createClient(
-    "https://vduqewqyvszfquntmark.supabase.co",
-    "sb_publishable_YseP73aoHam8YT6B0b9EQQ_iAUEWARI"
+const sb = window.supabase.createClient(
+  "https://vduqewqyvszfquntmark.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
 );
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-let currentUser = null;
+/* ── Auth ── */
+window.handleUserChipClick = async () => {
+  await signOut(auth);
+  location.reload();
+};
 
-onAuthStateChanged(auth, (user) => {
-    if (user) { currentUser = user; }
+onAuthStateChanged(auth, async user => {
+  const loginBtn = document.getElementById('loginBtn');
+  const userChip = document.getElementById('userChip');
+  const fab = document.getElementById('fab');
+
+  if (user) {
+    loginBtn.style.display = 'none';
+    userChip.classList.add('show');
+    fab.classList.add('show');
+    const { data } = await sb.from('users').select('username').eq('firebase_uid', user.uid).single();
+    if (data?.username) document.getElementById('userChipName').textContent = '@'+data.username;
+  } else {
+    loginBtn.style.display = '';
+    userChip.classList.remove('show');
+    fab.classList.remove('show');
+  }
+  loadAll();
 });
 
-window.publishArticle = async function() {
-    if (!currentUser) { showNotification('Please log in to publish', 'error'); return; }
-    const title = document.getElementById('articleTitle').value.trim();
-    if (!title) { showNotification('Please add a title', 'error'); return; }
-    const contentLines = [];
-    document.querySelectorAll('.content-line').forEach(line => {
-        const text = line.querySelector('.content-editable').textContent.trim();
-        if (text) contentLines.push(text);
-    });
-    const content = contentLines.join('\n\n');
-    if (!content) { showNotification('Please add some content', 'error'); return; }
+async function loadAll() {
+  await Promise.all([loadChannels(), loadLibraries(), loadArticles()]);
+}
 
-    const publishBtn = document.getElementById('publishBtn');
-    publishBtn.disabled = true; publishBtn.textContent = 'Publishing...';
+/* ── Articles ── */
+async function loadArticles() {
+  const { data: articles } = await sb
+    .from('articles')
+    .select('id, title, created_at, views, likes, firebase_user_id, media(url)')
+    .order('created_at', { ascending: false })
+    .limit(24);
 
-    try {
-        let { data: userData } = await supabase.from('users').select('firebase_uid').eq('firebase_uid', currentUser.uid).single();
-        if (!userData) {
-            await supabase.from('users').insert([{ firebase_uid: currentUser.uid, email: currentUser.email, full_name: currentUser.displayName || currentUser.email?.split('@')[0], username: currentUser.email?.split('@')[0] }]);
-        }
-        const { data: article, error } = await supabase.from('articles').insert([{ title, content, firebase_user_id: currentUser.uid, views: 0, likes: 0 }]).select().single();
-        if (error) throw error;
-        showNotification('Article published successfully!', 'success');
-        setTimeout(() => { window.location.href = `article.html?id=${article.id}`; }, 1500);
-    } catch (error) {
-        showNotification('Error publishing: ' + error.message, 'error');
-        publishBtn.disabled = false; publishBtn.textContent = 'Publish';
-    }
-};
+  if (!articles?.length) {
+    document.getElementById('articleGrid').innerHTML = '<div class="empty-msg">No articles yet</div>';
+    return;
+  }
+
+  const uids = [...new Set(articles.map(a=>a.firebase_user_id).filter(Boolean))];
+  const { data: users } = await sb.from('users').select('firebase_uid,username,pfp').in('firebase_uid', uids);
+  const uMap = {};
+  (users||[]).forEach(u => uMap[u.firebase_uid]=u);
+
+  allArticles = articles.map(a => ({
+    ...a,
+    _username: uMap[a.firebase_user_id]?.username||null,
+    _pfp: uMap[a.firebase_user_id]?.pfp||null,
+  }));
+
+  renderGrid();
+}
+
+/* ── Channels ── */
+async function loadChannels() {
+  const row = document.getElementById('channelsRow');
+  const { data: articles } = await sb.from('articles').select('firebase_user_id, views');
+  if (!articles?.length) { row.innerHTML=''; return; }
+
+  const views = {};
+  articles.forEach(a => { views[a.firebase_user_id]=(views[a.firebase_user_id]||0)+(a.views||0); });
+  const topUids = Object.entries(views).sort((a,b)=>b[1]-a[1]).slice(0,12).map(e=>e[0]);
+
+  const { data: users } = await sb.from('users').select('firebase_uid,username,pfp').in('firebase_uid',topUids);
+  if (!users?.length) { row.innerHTML=''; return; }
+
+  row.innerHTML='';
+  topUids.forEach(uid => {
+    const u = users.find(x=>x.firebase_uid===uid);
+    if (!u) return;
+    const init = (u.username||'?')[0].toUpperCase();
+    const item = document.createElement('div');
+    item.className='channel-item';
+    item.onclick=()=>location.href=`profile.html?username=${u.username}`;
+    item.innerHTML=`
+      <div class="ch-ring">
+        <div class="ch-ring-inner">
+          <div class="ch-avatar">
+            ${u.pfp?`<img src="${u.pfp}" alt="" onerror="this.remove()">`:init}
+          </div>
+        </div>
+      </div>
+      <div class="ch-name">${u.username||'User'}</div>`;
+    row.appendChild(item);
+  });
+}
+
+/* ── Libraries ── */
+async function loadLibraries() {
+  const shelf = document.getElementById('libraryShelf');
+  const { data: libs } = await sb.from('playlists').select('*').order('created_at',{ascending:false}).limit(10);
+  if (!libs?.length) { shelf.innerHTML='<div class="empty-msg">No libraries yet</div>'; return; }
+
+  shelf.innerHTML='';
+  libs.forEach(lib => {
+    const card = document.createElement('div');
+    card.className='shelf-card';
+    card.onclick=()=>location.href=`playlist.html?id=${lib.id}`;
+    card.innerHTML=`
+      <div class="shelf-thumb"><i class="fas fa-bookmark"></i></div>
+      <div class="shelf-title">${lib.name||'Library'}</div>
+      <div class="shelf-meta">${lib.article_count||0} articles</div>`;
+    shelf.appendChild(card);
+  });
+}
 </script>
 </body>
 </html>
