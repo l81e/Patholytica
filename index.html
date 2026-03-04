@@ -1172,11 +1172,15 @@ async function handleLike(e) {
     if (!currentUser) { alert('Please log in to like articles'); window.location.href = 'login.html'; return; }
   }
 
+  // Prevent double-clicking
+  if (btn.dataset.processing === 'true') return;
+  btn.dataset.processing = 'true';
+
   const wasLiked = userLikes.has(id);
   const prevCount = parseInt(countSpan.textContent) || 0;
   const newCount = wasLiked ? Math.max(0, prevCount - 1) : prevCount + 1;
 
-  // Optimistic UI update
+  // Optimistic UI
   if (wasLiked) { userLikes.delete(id); btn.classList.remove('liked'); }
   else { userLikes.add(id); btn.classList.add('liked'); }
   countSpan.textContent = newCount;
@@ -1187,20 +1191,39 @@ async function handleLike(e) {
 
   try {
     if (wasLiked) {
-      await supabase.from('likes').delete().eq('article_id', id).eq('user_id', currentUser.user_id);
+      // Delete like row
+      const { error: delErr } = await supabase.from('likes').delete().eq('article_id', id).eq('user_id', currentUser.user_id);
+      if (delErr) throw delErr;
+      // Decrement articles.likes by 1 atomically
+      const { error: updErr } = await supabase.rpc('decrement_likes', { article_id: id });
+      if (updErr) {
+        // Fallback: manual read-then-write
+        const { data: fresh } = await supabase.from('articles').select('likes').eq('id', id).single();
+        await supabase.from('articles').update({ likes: Math.max(0, (fresh?.likes || 1) - 1) }).eq('id', id);
+      }
     } else {
-      await supabase.from('likes').insert([{ article_id: id, user_id: currentUser.user_id }]);
+      // Insert like row (ignore duplicate errors)
+      const { error: insErr } = await supabase.from('likes').insert([{ article_id: id, user_id: currentUser.user_id }]);
+      if (insErr && insErr.code !== '23505') throw insErr; // 23505 = unique violation
+      // Increment articles.likes by 1 atomically
+      const { error: updErr } = await supabase.rpc('increment_likes', { article_id: id });
+      if (updErr) {
+        // Fallback: manual read-then-write
+        const { data: fresh } = await supabase.from('articles').select('likes').eq('id', id).single();
+        await supabase.from('articles').update({ likes: (fresh?.likes || 0) + 1 }).eq('id', id);
+      }
     }
-    // Do NOT update articles.likes here — DB trigger handles it
   } catch(err) {
     console.error('Like error:', err);
-    // Revert optimistic update on failure
+    // Revert
     if (wasLiked) { userLikes.add(id); btn.classList.add('liked'); }
     else { userLikes.delete(id); btn.classList.remove('liked'); }
     countSpan.textContent = prevCount;
     if (card) { const s = card.querySelector('.stat-item.likes span'); if (s) s.textContent = formatNumber(prevCount); }
     if (artIdx !== -1) articles[artIdx].likes = prevCount;
     alert('Failed to update like. Please try again.');
+  } finally {
+    btn.dataset.processing = 'false';
   }
 }
 
