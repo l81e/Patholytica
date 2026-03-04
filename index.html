@@ -731,7 +731,6 @@ async function performSearch(query, isNewSearch = true) {
     let grandTotal = 0;
 
     if (currentFilter === 'all') {
-      // All tab: users + articles + playlists only (no content)
       const perType = Math.ceil(RESULTS_PER_PAGE / 3);
       const typeOffset = Math.floor(currentOffset / 3);
 
@@ -843,7 +842,6 @@ function displayResults(results, query, isNewSearch) {
     const li = document.createElement('li');
     li.className = 'result-item';
 
-    // Avatar
     const avatarDiv = document.createElement('div');
 
     if (result.type === 'user') {
@@ -853,9 +851,7 @@ function displayResults(results, query, isNewSearch) {
         img.src = result.pfp; img.alt = result.username || 'User';
         img.onerror = () => { img.remove(); avatarDiv.textContent = (result.username||'U')[0].toUpperCase(); };
         avatarDiv.appendChild(img);
-      } else {
-        avatarDiv.textContent = (result.username||'U')[0].toUpperCase();
-      }
+      } else { avatarDiv.textContent = (result.username||'U')[0].toUpperCase(); }
     } else if (result.type === 'article') {
       avatarDiv.className = 'result-avatar article';
       if (result.firstMedia && result.firstMedia.type === 'image' && result.firstMedia.url) {
@@ -863,9 +859,7 @@ function displayResults(results, query, isNewSearch) {
         img.src = result.firstMedia.url; img.alt = result.title || 'Article';
         img.onerror = () => { img.remove(); avatarDiv.textContent = (result.title||'A')[0].toUpperCase(); };
         avatarDiv.appendChild(img);
-      } else {
-        avatarDiv.textContent = (result.title||'A')[0].toUpperCase();
-      }
+      } else { avatarDiv.textContent = (result.title||'A')[0].toUpperCase(); }
     } else if (result.type === 'article-content') {
       avatarDiv.className = 'result-avatar article-content';
       avatarDiv.textContent = (result.title||'A')[0].toUpperCase();
@@ -874,7 +868,6 @@ function displayResults(results, query, isNewSearch) {
       avatarDiv.textContent = (result.name||'L')[0].toUpperCase();
     }
 
-    // Content
     const contentDiv = document.createElement('div');
     contentDiv.className = 'result-content';
 
@@ -883,14 +876,12 @@ function displayResults(results, query, isNewSearch) {
       const sub = document.createElement('p'); sub.className = 'result-subtitle'; sub.textContent = result.bio || 'No bio';
       contentDiv.appendChild(title); contentDiv.appendChild(sub);
       li.onclick = () => window.location.href = `profile.html?username=${result.username}`;
-
     } else if (result.type === 'article') {
       const date = new Date(result.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       const title = document.createElement('h3'); title.className = 'result-title'; title.textContent = result.title || 'Untitled';
       const sub = document.createElement('p'); sub.className = 'result-subtitle'; sub.textContent = `@${result.authorUsername} · ${date}`;
       contentDiv.appendChild(title); contentDiv.appendChild(sub);
       li.onclick = () => window.location.href = `article.html?id=${result.id}`;
-
     } else if (result.type === 'article-content') {
       const title = document.createElement('h3'); title.className = 'result-title'; title.textContent = result.title || 'Untitled';
       const sub = document.createElement('p'); sub.className = 'result-subtitle'; sub.textContent = `@${result.authorUsername}`;
@@ -900,7 +891,6 @@ function displayResults(results, query, isNewSearch) {
         contentDiv.appendChild(exc);
       }
       li.onclick = () => window.location.href = `article.html?id=${result.id}`;
-
     } else if (result.type === 'playlist') {
       const count = result.article_count || 0;
       const title = document.createElement('h3'); title.className = 'result-title'; title.textContent = result.name || 'Untitled';
@@ -909,7 +899,6 @@ function displayResults(results, query, isNewSearch) {
       li.onclick = () => window.location.href = `playlist.html?id=${result.id}`;
     }
 
-    // Badge
     const badge = document.createElement('span');
     badge.className = `result-type-badge ${result.type}`;
     badge.textContent = result.type === 'article-content' ? 'Content' :
@@ -954,17 +943,21 @@ async function getCurrentUser() {
     return data || null;
   } catch(e) { return null; }
 }
+
+// Store all liked IDs as strings for consistent comparison
 async function loadUserLikes() {
   if (!currentUser) return;
   try {
     const { data: likes } = await supabase.from('likes').select('article_id').eq('user_id', currentUser.user_id);
-    userLikes.clear(); (likes||[]).forEach(l => userLikes.add(l.article_id));
+    userLikes.clear();
+    (likes||[]).forEach(l => userLikes.add(String(l.article_id)));
     updateLikeButtons();
   } catch(e) {}
 }
+
 function updateLikeButtons() {
   document.querySelectorAll('.like-btn').forEach(btn => {
-    btn.classList.toggle('liked', userLikes.has(btn.dataset.id));
+    btn.classList.toggle('liked', userLikes.has(String(btn.dataset.id)));
   });
 }
 
@@ -1081,7 +1074,7 @@ function renderArticles(isInitial = true) {
       }
     });
     if (article.media) article.media.filter(m => m.display_order >= paragraphs.length).forEach(m => contentDiv.appendChild(createMediaElement(m)));
-    const isLiked = userLikes.has(article.id);
+    const isLiked = userLikes.has(String(article.id));
     div.innerHTML = `
       <div class="article-header">
         <div class="author-avatar">${getAvatarContent(article)}</div>
@@ -1164,7 +1157,7 @@ async function loadCommentCounts() {
 // ── LIKES ─────────────────────────────────────────────────────────────────────
 async function handleLike(e) {
   const btn = e.currentTarget;
-  const id = btn.dataset.id;
+  const id = String(btn.dataset.id); // always string for consistent Set comparison
   const countSpan = btn.querySelector('.like-count');
 
   if (!currentUser) {
@@ -1172,7 +1165,6 @@ async function handleLike(e) {
     if (!currentUser) { alert('Please log in to like articles'); window.location.href = 'login.html'; return; }
   }
 
-  // Prevent double-clicking
   if (btn.dataset.processing === 'true') return;
   btn.dataset.processing = 'true';
 
@@ -1186,29 +1178,23 @@ async function handleLike(e) {
   countSpan.textContent = newCount;
   const card = btn.closest('.article-card');
   if (card) { const s = card.querySelector('.stat-item.likes span'); if (s) s.textContent = formatNumber(newCount); }
-  const artIdx = articles.findIndex(a => a.id === id);
+  const artIdx = articles.findIndex(a => String(a.id) === id);
   if (artIdx !== -1) articles[artIdx].likes = newCount;
 
   try {
     if (wasLiked) {
-      // Delete like row
       const { error: delErr } = await supabase.from('likes').delete().eq('article_id', id).eq('user_id', currentUser.user_id);
       if (delErr) throw delErr;
-      // Decrement articles.likes by 1 atomically
-      const { error: updErr } = await supabase.rpc('decrement_likes', { article_id: id });
-      if (updErr) {
-        // Fallback: manual read-then-write
+      const { error: rpcErr } = await supabase.rpc('decrement_likes', { article_id: parseInt(id) });
+      if (rpcErr) {
         const { data: fresh } = await supabase.from('articles').select('likes').eq('id', id).single();
         await supabase.from('articles').update({ likes: Math.max(0, (fresh?.likes || 1) - 1) }).eq('id', id);
       }
     } else {
-      // Insert like row (ignore duplicate errors)
-      const { error: insErr } = await supabase.from('likes').insert([{ article_id: id, user_id: currentUser.user_id }]);
-      if (insErr && insErr.code !== '23505') throw insErr; // 23505 = unique violation
-      // Increment articles.likes by 1 atomically
-      const { error: updErr } = await supabase.rpc('increment_likes', { article_id: id });
-      if (updErr) {
-        // Fallback: manual read-then-write
+      const { error: insErr } = await supabase.from('likes').insert([{ article_id: parseInt(id), user_id: currentUser.user_id }]);
+      if (insErr && insErr.code !== '23505') throw insErr;
+      const { error: rpcErr } = await supabase.rpc('increment_likes', { article_id: parseInt(id) });
+      if (rpcErr) {
         const { data: fresh } = await supabase.from('articles').select('likes').eq('id', id).single();
         await supabase.from('articles').update({ likes: (fresh?.likes || 0) + 1 }).eq('id', id);
       }
