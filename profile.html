@@ -1004,6 +1004,9 @@ onAuthStateChanged(auth, async user => {
   if (user) {
     ab.classList.remove('show'); uw.classList.add('show');
     await populateUserPopup(user);
+    // Always load likes for the logged-in user
+    const { data: ud } = await supabase.from('users').select('user_id').eq('firebase_uid', user.uid).single();
+    if (ud) await loadUserLikes(ud.user_id);
     if (!usernameParam) {
       await loadProfile(user);
     } else {
@@ -1011,9 +1014,6 @@ onAuthStateChanged(auth, async user => {
       if (profileUser && profileUser.firebase_uid === user.uid) {
         await loadProfile(user);
       }
-      // Load likes for own user regardless
-      const { data: ud } = await supabase.from('users').select('user_id').eq('firebase_uid', user.uid).single();
-      if (ud) await loadUserLikes(ud.user_id);
     }
   } else {
     ab.classList.add('show'); uw.classList.remove('show');
