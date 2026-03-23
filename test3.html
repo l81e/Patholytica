@@ -1,2306 +1,1243 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>My Space</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-<!-- ═══════════════════════════════════════════════════════
-     STYLES
-     ═══════════════════════════════════════════════════════ -->
-
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-/* ── CSS Variables ── */
 :root {
   --bg: #0a0a0a;
-  --bg2: #101010;
+  --bg2: #111111;
   --bg3: #181818;
-  --bg4: #202020;
   --border: #1e1e1e;
   --border2: #2a2a2a;
-  --border3: #363636;
   --text: #e8e6e1;
   --text2: #6e6c68;
   --text3: #3a3835;
   --accent: #4f9eff;
-  --accent-h: #3a8ae8;
-  --green: #3dba72;
-  --orange: #e88c3a;
-  --purple: #a56fd4;
-  --red: #ef4444;
-  --yellow: #fbbf24;
-  --glass: rgba(10,10,10,0.82);
-  --glass2: rgba(16,16,16,0.88);
-  --glass-b: rgba(255,255,255,0.055);
-  --shadow: 0 8px 32px rgba(0,0,0,0.72);
-  --shadow2: 0 24px 64px rgba(0,0,0,0.88);
-  --radius: 15px;
-  --safe-t: env(safe-area-inset-top, 0px);
-  --safe-b: env(safe-area-inset-bottom, 0px);
-  --safe-l: env(safe-area-inset-left, 0px);
-  --safe-r: env(safe-area-inset-right, 0px);
-  --topbar: 48px;
-  --toolbar: 58px;
+  --accent2: #3dba72;
+  --accent3: #e88c3a;
+  --accent4: #a56fd4;
+  --accent5: #ef4444;
+  --glass: rgba(12,12,12,0.82);
+  --glass-border: rgba(255,255,255,0.06);
+  --shadow: 0 8px 32px rgba(0,0,0,0.7);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
-
-/* ── Reset ── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); touch-action: none; }
-
-/* ── Layer Structure ── */
-/* Layer 1: Background */
-#bg-layer {
-  position: fixed; inset: -60px;
-  z-index: 0;
-  background: var(--bg);
-  background-size: cover; background-position: center;
-  transition: filter 0.4s ease;
-  pointer-events: none;
-  will-change: transform;
-}
-#bg-overlay { position: absolute; inset: 0; pointer-events: none; transition: background 0.3s; }
-
-/* Layer 2: Canvas viewport (clips, receives pan/zoom) */
-#canvas-viewport {
-  position: fixed; inset: 0;
-  z-index: 1;
-  overflow: hidden;
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg); color: var(--text);
   touch-action: none;
 }
 
-/* The actual infinite canvas that gets transformed */
+/* ── Canvas ── */
 #canvas {
-  position: absolute;
-  top: 0; left: 0;
-  width: 3000px; height: 3000px;
-  transform-origin: 0 0;
-  will-change: transform;
-}
-
-/* Drawing canvas overlay */
-#draw-canvas {
-  position: absolute;
-  top: 0; left: 0;
-  width: 3000px; height: 3000px;
-  pointer-events: none;
-  z-index: 50;
-}
-#draw-canvas.drawing-mode { pointer-events: all; cursor: crosshair; }
-
-/* Layer 3: UI overlay (fixed, always on top) */
-#ui-layer {
   position: fixed; inset: 0;
-  z-index: 1000;
+  overflow: hidden;
+  touch-action: none;
+}
+#bg-layer {
+  position: absolute; inset: -30px;
+  background: var(--bg);
+  background-size: cover; background-position: center;
+  transition: filter 0.4s ease;
+}
+#bg-overlay { position: absolute; inset: 0; pointer-events: none; }
+
+/* ── Widgets Layer ── */
+#widgets-layer {
+  position: absolute; inset: 0;
   pointer-events: none;
 }
-#ui-layer > * { pointer-events: all; }
+#widgets-layer.edit-mode { pointer-events: all; }
 
-/* ── Widget Base ── */
+/* ── Widget ── */
 .widget {
   position: absolute;
-  min-width: 140px; min-height: 70px;
-  border: 1px solid var(--glass-b);
-  border-radius: var(--radius);
-  backdrop-filter: blur(18px) saturate(1.3);
-  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  min-width: 150px; min-height: 80px;
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
   background: var(--glass);
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.04);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.05);
   overflow: hidden;
+  pointer-events: all;
   user-select: none;
   -webkit-user-select: none;
-  transition: box-shadow 0.18s, border-color 0.18s;
+  transition: box-shadow 0.2s, border-color 0.2s;
   will-change: transform;
 }
 .widget.selected {
   border-color: var(--accent);
-  box-shadow: var(--shadow), 0 0 0 1px var(--accent), 0 0 20px rgba(79,158,255,0.12);
+  box-shadow: var(--shadow), 0 0 0 1px var(--accent);
 }
-.widget.dragging { box-shadow: var(--shadow2), 0 0 0 1px var(--accent); transition: none; }
-.widget.locked { pointer-events: none; }
-
-/* Drag handle */
-.w-handle {
-  position: absolute; top: 0; left: 0; right: 0; height: 30px;
-  cursor: grab; z-index: 5; display: none;
-  align-items: center; padding: 0 10px; gap: 7px;
-  background: rgba(255,255,255,0.018); border-bottom: 1px solid var(--glass-b);
+.widget.dragging-active {
+  box-shadow: 0 24px 64px rgba(0,0,0,0.85), 0 0 0 1px var(--accent);
+  transition: none;
 }
-.w-handle:active { cursor: grabbing; }
-.edit-mode .w-handle { display: flex; }
-.w-handle-dots { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px; opacity: 0.35; }
-.w-handle-dots span { width: 3px; height: 3px; border-radius: 50%; background: var(--text); display: block; }
-.w-handle-spacer { flex: 1; }
-.w-handle-btn {
-  width: 20px; height: 20px; border-radius: 5px; border: none;
-  background: none; color: var(--text3); cursor: pointer; font-size: 11px;
-  display: flex; align-items: center; justify-content: center; transition: all 0.12s;
+
+/* Drag handle strip */
+.drag-handle {
+  position: absolute; top: 0; left: 0; right: 0; height: 32px;
+  cursor: grab; z-index: 5; display: none; align-items: center;
+  padding: 0 10px; gap: 8px;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--glass-border);
 }
-.w-handle-btn:hover, .w-handle-btn:active { background: rgba(255,255,255,0.08); color: var(--text); }
-.w-handle-btn.del:hover { background: rgba(239,68,68,0.18); color: var(--red); }
+.drag-handle:active { cursor: grabbing; }
+.edit-mode .drag-handle { display: flex; }
+.handle-dots { display: flex; gap: 3px; }
+.handle-dots span { width: 3px; height: 3px; border-radius: 50%; background: var(--text3); display: block; }
+.handle-spacer { flex: 1; }
+.handle-del {
+  width: 22px; height: 22px; border-radius: 6px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.handle-del:active { background: rgba(239,68,68,0.18); color: var(--accent5); }
 
-/* Content shifts down in edit mode */
-.edit-mode .w-body { margin-top: 30px; }
-.w-body { height: 100%; transition: margin 0.15s; }
-
-/* Resize corner */
-.w-resize {
+/* Resize handle */
+.resize-handle {
   position: absolute; bottom: 0; right: 0;
-  width: 20px; height: 20px; cursor: se-resize; z-index: 6;
-  display: none; align-items: flex-end; justify-content: flex-end; padding: 3px;
+  width: 22px; height: 22px;
+  cursor: se-resize; z-index: 5;
+  display: none; align-items: flex-end; justify-content: flex-end; padding: 4px;
 }
-.w-resize::after {
-  content: ''; width: 8px; height: 8px;
+.resize-handle::after {
+  content: ''; display: block; width: 9px; height: 9px;
   border-right: 2px solid var(--text2); border-bottom: 2px solid var(--text2);
-  border-radius: 0 0 2px 0; display: block;
+  border-radius: 0 0 3px 0;
 }
-.edit-mode .w-resize { display: flex; }
+.edit-mode .resize-handle { display: flex; }
 
-/* Tag badge */
-.w-tags { position: absolute; bottom: 4px; left: 8px; display: flex; gap: 4px; flex-wrap: wrap; z-index: 4; pointer-events: none; }
-.w-tag { font-size: 9px; padding: 2px 6px; border-radius: 8px; background: rgba(79,158,255,0.12); color: var(--accent); font-weight: 500; }
+/* Inner content pushed down in edit mode */
+.edit-mode .widget-inner { padding-top: 32px; }
 
-/* Group outline */
-.widget.grouped { outline: 1px dashed var(--purple); outline-offset: 3px; }
-
-/* Locked/faded (memory mode) */
-.widget.faded { opacity: 0.45; filter: grayscale(0.4); }
-.widget.locked-note::after {
-  content: '🔒'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-  font-size: 28px; z-index: 10; cursor: pointer;
-}
-
-/* ── Widget: Widget-header shared ── */
-.wh {
-  display: flex; align-items: center; gap: 7px;
-  padding: 9px 11px 7px;
-  border-bottom: 1px solid var(--glass-b);
-  font-size: 10px; font-weight: 600; letter-spacing: 0.07em;
+/* Widget header */
+.widget-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--glass-border);
+  font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
   text-transform: uppercase; color: var(--text2);
-  flex-shrink: 0;
 }
-.wh i { font-size: 11px; }
-.wh-spacer { flex: 1; }
+.widget-header i { font-size: 12px; }
 
-/* ── Note widget ── */
-.note-widget[data-color="yellow"] { background: rgba(251,191,36,0.07); border-color: rgba(251,191,36,0.18); }
+/* ── Note ── */
+.note-widget[data-color="yellow"] { background: rgba(255,213,79,0.08); border-color: rgba(255,213,79,0.18); }
 .note-widget[data-color="green"]  { background: rgba(61,186,114,0.07); border-color: rgba(61,186,114,0.18); }
 .note-widget[data-color="blue"]   { background: rgba(79,158,255,0.07); border-color: rgba(79,158,255,0.18); }
 .note-widget[data-color="purple"] { background: rgba(165,111,212,0.07); border-color: rgba(165,111,212,0.18); }
-.note-widget[data-color="red"]    { background: rgba(239,68,68,0.07);   border-color: rgba(239,68,68,0.18); }
-
-.note-editable {
-  width: 100%; height: calc(100% - 54px);
-  padding: 10px 12px; background: none; border: none; outline: none; resize: none;
-  color: var(--text); font-size: 13.5px; line-height: 1.7;
-  font-family: inherit; display: block;
+.note-widget[data-color="red"]    { background: rgba(239,68,68,0.07); border-color: rgba(239,68,68,0.18); }
+.note-colors { display: flex; gap: 7px; padding: 7px 12px 10px; }
+.note-color-dot {
+  width: 13px; height: 13px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; transition: all 0.15s; flex-shrink: 0;
 }
-.note-editable::placeholder { color: var(--text3); }
-.note-colors { display: flex; gap: 6px; padding: 6px 11px 9px; align-items: center; }
-.nc-dot {
-  width: 12px; height: 12px; border-radius: 50%; cursor: pointer;
-  border: 2px solid transparent; transition: all 0.12s; flex-shrink: 0;
+.note-color-dot.active { border-color: rgba(255,255,255,0.7); transform: scale(1.2); }
+.note-body {
+  width: 100%; height: calc(100% - 74px);
+  padding: 10px 12px;
+  background: transparent; border: none; outline: none; resize: none;
+  color: var(--text); font-family: 'DM Sans', sans-serif;
+  font-size: 14px; line-height: 1.65;
 }
-.nc-dot.active { border-color: rgba(255,255,255,0.65); transform: scale(1.25); }
-.note-font-sel {
-  margin-left: auto; background: none; border: none; color: var(--text2);
-  font-size: 10px; cursor: pointer; padding: 2px 4px; border-radius: 4px;
-  transition: background 0.12s; font-family: 'DM Sans', sans-serif;
-}
-.note-font-sel:hover { background: var(--bg3); }
+.note-body::placeholder { color: var(--text3); }
 
 /* ── Clock ── */
-.clock-body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: calc(100% - 30px); padding: 12px; }
-.clock-time { font-family: 'DM Mono', monospace; font-size: 36px; font-weight: 500; color: var(--text); letter-spacing: -0.02em; line-height: 1; }
-.clock-date { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text2); letter-spacing: 0.07em; text-transform: uppercase; margin-top: 5px; }
-.clock-seconds { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text3); margin-top: 2px; }
+.clock-display { padding: 16px 18px; text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+.clock-time {
+  font-family: 'DM Mono', monospace; font-size: 34px; font-weight: 500;
+  color: var(--text); letter-spacing: -0.02em; line-height: 1;
+}
+.clock-date {
+  font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text2);
+  letter-spacing: 0.08em; text-transform: uppercase; margin-top: 5px;
+}
 
 /* ── Todo ── */
-.todo-body { height: calc(100% - 30px); display: flex; flex-direction: column; overflow: hidden; }
-.todo-list { flex: 1; overflow-y: auto; padding: 6px 11px; }
-.todo-list::-webkit-scrollbar { width: 3px; }
-.todo-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-.todo-item { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.todo-body { padding: 6px 12px 10px; height: calc(100% - 34px); overflow-y: auto; }
+.todo-body::-webkit-scrollbar { width: 3px; }
+.todo-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+.todo-item { display: flex; align-items: flex-start; gap: 9px; padding: 7px 0; border-bottom: 1px solid var(--border); }
 .todo-item:last-child { border-bottom: none; }
-.todo-cb { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border2); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; margin-top: 2px; transition: all 0.12s; }
-.todo-cb.done { background: var(--green); border-color: var(--green); }
-.todo-cb.done::after { content: '✓'; font-size: 9px; color: white; font-weight: 700; }
-.todo-text { flex: 1; font-size: 12.5px; color: var(--text); line-height: 1.5; outline: none; word-break: break-word; }
+.todo-checkbox {
+  width: 17px; height: 17px; border-radius: 5px; border: 1.5px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; margin-top: 2px; transition: all 0.15s;
+}
+.todo-checkbox.checked { background: var(--accent2); border-color: var(--accent2); }
+.todo-checkbox.checked::after { content: '✓'; font-size: 10px; color: white; font-weight: 700; }
+.todo-text { flex: 1; font-size: 13px; color: var(--text); line-height: 1.5; outline: none; word-break: break-word; }
 .todo-text.done { text-decoration: line-through; color: var(--text2); }
-.todo-del-btn { width: 18px; height: 18px; border-radius: 4px; border: none; background: none; color: var(--text3); cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: all 0.12s; }
-.todo-item:hover .todo-del-btn { opacity: 1; }
-.todo-del-btn:hover { background: rgba(239,68,68,0.14); color: var(--red); }
-.todo-add { display: flex; align-items: center; gap: 7px; padding: 7px 11px; border-top: 1px solid var(--border); flex-shrink: 0; }
-.todo-add input { flex: 1; background: none; border: none; outline: none; font-size: 12.5px; color: var(--text2); font-family: 'DM Sans', sans-serif; }
-.todo-add input::placeholder { color: var(--text3); }
-.todo-add-btn { width: 20px; height: 20px; border-radius: 5px; background: var(--bg3); border: 1px solid var(--border2); color: var(--text2); cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.12s; }
-.todo-add-btn:hover { background: var(--accent); border-color: var(--accent); color: white; }
+.todo-del {
+  width: 20px; height: 20px; border-radius: 5px; background: none; border: none;
+  color: var(--text3); cursor: pointer; font-size: 12px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  opacity: 0; transition: all 0.15s;
+}
+.todo-item:hover .todo-del, .todo-del:focus { opacity: 1; }
+.todo-del:active { background: rgba(239,68,68,0.15); color: var(--accent5); opacity: 1; }
+.todo-add-row { display: flex; align-items: center; gap: 7px; padding: 8px 0 0; border-top: 1px solid var(--border); margin-top: 2px; }
+.todo-add-input { flex: 1; background: none; border: none; outline: none; font-size: 13px; color: var(--text2); font-family: 'DM Sans', sans-serif; }
+.todo-add-input::placeholder { color: var(--text3); }
+.todo-add-btn {
+  width: 22px; height: 22px; border-radius: 6px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  color: var(--text2); cursor: pointer; font-size: 13px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: all 0.15s;
+}
+.todo-add-btn:active { background: var(--accent); border-color: var(--accent); color: white; }
 
-/* ── Image widget ── */
-.image-body { width: 100%; height: 100%; border-radius: calc(var(--radius) - 1px); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+/* ── Image ── */
+.image-body { width: 100%; height: 100%; overflow: hidden; border-radius: 15px; }
 .image-body img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s; }
 .image-body:hover img { transform: scale(1.02); }
-.image-placeholder { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--text3); font-size: 12px; cursor: pointer; }
-.image-placeholder i { font-size: 24px; }
+.image-placeholder {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 9px; color: var(--text3); font-size: 12px; cursor: pointer; padding: 20px;
+}
+.image-placeholder i { font-size: 26px; }
 
 /* ── Quote ── */
-.quote-body { height: calc(100% - 30px); display: flex; flex-direction: column; justify-content: center; padding: 14px 16px; gap: 10px; }
-.quote-text { font-family: 'Playfair Display', Georgia, serif; font-size: 15px; line-height: 1.7; color: var(--text); font-style: italic; outline: none; word-break: break-word; }
+.quote-body { padding: 14px 16px; height: calc(100% - 34px); display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+.quote-text {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 15px; line-height: 1.65; color: var(--text); font-style: italic;
+  outline: none; word-break: break-word;
+}
 .quote-author { font-size: 11px; color: var(--text2); letter-spacing: 0.06em; text-transform: uppercase; outline: none; }
 
-/* ── Music/Spotify ── */
-.music-body { height: 100%; }
-.music-body iframe { width: 100%; height: 100%; border: none; display: block; border-radius: calc(var(--radius) - 1px); }
-.music-setup { height: calc(100% - 30px); display: flex; flex-direction: column; justify-content: center; gap: 9px; padding: 12px; }
-.music-input { background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px; padding: 8px 10px; color: var(--text); font-size: 12px; outline: none; font-family: 'DM Mono', monospace; width: 100%; }
-.music-input::placeholder { color: var(--text3); }
-.music-input:focus { border-color: var(--accent); }
-.music-btn { padding: 8px; border-radius: 8px; background: #1DB954; border: none; color: white; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.12s; }
-.music-btn:hover { background: #17a349; }
-
-/* ── Pomodoro ── */
-.pomo-body { height: calc(100% - 30px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 12px; }
-.pomo-ring { position: relative; width: 90px; height: 90px; }
-.pomo-ring svg { transform: rotate(-90deg); }
-.pomo-ring circle { fill: none; stroke-width: 4; }
-.pomo-ring .bg-ring { stroke: var(--border2); }
-.pomo-ring .prog-ring { stroke: var(--red); stroke-linecap: round; transition: stroke-dashoffset 0.5s linear; }
-.pomo-time { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-family: 'DM Mono', monospace; font-size: 18px; color: var(--text); font-weight: 500; }
-.pomo-label { font-size: 10px; color: var(--text2); letter-spacing: 0.07em; text-transform: uppercase; }
-.pomo-controls { display: flex; gap: 8px; }
-.pomo-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border2); background: var(--bg3); color: var(--text2); cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
-.pomo-btn:hover { background: var(--border2); color: var(--text); }
-.pomo-btn.active { background: var(--red); border-color: var(--red); color: white; }
-
-/* ── Habit Tracker ── */
-.habit-body { height: calc(100% - 30px); overflow-y: auto; padding: 8px 11px; }
-.habit-body::-webkit-scrollbar { width: 3px; }
-.habit-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-.habit-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); }
-.habit-row:last-child { border-bottom: none; }
-.habit-name { flex: 1; font-size: 12px; color: var(--text); outline: none; }
-.habit-dots { display: flex; gap: 4px; }
-.habit-dot { width: 14px; height: 14px; border-radius: 3px; background: var(--bg3); border: 1px solid var(--border2); cursor: pointer; transition: all 0.12s; flex-shrink: 0; }
-.habit-dot.on { background: var(--green); border-color: var(--green); }
-.habit-add-row { display: flex; gap: 7px; padding: 7px 0 0; border-top: 1px solid var(--border); margin-top: 3px; }
-.habit-add-row input { flex: 1; background: none; border: none; outline: none; font-size: 12px; color: var(--text2); font-family: 'DM Sans', sans-serif; }
-.habit-add-row input::placeholder { color: var(--text3); }
-
-/* ── Calendar ── */
-.cal-body { height: calc(100% - 30px); padding: 8px 11px; overflow: hidden; }
-.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.cal-month { font-size: 12px; font-weight: 600; color: var(--text); }
-.cal-nav { width: 20px; height: 20px; border-radius: 4px; border: none; background: none; color: var(--text2); cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; transition: background 0.12s; }
-.cal-nav:hover { background: var(--bg3); }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-.cal-day-label { font-size: 9px; color: var(--text2); text-align: center; padding: 2px 0; font-weight: 600; letter-spacing: 0.04em; }
-.cal-day { font-size: 10px; text-align: center; padding: 4px 2px; border-radius: 4px; cursor: pointer; color: var(--text2); transition: all 0.12s; }
-.cal-day:hover { background: var(--bg3); color: var(--text); }
-.cal-day.today { background: var(--accent); color: white; font-weight: 600; }
-.cal-day.other-month { opacity: 0.3; }
-.cal-day.has-note { position: relative; }
-.cal-day.has-note::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 3px; height: 3px; border-radius: 50%; background: var(--orange); }
-
-/* ── Ambient ── */
-.ambient-body { height: calc(100% - 30px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 12px; }
-.ambient-sounds { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
-.ambient-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 8px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 10px; cursor: pointer; transition: all 0.15s; font-size: 11px; color: var(--text2); }
-.ambient-item i { font-size: 18px; }
-.ambient-item.playing { background: rgba(79,158,255,0.1); border-color: var(--accent); color: var(--accent); }
-
-/* ── Reminder widget ── */
-.reminder-body { height: calc(100% - 30px); overflow-y: auto; padding: 8px 11px; }
-.reminder-item { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
-.reminder-item:last-child { border-bottom: none; }
-.reminder-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
-.reminder-info { flex: 1; min-width: 0; }
-.reminder-title { font-size: 12px; color: var(--text); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.reminder-time { font-size: 10px; color: var(--text2); font-family: 'DM Mono', monospace; }
-.reminder-del { width: 18px; height: 18px; border-radius: 4px; border: none; background: none; color: var(--text3); cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
-.reminder-del:hover { background: rgba(239,68,68,0.14); color: var(--red); }
-.reminder-add-row { display: flex; flex-direction: column; gap: 5px; padding: 7px 0 0; border-top: 1px solid var(--border); }
-.reminder-add-row input { background: none; border: none; outline: none; font-size: 12px; color: var(--text2); font-family: 'DM Sans', sans-serif; }
-.reminder-add-row input::placeholder { color: var(--text3); }
-.reminder-add-row input[type=datetime-local] { font-family: 'DM Mono', monospace; font-size: 11px; color-scheme: dark; }
-.reminder-add-btn { align-self: flex-end; padding: 5px 12px; border-radius: 7px; background: var(--accent); border: none; color: white; font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
-
-/* ── Connection lines (mind map) ── */
-#connections-svg { position: absolute; top: 0; left: 0; width: 3000px; height: 3000px; pointer-events: none; z-index: 1; overflow: visible; }
-.connection-line { stroke: var(--accent); stroke-width: 1.5; fill: none; opacity: 0.5; stroke-dasharray: 5 3; }
-
-/* ── Topbar ── */
-#topbar {
-  position: absolute; top: 0; left: 0; right: 0;
-  height: calc(var(--safe-t) + var(--topbar));
-  padding-top: var(--safe-t);
-  background: var(--glass2);
-  border-bottom: 1px solid var(--glass-b);
-  backdrop-filter: blur(22px) saturate(1.4);
-  -webkit-backdrop-filter: blur(22px) saturate(1.4);
-  display: flex; align-items: flex-end;
-}
-.topbar-inner {
-  width: 100%; height: var(--topbar);
-  display: flex; align-items: center;
-  padding: 0 12px; gap: 8px;
-}
-#space-name-btn {
-  font-family: 'DM Serif Display', serif;
-  font-size: 18px; color: var(--text); background: none; border: none; cursor: pointer;
-  padding: 4px 8px; border-radius: 8px; transition: background 0.12s; flex-shrink: 0;
-  max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-#space-name-btn:hover { background: rgba(255,255,255,0.05); }
-.topbar-spacer { flex: 1; }
-.topbar-btn {
-  width: 34px; height: 34px; border-radius: 10px;
-  background: none; border: 1px solid transparent; color: var(--text2); cursor: pointer;
-  font-size: 15px; display: flex; align-items: center; justify-content: center;
-  transition: all 0.15s; flex-shrink: 0;
-}
-.topbar-btn:hover { background: var(--bg3); color: var(--text); }
-.topbar-btn.on { background: rgba(79,158,255,0.15); color: var(--accent); border-color: rgba(79,158,255,0.3); }
-#edit-badge {
-  font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--accent);
-  background: rgba(79,158,255,0.12); border: 1px solid rgba(79,158,255,0.25);
-  border-radius: 8px; padding: 4px 9px; display: none; align-items: center; gap: 5px;
-}
-#edit-badge.show { display: flex; }
-#edit-badge i { font-size: 8px; }
-
-/* Zoom indicator */
-#zoom-badge {
-  font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text2);
+/* ── Spotify ── */
+.spotify-widget iframe { width: 100%; height: 100%; border: none; display: block; border-radius: 15px; }
+.spotify-input-body { padding: 12px; height: calc(100% - 34px); display: flex; flex-direction: column; gap: 9px; justify-content: center; }
+.spotify-url-input {
   background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px;
-  padding: 4px 8px; pointer-events: none;
+  padding: 9px 11px; color: var(--text); font-size: 12px; outline: none;
+  font-family: 'DM Mono', monospace; width: 100%;
 }
+.spotify-url-input::placeholder { color: var(--text3); }
+.spotify-url-input:focus { border-color: var(--accent); }
+.spotify-load-btn {
+  padding: 8px; border-radius: 8px; background: #1DB954; border: none;
+  color: white; font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; transition: background 0.15s;
+}
+.spotify-load-btn:active { background: #17a349; }
 
-/* ── Bottom toolbar ── */
+/* ── Toolbar (bottom, mobile-first) ── */
 #toolbar {
-  position: absolute; bottom: 0; left: 0; right: 0;
-  height: calc(var(--safe-b) + var(--toolbar));
-  padding-bottom: var(--safe-b);
-  background: var(--glass2);
-  border-top: 1px solid var(--glass-b);
-  backdrop-filter: blur(22px) saturate(1.4);
-  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  padding-bottom: var(--safe-bottom);
+  background: var(--glass);
+  border-top: 1px solid var(--glass-border);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  z-index: 1000;
   display: flex; align-items: flex-start;
 }
-/* Desktop: pill */
+.toolbar-inner {
+  width: 100%; height: 56px;
+  display: flex; align-items: center; justify-content: space-around;
+  padding: 0 10px; gap: 4px;
+}
+.tb-btn {
+  flex: 1; max-width: 52px; height: 44px;
+  border-radius: 12px; background: none; border: none;
+  cursor: pointer; color: var(--text2); font-size: 17px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; position: relative;
+}
+.tb-btn:active, .tb-btn:hover { background: var(--bg3); color: var(--text); }
+.tb-btn.active { color: var(--accent); }
+.tb-sep { width: 1px; height: 22px; background: var(--border2); flex-shrink: 0; margin: 0 2px; }
+
+/* Desktop: float toolbar as pill */
 @media (min-width: 600px) {
   #toolbar {
-    bottom: 20px; left: 50%; right: auto; transform: translateX(-50%);
-    border-radius: 26px; border: 1px solid var(--glass-b); padding-bottom: 0;
-    width: auto; height: auto;
-    box-shadow: 0 12px 48px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05);
+    bottom: 24px; left: 50%; right: auto;
+    transform: translateX(-50%);
+    border-radius: 28px; border: 1px solid var(--glass-border);
+    padding-bottom: 0;
+    width: auto;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.06);
   }
-  .toolbar-inner { height: 50px; padding: 6px 10px; gap: 2px; width: auto; }
-  .tb-btn { flex: none; width: 38px; height: 38px; font-size: 15px; }
-}
-.toolbar-inner { width: 100%; height: var(--toolbar); display: flex; align-items: center; justify-content: space-around; padding: 0 8px; gap: 4px; }
-.tb-btn {
-  flex: 1; max-width: 50px; height: 42px; border-radius: 12px;
-  background: none; border: none; cursor: pointer; color: var(--text2); font-size: 16px;
-  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
-  position: relative;
-}
-.tb-btn:hover, .tb-btn:active { background: var(--bg3); color: var(--text); }
-.tb-btn.on { color: var(--accent); }
-.tb-sep { width: 1px; height: 20px; background: var(--border2); flex-shrink: 0; }
-
-/* Tooltip (desktop) */
-@media (min-width: 600px) {
-  .tb-btn[data-tip]:hover::after {
-    content: attr(data-tip);
-    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-    background: var(--bg3); border: 1px solid var(--border2);
-    color: var(--text); font-size: 11px; white-space: nowrap;
-    padding: 4px 9px; border-radius: 6px; pointer-events: none;
-    font-family: 'DM Sans', sans-serif; animation: tipIn 0.12s ease;
+  .toolbar-inner {
+    width: auto; height: 52px; padding: 6px 10px; gap: 2px;
   }
-  @keyframes tipIn { from { opacity:0; transform: translateX(-50%) translateY(3px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+  .tb-btn { flex: none; width: 40px; max-width: none; height: 40px; font-size: 15px; }
 }
 
-/* ── Sheets / Modals ── */
-.sheet-overlay {
-  position: absolute; inset: 0; background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
-  z-index: 500; display: none; cursor: pointer;
+/* ── Top spaces bar ── */
+#spaces-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  padding-top: var(--safe-top);
+  background: var(--glass);
+  border-bottom: 1px solid var(--glass-border);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  z-index: 999;
+  display: flex; align-items: flex-end;
 }
-.sheet-overlay.show { display: block; }
-
-.sheet {
-  position: absolute; left: 0; right: 0; bottom: 0;
-  background: #111; border-top: 1px solid var(--border2);
-  border-radius: 20px 20px 0 0;
-  padding-bottom: calc(var(--safe-b) + 6px);
-  z-index: 501; display: none; max-height: 88vh; overflow-y: auto;
-  animation: sheetUp 0.3s cubic-bezier(0.4,0,0.2,1);
+.spaces-inner {
+  height: 46px; width: 100%;
+  display: flex; align-items: center;
+  padding: 0 12px; gap: 6px; overflow-x: auto;
 }
-.sheet.show { display: block; }
-.sheet::-webkit-scrollbar { display: none; }
-@keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
-/* Desktop: centered */
-@media (min-width: 600px) {
-  .sheet {
-    bottom: auto; left: 50%; top: 50%; right: auto;
-    transform: translate(-50%,-50%);
-    width: min(460px, 94vw); border-radius: 18px; max-height: 88vh;
-    padding-bottom: 0; border: 1px solid var(--border2);
-    animation: modalIn 0.2s cubic-bezier(0.4,0,0.2,1);
-  }
-  @keyframes modalIn { from { opacity:0; transform: translate(-50%,-50%) scale(0.96); } to { opacity:1; transform: translate(-50%,-50%) scale(1); } }
+.spaces-inner::-webkit-scrollbar { display: none; }
+.space-tab {
+  padding: 5px 14px; border-radius: 12px;
+  background: none; border: none; cursor: pointer;
+  font-size: 13px; font-weight: 500; color: var(--text2);
+  white-space: nowrap; flex-shrink: 0;
+  transition: all 0.15s; font-family: 'DM Sans', sans-serif;
 }
-.sheet-handle { width: 34px; height: 4px; background: var(--border2); border-radius: 2px; margin: 10px auto 0; }
-@media (min-width: 600px) { .sheet-handle { display: none; } }
-.sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px 10px; border-bottom: 1px solid var(--border); }
-.sheet-title { font-size: 14px; font-weight: 600; color: var(--text); }
-.sheet-close { width: 26px; height: 26px; border-radius: 50%; border: none; background: none; color: var(--text2); cursor: pointer; font-size: 17px; display: flex; align-items: center; justify-content: center; transition: background 0.12s; }
-.sheet-close:hover { background: var(--bg3); }
-.sheet-body { padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 14px; }
-
-/* Add widget grid */
-.add-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
-@media (min-width: 360px) { .add-grid { grid-template-columns: repeat(4, 1fr); } }
-@media (min-width: 500px) { .add-grid { grid-template-columns: repeat(5, 1fr); } }
-.add-item { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 6px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 12px; cursor: pointer; transition: all 0.15s; font-size: 11px; font-weight: 500; color: var(--text2); text-align: center; }
-.add-item i { font-size: 19px; }
-.add-item:hover, .add-item:active { background: var(--border2); transform: scale(0.96); color: var(--text); }
-
-/* BG Presets */
-.preset-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.preset-sw { aspect-ratio: 1; border-radius: 10px; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; }
-.preset-sw.on { border-color: var(--accent); }
-.preset-sw:active { transform: scale(0.93); }
-.sheet-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text2); }
-.sheet-row { display: flex; align-items: center; gap: 10px; }
-.sheet-row label { font-size: 13px; color: var(--text2); min-width: 78px; }
-.sheet-row input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; }
-.sheet-upload { width: 100%; padding: 10px; border-radius: 10px; background: var(--bg3); border: 1px dashed var(--border2); color: var(--text2); font-size: 13px; cursor: pointer; font-family: 'DM Sans', sans-serif; display: flex; align-items: center; justify-content: center; gap: 7px; transition: all 0.15s; }
-.sheet-upload:hover { border-color: var(--accent); color: var(--text); }
-.sheet-toggle-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 10px; }
-.sheet-toggle-label { flex: 1; font-size: 13px; color: var(--text); }
-/* iOS toggle */
-.ios-sw { position: relative; width: 40px; height: 23px; flex-shrink: 0; }
-.ios-sw input { opacity: 0; width: 0; height: 0; }
-.ios-track { position: absolute; inset: 0; background: var(--border2); border-radius: 12px; transition: 0.25s; cursor: pointer; }
-.ios-track::before { content: ''; position: absolute; width: 17px; height: 17px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: 0.25s; }
-.ios-sw input:checked + .ios-track { background: var(--accent); }
-.ios-sw input:checked + .ios-track::before { transform: translateX(17px); }
-
-/* Spaces list */
-.spaces-list { display: flex; flex-direction: column; gap: 6px; }
-.space-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 11px; cursor: pointer; transition: all 0.15s; }
-.space-row:hover, .space-row:active { background: var(--border2); }
-.space-row.on { border-color: var(--accent); background: rgba(79,158,255,0.07); }
-.space-row-name { flex: 1; font-size: 14px; color: var(--text); outline: none; }
-.space-row-meta { font-size: 11px; color: var(--text2); }
-.space-row-del { width: 24px; height: 24px; border-radius: 6px; border: none; background: none; color: var(--text3); cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
-.space-row-del:hover { background: rgba(239,68,68,0.14); color: var(--red); }
-.sheet-add-row-btn { width: 100%; padding: 11px; border-radius: 10px; background: none; border: 1px dashed var(--border2); color: var(--text2); font-size: 13px; cursor: pointer; font-family: 'DM Sans', sans-serif; display: flex; align-items: center; justify-content: center; gap: 7px; transition: all 0.15s; }
-.sheet-add-row-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-/* Search bar */
-.search-wrap { position: relative; }
-.search-input { width: 100%; padding: 10px 12px 10px 36px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 10px; color: var(--text); font-size: 13px; outline: none; font-family: 'DM Sans', sans-serif; }
-.search-input::placeholder { color: var(--text3); }
-.search-input:focus { border-color: var(--accent); }
-.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text2); font-size: 13px; pointer-events: none; }
-.search-results { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; }
-.search-result { padding: 9px 11px; background: var(--bg3); border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--text); transition: background 0.12s; display: flex; align-items: center; gap: 8px; }
-.search-result:hover { background: var(--border2); }
-.search-result i { color: var(--text2); font-size: 12px; width: 14px; text-align: center; }
-
-/* Context menu */
-#ctx-menu {
-  position: fixed; background: #141414; border: 1px solid var(--border2);
-  border-radius: 13px; padding: 5px; box-shadow: var(--shadow2);
-  z-index: 2000; display: none; min-width: 168px;
-  animation: ctxIn 0.13s cubic-bezier(0.4,0,0.2,1);
+.space-tab.active { background: var(--accent); color: white; }
+.space-tab:not(.active):hover, .space-tab:not(.active):active { background: var(--bg3); color: var(--text); }
+.space-tab-add {
+  width: 28px; height: 28px; border-radius: 10px;
+  background: none; border: 1px solid var(--border2);
+  cursor: pointer; color: var(--text2); font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all 0.15s;
 }
-@keyframes ctxIn { from { opacity:0; transform: scale(0.94) translateY(-3px); } to { opacity:1; transform: none; } }
-.ctx-item { display: flex; align-items: center; gap: 9px; padding: 9px 11px; border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--text); transition: background 0.1s; }
-.ctx-item:hover, .ctx-item:active { background: var(--bg3); }
-.ctx-item i { width: 13px; text-align: center; color: var(--text2); font-size: 12px; }
-.ctx-item.danger { color: var(--red); }
-.ctx-item.danger i { color: var(--red); }
-.ctx-sep { height: 1px; background: var(--border); margin: 3px 0; }
+.space-tab-add:hover, .space-tab-add:active { background: var(--bg3); color: var(--text); border-color: var(--text2); }
 
-/* Password modal */
-#pwd-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: #111; border: 1px solid var(--border2); border-radius: 16px; padding: 24px; z-index: 600; display: none; width: min(320px, 90vw); box-shadow: var(--shadow2); }
-#pwd-modal.show { display: block; }
-#pwd-modal h3 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
-#pwd-input { width: 100%; padding: 10px 12px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-size: 14px; outline: none; margin-bottom: 10px; }
-#pwd-input:focus { border-color: var(--accent); }
-.pwd-btns { display: flex; gap: 8px; }
-.pwd-btn { flex: 1; padding: 9px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
-.pwd-btn.confirm { background: var(--accent); color: white; }
-.pwd-btn.cancel { background: var(--bg3); color: var(--text2); border: 1px solid var(--border2); }
-
-/* Notification toast */
-#toast {
-  position: absolute; top: calc(var(--safe-t) + var(--topbar) + 10px); left: 50%; transform: translateX(-50%);
-  background: #111; border: 1px solid var(--border2); border-radius: 12px;
-  padding: 10px 18px; font-size: 13px; color: var(--text); z-index: 900;
-  display: none; white-space: nowrap; box-shadow: var(--shadow);
-  animation: toastIn 0.2s ease;
+/* ── Edit pill ── */
+#edit-pill {
+  position: fixed;
+  top: calc(var(--safe-top) + 52px); left: 50%; transform: translateX(-50%);
+  background: var(--glass); border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-radius: 20px; padding: 6px 14px;
+  font-size: 11px; font-weight: 500; color: var(--text2);
+  letter-spacing: 0.05em; text-transform: uppercase;
+  z-index: 998; display: none; align-items: center; gap: 7px;
   pointer-events: none;
 }
-@keyframes toastIn { from { opacity:0; transform: translateX(-50%) translateY(-8px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+#edit-pill.show { display: flex; }
+#edit-pill i { color: var(--accent); font-size: 9px; }
 
-/* Drawing toolbar */
-#draw-toolbar {
-  position: absolute; top: calc(var(--safe-t) + var(--topbar) + 10px); left: 50%; transform: translateX(-50%);
-  background: var(--glass2); border: 1px solid var(--glass-b); border-radius: 20px;
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  display: none; align-items: center; gap: 4px; padding: 5px 8px;
-  box-shadow: var(--shadow);
+/* ── Context Menu ── */
+#ctx-menu {
+  position: fixed; display: none;
+  background: #141414; border: 1px solid var(--border2);
+  border-radius: 14px; padding: 6px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.85);
+  z-index: 3000; min-width: 170px;
+  animation: ctxIn 0.14s cubic-bezier(0.4,0,0.2,1);
 }
-#draw-toolbar.show { display: flex; }
-.draw-btn { width: 34px; height: 34px; border-radius: 10px; border: none; background: none; color: var(--text2); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
-.draw-btn:hover { background: var(--bg3); color: var(--text); }
-.draw-btn.on { background: rgba(79,158,255,0.15); color: var(--accent); }
-.draw-color { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all 0.12s; flex-shrink: 0; }
-.draw-color.on { border-color: white; transform: scale(1.2); }
-input#draw-size { width: 60px; accent-color: var(--accent); cursor: pointer; }
-
-/* Undo/redo bar */
-#undo-bar {
-  position: absolute; top: calc(var(--safe-t) + var(--topbar) + 10px); right: 12px;
-  display: flex; flex-direction: column; gap: 4px;
+@keyframes ctxIn { from { opacity:0; transform: scale(0.95) translateY(-4px); } to { opacity:1; transform: none; } }
+.ctx-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 9px; cursor: pointer;
+  font-size: 13px; color: var(--text); transition: background 0.12s;
 }
-.undo-btn { width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--border2); background: var(--glass2); backdrop-filter: blur(12px); color: var(--text2); cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
-.undo-btn:hover { background: var(--bg3); color: var(--text); }
-.undo-btn:disabled { opacity: 0.25; pointer-events: none; }
+.ctx-item:hover, .ctx-item:active { background: var(--bg3); }
+.ctx-item i { width: 14px; text-align: center; color: var(--text2); font-size: 13px; }
+.ctx-item.danger { color: var(--accent5); }
+.ctx-item.danger i { color: var(--accent5); }
+.ctx-sep { height: 1px; background: var(--border); margin: 4px 0; }
 
-/* Version history dot */
-.ver-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border2); cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
-.ver-dot.cur { background: var(--accent); }
-.ver-dot:hover { background: var(--text2); }
-
-/* Snap grid overlay */
-#snap-grid {
-  position: absolute; inset: 0; width: 3000px; height: 3000px;
-  background-image: linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
-  background-size: 20px 20px;
-  pointer-events: none; display: none; z-index: 0;
+/* ── Background Panel ── */
+#bg-panel {
+  position: fixed; z-index: 2000;
+  background: #111; border: 1px solid var(--border2);
+  border-radius: 18px;
+  box-shadow: 0 24px 72px rgba(0,0,0,0.9);
+  overflow: hidden; display: none;
+  /* mobile: bottom sheet */
+  bottom: 0; left: 0; right: 0;
+  border-radius: 20px 20px 0 0;
+  padding-bottom: var(--safe-bottom);
+  max-height: 80vh; overflow-y: auto;
+  animation: sheetIn 0.3s cubic-bezier(0.4,0,0.2,1);
 }
-#snap-grid.show { display: block; }
+#bg-panel.show { display: block; }
+@keyframes sheetIn { from { transform: translateY(100%); } to { transform: none; } }
+/* Desktop: centered modal */
+@media (min-width: 600px) {
+  #bg-panel {
+    bottom: auto; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 420px; border-radius: 18px;
+    max-height: 90vh; padding-bottom: 0;
+    animation: modalIn 0.2s cubic-bezier(0.4,0,0.2,1);
+  }
+  @keyframes modalIn { from { opacity:0; transform: translate(-50%,-50%) scale(0.95); } to { opacity:1; transform: translate(-50%,-50%) scale(1); } }
+}
+.panel-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: 12px auto 0; }
+@media (min-width: 600px) { .panel-handle { display: none; } }
+.panel-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px 10px; border-bottom: 1px solid var(--border); }
+.panel-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.panel-close { width: 28px; height: 28px; border-radius: 50%; background: none; border: none; color: var(--text2); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+.panel-close:hover { background: var(--bg3); }
+.panel-body { padding: 16px 18px 20px; display: flex; flex-direction: column; gap: 16px; }
+.panel-label { font-size: 11px; color: var(--text2); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+.preset-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.preset-swatch { aspect-ratio: 1; border-radius: 11px; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; }
+.preset-swatch:active { transform: scale(0.93); }
+.preset-swatch.active { border-color: var(--accent); }
+.panel-upload-btn {
+  width: 100%; padding: 11px; border-radius: 10px;
+  background: var(--bg3); border: 1px dashed var(--border2);
+  color: var(--text2); font-size: 13px; cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all 0.15s;
+}
+.panel-upload-btn:active { border-color: var(--accent); color: var(--text); }
+.slider-row { display: flex; align-items: center; gap: 12px; }
+.slider-label { font-size: 13px; color: var(--text2); min-width: 76px; }
+.slider-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.parallax-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 10px; }
+.parallax-row label { flex: 1; font-size: 13px; color: var(--text); }
+.parallax-row input[type=checkbox] { accent-color: var(--accent); width: 17px; height: 17px; cursor: pointer; }
 
-/* Animations */
-.widget { animation: wIn 0.2s cubic-bezier(0.4,0,0.2,1); }
-@keyframes wIn { from { opacity:0; transform: scale(0.88) translateY(8px); } to { opacity:1; transform: none; } }
-@keyframes wOut { to { opacity:0; transform: scale(0.88); } }
+/* ── Add sheet (mobile bottom sheet) ── */
+#add-sheet {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  background: #111; border-top: 1px solid var(--border2);
+  border-radius: 20px 20px 0 0;
+  padding-bottom: var(--safe-bottom);
+  z-index: 2000; display: none;
+  animation: sheetIn 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+#add-sheet.show { display: block; }
+.sheet-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: 12px auto 6px; }
+.sheet-title { text-align: center; font-size: 12px; color: var(--text2); letter-spacing: 0.07em; text-transform: uppercase; padding-bottom: 12px; }
+.add-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 0 16px 20px; }
+.add-item {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 16px 8px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 14px; cursor: pointer; transition: all 0.15s;
+}
+.add-item:active { background: var(--border2); transform: scale(0.95); }
+.add-item i { font-size: 20px; color: var(--text2); }
+.add-item span { font-size: 12px; color: var(--text2); font-weight: 500; }
 
-/* Scrollbar global */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+/* ── Sheet overlay ── */
+#sheet-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+  z-index: 1999; display: none;
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+}
+#sheet-overlay.show { display: block; }
+
+/* ── Animations ── */
+.widget { animation: widgetIn 0.2s cubic-bezier(0.4,0,0.2,1); }
+@keyframes widgetIn { from { opacity:0; transform: scale(0.9) translateY(8px); } to { opacity:1; transform: none; } }
+@keyframes widgetOut { to { opacity:0; transform: scale(0.88); } }
+
+/* IO bar - desktop only */
+#io-bar {
+  position: fixed; top: calc(var(--safe-top) + 46px + 8px); right: 16px;
+  display: none; align-items: center; gap: 8px; z-index: 998;
+}
+@media (min-width: 600px) { #io-bar { display: flex; } }
+.io-btn {
+  padding: 6px 13px; border-radius: 12px;
+  background: var(--glass); border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  color: var(--text2); font-size: 12px; font-weight: 500; cursor: pointer;
+  transition: all 0.15s; font-family: 'DM Sans', sans-serif;
+  display: flex; align-items: center; gap: 6px;
+}
+.io-btn:hover { background: var(--bg3); color: var(--text); border-color: var(--border2); }
+
+/* swipe-down to close sheets */
 </style>
-
 </head>
 <body>
 
-<!-- ═══ LAYER 1: Background ═══ -->
+<div id="canvas">
+  <div id="bg-layer"><div id="bg-overlay"></div></div>
+  <div id="widgets-layer"></div>
+</div>
 
-<div id="bg-layer"><div id="bg-overlay"></div></div>
-
-<!-- ═══ LAYER 2: Canvas viewport ═══ -->
-
-<div id="canvas-viewport">
-  <div id="canvas">
-    <svg id="connections-svg"></svg>
-    <div id="snap-grid"></div>
-    <canvas id="draw-canvas" width="3000" height="3000"></canvas>
-    <!-- widgets injected here -->
+<!-- Spaces bar -->
+<div id="spaces-bar">
+  <div class="spaces-inner" id="spacesInner">
+    <button class="space-tab-add" id="addSpaceBtn"><i class="fas fa-plus"></i></button>
   </div>
 </div>
 
-<!-- ═══ LAYER 3: UI overlay ═══ -->
+<!-- Edit pill -->
+<div id="edit-pill"><i class="fas fa-circle"></i> Edit Mode</div>
 
-<div id="ui-layer">
+<!-- IO bar (desktop) -->
+<div id="io-bar">
+  <button class="io-btn" onclick="exportLayout()"><i class="fas fa-download"></i>Export</button>
+  <label class="io-btn" style="cursor:pointer;"><i class="fas fa-upload"></i>Import<input type="file" id="importFile" accept=".json" style="display:none"></label>
+</div>
 
-  <!-- Toast notification -->
-
-  <div id="toast"></div>
-
-  <!-- Topbar -->
-
-  <div id="topbar">
-    <div class="topbar-inner">
-      <button id="space-name-btn" onclick="UI.openSpaces()">Main</button>
-      <div id="edit-badge"><i class="fas fa-circle"></i> EDITING</div>
-      <div class="topbar-spacer"></div>
-      <div id="zoom-badge">100%</div>
-      <button class="topbar-btn" id="search-btn" data-tip="Search" onclick="UI.openSearch()"><i class="fas fa-search"></i></button>
-      <button class="topbar-btn" id="undo-desktop-btn" onclick="History.undo()" title="Undo"><i class="fas fa-undo"></i></button>
-      <button class="topbar-btn" id="redo-desktop-btn" onclick="History.redo()" title="Redo"><i class="fas fa-redo"></i></button>
-    </div>
-  </div>
-
-  <!-- Undo/redo (mobile - side) -->
-
-  <div id="undo-bar">
-    <button class="undo-btn" id="undo-btn" onclick="History.undo()" title="Undo"><i class="fas fa-undo"></i></button>
-    <button class="undo-btn" id="redo-btn" onclick="History.redo()" title="Redo"><i class="fas fa-redo"></i></button>
-  </div>
-
-  <!-- Drawing toolbar -->
-
-  <div id="draw-toolbar">
-    <button class="draw-btn on" id="draw-pen-btn" onclick="Draw.setTool('pen')"><i class="fas fa-pen"></i></button>
-    <button class="draw-btn" id="draw-erase-btn" onclick="Draw.setTool('eraser')"><i class="fas fa-eraser"></i></button>
+<!-- Toolbar -->
+<div id="toolbar">
+  <div class="toolbar-inner">
+    <button class="tb-btn" id="editToggle" onclick="toggleEditMode()"><i class="fas fa-pen-to-square"></i></button>
     <div class="tb-sep"></div>
-    <div class="draw-color on" style="background:#4f9eff" data-c="#4f9eff" onclick="Draw.setColor(this)"></div>
-    <div class="draw-color" style="background:#fbbf24" data-c="#fbbf24" onclick="Draw.setColor(this)"></div>
-    <div class="draw-color" style="background:#ef4444" data-c="#ef4444" onclick="Draw.setColor(this)"></div>
-    <div class="draw-color" style="background:#3dba72" data-c="#3dba72" onclick="Draw.setColor(this)"></div>
-    <div class="draw-color" style="background:#e8e6e1" data-c="#e8e6e1" onclick="Draw.setColor(this)"></div>
+    <button class="tb-btn" id="addBtn" onclick="openAddSheet()"><i class="fas fa-plus"></i></button>
+    <button class="tb-btn" onclick="openBgPanel()"><i class="fas fa-image"></i></button>
     <div class="tb-sep"></div>
-    <input type="range" id="draw-size" min="1" max="20" value="3">
-    <button class="draw-btn" onclick="Draw.clear()" title="Clear drawing"><i class="fas fa-trash"></i></button>
+    <button class="tb-btn" id="snapBtn" onclick="toggleSnap()"><i class="fas fa-th"></i></button>
+    <button class="tb-btn" onclick="openIoSheet()"><i class="fas fa-ellipsis"></i></button>
   </div>
+</div>
 
-  <!-- Bottom Toolbar -->
+<!-- Sheet overlay -->
+<div id="sheet-overlay" onclick="closeAllSheets()"></div>
 
-  <div id="toolbar">
-    <div class="toolbar-inner">
-      <button class="tb-btn" id="edit-btn" data-tip="Edit Mode" onclick="State.toggleEditMode()"><i class="fas fa-pen-to-square"></i></button>
-      <div class="tb-sep"></div>
-      <button class="tb-btn" data-tip="Add Widget" onclick="UI.openAdd()"><i class="fas fa-plus-circle"></i></button>
-      <button class="tb-btn" data-tip="Background" onclick="UI.openBg()"><i class="fas fa-image"></i></button>
-      <button class="tb-btn" id="draw-mode-btn" data-tip="Draw" onclick="Draw.toggle()"><i class="fas fa-paint-brush"></i></button>
-      <div class="tb-sep"></div>
-      <button class="tb-btn" id="snap-btn" data-tip="Snap Grid" onclick="State.toggleSnap()"><i class="fas fa-th"></i></button>
-      <button class="tb-btn" data-tip="Options" onclick="UI.openOptions()"><i class="fas fa-ellipsis"></i></button>
+<!-- Add Widget Sheet -->
+<div id="add-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Add Widget</div>
+  <div class="add-grid">
+    <div class="add-item" onclick="addWidget('note');closeAllSheets()"><i class="fas fa-sticky-note"></i><span>Note</span></div>
+    <div class="add-item" onclick="addWidget('clock');closeAllSheets()"><i class="fas fa-clock"></i><span>Clock</span></div>
+    <div class="add-item" onclick="addWidget('todo');closeAllSheets()"><i class="fas fa-check-square"></i><span>To-Do</span></div>
+    <div class="add-item" onclick="addWidget('image');closeAllSheets()"><i class="fas fa-image"></i><span>Image</span></div>
+    <div class="add-item" onclick="addWidget('quote');closeAllSheets()"><i class="fas fa-quote-right"></i><span>Quote</span></div>
+    <div class="add-item" onclick="addWidget('spotify');closeAllSheets()"><i class="fab fa-spotify"></i><span>Spotify</span></div>
+  </div>
+</div>
+
+<!-- IO Sheet (mobile) -->
+<div id="io-sheet" style="position:fixed;left:0;right:0;bottom:0;background:#111;border-top:1px solid var(--border2);border-radius:20px 20px 0 0;padding-bottom:var(--safe-bottom);z-index:2000;display:none;animation:sheetIn .3s cubic-bezier(.4,0,.2,1)">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Options</div>
+  <div style="padding:0 16px 20px;display:flex;flex-direction:column;gap:8px;">
+    <div onclick="exportLayout();closeAllSheets()" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg3);border:1px solid var(--border2);border-radius:12px;cursor:pointer;">
+      <i class="fas fa-download" style="color:var(--text2);width:18px;text-align:center;"></i>
+      <div><div style="font-size:14px;font-weight:500;color:var(--text);">Export Layout</div><div style="font-size:12px;color:var(--text2);">Save as JSON</div></div>
     </div>
+    <label style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg3);border:1px solid var(--border2);border-radius:12px;cursor:pointer;">
+      <i class="fas fa-upload" style="color:var(--text2);width:18px;text-align:center;"></i>
+      <div><div style="font-size:14px;font-weight:500;color:var(--text);">Import Layout</div><div style="font-size:12px;color:var(--text2);">Load from JSON</div></div>
+      <input type="file" id="importFile2" accept=".json" style="display:none">
+    </label>
   </div>
+</div>
 
-  <!-- Sheet Overlay -->
-
-  <div class="sheet-overlay" id="sheet-overlay" onclick="UI.closeAll()"></div>
-
-  <!-- ── Add Widget Sheet ── -->
-
-  <div class="sheet" id="add-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-header"><span class="sheet-title">Add Widget</span><button class="sheet-close" onclick="UI.closeAll()">×</button></div>
-    <div class="sheet-body">
-      <div class="add-grid" id="add-grid"></div>
+<!-- Background Panel -->
+<div id="bg-panel">
+  <div class="panel-handle"></div>
+  <div class="panel-header">
+    <span class="panel-title">Background</span>
+    <button class="panel-close" onclick="closeBgPanel()">×</button>
+  </div>
+  <div class="panel-body">
+    <div>
+      <div class="panel-label">Presets</div>
+      <div class="preset-grid" id="presetGrid"></div>
     </div>
-  </div>
-
-  <!-- ── Background Sheet ── -->
-
-  <div class="sheet" id="bg-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-header"><span class="sheet-title">Background</span><button class="sheet-close" onclick="UI.closeAll()">×</button></div>
-    <div class="sheet-body">
-      <div>
-        <div class="sheet-label" style="margin-bottom:8px">Presets</div>
-        <div class="preset-grid" id="preset-grid"></div>
-      </div>
-      <label class="sheet-upload" for="bg-upload"><i class="fas fa-upload"></i>Upload Image<input type="file" id="bg-upload" accept="image/*" style="display:none"></label>
-      <div>
-        <div class="sheet-label" style="margin-bottom:10px">Adjustments</div>
-        <div style="display:flex;flex-direction:column;gap:11px">
-          <div class="sheet-row"><label>Blur</label><input type="range" id="bg-blur" min="0" max="20" value="0"></div>
-          <div class="sheet-row"><label>Brightness</label><input type="range" id="bg-bright" min="20" max="150" value="100"></div>
-          <div class="sheet-row"><label>Dim</label><input type="range" id="bg-dim" min="0" max="90" value="0"></div>
-        </div>
-      </div>
-      <div>
-        <div class="sheet-label" style="margin-bottom:8px">Options</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <div class="sheet-toggle-row">
-            <span class="sheet-toggle-label">Parallax (mouse/gyro)</span>
-            <label class="ios-sw"><input type="checkbox" id="bg-parallax"><span class="ios-track"></span></label>
-          </div>
-        </div>
+    <label class="panel-upload-btn" for="bgUpload"><i class="fas fa-upload"></i>Upload Image<input type="file" id="bgUpload" accept="image/*" style="display:none"></label>
+    <div>
+      <div class="panel-label">Adjustments</div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="slider-row"><span class="slider-label">Blur</span><input type="range" id="blurSlider" min="0" max="20" value="0"></div>
+        <div class="slider-row"><span class="slider-label">Brightness</span><input type="range" id="brightnessSlider" min="20" max="150" value="100"></div>
+        <div class="slider-row"><span class="slider-label">Dim</span><input type="range" id="dimSlider" min="0" max="90" value="0"></div>
       </div>
     </div>
-  </div>
-
-  <!-- ── Spaces Sheet ── -->
-
-  <div class="sheet" id="spaces-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-header"><span class="sheet-title">Spaces</span><button class="sheet-close" onclick="UI.closeAll()">×</button></div>
-    <div class="sheet-body">
-      <div class="spaces-list" id="spaces-list"></div>
-      <button class="sheet-add-row-btn" onclick="Spaces.add()"><i class="fas fa-plus"></i>New Space</button>
+    <div class="parallax-row">
+      <label for="parallaxToggle">Parallax Effect</label>
+      <input type="checkbox" id="parallaxToggle">
     </div>
   </div>
+</div>
 
-  <!-- ── Options Sheet ── -->
-
-  <div class="sheet" id="options-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-header"><span class="sheet-title">Options</span><button class="sheet-close" onclick="UI.closeAll()">×</button></div>
-    <div class="sheet-body" id="options-body"></div>
-  </div>
-
-  <!-- ── Search Sheet ── -->
-
-  <div class="sheet" id="search-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-header"><span class="sheet-title">Search</span><button class="sheet-close" onclick="UI.closeAll()">×</button></div>
-    <div class="sheet-body">
-      <div class="search-wrap">
-        <i class="fas fa-search search-icon"></i>
-        <input type="search" class="search-input" id="search-input" placeholder="Search notes, widgets…" oninput="Search.run(this.value)">
-      </div>
-      <div class="search-results" id="search-results"></div>
-    </div>
-  </div>
-
-  <!-- Context Menu -->
-
-  <div id="ctx-menu">
-    <div class="ctx-item" onclick="Ctx.action('duplicate')"><i class="fas fa-copy"></i>Duplicate</div>
-    <div class="ctx-item" onclick="Ctx.action('forward')"><i class="fas fa-layer-group"></i>Bring Forward</div>
-    <div class="ctx-item" onclick="Ctx.action('back')"><i class="fas fa-layer-minus"></i>Send Back</div>
-    <div class="ctx-sep"></div>
-    <div class="ctx-item" onclick="Ctx.action('lock')"><i class="fas fa-lock"></i><span id="ctx-lock-label">Lock</span></div>
-    <div class="ctx-item" onclick="Ctx.action('pin')"><i class="fas fa-thumbtack"></i><span id="ctx-pin-label">Pin Note</span></div>
-    <div class="ctx-item" onclick="Ctx.action('connect')"><i class="fas fa-link"></i>Connect</div>
-    <div class="ctx-sep"></div>
-    <div class="ctx-item danger" onclick="Ctx.action('delete')"><i class="fas fa-trash"></i>Delete</div>
-  </div>
-
-  <!-- Password Modal -->
-
-  <div class="sheet-overlay" id="pwd-overlay" onclick="Pwd.cancel()" style="z-index:599"></div>
-  <div id="pwd-modal">
-    <h3 id="pwd-title">Set Password</h3>
-    <input type="password" id="pwd-input" placeholder="Enter password…">
-    <div class="pwd-btns">
-      <button class="pwd-btn cancel" onclick="Pwd.cancel()">Cancel</button>
-      <button class="pwd-btn confirm" id="pwd-confirm">Confirm</button>
-    </div>
-  </div>
-
-</div><!-- /ui-layer -->
-
-<!-- Hidden file inputs -->
-
-<input type="file" id="import-file" accept=".json" style="display:none">
-<input type="file" id="img-upload-hidden" accept="image/*" style="display:none">
-
-<!-- ═══════════════════════════════════════════════════════
-     JAVASCRIPT
-     ═══════════════════════════════════════════════════════ -->
+<!-- Context Menu -->
+<div id="ctx-menu">
+  <div class="ctx-item" onclick="ctxAction('duplicate')"><i class="fas fa-copy"></i>Duplicate</div>
+  <div class="ctx-item" onclick="ctxAction('forward')"><i class="fas fa-layer-group"></i>Bring Forward</div>
+  <div class="ctx-item" onclick="ctxAction('back')"><i class="fas fa-layer-minus"></i>Send Back</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" onclick="ctxAction('delete')"><i class="fas fa-trash"></i>Delete</div>
+</div>
 
 <script>
-'use strict';
-
 // ═══════════════════════════════════════════════════════════
-// CONSTANTS
+// STATE
 // ═══════════════════════════════════════════════════════════
+let spaces = [];
+let currentSpaceIdx = 0;
+let editMode = false;
+let snapEnabled = false;
+let zCounter = 10;
+let ctxTarget = null;
 const GRID = 20;
-const IS_TOUCH = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-const CANVAS_W = 3000, CANVAS_H = 3000;
-const WIDGET_TYPES = ['note','clock','todo','image','quote','music','pomodoro','habit','calendar','ambient','reminder'];
-const WIDGET_META = {
-  note:     { icon:'fas fa-sticky-note',  label:'Note',     w:240, h:200 },
-  clock:    { icon:'fas fa-clock',         label:'Clock',    w:200, h:130 },
-  todo:     { icon:'fas fa-check-square',  label:'To-Do',    w:260, h:280 },
-  image:    { icon:'fas fa-image',         label:'Image',    w:240, h:200 },
-  quote:    { icon:'fas fa-quote-right',   label:'Quote',    w:280, h:180 },
-  music:    { icon:'fab fa-spotify',       label:'Music',    w:300, h:180 },
-  pomodoro: { icon:'fas fa-stopwatch',     label:'Pomodoro', w:190, h:220 },
-  habit:    { icon:'fas fa-seedling',      label:'Habits',   w:260, h:260 },
-  calendar: { icon:'fas fa-calendar-alt', label:'Calendar', w:240, h:240 },
-  ambient:  { icon:'fas fa-cloud-rain',   label:'Ambient',  w:200, h:200 },
-  reminder: { icon:'fas fa-bell',         label:'Reminders',w:250, h:250 },
-};
-const BG_PRESETS = [
-  { v:'linear-gradient(135deg,#0a0a0a,#111)' },
-  { v:'linear-gradient(135deg,#0a1628,#0d2a4a,#072040)' },
-  { v:'linear-gradient(135deg,#0a1a0f,#0f2a18,#081508)' },
-  { v:'linear-gradient(135deg,#1a0a1e,#2a0d3a,#1a0828)' },
-  { v:'linear-gradient(135deg,#1a0800,#2d1100,#1a0600)' },
-  { v:'linear-gradient(135deg,#0d1117,#161b22)' },
-  { v:'linear-gradient(135deg,#131619,#1c2028)' },
-  { v:'linear-gradient(160deg,#050505,#0c0c0c)' },
-];
-const NOTE_COLORS = ['yellow','green','blue','purple','red'];
-const NOTE_FONTS = ['DM Sans','Playfair Display','DM Mono','JetBrains Mono'];
-const COLOR_MAP = { yellow:'#fbbf24',green:'#3dba72',blue:'#4f9eff',purple:'#a56fd4',red:'#ef4444' };
+const IS_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
-// ═══════════════════════════════════════════════════════════
-// GLOBAL STATE
-// ═══════════════════════════════════════════════════════════
-const AppState = {
-  spaces: [],
-  currentSpace: 0,
-  editMode: false,
-  snapEnabled: false,
-  drawMode: false,
-  connectMode: false, // for mind-map connections
-  connectSource: null,
-  zCounter: 10,
+function uid() { return Math.random().toString(36).slice(2, 10); }
+function currentSpace() { return spaces[currentSpaceIdx]; }
+function snap(v) { return snapEnabled ? Math.round(v / GRID) * GRID : v; }
 
-  get space() { return this.spaces[this.currentSpace]; },
+function save() { try { localStorage.setItem('myspace_v3', JSON.stringify(spaces)); } catch(e) {} }
+function load() { try { const d = localStorage.getItem('myspace_v3'); if (d) spaces = JSON.parse(d); } catch(e) {} }
 
-  init() {
-    const saved = localStorage.getItem('myspace_v4');
-    if (saved) {
-      try {
-        const d = JSON.parse(saved);
-        this.spaces = d.spaces || [];
-        this.currentSpace = d.currentSpace || 0;
-        this.zCounter = d.zCounter || 10;
-      } catch(e) {}
-    }
-    if (!this.spaces.length) {
-      this.spaces = [this._defaultSpace('Main')];
-    }
-    // Clamp index
-    if (this.currentSpace >= this.spaces.length) this.currentSpace = 0;
-  },
-
-  _defaultSpace(name) {
-    return {
-      id: uid(), name,
-      widgets: [],
-      bg: { type:'gradient', value: BG_PRESETS[0].v, blur:0, brightness:100, dim:0, parallax:false },
-      drawData: null,
-      connections: [],
-    };
-  },
-
-  save() {
-    try {
-      localStorage.setItem('myspace_v4', JSON.stringify({
-        spaces: this.spaces,
-        currentSpace: this.currentSpace,
-        zCounter: this.zCounter,
-      }));
-    } catch(e) {}
-  },
-
-  toggleEditMode() {
-    this.editMode = !this.editMode;
-    document.getElementById('canvas').classList.toggle('edit-mode', this.editMode);
-    document.getElementById('edit-btn').classList.toggle('on', this.editMode);
-    document.getElementById('edit-badge').classList.toggle('show', this.editMode);
-    // Lock all widgets in view mode
-    document.querySelectorAll('.widget').forEach(el => {
-      el.classList.toggle('locked', !this.editMode);
-    });
-    // Disable draw mode if exiting
-    if (!this.editMode && this.drawMode) Draw.toggle();
-  },
-
-  toggleSnap() {
-    this.snapEnabled = !this.snapEnabled;
-    document.getElementById('snap-btn').classList.toggle('on', this.snapEnabled);
-    document.getElementById('snap-grid').classList.toggle('show', this.snapEnabled);
-  },
-};
-
-// ─── Shorthand ───────────────────────────────────────────
-const State = AppState;
-
-// ═══════════════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════════════
-function uid() { return Math.random().toString(36).slice(2,11); }
-function snap(v) { return State.snapEnabled ? Math.round(v / GRID) * GRID : v; }
-function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-function colorHex(c) { return COLOR_MAP[c] || c; }
-
-function toast(msg, ms=2200) {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.style.display='block';
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.style.display='none', ms);
+function defaultBg() {
+  return { type:'gradient', value:'linear-gradient(135deg,#0a0a0a 0%,#111 100%)', blur:0, brightness:100, dim:0, parallax:false };
 }
 
 // ═══════════════════════════════════════════════════════════
-// HISTORY (Undo / Redo) — stores last 20 states
+// CANVAS PANNING (touch two-finger or no-widget touch)
 // ═══════════════════════════════════════════════════════════
-const History = (() => {
-  const MAX = 20;
-  let stack = [], ptr = -1;
+let panOffset = { x: 0, y: 0 };
+let panStart = null;
 
-  function push() {
-    const snap = JSON.parse(JSON.stringify(State.space.widgets));
-    if (ptr < stack.length - 1) stack = stack.slice(0, ptr + 1);
-    stack.push(snap);
-    if (stack.length > MAX) stack.shift();
-    ptr = stack.length - 1;
-    _updateBtns();
-  }
-
-  function undo() {
-    if (ptr <= 0) return toast('Nothing to undo');
-    ptr--;
-    State.space.widgets = JSON.parse(JSON.stringify(stack[ptr]));
-    Render.all(); State.save(); _updateBtns(); toast('Undo');
-  }
-
-  function redo() {
-    if (ptr >= stack.length - 1) return toast('Nothing to redo');
-    ptr++;
-    State.space.widgets = JSON.parse(JSON.stringify(stack[ptr]));
-    Render.all(); State.save(); _updateBtns(); toast('Redo');
-  }
-
-  function reset() { stack=[]; ptr=-1; push(); _updateBtns(); }
-
-  function _updateBtns() {
-    ['undo-btn','undo-desktop-btn'].forEach(id => {
-      const b = document.getElementById(id); if(b) b.disabled = ptr <= 0;
-    });
-    ['redo-btn','redo-desktop-btn'].forEach(id => {
-      const b = document.getElementById(id); if(b) b.disabled = ptr >= stack.length-1;
-    });
-  }
-
-  return { push, undo, redo, reset };
-})();
-
-// ═══════════════════════════════════════════════════════════
-// CANVAS PAN + PINCH ZOOM
-// ═══════════════════════════════════════════════════════════
-const Viewport = (() => {
-  let tx=0, ty=0, scale=1;
-  const MIN_SCALE=0.25, MAX_SCALE=3;
-  const cv = () => document.getElementById('canvas');
-
-  function apply(animated=false) {
-    const el = cv();
-    el.style.transition = animated ? 'transform 0.25s ease' : 'none';
-    el.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
-    document.getElementById('zoom-badge').textContent = Math.round(scale*100)+'%';
-  }
-
-  function constrainPan() {
-    // Allow some slack beyond canvas bounds
-    const vpW = window.innerWidth, vpH = window.innerHeight;
-    const cW = CANVAS_W * scale, cH = CANVAS_H * scale;
-    tx = clamp(tx, -cW + vpW * 0.2, vpW * 0.8);
-    ty = clamp(ty, -cH + vpH * 0.2, vpH * 0.8);
-  }
-
-  function panBy(dx, dy) { tx+=dx; ty+=dy; constrainPan(); apply(); }
-
-  function zoomAt(cx, cy, delta) {
-    const newScale = clamp(scale * delta, MIN_SCALE, MAX_SCALE);
-    const ratio = newScale / scale;
-    tx = cx - ratio*(cx-tx);
-    ty = cy - ratio*(cy-ty);
-    scale = newScale;
-    constrainPan(); apply();
-  }
-
-  function reset() {
-    // Center canvas on viewport start
-    const safeTop = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--topbar')) || 48;
-    tx = 20; ty = safeTop + 10; scale = 1;
-    apply(true);
-  }
-
-  // Convert viewport coords → canvas coords
-  function toCanvas(vx, vy) {
-    return { x: (vx - tx) / scale, y: (vy - ty) / scale };
-  }
-
-  // ── Mouse Wheel zoom ────────────────────────────────────
-  document.getElementById('canvas-viewport').addEventListener('wheel', e => {
-    e.preventDefault();
-    const delta = e.ctrlKey ? (1 - e.deltaY * 0.01) : (e.deltaY < 0 ? 1.08 : 1/1.08);
-    zoomAt(e.clientX, e.clientY, delta);
-  }, { passive:false });
-
-  // ── Touch ────────────────────────────────────────────────
-  let touches = {};
-  let lastPinchDist = null, lastPinchMid = null;
-  let panStart = null;
-  let panStartTx, panStartTy;
-
-  document.getElementById('canvas-viewport').addEventListener('touchstart', e => {
-    for (const t of e.touches) touches[t.identifier] = { x:t.clientX, y:t.clientY };
-
-    if (e.touches.length === 1) {
-      const t = e.touches[0];
-      // Only pan if touching the background (not a widget drag handle)
-      const target = document.elementFromPoint(t.clientX, t.clientY);
-      const onHandle = target?.closest('.w-handle') || target?.closest('.w-resize');
-      const onWidget = target?.closest('.widget');
-      if (!onWidget || !State.editMode) {
-        panStart = { x:t.clientX, y:t.clientY };
-        panStartTx = tx; panStartTy = ty;
-      }
-    } else {
-      panStart = null;
-    }
-
-    if (e.touches.length === 2) {
-      const [a,b] = [e.touches[0], e.touches[1]];
-      lastPinchDist = Math.hypot(b.clientX-a.clientX, b.clientY-a.clientY);
-      lastPinchMid = { x:(a.clientX+b.clientX)/2, y:(a.clientY+b.clientY)/2 };
-    }
-  }, { passive:true });
-
-  document.getElementById('canvas-viewport').addEventListener('touchmove', e => {
-    e.preventDefault();
-    for (const t of e.touches) touches[t.identifier] = { x:t.clientX, y:t.clientY };
-
-    if (e.touches.length === 1 && panStart) {
-      const t = e.touches[0];
-      tx = panStartTx + (t.clientX - panStart.x);
-      ty = panStartTy + (t.clientY - panStart.y);
-      constrainPan(); apply();
-    }
-
-    if (e.touches.length === 2) {
-      const [a,b] = [e.touches[0], e.touches[1]];
-      const dist = Math.hypot(b.clientX-a.clientX, b.clientY-a.clientY);
-      const mid = { x:(a.clientX+b.clientX)/2, y:(a.clientY+b.clientY)/2 };
-
-      if (lastPinchDist) {
-        // Scale
-        const delta = dist / lastPinchDist;
-        zoomAt(mid.x, mid.y, delta);
-        // Pan with midpoint movement
-        panBy(mid.x - lastPinchMid.x, mid.y - lastPinchMid.y);
-      }
-      lastPinchDist = dist; lastPinchMid = mid;
-    }
-  }, { passive:false });
-
-  document.getElementById('canvas-viewport').addEventListener('touchend', e => {
-    for (const t of e.changedTouches) delete touches[t.identifier];
-    if (e.touches.length < 2) { lastPinchDist = null; lastPinchMid = null; }
-    if (e.touches.length === 0) panStart = null;
-  }, { passive:true });
-
-  // ── Mouse pan (desktop: middle click or background drag) ─
-  let mPan = false, mPanStart;
-  document.getElementById('canvas-viewport').addEventListener('mousedown', e => {
-    if (e.button === 1 || (e.button === 0 && !e.target.closest('.widget'))) {
-      if (e.button === 0 && State.editMode && e.target.closest('.widget')) return;
-      mPan = true;
-      mPanStart = { x:e.clientX - tx, y:e.clientY - ty };
-      e.preventDefault();
-    }
-  });
-  window.addEventListener('mousemove', e => {
-    if (!mPan) return;
-    tx = e.clientX - mPanStart.x;
-    ty = e.clientY - mPanStart.y;
-    constrainPan(); apply();
-  });
-  window.addEventListener('mouseup', () => { mPan = false; });
-
-  return { apply, reset, toCanvas, get scale() { return scale; }, get tx() { return tx; }, get ty() { return ty; } };
-})();
-
-// ═══════════════════════════════════════════════════════════
-// BACKGROUND SYSTEM
-// ═══════════════════════════════════════════════════════════
-const Background = (() => {
-  let parallaxOn = false;
-
-  function apply() {
-    const bg = State.space.bg;
-    const layer = document.getElementById('bg-layer');
-    const overlay = document.getElementById('bg-overlay');
-    if (bg.type === 'gradient') { layer.style.background = bg.value; layer.style.backgroundSize=''; }
-    else if (bg.type === 'image') { layer.style.background = `url('${bg.value}') center/cover no-repeat`; }
-    layer.style.filter = `blur(${bg.blur||0}px) brightness(${bg.brightness||100}%)`;
-    overlay.style.background = `rgba(0,0,0,${(bg.dim||0)/100})`;
-    document.getElementById('bg-parallax').checked = bg.parallax||false;
-    document.getElementById('bg-blur').value = bg.blur||0;
-    document.getElementById('bg-bright').value = bg.brightness||100;
-    document.getElementById('bg-dim').value = bg.dim||0;
-    if (bg.parallax) startParallax(); else stopParallax();
-  }
-
-  function renderPresets() {
-    const g = document.getElementById('preset-grid'); g.innerHTML='';
-    BG_PRESETS.forEach(p => {
-      const sw = document.createElement('div');
-      sw.className='preset-sw'+(State.space.bg.value===p.v?' on':'');
-      sw.style.background = p.v;
-      sw.addEventListener('click', () => {
-        document.querySelectorAll('.preset-sw').forEach(s=>s.classList.remove('on'));
-        sw.classList.add('on');
-        const bg = State.space.bg; bg.type='gradient'; bg.value=p.v;
-        apply(); State.save();
-      });
-      g.appendChild(sw);
-    });
-  }
-
-  function startParallax() {
-    if (parallaxOn) return; parallaxOn=true;
-    if (IS_TOUCH && typeof DeviceOrientationEvent !== 'undefined') {
-      const req = DeviceOrientationEvent.requestPermission;
-      if (typeof req === 'function') req().then(r => { if(r==='granted') window.addEventListener('deviceorientation', _gyro, {passive:true}); });
-      else window.addEventListener('deviceorientation', _gyro, {passive:true});
-    } else { window.addEventListener('mousemove', _mouse); }
-  }
-
-  function stopParallax() {
-    parallaxOn=false;
-    window.removeEventListener('deviceorientation', _gyro);
-    window.removeEventListener('mousemove', _mouse);
-    document.getElementById('bg-layer').style.transform='';
-  }
-
-  function _gyro(e) {
-    const x=clamp(e.gamma||0,-15,15), y=clamp((e.beta||0)-45,-15,15);
-    document.getElementById('bg-layer').style.transform=`translate(${x*.5}px,${y*.5}px) scale(1.05)`;
-  }
-  function _mouse(e) {
-    const cx=window.innerWidth/2, cy=window.innerHeight/2;
-    const dx=(e.clientX-cx)/cx, dy=(e.clientY-cy)/cy;
-    document.getElementById('bg-layer').style.transform=`translate(${dx*-16}px,${dy*-16}px) scale(1.05)`;
-  }
-
-  // Slider bindings
-  ['bg-blur','bg-bright','bg-dim'].forEach(id => {
-    document.getElementById(id).addEventListener('input', e => {
-      const map={'bg-blur':'blur','bg-bright':'brightness','bg-dim':'dim'};
-      State.space.bg[map[id]] = parseInt(e.target.value);
-      apply(); State.save();
-    });
-  });
-  document.getElementById('bg-parallax').addEventListener('change', e => {
-    State.space.bg.parallax = e.target.checked; State.save();
-    if (e.target.checked) startParallax(); else stopParallax();
-  });
-  document.getElementById('bg-upload').addEventListener('change', e => {
-    const f=e.target.files[0]; if(!f) return;
-    const r=new FileReader(); r.onload=ev=>{
-      const bg=State.space.bg; bg.type='image'; bg.value=ev.target.result;
-      apply(); State.save(); renderPresets();
-    }; r.readAsDataURL(f);
-  });
-
-  return { apply, renderPresets };
-})();
+function getWidgetsLayer() { return document.getElementById('widgets-layer'); }
 
 // ═══════════════════════════════════════════════════════════
 // SPACES
 // ═══════════════════════════════════════════════════════════
-const Spaces = (() => {
-  function render() {
-    const list = document.getElementById('spaces-list'); list.innerHTML='';
-    State.spaces.forEach((s,i) => {
-      const row = document.createElement('div');
-      row.className='space-row'+(i===State.currentSpace?' on':'');
-      row.innerHTML=`
-        <div class="space-row-name" contenteditable="true"
-             onblur="Spaces.rename(${i},this.textContent)"
-             onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}">${s.name}</div>
-        <span class="space-row-meta">${s.widgets.length} widgets</span>
-        ${State.spaces.length>1?`<button class="space-row-del" onclick="Spaces.del(${i})"><i class="fas fa-times"></i></button>`:''}
-      `;
-      row.addEventListener('click', e => {
-        if(e.target.isContentEditable||e.target.closest('.space-row-del')) return;
-        Spaces.switchTo(i); UI.closeAll();
-      });
-      list.appendChild(row);
+function renderSpacesBar() {
+  const inner = document.getElementById('spacesInner');
+  inner.innerHTML = '';
+  spaces.forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'space-tab' + (i === currentSpaceIdx ? ' active' : '');
+    btn.textContent = s.name;
+    btn.addEventListener('click', () => switchSpace(i));
+    btn.addEventListener('dblclick', () => renameSpaceInline(i, btn));
+    inner.appendChild(btn);
+  });
+  const addBtn = document.createElement('button');
+  addBtn.className = 'space-tab-add';
+  addBtn.innerHTML = '<i class="fas fa-plus"></i>';
+  addBtn.addEventListener('click', addSpace);
+  inner.appendChild(addBtn);
+}
+
+function switchSpace(idx) {
+  currentSpaceIdx = idx;
+  panOffset = { x: 0, y: 0 };
+  renderSpacesBar();
+  renderWidgets();
+  applyBg();
+  save();
+}
+
+function addSpace() {
+  spaces.push({ id: uid(), name: `Space ${spaces.length + 1}`, widgets: [], bg: defaultBg() });
+  switchSpace(spaces.length - 1);
+}
+
+function renameSpaceInline(idx, btn) {
+  const old = spaces[idx].name;
+  const inp = document.createElement('input');
+  inp.value = old;
+  inp.style.cssText = 'background:transparent;border:none;outline:none;font-size:13px;font-weight:500;color:var(--text);font-family:DM Sans,sans-serif;width:90px;';
+  btn.innerHTML = ''; btn.appendChild(inp); inp.focus(); inp.select();
+  const done = () => { spaces[idx].name = inp.value.trim() || old; renderSpacesBar(); save(); };
+  inp.addEventListener('blur', done);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') { inp.value = old; inp.blur(); } });
+}
+
+// ═══════════════════════════════════════════════════════════
+// BACKGROUND
+// ═══════════════════════════════════════════════════════════
+const BG_PRESETS = [
+  { label:'Void',   value:'linear-gradient(135deg,#0a0a0a 0%,#111 100%)' },
+  { label:'Ocean',  value:'linear-gradient(135deg,#0a1628 0%,#0d2a4a 50%,#072040 100%)' },
+  { label:'Forest', value:'linear-gradient(135deg,#0a1a0f 0%,#0f2a18 50%,#081508 100%)' },
+  { label:'Dusk',   value:'linear-gradient(135deg,#1a0a1e 0%,#2a0d3a 40%,#1a0828 100%)' },
+  { label:'Ember',  value:'linear-gradient(135deg,#1a0800 0%,#2d1100 50%,#1a0600 100%)' },
+  { label:'Steel',  value:'linear-gradient(135deg,#0d1117 0%,#161b22 50%,#0d1117 100%)' },
+  { label:'Slate',  value:'linear-gradient(135deg,#131619 0%,#1c2028 100%)' },
+  { label:'Noir',   value:'linear-gradient(160deg,#050505 0%,#0c0c0c 100%)' },
+];
+
+function renderPresets() {
+  const grid = document.getElementById('presetGrid');
+  grid.innerHTML = '';
+  BG_PRESETS.forEach(p => {
+    const sw = document.createElement('div');
+    sw.className = 'preset-swatch' + (currentSpace().bg.value === p.value ? ' active' : '');
+    sw.style.background = p.value; sw.title = p.label;
+    sw.addEventListener('click', () => {
+      document.querySelectorAll('.preset-swatch').forEach(s => s.classList.remove('active'));
+      sw.classList.add('active');
+      const bg = currentSpace().bg; bg.type = 'gradient'; bg.value = p.value;
+      applyBg(); save();
     });
-  }
-
-  function switchTo(idx) {
-    State.currentSpace = idx;
-    document.getElementById('space-name-btn').textContent = State.space.name;
-    Render.all(); Background.apply(); Connections.render();
-    Draw.loadFromSpace(); History.reset(); State.save();
-  }
-
-  function add() {
-    State.spaces.push(AppState._defaultSpace(`Space ${State.spaces.length+1}`));
-    State.currentSpace = State.spaces.length-1;
-    switchTo(State.currentSpace); render();
-  }
-
-  function del(idx) {
-    if(State.spaces.length<=1) return toast('Cannot delete last space');
-    State.spaces.splice(idx,1);
-    if(State.currentSpace>=State.spaces.length) State.currentSpace=State.spaces.length-1;
-    switchTo(State.currentSpace); render(); State.save();
-  }
-
-  function rename(idx, name) {
-    State.spaces[idx].name = name.trim()||`Space ${idx+1}`;
-    document.getElementById('space-name-btn').textContent = State.space.name;
-    State.save();
-  }
-
-  return { render, switchTo, add, del, rename };
-})();
-
-// ═══════════════════════════════════════════════════════════
-// WIDGET SYSTEM
-// ═══════════════════════════════════════════════════════════
-
-/* ── Find widget in state ── */
-function findW(id) { return State.space.widgets.find(w=>w.id===id); }
-
-/* ── Update widget data and save ── */
-function updateW(id, patch) {
-  const w=findW(id); if(!w) return;
-  Object.assign(w,patch); State.save();
+    grid.appendChild(sw);
+  });
 }
 
-/* ── Add widget ── */
-function addWidget(type) {
-  const meta = WIDGET_META[type];
-  const vp = Viewport;
-  // Place in visible center of viewport
-  const vcx = (window.innerWidth/2 - vp.tx) / vp.scale;
-  const vcy = (window.innerHeight/2 - vp.ty) / vp.scale;
-  const w = {
-    id: uid(), type,
-    x: snap(vcx - meta.w/2 + (Math.random()-0.5)*60),
-    y: snap(vcy - meta.h/2 + (Math.random()-0.5)*60),
-    width: meta.w, height: meta.h,
-    z: ++State.zCounter,
-    color: 'yellow', font: 'DM Sans',
-    content: '', tags: [], locked: false, pinned: false,
-    createdAt: Date.now(),
-    // type-specific defaults
-    ...(type==='todo'   ? { items:[] } : {}),
-    ...(type==='habit'  ? { habits:[] } : {}),
-    ...(type==='reminder' ? { reminders:[] } : {}),
-    ...(type==='pomodoro' ? { pomWork:25, pomBreak:5, pomState:'idle', pomLeft:25*60, pomSession:'work' } : {}),
-    ...(type==='calendar' ? { calYear: new Date().getFullYear(), calMonth: new Date().getMonth() } : {}),
-    ...(type==='ambient' ? { playing:null } : {}),
-  };
-  History.push();
-  State.space.widgets.push(w);
-  const el = buildWidgetEl(w);
-  document.getElementById('canvas').appendChild(el);
-  if(!State.editMode) State.toggleEditMode();
-  State.save();
-  return w;
+function applyBg() {
+  const bg = currentSpace().bg;
+  const layer = document.getElementById('bg-layer');
+  const overlay = document.getElementById('bg-overlay');
+  if (bg.type === 'gradient') { layer.style.background = bg.value; layer.style.backgroundSize = ''; }
+  else if (bg.type === 'image') { layer.style.background = `url('${bg.value}') center/cover no-repeat`; }
+  layer.style.filter = `blur(${bg.blur||0}px) brightness(${bg.brightness||100}%)`;
+  overlay.style.background = `rgba(0,0,0,${(bg.dim||0)/100})`;
+  document.getElementById('parallaxToggle').checked = bg.parallax || false;
+  document.getElementById('blurSlider').value = bg.blur || 0;
+  document.getElementById('brightnessSlider').value = bg.brightness || 100;
+  document.getElementById('dimSlider').value = bg.dim || 0;
+  if (bg.parallax) startParallax(); else stopParallax();
 }
 
-/* ── Delete widget ── */
-function deleteWidget(id) {
-  History.push();
-  State.space.widgets = State.space.widgets.filter(w=>w.id!==id);
-  const el = document.querySelector(`.widget[data-id="${id}"]`);
-  if(el) { el.style.animation='wOut 0.18s ease forwards'; setTimeout(()=>el.remove(),180); }
-  // Remove connections involving this widget
-  State.space.connections = (State.space.connections||[]).filter(c=>c.a!==id&&c.b!==id);
-  Connections.render(); State.save();
+['blur','brightness','dim'].forEach(t => {
+  document.getElementById(t+'Slider').addEventListener('input', e => {
+    currentSpace().bg[t] = parseInt(e.target.value); applyBg(); save();
+  });
+});
+
+document.getElementById('parallaxToggle').addEventListener('change', e => {
+  currentSpace().bg.parallax = e.target.checked; save();
+  if (e.target.checked) startParallax(); else stopParallax();
+});
+
+// Parallax — mouse on desktop, gyro on mobile
+let parallaxOn = false;
+function startParallax() {
+  if (parallaxOn) return; parallaxOn = true;
+  if (IS_TOUCH && typeof DeviceOrientationEvent !== 'undefined') {
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().then(r => { if (r === 'granted') window.addEventListener('deviceorientation', onGyro, { passive:true }); });
+    } else { window.addEventListener('deviceorientation', onGyro, { passive:true }); }
+  } else { window.addEventListener('mousemove', onMouseParallax); }
+}
+function stopParallax() {
+  parallaxOn = false;
+  window.removeEventListener('deviceorientation', onGyro);
+  window.removeEventListener('mousemove', onMouseParallax);
+  document.getElementById('bg-layer').style.transform = '';
+}
+function onGyro(e) {
+  const x = Math.max(-15, Math.min(15, e.gamma || 0));
+  const y = Math.max(-15, Math.min(15, (e.beta || 0) - 45));
+  document.getElementById('bg-layer').style.transform = `translate(${x * 0.5}px, ${y * 0.5}px) scale(1.04)`;
+}
+function onMouseParallax(e) {
+  const cx = window.innerWidth/2, cy = window.innerHeight/2;
+  const dx = (e.clientX - cx)/cx, dy = (e.clientY - cy)/cy;
+  document.getElementById('bg-layer').style.transform = `translate(${dx * -14}px, ${dy * -14}px) scale(1.04)`;
 }
 
-/* ── Duplicate widget ── */
-function duplicateWidget(w) {
-  History.push();
-  const n = JSON.parse(JSON.stringify(w));
-  n.id=uid(); n.x=snap(w.x+24); n.y=snap(w.y+24); n.z=++State.zCounter;
-  State.space.widgets.push(n);
-  const el = buildWidgetEl(n);
-  document.getElementById('canvas').appendChild(el);
-  State.save();
-}
+document.getElementById('bgUpload').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => { const bg = currentSpace().bg; bg.type = 'image'; bg.value = ev.target.result; applyBg(); save(); renderPresets(); };
+  r.readAsDataURL(f);
+});
+
+function openBgPanel() { renderPresets(); document.getElementById('bg-panel').classList.add('show'); document.getElementById('sheet-overlay').classList.add('show'); }
+function closeBgPanel() { document.getElementById('bg-panel').classList.remove('show'); document.getElementById('sheet-overlay').classList.remove('show'); }
 
 // ═══════════════════════════════════════════════════════════
-// BUILD WIDGET ELEMENT
+// SHEETS
 // ═══════════════════════════════════════════════════════════
+function openAddSheet() { document.getElementById('add-sheet').classList.add('show'); document.getElementById('sheet-overlay').classList.add('show'); }
+function openIoSheet() { document.getElementById('io-sheet').style.display = 'block'; document.getElementById('sheet-overlay').classList.add('show'); }
+function closeAllSheets() {
+  document.getElementById('sheet-overlay').classList.remove('show');
+  document.getElementById('add-sheet').classList.remove('show');
+  document.getElementById('bg-panel').classList.remove('show');
+  document.getElementById('io-sheet').style.display = 'none';
+}
+
+// Swipe-down-to-close for all sheets
+['add-sheet','bg-panel','io-sheet'].forEach(id => {
+  const el = document.getElementById(id);
+  let sy = 0;
+  el.addEventListener('touchstart', e => { sy = e.touches[0].clientY; }, { passive:true });
+  el.addEventListener('touchmove', e => {
+    const dy = e.touches[0].clientY - sy;
+    if (dy > 0) el.style.transform = `translateY(${dy}px)`;
+  }, { passive:true });
+  el.addEventListener('touchend', e => {
+    const dy = e.changedTouches[0].clientY - sy;
+    el.style.transform = '';
+    if (dy > 70) closeAllSheets();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// EDIT MODE
+// ═══════════════════════════════════════════════════════════
+function toggleEditMode() {
+  editMode = !editMode;
+  getWidgetsLayer().classList.toggle('edit-mode', editMode);
+  document.getElementById('editToggle').classList.toggle('active', editMode);
+  document.getElementById('editToggle').querySelector('i').className = editMode ? 'fas fa-lock-open' : 'fas fa-pen-to-square';
+  document.getElementById('edit-pill').classList.toggle('show', editMode);
+}
+function toggleSnap() { snapEnabled = !snapEnabled; document.getElementById('snapBtn').classList.toggle('active', snapEnabled); }
+
+// ═══════════════════════════════════════════════════════════
+// RENDER WIDGETS
+// ═══════════════════════════════════════════════════════════
+function renderWidgets() {
+  const layer = getWidgetsLayer();
+  layer.innerHTML = '';
+  if (editMode) layer.classList.add('edit-mode');
+  currentSpace().widgets.forEach(w => {
+    const el = buildWidgetEl(w);
+    if (el) layer.appendChild(el);
+  });
+}
+
 function buildWidgetEl(w) {
   const el = document.createElement('div');
-  el.className = 'widget '+w.type+'-widget';
+  el.className = 'widget ' + w.type + '-widget';
   el.dataset.id = w.id;
-  el.style.cssText = `left:${w.x}px;top:${w.y}px;width:${w.width}px;height:${w.height}px;z-index:${w.z||10}`;
-  if(w.color) el.dataset.color = w.color;
-  if(w.faded) el.classList.add('faded');
-  if(w.locked) el.classList.add('locked-note');
-
-  // Tags
-  if(w.tags?.length) {
-    const tb = document.createElement('div'); tb.className='w-tags';
-    w.tags.forEach(t=>{ const s=document.createElement('span'); s.className='w-tag'; s.textContent='#'+t; tb.appendChild(s); });
-    el.appendChild(tb);
-  }
+  el.style.left = (w.x || 60) + 'px';
+  el.style.top = (w.y || 80) + 'px';
+  el.style.width = (w.width || 240) + 'px';
+  el.style.height = (w.height || 200) + 'px';
+  el.style.zIndex = w.z || 10;
+  if (w.color) el.dataset.color = w.color;
 
   // Drag handle
-  const dh = document.createElement('div'); dh.className='w-handle';
-  dh.innerHTML=`<div class="w-handle-dots">${Array(6).fill('<span></span>').join('')}</div><div class="w-handle-spacer"></div><button class="w-handle-btn del" onclick="deleteWidget('${w.id}')"><i class="fas fa-trash-alt"></i></button>`;
+  const dh = document.createElement('div');
+  dh.className = 'drag-handle';
+  dh.innerHTML = `<div class="handle-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="handle-spacer"></div><button class="handle-del" onclick="deleteWidget('${w.id}')"><i class="fas fa-trash-alt"></i></button>`;
   el.appendChild(dh);
 
-  // Body
-  const body = document.createElement('div'); body.className='w-body';
-  body.style.height='100%';
-  body.appendChild(buildInner(w));
-  el.appendChild(body);
+  // Resize handle
+  const rh = document.createElement('div');
+  rh.className = 'resize-handle';
+  el.appendChild(rh);
 
-  // Resize
-  const rh = document.createElement('div'); rh.className='w-resize'; el.appendChild(rh);
+  // Inner wrapper
+  const inner = document.createElement('div');
+  inner.className = 'widget-inner';
+  inner.style.cssText = 'height:100%;';
+  inner.appendChild(buildWidgetInner(w));
+  el.appendChild(inner);
 
-  // Attach interactions
+  // ── Drag (mouse + touch) via handle ──
   attachDrag(dh, el, w);
-  attachResize(rh, el, w);
-  attachLongPress(el, w);
-  el.addEventListener('mousedown', ()=>{ if(State.editMode) selectWidget(el,w); });
-  el.addEventListener('touchstart', ()=>{ if(State.editMode) selectWidget(el,w); },{passive:true});
-  el.addEventListener('contextmenu', e=>{ e.preventDefault(); Ctx.show(e.clientX,e.clientY,w); });
 
-  if(!State.editMode) el.classList.add('locked');
+  // ── Resize (mouse + touch) ──
+  attachResize(rh, el, w);
+
+  // ── Context menu (long press on mobile, right-click desktop) ──
+  el.addEventListener('contextmenu', e => { e.preventDefault(); showCtxMenu(e.clientX, e.clientY, w); });
+  attachLongPress(el, w);
+
+  // Select
+  el.addEventListener('mousedown', () => { if (editMode) selectWidget(el, w); });
+  el.addEventListener('touchstart', () => { if (editMode) selectWidget(el, w); }, { passive:true });
+
   return el;
 }
 
-/* ── Build inner content per type ── */
-function buildInner(w) {
-  const wrap = document.createElement('div'); wrap.style.height='100%';
-
-  switch(w.type) {
-
-    case 'note': {
-      wrap.innerHTML=`
-        <div class="wh"><i class="${WIDGET_META.note.icon}"></i>Note<span class="wh-spacer"></span>
-        <select class="note-font-sel" onchange="updateW('${w.id}',{font:this.value});document.querySelector('.widget[data-id=\\'${w.id}\\'] .note-editable').style.fontFamily=this.value">
-          ${NOTE_FONTS.map(f=>`<option value="${f}"${w.font===f?' selected':''}>${f}</option>`).join('')}
-        </select></div>
-        <textarea class="note-editable" placeholder="Write something…" style="font-family:${w.font||'DM Sans'}">${w.content||''}</textarea>
-
-    <div class="note-colors">
-      ${NOTE_COLORS.map(c=>`<div class="nc-dot${w.color===c?' active':''}" style="background:${colorHex(c)}" onclick="setNoteColor('${w.id}','${c}')"></div>`).join('')}
-    </div>`;
-  const ta=wrap.querySelector('textarea');
-  ta.addEventListener('input',()=>updateW(w.id,{content:ta.value}));
-  ta.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
-  ta.addEventListener('mousedown',e=>{if(State.editMode)e.stopPropagation();});
-  break;
-}
-
-case 'clock': {
-  wrap.innerHTML=`<div class="wh"><i class="${WIDGET_META.clock.icon}"></i>Clock</div><div class="clock-body"><div class="clock-time" id="clk-${w.id}">--:--</div><div class="clock-date" id="clkd-${w.id}"></div></div>`;
-  tickClock(w.id); break;
-}
-
-case 'todo': {
-  const items=w.items||[];
-  wrap.innerHTML=`
-    <div class="wh"><i class="${WIDGET_META.todo.icon}"></i>To-Do</div>
-    <div class="todo-body">
-      <div class="todo-list" id="tdl-${w.id}">${items.map(i=>todoItemHTML(w.id,i)).join('')}</div>
-      <div class="todo-add">
-        <input placeholder="Add item…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addTodoItem('${w.id}',this)}"
-               ontouchstart="event.stopPropagation()" onmousedown="if(State.editMode)event.stopPropagation()">
-        <button class="todo-add-btn" onclick="addTodoItem('${w.id}',this.previousElementSibling)"><i class="fas fa-plus"></i></button>
-      </div>
-    </div>`;
-  wrap.querySelector('.todo-body').addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
-  break;
-}
-
-case 'image': {
-  const hasImg=w.url&&w.url.length>0;
-  wrap.innerHTML=`<div class="image-body">${hasImg?`<img src="${w.url}" alt="">`:
-    `<div class="image-placeholder" onclick="triggerImgUpload('${w.id}')"><i class="fas fa-image"></i><span>Tap to add image</span></div>`}</div>
-    <input type="file" id="iu-${w.id}" accept="image/*" style="display:none">`;
-  wrap.querySelector(`#iu-${w.id}`).addEventListener('change',e=>{
-    const f=e.target.files[0]; if(!f) return;
-    const r=new FileReader(); r.onload=ev=>{ updateW(w.id,{url:ev.target.result}); Render.one(w.id); State.save(); }; r.readAsDataURL(f);
-  });
-  if(hasImg) wrap.querySelector('.image-body').addEventListener('click',()=>{ if(State.editMode) triggerImgUpload(w.id); });
-  break;
-}
-
-case 'quote': {
-  wrap.innerHTML=`<div class="wh"><i class="${WIDGET_META.quote.icon}"></i>Quote</div>
-    <div class="quote-body">
-      <div class="quote-text" contenteditable="true"
-           onblur="updateW('${w.id}',{content:this.textContent})"
-           ontouchstart="event.stopPropagation()" onmousedown="if(State.editMode)event.stopPropagation()">${w.content||'Your quote here…'}</div>
-      <div class="quote-author" contenteditable="true"
-           onblur="updateW('${w.id}',{author:this.textContent})"
-           ontouchstart="event.stopPropagation()" onmousedown="if(State.editMode)event.stopPropagation()">— ${w.author||'Author'}</div>
-    </div>`; break;
-}
-
-case 'music': {
-  if(w.embedUrl) {
-    wrap.innerHTML=`<div class="music-body"><iframe src="${w.embedUrl}" allow="autoplay;clipboard-write;encrypted-media;fullscreen;picture-in-picture" loading="lazy"></iframe></div>`;
-  } else {
-    wrap.innerHTML=`<div class="wh"><i class="${WIDGET_META.music.icon}" style="color:#1DB954"></i>Music</div>
-      <div class="music-setup">
-        <div style="font-size:11px;color:var(--text2)">Paste a Spotify / YouTube URL:</div>
-        <input class="music-input" placeholder="https://open.spotify.com/…" id="ms-${w.id}"
-               inputmode="url" ontouchstart="event.stopPropagation()" onmousedown="if(State.editMode)event.stopPropagation()">
-        <button class="music-btn" onclick="loadMusic('${w.id}')">Load</button>
-      </div>`;
-  } break;
-}
-
-case 'pomodoro': {
-  buildPomodoro(w, wrap); break;
-}
-
-case 'habit': {
-  buildHabit(w, wrap); break;
-}
-
-case 'calendar': {
-  buildCalendar(w, wrap); break;
-}
-
-case 'ambient': {
-  buildAmbient(w, wrap); break;
-}
-
-case 'reminder': {
-  buildReminder(w, wrap); break;
-}
-
-}
-return wrap;
-}
-
-// ═══════════════════════════════════════════════════════════
-// WIDGET-SPECIFIC BUILDERS
-// ═══════════════════════════════════════════════════════════
-
-/* ── Pomodoro ── */
-const pomoTimers = {};
-function buildPomodoro(w, wrap) {
-const r=42, circ=2*Math.PI*r;
-wrap.innerHTML=` <div class="wh"><i class="${WIDGET_META.pomodoro.icon}"></i>Pomodoro</div> <div class="pomo-body"> <div class="pomo-ring"> <svg width="90" height="90" viewBox="0 0 90 90"> <circle class="bg-ring" cx="45" cy="45" r="${r}"/> <circle class="prog-ring" id="pomo-ring-${w.id}" cx="45" cy="45" r="${r}" stroke-dasharray="${circ}" stroke-dashoffset="0"/> </svg> <div class="pomo-time" id="pomo-time-${w.id}">--:--</div> </div> <div class="pomo-label" id="pomo-label-${w.id}">${w.pomSession||'work'}</div> <div class="pomo-controls"> <button class="pomo-btn" onclick="pomoAction('${w.id}','start')" id="pomo-start-${w.id}"><i class="fas fa-play"></i></button> <button class="pomo-btn" onclick="pomoAction('${w.id}','pause')"><i class="fas fa-pause"></i></button> <button class="pomo-btn" onclick="pomoAction('${w.id}','reset')"><i class="fas fa-redo"></i></button> </div> <div style="display:flex;gap:8px;align-items:center;font-size:11px;color:var(--text2)"> <span>Work</span> <input type="number" min="1" max="60" value="${w.pomWork||25}" style="width:40px;background:var(--bg3);border:1px solid var(--border2);border-radius:5px;padding:3px 5px;color:var(--text);font-size:11px;outline:none;text-align:center" onchange="updateW('${w.id}',{pomWork:+this.value})"> <span>Break</span> <input type="number" min="1" max="30" value="${w.pomBreak||5}" style="width:40px;background:var(--bg3);border:1px solid var(--border2);border-radius:5px;padding:3px 5px;color:var(--text);font-size:11px;outline:none;text-align:center" onchange="updateW('${w.id}',{pomBreak:+this.value})"> </div> </div>`;
-pomoUpdate(w.id);
-}
-
-function pomoAction(id, action) {
-const w=findW(id); if(!w) return;
-if(action===‘start’) {
-clearInterval(pomoTimers[id]);
-pomoTimers[id]=setInterval(()=>{
-w.pomLeft–;
-if(w.pomLeft<=0) {
-clearInterval(pomoTimers[id]);
-w.pomSession = w.pomSession===‘work’?‘break’:‘work’;
-w.pomLeft = (w.pomSession===‘work’?w.pomWork:w.pomBreak)*60;
-toast(`Pomodoro: ${w.pomSession} time!`);
-if(‘Notification’ in window && Notification.permission===‘granted’) new Notification(`Pomodoro: ${w.pomSession} time!`);
-}
-pomoUpdate(id); State.save();
-},1000);
-document.getElementById(‘pomo-start-’+id)?.classList.add(‘active’);
-} else if(action===‘pause’) {
-clearInterval(pomoTimers[id]);
-document.getElementById(‘pomo-start-’+id)?.classList.remove(‘active’);
-} else if(action===‘reset’) {
-clearInterval(pomoTimers[id]);
-w.pomLeft=(w.pomWork||25)*60; w.pomSession=‘work’;
-pomoUpdate(id); State.save();
-document.getElementById(‘pomo-start-’+id)?.classList.remove(‘active’);
-}
-}
-
-function pomoUpdate(id) {
-const w=findW(id); if(!w) return;
-const tEl=document.getElementById(‘pomo-time-’+id); if(!tEl) return;
-const m=Math.floor(w.pomLeft/60), s=w.pomLeft%60;
-tEl.textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-const lEl=document.getElementById(‘pomo-label-’+id); if(lEl) lEl.textContent=w.pomSession||‘work’;
-const rEl=document.getElementById(‘pomo-ring-’+id); if(!rEl) return;
-const r=42, circ=2*Math.PI*r;
-const total=(w.pomSession===‘work’?w.pomWork:w.pomBreak)*60||1500;
-rEl.style.strokeDashoffset=circ*(1-w.pomLeft/total);
-}
-
-/* ── Habit ── */
-function buildHabit(w, wrap) {
-const habits=w.habits||[];
-const today=new Date().getDay();
-wrap.innerHTML=` <div class="wh"><i class="${WIDGET_META.habit.icon}"></i>Habits</div> <div class="habit-body" id="habit-body-${w.id}"> ${habits.map(h=>habitRowHTML(w.id,h)).join('')} <div class="habit-add-row"> <input placeholder="Add habit…" onkeydown="if(event.key==='Enter')addHabit('${w.id}',this)" ontouchstart="event.stopPropagation()" onmousedown="if(State.editMode)event.stopPropagation()"> <button class="todo-add-btn" onclick="addHabit('${w.id}',this.previousElementSibling)"><i class="fas fa-plus"></i></button> </div> </div>`;
-wrap.querySelector(’.habit-body’).addEventListener(‘touchstart’,e=>e.stopPropagation(),{passive:true});
-}
-
-function habitRowHTML(wid,h) {
-const days=[‘S’,‘M’,‘T’,‘W’,‘T’,‘F’,‘S’];
-return `<div class="habit-row"> <div class="habit-name" contenteditable="true" onblur="editHabit('${wid}','${h.id}',this.textContent)" ontouchstart="event.stopPropagation()" onmousedown="if(State.editMode)event.stopPropagation()">${h.name}</div> <div class="habit-dots">${days.map((d,i)=>`<div class="habit-dot${(h.done||[])[i]?' on':''}" onclick="toggleHabitDay('${wid}','${h.id}',${i})" title="${d}"></div>`).join(’’)}</div>
-
-  </div>`;
-}
-
-window.addHabit = function(wid,inp) {
-const t=inp.value.trim(); if(!t) return;
-const w=findW(wid); if(!w) return;
-if(!w.habits) w.habits=[];
-const h={id:uid(),name:t,done:Array(7).fill(false)};
-w.habits.push(h); inp.value=’’;
-const body=document.getElementById(‘habit-body-’+wid);
-if(body) {
-const row=document.createElement(‘div’); row.innerHTML=habitRowHTML(wid,h); body.insertBefore(row.firstElementChild,body.lastElementChild);
-}
-State.save();
-};
-
-window.toggleHabitDay = function(wid,hid,day) {
-const w=findW(wid); if(!w) return;
-const h=w.habits?.find(x=>x.id===hid); if(!h) return;
-if(!h.done) h.done=Array(7).fill(false);
-h.done[day]=!h.done[day];
-const dots=document.querySelectorAll(`.habit-row`);
-// Re-render just this habit row for speed
-const allRows=document.querySelectorAll(`#habit-body-${wid} .habit-row`);
-allRows.forEach(row=>{
-const nameEl=row.querySelector(’.habit-name’);
-if(nameEl?.textContent.trim()===h.name) {
-row.querySelectorAll(’.habit-dot’).forEach((d,i)=>d.classList.toggle(‘on’,h.done[i]));
-}
-});
-State.save();
-};
-
-window.editHabit = function(wid,hid,name) {
-const w=findW(wid); if(!w) return;
-const h=w.habits?.find(x=>x.id===hid); if(h) { h.name=name.trim(); State.save(); }
-};
-
-/* ── Calendar ── */
-function buildCalendar(w, wrap) {
-const months=[‘January’,‘February’,‘March’,‘April’,‘May’,‘June’,‘July’,‘August’,‘September’,‘October’,‘November’,‘December’];
-const now=new Date(), curYear=w.calYear||now.getFullYear(), curMonth=w.calMonth??now.getMonth();
-const days=[‘Su’,‘Mo’,‘Tu’,‘We’,‘Th’,‘Fr’,‘Sa’];
-const first=new Date(curYear,curMonth,1).getDay();
-const daysInMonth=new Date(curYear,curMonth+1,0).getDate();
-let cells=’’;
-for(let i=0;i<first;i++) cells+=`<div class="cal-day other-month">${new Date(curYear,curMonth,-(first-i-1)).getDate()}</div>`;
-for(let d=1;d<=daysInMonth;d++) {
-const isToday=d===now.getDate()&&curMonth===now.getMonth()&&curYear===now.getFullYear();
-cells+=`<div class="cal-day${isToday?' today':''}">${d}</div>`;
-}
-wrap.innerHTML=` <div class="wh"><i class="${WIDGET_META.calendar.icon}"></i>Calendar</div> <div class="cal-body"> <div class="cal-header"> <button class="cal-nav" onclick="calNav('${w.id}',-1)"><i class="fas fa-chevron-left"></i></button> <span class="cal-month">${months[curMonth]} ${curYear}</span> <button class="cal-nav" onclick="calNav('${w.id}',1)"><i class="fas fa-chevron-right"></i></button> </div> <div class="cal-grid">${days.map(d=>`<div class="cal-day-label">${d}</div>`).join('')}${cells}</div> </div>`;
-}
-
-window.calNav = function(id,dir) {
-const w=findW(id); if(!w) return;
-let m=(w.calMonth??new Date().getMonth())+dir;
-let y=w.calYear||new Date().getFullYear();
-if(m<0){m=11;y–;}if(m>11){m=0;y++;}
-updateW(id,{calMonth:m,calYear:y}); Render.one(id);
-};
-
-/* ── Ambient ── */
-const ambientSounds = {
-rain:   ‘https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3’,  // placeholder
-cafe:   null, forest: null, waves: null,
-};
-const ambientAudios = {};
-
-function buildAmbient(w, wrap) {
-const sounds=[{k:‘rain’,i:‘fas fa-cloud-rain’,l:‘Rain’},{k:‘cafe’,i:‘fas fa-coffee’,l:‘Café’},{k:‘forest’,i:‘fas fa-tree’,l:‘Forest’},{k:‘waves’,i:‘fas fa-water’,l:‘Waves’}];
-wrap.innerHTML=` <div class="wh"><i class="${WIDGET_META.ambient.icon}"></i>Ambient</div> <div class="ambient-body"> <div class="ambient-sounds">${sounds.map(s=>`
-<div class="ambient-item${w.playing===s.k?' playing':''}" onclick="toggleAmbient('${w.id}','${s.k}')" id="amb-${w.id}-${s.k}">
-<i class="${s.i}" style="font-size:20px"></i><span>${s.l}</span>
-</div>`).join('')} </div> <div style="font-size:10px;color:var(--text3);text-align:center;padding-top:4px">Ambient audio (add your own URLs)</div> </div>`;
-}
-
-window.toggleAmbient = function(wid, key) {
-const w=findW(wid); if(!w) return;
-if(w.playing===key) {
-if(ambientAudios[key]) { ambientAudios[key].pause(); ambientAudios[key].currentTime=0; }
-updateW(wid,{playing:null});
-} else {
-Object.keys(ambientAudios).forEach(k=>{ if(ambientAudios[k]) ambientAudios[k].pause(); });
-if(ambientSounds[key]) {
-if(!ambientAudios[key]) { ambientAudios[key]=new Audio(ambientSounds[key]); ambientAudios[key].loop=true; }
-ambientAudios[key].play().catch(()=>{});
-}
-updateW(wid,{playing:key});
-}
-// Update UI
-document.querySelectorAll(`[id^="amb-${wid}-"]`).forEach(el=>{
-el.classList.toggle(‘playing’, el.id===`amb-${wid}-${w.playing}`);
-});
-};
-
-/* ── Reminder ── */
-function buildReminder(w, wrap) {
-const rems=w.reminders||[];
-wrap.innerHTML=` <div class="wh"><i class="${WIDGET_META.reminder.icon}"></i>Reminders</div> <div class="reminder-body"> <div id="rem-list-${w.id}">${rems.map(r=>reminderHTML(w.id,r)).join('')}</div> <div class="reminder-add-row"> <input placeholder="Reminder title…" id="rem-title-${w.id}" ontouchstart="event.stopPropagation()" onmousedown="if(State.editMode)event.stopPropagation()"> <input type="datetime-local" id="rem-time-${w.id}" ontouchstart="event.stopPropagation()" onmousedown="if(State.editMode)event.stopPropagation()"> <button class="reminder-add-btn" onclick="addReminder('${w.id}')">Add</button> </div> </div>`;
-wrap.querySelector(’.reminder-body’).addEventListener(‘touchstart’,e=>e.stopPropagation(),{passive:true});
-}
-
-function reminderHTML(wid,r) {
-return `<div class="reminder-item" data-rid="${r.id}">
-<span class="reminder-icon">🔔</span>
-<div class="reminder-info">
-<div class="reminder-title">${r.title}</div>
-<div class="reminder-time">${new Date(r.time).toLocaleString()}</div>
-</div>
-<button class="reminder-del" onclick="deleteReminder('${wid}','${r.id}')"><i class="fas fa-times"></i></button>
-
-  </div>`;
-}
-
-window.addReminder = function(wid) {
-const title=document.getElementById(‘rem-title-’+wid)?.value.trim();
-const timeVal=document.getElementById(‘rem-time-’+wid)?.value;
-if(!title||!timeVal) return toast(‘Fill in title and time’);
-const w=findW(wid); if(!w) return;
-if(!w.reminders) w.reminders=[];
-const r={id:uid(),title,time:new Date(timeVal).getTime()};
-w.reminders.push(r);
-document.getElementById(‘rem-title-’+wid).value=’’;
-document.getElementById(‘rem-time-’+wid).value=’’;
-const list=document.getElementById(‘rem-list-’+wid);
-if(list) { const d=document.createElement(‘div’); d.innerHTML=reminderHTML(wid,r); list.appendChild(d.firstElementChild); }
-State.save(); toast(‘Reminder set!’);
-};
-
-window.deleteReminder = function(wid,rid) {
-const w=findW(wid); if(!w) return;
-w.reminders=(w.reminders||[]).filter(r=>r.id!==rid);
-document.querySelector(`.reminder-item[data-rid="${rid}"]`)?.remove();
-State.save();
-};
-
-// Check reminders every 30s
-setInterval(()=>{
-const now=Date.now();
-State.space.widgets.filter(w=>w.type===‘reminder’).forEach(w=>{
-(w.reminders||[]).forEach(r=>{
-if(r.time<=now && !r.fired) {
-r.fired=true; toast(`⏰ ${r.title}`);
-if(‘Notification’ in window && Notification.permission===‘granted’) new Notification(`⏰ ${r.title}`);
-State.save();
-}
-});
-});
-}, 30000);
-if(‘Notification’ in window) Notification.requestPermission();
-
-// ═══════════════════════════════════════════════════════════
-// TODO helpers
-// ═══════════════════════════════════════════════════════════
-function todoItemHTML(wid,item) {
-return `<div class="todo-item" data-tid="${item.id}">
-<div class="todo-cb${item.done?' done':''}" onclick="toggleTodo('${wid}','${item.id}')"></div>
-<div class="todo-text${item.done?' done':''}" contenteditable="true"
-onblur="editTodo('${wid}','${item.id}',this.textContent)"
-ontouchstart="event.stopPropagation()" onmousedown="if(State.editMode)event.stopPropagation()">${item.text}</div>
-<button class="todo-del-btn" onclick="deleteTodo('${wid}','${item.id}')"><i class="fas fa-times"></i></button>
-
-  </div>`;
-}
-
-window.toggleTodo = function(wid,tid) {
-const w=findW(wid); if(!w) return;
-const item=w.items?.find(i=>i.id===tid); if(!item) return;
-item.done=!item.done;
-document.querySelector(`.todo-item[data-tid="${tid}"] .todo-cb`)?.classList.toggle(‘done’,item.done);
-document.querySelector(`.todo-item[data-tid="${tid}"] .todo-text`)?.classList.toggle(‘done’,item.done);
-State.save();
-};
-window.addTodoItem = function(wid,inp) {
-const t=inp.value.trim(); if(!t) return;
-const w=findW(wid); if(!w) return;
-if(!w.items) w.items=[];
-const item={id:uid(),text:t,done:false}; w.items.push(item); inp.value=’’;
-const list=document.getElementById(‘tdl-’+wid);
-if(list) { const d=document.createElement(‘div’); d.innerHTML=todoItemHTML(wid,item); list.appendChild(d.firstElementChild); }
-State.save();
-};
-window.editTodo = function(wid,tid,text) {
-const w=findW(wid); if(!w) return;
-const i=w.items?.find(i=>i.id===tid); if(i) { i.text=text.trim(); State.save(); }
-};
-window.deleteTodo = function(wid,tid) {
-const w=findW(wid); if(!w) return;
-w.items=(w.items||[]).filter(i=>i.id!==tid);
-document.querySelector(`.todo-item[data-tid="${tid}"]`)?.remove();
-State.save();
-};
-
-// ═══════════════════════════════════════════════════════════
-// NOTE COLOR / FONT
-// ═══════════════════════════════════════════════════════════
-window.setNoteColor = function(id,color) {
-const w=findW(id); if(!w) return; w.color=color;
-const el=document.querySelector(`.widget[data-id="${id}"]`);
-if(el) {
-el.dataset.color=color;
-el.querySelectorAll(’.nc-dot’).forEach((d,i)=>d.classList.toggle(‘active’,NOTE_COLORS[i]===color));
-}
-State.save();
-};
-
-// ═══════════════════════════════════════════════════════════
-// IMAGE / MUSIC helpers
-// ═══════════════════════════════════════════════════════════
-window.triggerImgUpload = function(id) { document.getElementById(‘iu-’+id)?.click(); };
-window.loadMusic = function(id) {
-const inp=document.getElementById(‘ms-’+id); if(!inp) return;
-const url=inp.value.trim(); if(!url) return;
-const m=url.match(/open.spotify.com/(track|album|playlist|episode)/([A-Za-z0-9]+)/);
-const embedUrl=m?`https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator`:url;
-updateW(id,{embedUrl}); Render.one(id); State.save();
-};
-
-// ═══════════════════════════════════════════════════════════
-// CLOCK TICK
-// ═══════════════════════════════════════════════════════════
-const clockTimers={};
-function tickClock(id) {
-clearInterval(clockTimers[id]);
-function up() {
-const el=document.getElementById(‘clk-’+id); if(!el){clearInterval(clockTimers[id]);return;}
-const now=new Date();
-el.textContent=[now.getHours(),now.getMinutes(),now.getSeconds()].map(n=>String(n).padStart(2,‘0’)).join(’:’);
-const de=document.getElementById(‘clkd-’+id);
-if(de) de.textContent=now.toLocaleDateString(‘en-US’,{weekday:‘short’,month:‘short’,day:‘numeric’});
-}
-up(); clockTimers[id]=setInterval(up,1000);
-}
-
-// ═══════════════════════════════════════════════════════════
-// DRAG & RESIZE
-// ═══════════════════════════════════════════════════════════
+// ── Drag ────────────────────────────────────────────────────
 function attachDrag(handle, el, w) {
-function startDrag(clientX, clientY) {
-if(!State.editMode) return false;
-selectWidget(el,w);
-const startX=clientX - w.x * Viewport.scale;
-const startY=clientY - w.y * Viewport.scale;
+  // Mouse
+  handle.addEventListener('mousedown', e => {
+    if (!editMode) return;
+    e.preventDefault(); e.stopPropagation();
+    selectWidget(el, w);
+    const startX = e.clientX - w.x, startY = e.clientY - w.y;
+    el.classList.add('dragging-active');
+    const onMove = ev => {
+      w.x = snap(Math.max(0, ev.clientX - startX));
+      w.y = snap(Math.max(0, ev.clientY - startY));
+      el.style.left = w.x + 'px'; el.style.top = w.y + 'px';
+    };
+    const onUp = () => {
+      el.classList.remove('dragging-active');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      save();
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
 
-const onMove=(cx,cy)=>{
-  w.x=snap(Math.max(0,(cx-startX)/Viewport.scale));
-  w.y=snap(Math.max(0,(cy-startY)/Viewport.scale));
-  el.style.left=w.x+'px'; el.style.top=w.y+'px';
-  Connections.render();
-};
-return onMove;
-
+  // Touch
+  handle.addEventListener('touchstart', e => {
+    if (!editMode) return;
+    e.stopPropagation();
+    const t = e.touches[0];
+    let sx = t.clientX - w.x, sy = t.clientY - w.y;
+    el.classList.add('dragging-active');
+    selectWidget(el, w);
+    const onMove = ev => {
+      ev.preventDefault();
+      const t2 = ev.touches[0];
+      w.x = snap(Math.max(0, t2.clientX - sx));
+      w.y = snap(Math.max(0, t2.clientY - sy));
+      el.style.left = w.x + 'px'; el.style.top = w.y + 'px';
+    };
+    const onEnd = () => {
+      el.classList.remove('dragging-active');
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+      save();
+    };
+    document.addEventListener('touchmove', onMove, { passive:false });
+    document.addEventListener('touchend', onEnd);
+  }, { passive:true });
 }
 
-// Mouse
-handle.addEventListener(‘mousedown’,e=>{
-if(!State.editMode) return;
-e.preventDefault(); e.stopPropagation();
-el.classList.add(‘dragging’);
-const move=startDrag(e.clientX,e.clientY); if(!move) return;
-const mm=ev=>move(ev.clientX,ev.clientY);
-const mu=()=>{ el.classList.remove(‘dragging’); document.removeEventListener(‘mousemove’,mm); document.removeEventListener(‘mouseup’,mu); State.save(); History.push(); };
-document.addEventListener(‘mousemove’,mm);
-document.addEventListener(‘mouseup’,mu);
-});
-
-// Touch
-handle.addEventListener(‘touchstart’,e=>{
-if(!State.editMode) return;
-e.stopPropagation();
-const t=e.touches[0];
-el.classList.add(‘dragging’);
-const move=startDrag(t.clientX,t.clientY); if(!move) return;
-const mm=ev=>{ ev.preventDefault(); const t2=ev.touches[0]; move(t2.clientX,t2.clientY); };
-const mu=()=>{ el.classList.remove(‘dragging’); document.removeEventListener(‘touchmove’,mm); document.removeEventListener(‘touchend’,mu); State.save(); History.push(); };
-document.addEventListener(‘touchmove’,mm,{passive:false});
-document.addEventListener(‘touchend’,mu);
-},{passive:true});
-}
-
+// ── Resize ──────────────────────────────────────────────────
 function attachResize(handle, el, w) {
-function startResize(clientX, clientY) {
-const sw=w.width, sh=w.height, sx=clientX, sy=clientY;
-return (cx,cy)=>{
-w.width=snap(Math.max(140, sw+(cx-sx)/Viewport.scale));
-w.height=snap(Math.max(70, sh+(cy-sy)/Viewport.scale));
-el.style.width=w.width+‘px’; el.style.height=w.height+‘px’;
-};
+  const start = (clientX, clientY) => {
+    const sw = w.width, sh = w.height, sx = clientX, sy = clientY;
+    el.classList.add('dragging-active');
+    const onMove = (cx, cy) => {
+      w.width = snap(Math.max(150, sw + cx - sx));
+      w.height = snap(Math.max(80, sh + cy - sy));
+      el.style.width = w.width + 'px'; el.style.height = w.height + 'px';
+    };
+    return onMove;
+  };
+  // Mouse
+  handle.addEventListener('mousedown', e => {
+    if (!editMode) return;
+    e.preventDefault(); e.stopPropagation();
+    const move = start(e.clientX, e.clientY);
+    const onMove = ev => move(ev.clientX, ev.clientY);
+    const onUp = () => { el.classList.remove('dragging-active'); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); save(); };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+  // Touch
+  handle.addEventListener('touchstart', e => {
+    if (!editMode) return;
+    e.preventDefault(); e.stopPropagation();
+    const t = e.touches[0];
+    const move = start(t.clientX, t.clientY);
+    const onMove = ev => { ev.preventDefault(); const t2 = ev.touches[0]; move(t2.clientX, t2.clientY); };
+    const onEnd = () => { el.classList.remove('dragging-active'); document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onEnd); save(); };
+    document.addEventListener('touchmove', onMove, { passive:false });
+    document.addEventListener('touchend', onEnd);
+  }, { passive:false });
 }
 
-handle.addEventListener(‘mousedown’,e=>{
-if(!State.editMode) return;
-e.preventDefault(); e.stopPropagation();
-const move=startResize(e.clientX,e.clientY);
-const mm=ev=>move(ev.clientX,ev.clientY);
-const mu=()=>{ document.removeEventListener(‘mousemove’,mm); document.removeEventListener(‘mouseup’,mu); State.save(); History.push(); };
-document.addEventListener(‘mousemove’,mm);
-document.addEventListener(‘mouseup’,mu);
-});
-
-handle.addEventListener(‘touchstart’,e=>{
-if(!State.editMode) return;
-e.preventDefault(); e.stopPropagation();
-const t=e.touches[0];
-const move=startResize(t.clientX,t.clientY);
-const mm=ev=>{ ev.preventDefault(); const t2=ev.touches[0]; move(t2.clientX,t2.clientY); };
-const mu=()=>{ document.removeEventListener(‘touchmove’,mm); document.removeEventListener(‘touchend’,mu); State.save(); History.push(); };
-document.addEventListener(‘touchmove’,mm,{passive:false});
-document.addEventListener(‘touchend’,mu);
-},{passive:false});
-}
-
+// ── Long press → context menu ────────────────────────────────
 function attachLongPress(el, w) {
-let timer;
-el.addEventListener(‘touchstart’,e=>{
-timer=setTimeout(()=>{
-const t=e.touches[0]; Ctx.show(t.clientX,t.clientY,w);
-},550);
-},{passive:true});
-[‘touchmove’,‘touchend’].forEach(ev=>el.addEventListener(ev,()=>clearTimeout(timer),{passive:true}));
+  let timer;
+  el.addEventListener('touchstart', e => {
+    timer = setTimeout(() => {
+      const t = e.touches[0];
+      showCtxMenu(t.clientX, t.clientY, w);
+    }, 600);
+  }, { passive:true });
+  el.addEventListener('touchmove', () => clearTimeout(timer), { passive:true });
+  el.addEventListener('touchend', () => clearTimeout(timer), { passive:true });
+}
+
+// ═══════════════════════════════════════════════════════════
+// BUILD WIDGET INNER CONTENT
+// ═══════════════════════════════════════════════════════════
+function buildWidgetInner(w) {
+  const wrap = document.createElement('div');
+  wrap.style.height = '100%';
+
+  if (w.type === 'note') {
+    wrap.innerHTML = `
+      <div class="widget-header"><i class="fas fa-sticky-note"></i>Note</div>
+      <textarea class="note-body" placeholder="Write something...">${w.content||''}</textarea>
+      <div class="note-colors">${['yellow','green','blue','purple','red'].map(c=>`<div class="note-color-dot${w.color===c?' active':''}" style="background:${colorHex(c)}" onclick="setNoteColor('${w.id}','${c}')"></div>`).join('')}</div>
+    `;
+    const ta = wrap.querySelector('textarea');
+    ta.addEventListener('input', () => updateWidgetData(w.id, { content: ta.value }));
+    ta.addEventListener('touchstart', e => e.stopPropagation(), { passive:true });
+    ta.addEventListener('mousedown', e => { if (editMode) e.stopPropagation(); });
+  }
+
+  else if (w.type === 'clock') {
+    wrap.innerHTML = `
+      <div class="widget-header"><i class="fas fa-clock"></i>Clock</div>
+      <div class="clock-display">
+        <div class="clock-time" id="clock-${w.id}">--:--:--</div>
+        <div class="clock-date" id="clockdate-${w.id}"></div>
+      </div>
+    `;
+    tickClock(w.id);
+  }
+
+  else if (w.type === 'todo') {
+    const items = w.items || [];
+    wrap.innerHTML = `
+      <div class="widget-header"><i class="fas fa-check-square"></i>To-Do</div>
+      <div class="todo-body">
+        <div class="todo-items">${items.map(item=>`
+          <div class="todo-item" data-tid="${item.id}">
+            <div class="todo-checkbox${item.done?' checked':''}" onclick="toggleTodo('${w.id}','${item.id}')"></div>
+            <div class="todo-text${item.done?' done':''}" contenteditable="true"
+                 onblur="editTodo('${w.id}','${item.id}',this.textContent)"
+                 ontouchstart="event.stopPropagation()"
+                 onmousedown="if(editMode)event.stopPropagation()">${item.text}</div>
+            <button class="todo-del" onclick="deleteTodo('${w.id}','${item.id}')"><i class="fas fa-times"></i></button>
+          </div>`).join('')}
+        </div>
+        <div class="todo-add-row">
+          <input class="todo-add-input" placeholder="Add item…"
+                 ontouchstart="event.stopPropagation()"
+                 onmousedown="if(editMode)event.stopPropagation()"
+                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addTodoItem('${w.id}',this)}">
+          <button class="todo-add-btn" onclick="addTodoItem('${w.id}',this.previousElementSibling)"><i class="fas fa-plus"></i></button>
+        </div>
+      </div>
+    `;
+    wrap.querySelector('.todo-body').addEventListener('touchstart', e => e.stopPropagation(), { passive:true });
+  }
+
+  else if (w.type === 'image') {
+    const hasImg = w.url && w.url.length > 0;
+    wrap.innerHTML = `
+      <div class="image-body">
+        ${hasImg ? `<img src="${w.url}" alt="">` : `<div class="image-placeholder" onclick="triggerImageUpload('${w.id}')"><i class="fas fa-image"></i><span>Tap to upload</span></div>`}
+      </div>
+      <input type="file" id="imgup-${w.id}" accept="image/*" style="display:none">
+    `;
+    wrap.querySelector('#imgup-'+w.id).addEventListener('change', e => {
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = ev => { updateWidgetData(w.id, { url: ev.target.result }); renderWidgets(); save(); };
+      r.readAsDataURL(f);
+    });
+    if (hasImg) {
+      wrap.querySelector('.image-body').addEventListener('click', () => { if (editMode) triggerImageUpload(w.id); });
+    }
+  }
+
+  else if (w.type === 'quote') {
+    wrap.innerHTML = `
+      <div class="widget-header"><i class="fas fa-quote-right"></i>Quote</div>
+      <div class="quote-body">
+        <div class="quote-text" contenteditable="true"
+             onblur="updateWidgetData('${w.id}',{content:this.textContent})"
+             ontouchstart="event.stopPropagation()"
+             onmousedown="if(editMode)event.stopPropagation()">${w.content||'Your quote here...'}</div>
+        <div class="quote-author" contenteditable="true"
+             onblur="updateWidgetData('${w.id}',{author:this.textContent})"
+             ontouchstart="event.stopPropagation()"
+             onmousedown="if(editMode)event.stopPropagation()">— ${w.author||'Author'}</div>
+      </div>
+    `;
+  }
+
+  else if (w.type === 'spotify') {
+    if (w.embedUrl) {
+      wrap.innerHTML = `<iframe src="${w.embedUrl}" allow="autoplay;clipboard-write;encrypted-media;fullscreen;picture-in-picture" loading="lazy"></iframe>`;
+    } else {
+      wrap.innerHTML = `
+        <div class="widget-header"><i class="fab fa-spotify" style="color:#1DB954"></i>Spotify</div>
+        <div class="spotify-input-body">
+          <div style="font-size:12px;color:var(--text2)">Paste a Spotify track/playlist URL:</div>
+          <input class="spotify-url-input" placeholder="https://open.spotify.com/…" id="sp-${w.id}"
+                 inputmode="url" ontouchstart="event.stopPropagation()"
+                 onmousedown="if(editMode)event.stopPropagation()">
+          <button class="spotify-load-btn" onclick="loadSpotify('${w.id}')">Load</button>
+        </div>
+      `;
+    }
+  }
+
+  return wrap;
 }
 
 // ═══════════════════════════════════════════════════════════
 // SELECT / Z
 // ═══════════════════════════════════════════════════════════
-function selectWidget(el,w) {
-document.querySelectorAll(’.widget.selected’).forEach(e=>e.classList.remove(‘selected’));
-el.classList.add(‘selected’);
-w.z=++State.zCounter; el.style.zIndex=w.z;
+function selectWidget(el, w) {
+  document.querySelectorAll('.widget.selected').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  w.z = ++zCounter; el.style.zIndex = w.z;
 }
-
-// ═══════════════════════════════════════════════════════════
-// RENDER
-// ═══════════════════════════════════════════════════════════
-const Render = {
-all() {
-const canvas=document.getElementById(‘canvas’);
-// Remove only widgets (keep svg, snap-grid, draw-canvas)
-canvas.querySelectorAll(’.widget’).forEach(e=>e.remove());
-State.space.widgets.forEach(w=>{
-const el=buildWidgetEl(w);
-canvas.appendChild(el);
-if(w.type===‘clock’) tickClock(w.id);
-});
-if(State.editMode) canvas.classList.add(‘edit-mode’);
-},
-one(id) {
-const w=findW(id); if(!w) return;
-const old=document.querySelector(`.widget[data-id="${id}"]`);
-const el=buildWidgetEl(w);
-if(old) old.replaceWith(el); else document.getElementById(‘canvas’).appendChild(el);
-if(w.type===‘clock’) tickClock(id);
-}
-};
 
 // ═══════════════════════════════════════════════════════════
 // CONTEXT MENU
 // ═══════════════════════════════════════════════════════════
-const Ctx = {
-target: null,
-show(x,y,w) {
-this.target=w;
-document.getElementById(‘ctx-lock-label’).textContent=w.locked?‘Unlock’:‘Lock’;
-document.getElementById(‘ctx-pin-label’).textContent=w.pinned?‘Unpin’:‘Pin’;
-const m=document.getElementById(‘ctx-menu’);
-m.style.display=‘block’; m.style.left=x+‘px’; m.style.top=y+‘px’;
-const r=m.getBoundingClientRect();
-if(r.right>window.innerWidth) m.style.left=(x-r.width)+‘px’;
-if(r.bottom>window.innerHeight) m.style.top=(y-r.height)+‘px’;
-},
-hide() { document.getElementById(‘ctx-menu’).style.display=‘none’; this.target=null; },
-action(act) {
-const w=this.target; this.hide(); if(!w) return;
-const el=document.querySelector(`.widget[data-id="${w.id}"]`);
-if(act===‘delete’) deleteWidget(w.id);
-else if(act===‘duplicate’) duplicateWidget(w);
-else if(act===‘forward’) { w.z=++State.zCounter; if(el) el.style.zIndex=w.z; State.save(); }
-else if(act===‘back’) { w.z=Math.max(1,(w.z||10)-2); if(el) el.style.zIndex=w.z; State.save(); }
-else if(act===‘lock’) {
-w.locked=!w.locked; if(el) el.classList.toggle(‘locked-note’,w.locked); State.save();
+function showCtxMenu(x, y, w) {
+  ctxTarget = w;
+  const m = document.getElementById('ctx-menu');
+  m.style.display = 'block';
+  m.style.left = x + 'px'; m.style.top = y + 'px';
+  const r = m.getBoundingClientRect();
+  if (r.right > window.innerWidth) m.style.left = (x - r.width) + 'px';
+  if (r.bottom > window.innerHeight) m.style.top = (y - r.height) + 'px';
 }
-else if(act===‘pin’) { w.pinned=!w.pinned; toast(w.pinned?‘Pinned’:‘Unpinned’); State.save(); }
-else if(act===‘connect’) {
-if(!State.connectMode) {
-State.connectMode=true; State.connectSource=w.id;
-toast(‘Tap another widget to connect’); return;
+function ctxAction(action) {
+  if (!ctxTarget) return;
+  const w = ctxTarget;
+  if (action === 'delete') deleteWidget(w.id);
+  else if (action === 'duplicate') duplicateWidget(w);
+  else if (action === 'forward') { w.z = ++zCounter; const el = document.querySelector(`.widget[data-id="${w.id}"]`); if (el) el.style.zIndex = w.z; save(); }
+  else if (action === 'back') { w.z = Math.max(1, (w.z||10)-2); const el = document.querySelector(`.widget[data-id="${w.id}"]`); if (el) el.style.zIndex = w.z; save(); }
+  hideCtxMenu();
 }
-}
-}
-};
-document.addEventListener(‘click’,e=>{ if(!e.target.closest(’#ctx-menu’)) Ctx.hide(); });
-document.addEventListener(‘touchstart’,e=>{ if(!e.target.closest(’#ctx-menu’)) Ctx.hide(); },{passive:true});
+function hideCtxMenu() { document.getElementById('ctx-menu').style.display='none'; ctxTarget=null; }
+document.addEventListener('click', hideCtxMenu);
+document.addEventListener('touchstart', e => {
+  if (!document.getElementById('ctx-menu').contains(e.target)) hideCtxMenu();
+}, { passive:true });
 
 // ═══════════════════════════════════════════════════════════
-// MIND-MAP CONNECTIONS
+// ADD / DELETE / DUPLICATE
 // ═══════════════════════════════════════════════════════════
-const Connections = {
-render() {
-const svg=document.getElementById(‘connections-svg’);
-svg.innerHTML=’’;
-(State.space.connections||[]).forEach(c=>{
-const a=findW(c.a), b=findW(c.b); if(!a||!b) return;
-const ax=a.x+a.width/2, ay=a.y+a.height/2;
-const bx=b.x+b.width/2, by=b.y+b.height/2;
-const path=document.createElementNS(‘http://www.w3.org/2000/svg’,‘path’);
-const mx=(ax+bx)/2;
-path.setAttribute(‘d’,`M${ax},${ay} C${mx},${ay} ${mx},${by} ${bx},${by}`);
-path.className.baseVal=‘connection-line’;
-path.dataset.ca=c.a; path.dataset.cb=c.b;
-path.addEventListener(‘click’,()=>{ State.space.connections=State.space.connections.filter(x=>!(x.a===c.a&&x.b===c.b)); Connections.render(); State.save(); });
-svg.appendChild(path);
-});
-}
+const DEFAULTS = {
+  note:    { width:240, height:220, content:'', color:'yellow' },
+  clock:   { width:220, height:120 },
+  todo:    { width:260, height:280, items:[] },
+  image:   { width:240, height:200, url:'' },
+  quote:   { width:280, height:180, content:'Your quote here...', author:'Author' },
+  spotify: { width:300, height:190, embedUrl:'' },
 };
 
-// Handle connect mode taps
-document.getElementById(‘canvas’).addEventListener(‘click’,e=>{
-if(!State.connectMode) return;
-const wEl=e.target.closest(’.widget’);
-if(!wEl) { State.connectMode=false; State.connectSource=null; return; }
-const targetId=wEl.dataset.id;
-if(targetId===State.connectSource) return;
-if(!State.space.connections) State.space.connections=[];
-const exists=State.space.connections.find(c=>(c.a===State.connectSource&&c.b===targetId)||(c.a===targetId&&c.b===State.connectSource));
-if(!exists) { State.space.connections.push({a:State.connectSource,b:targetId}); Connections.render(); State.save(); toast(‘Connected!’); }
-State.connectMode=false; State.connectSource=null;
-});
-
-// ═══════════════════════════════════════════════════════════
-// DRAWING LAYER
-// ═══════════════════════════════════════════════════════════
-const Draw = (() => {
-let ctx, drawing=false, tool=‘pen’, color=’#4f9eff’, size=3, lastX, lastY;
-const canvas=()=>document.getElementById(‘draw-canvas’);
-
-function init() {
-ctx=canvas().getContext(‘2d’);
-ctx.lineCap=‘round’; ctx.lineJoin=‘round’;
-// Load saved drawing
-loadFromSpace();
+function addWidget(type) {
+  const def = DEFAULTS[type] || {};
+  const w = {
+    id: uid(), type, z: ++zCounter,
+    x: snap(60 + Math.random()*180),
+    y: snap(80 + Math.random()*180),
+    ...def,
+    ...(def.items ? { items:[] } : {}),
+  };
+  currentSpace().widgets.push(w);
+  const el = buildWidgetEl(w);
+  getWidgetsLayer().appendChild(el);
+  if (!editMode) toggleEditMode();
+  save();
 }
 
-function loadFromSpace() {
-if(!ctx) return;
-ctx.clearRect(0,0,3000,3000);
-const data=State.space.drawData;
-if(data) { const img=new Image(); img.onload=()=>ctx.drawImage(img,0,0); img.src=data; }
+function findWidget(id) { return currentSpace().widgets.find(w => w.id === id); }
+
+function updateWidgetData(id, patch) { const w = findWidget(id); if (!w) return; Object.assign(w, patch); save(); }
+
+function deleteWidget(id) {
+  currentSpace().widgets = currentSpace().widgets.filter(w => w.id !== id);
+  const el = document.querySelector(`.widget[data-id="${id}"]`);
+  if (el) { el.style.animation='widgetOut 0.18s ease forwards'; setTimeout(()=>el.remove(),180); }
+  save();
 }
 
-function saveToSpace() {
-State.space.drawData=canvas().toDataURL(‘image/png’);
-State.save();
+function duplicateWidget(w) {
+  const n = JSON.parse(JSON.stringify(w));
+  n.id = uid(); n.x = snap(w.x+22); n.y = snap(w.y+22); n.z = ++zCounter;
+  currentSpace().widgets.push(n);
+  getWidgetsLayer().appendChild(buildWidgetEl(n));
+  save();
 }
 
-function setTool(t) {
-tool=t;
-document.getElementById(‘draw-pen-btn’).classList.toggle(‘on’,t===‘pen’);
-document.getElementById(‘draw-erase-btn’).classList.toggle(‘on’,t===‘eraser’);
-}
+// ── Widget helpers ──────────────────────────────────────────
+function colorHex(c) { return {yellow:'#ffd54f',green:'#4caf50',blue:'#4f9eff',purple:'#a56fd4',red:'#ef4444'}[c]||'#fff'; }
 
-function setColor(el) {
-color=el.dataset.c;
-document.querySelectorAll(’.draw-color’).forEach(d=>d.classList.toggle(‘on’,d===el));
-}
-
-function clear() { ctx.clearRect(0,0,3000,3000); saveToSpace(); }
-
-function toggle() {
-const on=!canvas().classList.contains(‘drawing-mode’);
-canvas().classList.toggle(‘drawing-mode’,on);
-document.getElementById(‘draw-mode-btn’).classList.toggle(‘on’,on);
-document.getElementById(‘draw-toolbar’).classList.toggle(‘show’,on);
-State.drawMode=on;
-}
-
-function getPos(e,touch=false) {
-const vp=Viewport;
-const cl=touch?e.touches[0]:e;
-return { x:(cl.clientX-vp.tx)/vp.scale, y:(cl.clientY-vp.ty)/vp.scale };
-}
-
-function down(x,y) {
-drawing=true; lastX=x; lastY=y;
-ctx.beginPath(); ctx.moveTo(x,y);
-}
-
-function move(x,y) {
-if(!drawing) return;
-if(tool===‘eraser’) { ctx.clearRect(x-size*3,y-size*3,size*6,size*6); return; }
-ctx.strokeStyle=color; ctx.lineWidth=size;
-ctx.lineTo(x,y); ctx.stroke();
-ctx.beginPath(); ctx.moveTo(x,y);
-}
-
-function up() { if(drawing) { drawing=false; saveToSpace(); } }
-
-// Mouse
-canvas().addEventListener(‘mousedown’,e=>{if(State.drawMode){const p=getPos(e);down(p.x,p.y);}});
-canvas().addEventListener(‘mousemove’,e=>{if(State.drawMode){const p=getPos(e);move(p.x,p.y);}});
-canvas().addEventListener(‘mouseup’,()=>up());
-
-// Touch
-canvas().addEventListener(‘touchstart’,e=>{
-if(!State.drawMode) return; e.preventDefault();
-const p=getPos(e,true); down(p.x,p.y);
-},{passive:false});
-canvas().addEventListener(‘touchmove’,e=>{
-if(!State.drawMode) return; e.preventDefault();
-const p=getPos(e,true); move(p.x,p.y);
-},{passive:false});
-canvas().addEventListener(‘touchend’,()=>up());
-
-document.getElementById(‘draw-size’).addEventListener(‘input’,e=>size=parseInt(e.target.value));
-
-return { init, toggle, setTool, setColor, clear, loadFromSpace };
-})();
-
-// ═══════════════════════════════════════════════════════════
-// SEARCH
-// ═══════════════════════════════════════════════════════════
-const Search = {
-run(q) {
-const res=document.getElementById(‘search-results’);
-res.innerHTML=’’;
-if(!q.trim()) return;
-const hits=State.space.widgets.filter(w=>{
-const content=(w.content||w.name||’’).toLowerCase();
-const items=(w.items||[]).map(i=>i.text).join(’ ‘).toLowerCase();
-return content.includes(q.toLowerCase())||items.includes(q.toLowerCase())||w.type.includes(q.toLowerCase());
-});
-if(!hits.length) { res.innerHTML=`<div style="font-size:13px;color:var(--text2);padding:8px">No results</div>`; return; }
-hits.forEach(w=>{
-const m=WIDGET_META[w.type];
-const d=document.createElement(‘div’);
-d.className=‘search-result’;
-d.innerHTML=`<i class="${m.icon}"></i><span>${w.content?w.content.slice(0,50):m.label}</span>`;
-d.addEventListener(‘click’,()=>{
-UI.closeAll();
-// Pan to widget
-const vpCx=window.innerWidth/2, vpCy=window.innerHeight/2;
-const tx=vpCx-w.x*Viewport.scale-w.width*Viewport.scale/2;
-const ty=vpCy-w.y*Viewport.scale-w.height*Viewport.scale/2;
-document.getElementById(‘canvas’).style.transition=‘transform 0.4s ease’;
-document.getElementById(‘canvas’).style.transform=`translate(${tx}px,${ty}px) scale(${Viewport.scale})`;
-setTimeout(()=>document.getElementById(‘canvas’).style.transition=’’,400);
-});
-res.appendChild(d);
-});
-}
+window.setNoteColor = function(id, color) {
+  const w = findWidget(id); if (!w) return; w.color = color;
+  const el = document.querySelector(`.widget[data-id="${id}"]`);
+  if (el) { el.dataset.color = color; el.querySelectorAll('.note-color-dot').forEach((d,i)=>d.classList.toggle('active',['yellow','green','blue','purple','red'][i]===color)); }
+  save();
+};
+window.toggleTodo = function(wid, tid) {
+  const w = findWidget(wid); if (!w||!w.items) return;
+  const item = w.items.find(i=>i.id===tid); if (!item) return;
+  item.done = !item.done;
+  document.querySelector(`.todo-item[data-tid="${tid}"] .todo-checkbox`)?.classList.toggle('checked', item.done);
+  document.querySelector(`.todo-item[data-tid="${tid}"] .todo-text`)?.classList.toggle('done', item.done);
+  save();
+};
+window.addTodoItem = function(wid, input) {
+  const text = input.value.trim(); if (!text) return;
+  const w = findWidget(wid); if (!w) return;
+  if (!w.items) w.items = [];
+  const item = { id:uid(), text, done:false };
+  w.items.push(item); input.value='';
+  const c = input.closest('.todo-body').querySelector('.todo-items');
+  const d = document.createElement('div'); d.className='todo-item'; d.dataset.tid=item.id;
+  d.innerHTML=`<div class="todo-checkbox" onclick="toggleTodo('${wid}','${item.id}')"></div><div class="todo-text" contenteditable="true" onblur="editTodo('${wid}','${item.id}',this.textContent)" ontouchstart="event.stopPropagation()" onmousedown="if(editMode)event.stopPropagation()">${item.text}</div><button class="todo-del" onclick="deleteTodo('${wid}','${item.id}')"><i class="fas fa-times"></i></button>`;
+  c.appendChild(d); save();
+};
+window.editTodo = function(wid, tid, text) { const w=findWidget(wid); if(!w||!w.items) return; const i=w.items.find(i=>i.id===tid); if(i) { i.text=text.trim(); save(); } };
+window.deleteTodo = function(wid, tid) { const w=findWidget(wid); if(!w||!w.items) return; w.items=w.items.filter(i=>i.id!==tid); document.querySelector(`.todo-item[data-tid="${tid}"]`)?.remove(); save(); };
+window.triggerImageUpload = function(id) { document.getElementById('imgup-'+id)?.click(); };
+window.loadSpotify = function(id) {
+  const inp = document.getElementById('sp-'+id); if (!inp) return;
+  const url = inp.value.trim(); if (!url) return;
+  const m = url.match(/open\.spotify\.com\/(track|album|playlist|episode)\/([A-Za-z0-9]+)/);
+  const embedUrl = m ? `https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator` : url;
+  updateWidgetData(id, { embedUrl }); renderWidgets(); save();
 };
 
-// ═══════════════════════════════════════════════════════════
-// PASSWORD LOCK
-// ═══════════════════════════════════════════════════════════
-const Pwd = {
-_cb: null,
-prompt(title, cb) {
-this._cb=cb;
-document.getElementById(‘pwd-title’).textContent=title;
-document.getElementById(‘pwd-input’).value=’’;
-document.getElementById(‘pwd-modal’).classList.add(‘show’);
-document.getElementById(‘pwd-overlay’).classList.add(‘show’);
-document.getElementById(‘pwd-input’).focus();
-},
-cancel() {
-document.getElementById(‘pwd-modal’).classList.remove(‘show’);
-document.getElementById(‘pwd-overlay’).classList.remove(‘show’);
-},
-confirm() {
-const v=document.getElementById(‘pwd-input’).value;
-if(this._cb) this._cb(v);
-this.cancel();
+// ── Clock ───────────────────────────────────────────────────
+function tickClock(id) {
+  function update() {
+    const el = document.getElementById('clock-'+id); if (!el) return;
+    const now = new Date();
+    el.textContent = [now.getHours(),now.getMinutes(),now.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');
+    const de = document.getElementById('clockdate-'+id);
+    if (de) de.textContent = now.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    setTimeout(update, 1000);
+  }
+  update();
 }
+
+// ── Export / Import ─────────────────────────────────────────
+window.exportLayout = function() {
+  const blob = new Blob([JSON.stringify(spaces,null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'myspace-layout.json'; a.click();
 };
-document.getElementById(‘pwd-confirm’).addEventListener(‘click’,()=>Pwd.confirm());
-document.getElementById(‘pwd-input’).addEventListener(‘keydown’,e=>{ if(e.key===‘Enter’) Pwd.confirm(); });
-
-// ═══════════════════════════════════════════════════════════
-// UI CONTROLLER
-// ═══════════════════════════════════════════════════════════
-const UI = {
-openAdd() {
-this._open(‘add-sheet’);
-// Build grid
-const g=document.getElementById(‘add-grid’); g.innerHTML=’’;
-WIDGET_TYPES.forEach(type=>{
-const m=WIDGET_META[type];
-const d=document.createElement(‘div’);
-d.className=‘add-item’;
-d.innerHTML=`<i class="${m.icon}"></i><span>${m.label}</span>`;
-d.addEventListener(‘click’,()=>{ addWidget(type); this.closeAll(); });
-g.appendChild(d);
-});
-},
-openBg() { Background.renderPresets(); this._open(‘bg-sheet’); },
-openSpaces() { Spaces.render(); this._open(‘spaces-sheet’); },
-openSearch() { this._open(‘search-sheet’); setTimeout(()=>document.getElementById(‘search-input’).focus(),200); },
-openOptions() {
-this._open(‘options-sheet’);
-const b=document.getElementById(‘options-body’);
-b.innerHTML=’’;
-const items=[
-{ icon:‘fas fa-download’, title:‘Export Layout’, sub:‘Save JSON file’, action:()=>{ IO.exportJSON(); this.closeAll(); } },
-{ icon:‘fas fa-upload’, title:‘Import Layout’, sub:‘Load from JSON’, action:()=>{ document.getElementById(‘import-file’).click(); this.closeAll(); } },
-{ icon:‘fas fa-camera’, title:‘Screenshot Canvas’, sub:‘Export as PNG’, action:()=>{ toast(‘Use browser screenshot — html2canvas not bundled’); this.closeAll(); } },
-{ icon:‘fas fa-history’, title:‘Version History’, sub:‘Last 5 auto-saves’, action:()=>{ IO.showHistory(); this.closeAll(); } },
-{ icon:‘fas fa-trash-alt’, title:‘Clear Space’, sub:‘Remove all widgets’, action:()=>{ if(confirm(‘Clear all widgets?’)){ History.push(); State.space.widgets=[]; Render.all(); State.save(); this.closeAll(); } } },
-];
-items.forEach(item=>{
-const d=document.createElement(‘div’);
-d.style.cssText=‘display:flex;align-items:center;gap:12px;padding:13px 14px;background:var(–bg3);border:1px solid var(–border2);border-radius:11px;cursor:pointer;margin-bottom:6px’;
-d.innerHTML=`<i class="${item.icon}" style="color:var(--text2);width:18px;text-align:center;font-size:16px"></i><div><div style="font-size:14px;font-weight:500;color:var(--text)">${item.title}</div><div style="font-size:11px;color:var(--text2)">${item.sub}</div></div>`;
-d.addEventListener(‘click’,item.action);
-b.appendChild(d);
-});
-},
-_open(id) {
-this.closeAll(true);
-document.getElementById(id).classList.add(‘show’);
-document.getElementById(‘sheet-overlay’).classList.add(‘show’);
-},
-closeAll(keep=false) {
-if(!keep) document.getElementById(‘sheet-overlay’).classList.remove(‘show’);
-[‘add-sheet’,‘bg-sheet’,‘spaces-sheet’,‘options-sheet’,‘search-sheet’].forEach(id=>document.getElementById(id).classList.remove(‘show’));
-}
-};
-
-// Swipe-down-to-close sheets
-[‘add-sheet’,‘bg-sheet’,‘spaces-sheet’,‘options-sheet’,‘search-sheet’].forEach(id=>{
-const el=document.getElementById(id);
-let sy=0;
-el.addEventListener(‘touchstart’,e=>{ sy=e.touches[0].clientY; },{passive:true});
-el.addEventListener(‘touchmove’,e=>{
-const dy=e.touches[0].clientY-sy;
-if(dy>0) el.style.transform=`translateY(${dy}px)`;
-},{passive:true});
-el.addEventListener(‘touchend’,e=>{
-const dy=e.changedTouches[0].clientY-sy;
-el.style.transform=’’;
-if(dy>70) UI.closeAll();
-});
+[document.getElementById('importFile'), document.getElementById('importFile2')].forEach(inp => {
+  inp?.addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = ev => { try { spaces=JSON.parse(ev.target.result); currentSpaceIdx=0; switchSpace(0); save(); closeAllSheets(); } catch(err){alert('Invalid file.');} };
+    r.readAsText(f);
+  });
 });
 
-// ═══════════════════════════════════════════════════════════
-// IO (Export / Import / History)
-// ═══════════════════════════════════════════════════════════
-const IO = {
-exportJSON() {
-const blob=new Blob([JSON.stringify({spaces:State.spaces,currentSpace:State.currentSpace},null,2)],{type:‘application/json’});
-const a=document.createElement(‘a’); a.href=URL.createObjectURL(blob);
-a.download=‘myspace-layout.json’; a.click(); toast(‘Exported!’);
-},
-importJSON(file) {
-const r=new FileReader();
-r.onload=ev=>{
-try {
-const d=JSON.parse(ev.target.result);
-State.spaces=d.spaces||[]; State.currentSpace=d.currentSpace||0;
-Spaces.switchTo(State.currentSpace); State.save(); toast(‘Imported!’);
-} catch(e) { toast(‘Invalid file’); }
-};
-r.readAsText(file);
-},
-// Auto-save version history (last 5)
-_history: [],
-pushVersion() {
-const snap=JSON.stringify({spaces:State.spaces,ts:Date.now()});
-this._history.push(snap);
-if(this._history.length>5) this._history.shift();
-localStorage.setItem(‘myspace_history’, JSON.stringify(this._history));
-},
-loadHistory() {
-try { this._history=JSON.parse(localStorage.getItem(‘myspace_history’)||’[]’); } catch(e){}
-},
-showHistory() {
-const h=this._history;
-if(!h.length) return toast(‘No history yet’);
-const sel=prompt(`Restore a version?\n${h.map((v,i)=>`${i+1}: ${new Date(JSON.parse(v).ts).toLocaleString()}`).join('\n')}\n\nEnter number:`);
-if(!sel) return;
-const idx=parseInt(sel)-1;
-if(isNaN(idx)||idx<0||idx>=h.length) return toast(‘Invalid choice’);
-const d=JSON.parse(h[idx]);
-State.spaces=d.spaces; State.currentSpace=0;
-Spaces.switchTo(0); State.save(); toast(‘Restored!’);
-}
-};
-
-// Auto-save version every 2 minutes
-setInterval(()=>IO.pushVersion(), 120000);
-
-document.getElementById(‘import-file’).addEventListener(‘change’,e=>{ const f=e.target.files[0]; if(f) IO.importJSON(f); });
-
-// ═══════════════════════════════════════════════════════════
-// KEYBOARD SHORTCUTS
-// ═══════════════════════════════════════════════════════════
-document.addEventListener(‘keydown’,e=>{
-if(e.target.tagName===‘INPUT’||e.target.tagName===‘TEXTAREA’||e.target.isContentEditable) return;
-const cmd=e.metaKey||e.ctrlKey;
-if(cmd&&e.key===‘e’) { e.preventDefault(); State.toggleEditMode(); }
-if(cmd&&e.key===‘z’) { e.preventDefault(); e.shiftKey?History.redo():History.undo(); }
-if(cmd&&e.key===‘d’) { e.preventDefault(); const s=document.querySelector(’.widget.selected’); if(s){const w=findW(s.dataset.id);if(w)duplicateWidget(w);} }
-if(e.key===‘Delete’||e.key===‘Backspace’) { const s=document.querySelector(’.widget.selected’); if(s) deleteWidget(s.dataset.id); }
-if(e.key===‘Escape’) { Ctx.hide(); UI.closeAll(); State.connectMode=false; }
-if(cmd&&e.key===‘0’) { e.preventDefault(); Viewport.reset(); }
-if(cmd&&e.key===’=’) { e.preventDefault(); Viewport.zoomAt(window.innerWidth/2,window.innerHeight/2,1.15); }
-if(cmd&&e.key===’-’) { e.preventDefault(); Viewport.zoomAt(window.innerWidth/2,window.innerHeight/2,1/1.15); }
+// ── Keyboard shortcuts ──────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.isContentEditable) return;
+  if ((e.metaKey||e.ctrlKey)&&e.key==='e') { e.preventDefault(); toggleEditMode(); }
+  if (e.key==='Delete'||e.key==='Backspace') { const s=document.querySelector('.widget.selected'); if(s) deleteWidget(s.dataset.id); }
+  if ((e.metaKey||e.ctrlKey)&&e.key==='d') { e.preventDefault(); const s=document.querySelector('.widget.selected'); if(s){const w=findWidget(s.dataset.id);if(w)duplicateWidget(w);} }
+  if (e.key==='Escape') hideCtxMenu();
 });
 
-// ═══════════════════════════════════════════════════════════
-// MEMORY MODE (notes fade if > 7 days old)
-// ═══════════════════════════════════════════════════════════
-function applyMemoryMode() {
-const WEEK=7*24*60*60*1000;
-State.space.widgets.forEach(w=>{
-if(w.type===‘note’&&w.createdAt&&Date.now()-w.createdAt>WEEK) {
-w.faded=true;
-document.querySelector(`.widget[data-id="${w.id}"]`)?.classList.add(‘faded’);
-}
-});
-}
-
-// ═══════════════════════════════════════════════════════════
-// AUTO DAY / NIGHT THEME
-// ═══════════════════════════════════════════════════════════
-function applyTimeTheme() {
-const h=new Date().getHours();
-const isDark=h<7||h>=20;
-// already dark by default; could add a “day” CSS override here
-document.body.dataset.timeTheme=isDark?‘night’:‘day’;
-}
-applyTimeTheme();
+// ── Canvas touch: pan when not on widget ────────────────────
+// (lets two-finger scroll the canvas if widgets overflow viewport)
+let canvasTouches = {};
+document.getElementById('canvas').addEventListener('touchstart', e => {
+  // Only pan if touch starts on bg, not widget
+  if (e.target.closest('.widget')) return;
+  for (const t of e.touches) canvasTouches[t.identifier] = { x: t.clientX, y: t.clientY };
+}, { passive:true });
 
 // ═══════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════
-function init() {
-State.init();
-IO.loadHistory();
-Viewport.reset();
-Spaces.switchTo(State.currentSpace);
-Draw.init();
-Background.apply();
-Connections.render();
-History.reset();
-applyMemoryMode();
-
-// Add welcome widgets on first load
-if(State.space.widgets.length===0) {
-const wNote=addWidget(‘note’);
-wNote.content=‘Welcome to My Space 🌙\n\nPinch to zoom · drag two fingers to pan\nTap ✏️ to edit · + to add widgets\nLong-press any widget for options’;
-wNote.x=80; wNote.y=90; wNote.width=260; wNote.height=220;
-
-const wClock=addWidget('clock');
-wClock.x=370; wClock.y=90; wClock.width=200; wClock.height=120;
-
-const wTodo=addWidget('todo');
-wTodo.x=370; wTodo.y=240; wTodo.width=240; wTodo.height=240;
-wTodo.items=[{id:uid(),text:'Customize background',done:false},{id:uid(),text:'Add a Pomodoro timer',done:false},{id:uid(),text:'Try drawing mode',done:false}];
-
-const wQuote=addWidget('quote');
-wQuote.x=80; wQuote.y=340; wQuote.width=260; wQuote.height=160;
-wQuote.content='Design is not just what it looks like — it\'s how it works.';
-wQuote.author='Steve Jobs';
-
-State.save();
-Render.all();
-
+load();
+if (!spaces || spaces.length === 0) {
+  spaces = [{ id:uid(), name:'Main', widgets:[], bg:defaultBg() }];
 }
 
-document.getElementById(‘space-name-btn’).textContent=State.space.name;
-toast(‘My Space loaded ✓’);
+if (currentSpace().widgets.length === 0) {
+  currentSpace().widgets = [
+    { id:uid(), type:'note',  x:30,  y:80,  width:240, height:220, z:10, color:'yellow', content:'Welcome to My Space 🌙\n\nHold the pencil icon to enter edit mode.\nDrag widgets by their top handle.' },
+    { id:uid(), type:'clock', x:290, y:80,  width:220, height:120, z:11 },
+    { id:uid(), type:'quote', x:30,  y:330, width:280, height:170, z:12, content:'The space between who you are and who you want to be is where the magic happens.', author:'Unknown' },
+    { id:uid(), type:'todo',  x:330, y:230, width:240, height:250, z:13, items:[
+      {id:uid(),text:'Customize your space',done:false},
+      {id:uid(),text:'Try a background',done:false},
+      {id:uid(),text:'Add more widgets',done:false},
+    ]},
+  ];
 }
 
-init();
+switchSpace(currentSpaceIdx);
 </script>
-
 </body>
 </html>
