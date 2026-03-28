@@ -387,6 +387,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'DM Sans',sans-seri
   </div>
 
   <div id="io-bar">
+    <button class="io-btn" id="profile-btn"><i class="fas fa-circle-notch fa-spin"></i> Loading</button>
     <button class="io-btn" id="export-btn"><i class="fas fa-download"></i> Export</button>
     <label class="io-btn" style="cursor:pointer"><i class="fas fa-upload"></i> Import<input type="file" id="import-file" accept=".json" style="display:none"></label>
   </div>
@@ -3143,6 +3144,55 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     // Pause non-essential timers when tab is hidden
     AudioManager.pauseAll();
+  }
+});
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+  authDomain: "patholytica.firebaseapp.com",
+  databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "patholytica",
+  storageBucket: "patholytica.firebasestorage.app",
+  messagingSenderId: "738430635282",
+  appId: "1:738430635282:web:8451ef380447c7611137cb"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+const supabase = window.supabase.createClient(
+  "https://vduqewqyvszfquntmark.supabase.co",
+  "sb_publishable_YseP73aoHam8YT6B0b9EQQ_iAUEWARI"
+);
+
+onAuthStateChanged(auth, async (user) => {
+  const profileBtn = document.getElementById('profile-btn');
+  if (!profileBtn) return;
+
+  if (user) {
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('username')
+        .eq('firebase_uid', user.uid)
+        .single();
+
+      const username = userData?.username ? `@${userData.username}` : user.email?.split('@')[0] || 'Profile';
+      profileBtn.innerHTML = `<i class="fas fa-user-circle"></i> ${username}`;
+      profileBtn.onclick = () => window.location.href = 'https://patholytica.com/profile';
+    } catch (e) {
+      profileBtn.innerHTML = `<i class="fas fa-user-circle"></i> Profile`;
+      profileBtn.onclick = () => window.location.href = 'https://patholytica.com/profile';
+    }
+  } else {
+    profileBtn.innerHTML = `<i class="fas fa-sign-in-alt"></i> Log In`;
+    profileBtn.onclick = () => window.location.href = 'https://patholytica.com/login';
   }
 });
 </script>
