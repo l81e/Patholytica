@@ -1,660 +1,1125 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Patholytica — Library</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-:root {
-  --bg-color: #1f1f1f;
-  --text-primary: #fff;
-  --text-secondary: #aaa;
-  --card-bg: #1f1f1f;
-  --hover-bg: #2a2a2a;
-  --border-color: #303030;
-  --accent: #3ea6ff;
-  --accent-hover: #2d8ed6;
-  --accent-green: #2ecc71;
-}
+<html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Flashcard Scroller - Patholytica</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg: #0e0e0e;
+            --surface: #161616;
+            --surface2: #1e1e1e;
+            --border: #2a2a2a;
+            --text: #f0f0f0;
+            --text2: #888;
+            --text3: #555;
+            --accent: #c8a96e;
+            --accent-dim: rgba(200,169,110,0.12);
+            --accent-glow: rgba(200,169,110,0.25);
+            --red: #ef4444;
+            --green: #22c55e;
+        }
 
-* { box-sizing: border-box; }
-html, body { 
-  margin: 0; 
-  padding: 0; 
-  min-height: 100%; 
-  font-family: "Roboto", Arial, sans-serif;
-  overflow-x: hidden;
-  max-width: 100vw;
-}
-body {
-  background: var(--bg-color);
-  color: var(--text-primary);
-  transition: background 0.2s ease, color 0.2s ease;
-}
-.header-wrapper {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  background: var(--bg-color);
-  padding-top: env(safe-area-inset-top);
-  border-bottom: 1px solid var(--border-color);
-  z-index: 40;
-  width: 100%;
-}
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 24px;
-  max-width: 100%;
-  margin: 0 auto;
-}
-.logo-img {
-  height: 28px;
-  width: auto;
-  cursor: pointer;
-}
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.icon-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: transparent;
-  border: none;
-  color: var(--text-primary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  transition: background 0.2s ease;
-}
-.icon-btn:hover {
-  background: var(--hover-bg);
-}
-.auth-buttons {
-  display: none;
-  gap: 12px;
-}
-.auth-buttons.show {
-  display: flex;
-}
-.btn-login, .btn-signup {
-  padding: 8px 20px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  border: none;
-}
-.btn-login {
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-}
-.btn-login:hover {
-  background: var(--hover-bg);
-}
-.btn-signup {
-  background: var(--accent);
-  color: white;
-}
-.btn-signup:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-.user-welcome {
-  display: none;
-  align-items: center;
-  gap: 12px;
-  font-size: 14px;
-  color: var(--text-primary);
-}
-.user-welcome.show {
-  display: flex;
-}
-.welcome-text {
-  font-weight: 500;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-.welcome-text:hover {
-  color: var(--accent);
-}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* Floating Create Button */
-.fab-create {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: white;
-  border: none;
-  cursor: pointer;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  box-shadow: 0 4px 12px rgba(62, 166, 255, 0.4);
-  transition: all 0.3s ease;
-  z-index: 50;
-  padding-bottom: env(safe-area-inset-bottom);
-}
-.fab-create.show {
-  display: flex;
-}
-.fab-create:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 16px rgba(62, 166, 255, 0.5);
-}
-.fab-create:active {
-  transform: scale(0.95);
-}
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            position: fixed;
+            width: 100%; height: 100%;
+        }
 
-.list-container {
-  max-width: 900px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 24px 24px 80px;
-  padding-top: calc(65px + env(safe-area-inset-top) + 24px);
-}
-.article-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.article-item {
-  padding: 24px 0;
-  border-bottom: 1px solid var(--border-color);
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-.article-item:hover {
-  background: var(--hover-bg);
-  margin: 0 -12px;
-  padding: 24px 12px;
-}
-.article-title {
-  font-family: 'Merriweather', Georgia, serif;
-  font-size: 38px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-  line-height: 1.3;
-  color: var(--text-primary);
-  word-wrap: break-word;
-}
-.article-item:hover .article-title {
-  color: var(--accent);
-}
-.article-meta {
-  font-size: 14px;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.meta-dot {
-  width: 3px;
-  height: 3px;
-  background: var(--text-secondary);
-  border-radius: 50%;
-}
-.loading-state {
-  text-align: center;
-  padding: 40px;
-  color: var(--text-secondary);
-  font-size: 16px;
-}
-.error-state {
-  text-align: center;
-  padding: 40px;
-  color: #ff4444;
-  font-size: 16px;
-}
-.footer {
-  background: var(--bg-color);
-  border-top: 1px solid var(--border-color);
-  padding: 24px;
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 1.6;
-  padding-bottom: calc(80px + env(safe-area-inset-bottom));
-}
-.footer-stats {
-  margin-bottom: 8px;
-}
-.article-count {
-  color: var(--accent-green);
-  font-weight: 600;
-}
-.footer-tagline {
-  margin-bottom: 8px;
-}
-.footer-location {
-  font-size: 13px;
-  color: var(--text-secondary);
-  opacity: 0.8;
-}
+        .app {
+            position: fixed;
+            top: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 100%; max-width: 450px;
+            height: 100vh;
+        }
 
-/* Footer Bar Navigation */
-.footer-bar {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 450px;
-  background: var(--card-bg);
-  border-top: 1px solid var(--border-color);
-  padding: 8px 24px;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom));
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  z-index: 100;
-}
+        /* ── SCROLLER ── */
+        .scroller {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+        }
+        .scroller::-webkit-scrollbar { display: none; }
 
-.footer-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color 0.2s ease;
-  padding: 6px 12px;
-}
+        /* ── FLASHCARD ── */
+        .flash-card {
+            position: relative;
+            height: 100vh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            display: flex;
+            flex-direction: column;
+            padding: 0 0 80px 0;
+            background: var(--bg);
+        }
 
-.footer-btn:hover {
-  color: var(--text-primary);
-}
+        /* Top strip: category + author */
+        .card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px 10px;
+            flex-shrink: 0;
+        }
 
-.footer-btn.active {
-  color: var(--accent);
-}
+        .category-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--accent-dim);
+            border: 1px solid rgba(200,169,110,0.3);
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
 
-.footer-btn i {
-  font-size: 20px;
-}
+        .category-badge i { font-size: 10px; }
 
-.footer-btn span {
-  font-size: 10px;
-  font-weight: 500;
-}
+        .author-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-@media (max-width: 768px) {
-  .fab-create {
-    bottom: 80px;
-    right: 20px;
-    width: 52px;
-    height: 52px;
-    font-size: 22px;
-  }
-  .list-container {
-    padding: 16px 16px 100px;
-    padding-top: calc(65px + env(safe-area-inset-top) + 16px);
-  }
-  .article-title {
-    font-size: 28px;
-  }
-  .article-meta {
-    font-size: 13px;
-  }
-  .footer {
-    padding: 20px 16px;
-    font-size: 13px;
-    padding-bottom: calc(80px + env(safe-area-inset-bottom));
-  }
-  .auth-buttons {
-    gap: 8px;
-  }
-  .btn-login, .btn-signup {
-    padding: 6px 16px;
-    font-size: 13px;
-  }
-  .footer-bar {
-    padding: 8px 16px;
-    padding-bottom: calc(8px + env(safe-area-inset-bottom));
-  }
-  
-  .footer-btn {
-    padding: 6px 8px;
-  }
-  
-  .footer-btn i {
-    font-size: 18px;
-  }
-  
-  .footer-btn span {
-    font-size: 9px;
-  }
-}
-</style>
+        .author-avatar {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700; color: #000;
+            overflow: hidden; flex-shrink: 0;
+        }
+        .author-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+        .author-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text2);
+        }
+
+        /* ── CARD BODY (the "flashcard" itself) ── */
+        .card-body {
+            flex: 1;
+            margin: 0 16px;
+            border-radius: 20px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Subtle top accent line */
+        .card-body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 20%; right: 20%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            border-radius: 0 0 2px 2px;
+        }
+
+        /* Fact number indicator */
+        .fact-number {
+            position: absolute;
+            top: 18px; right: 18px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text3);
+            letter-spacing: 0.05em;
+        }
+
+        .card-inner {
+            flex: 1;
+            padding: 28px 24px 20px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .card-inner::-webkit-scrollbar { width: 3px; }
+        .card-inner::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        /* "FACT" label */
+        .fact-label {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .fact-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--accent-dim);
+        }
+
+        .fact-title {
+            font-size: 22px;
+            font-weight: 700;
+            line-height: 1.25;
+            color: var(--text);
+            margin-bottom: 18px;
+            font-family: 'Georgia', serif;
+        }
+
+        .fact-divider {
+            width: 36px;
+            height: 2px;
+            background: var(--accent);
+            border-radius: 2px;
+            margin-bottom: 18px;
+            flex-shrink: 0;
+        }
+
+        .fact-body {
+            font-size: 15px;
+            line-height: 1.75;
+            color: #c8c8c8;
+            flex: 1;
+        }
+
+        .fact-body p { margin-bottom: 12px; }
+        .fact-body p:last-child { margin-bottom: 0; }
+
+        /* Highlight key terms */
+        .fact-body strong {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* Tags */
+        .fact-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 14px 24px 18px;
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .tag {
+            font-size: 11px;
+            color: var(--text2);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 3px 10px;
+        }
+
+        /* ── ACTION SIDEBAR ── */
+        .action-bar {
+            position: absolute;
+            right: 4px;
+            bottom: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            z-index: 10;
+        }
+
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.15s;
+        }
+        .action-btn:active { transform: scale(0.88); }
+
+        .action-icon {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            color: var(--text);
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover .action-icon {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .action-btn.liked .action-icon {
+            background: rgba(239,68,68,0.15);
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        .action-btn.bookmarked .action-icon {
+            background: var(--accent-dim);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .action-btn span {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text2);
+        }
+
+        /* Views badge at bottom of card */
+        .views-strip {
+            position: absolute;
+            bottom: 84px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text3);
+        }
+        .views-strip i { font-size: 11px; }
+
+        /* Progress dots */
+        .progress-dots {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 86px;
+            display: flex;
+            gap: 5px;
+            z-index: 5;
+        }
+        .dot {
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: var(--border);
+            transition: all 0.3s;
+        }
+        .dot.active {
+            background: var(--accent);
+            width: 18px;
+            border-radius: 3px;
+        }
+
+        /* ── COMMENTS POPUP ── */
+        .overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 199;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .overlay.active { opacity: 1; pointer-events: all; }
+
+        .comments-sheet {
+            position: fixed;
+            bottom: 0; left: 50%;
+            transform: translateX(-50%) translateY(100%);
+            width: 100%; max-width: 450px;
+            height: 72vh;
+            background: var(--surface);
+            border-radius: 20px 20px 0 0;
+            border-top: 1px solid var(--border);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .comments-sheet.active { transform: translateX(-50%) translateY(0); }
+
+        .sheet-handle {
+            width: 36px; height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin: 12px auto 0;
+            flex-shrink: 0;
+        }
+
+        .sheet-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px 12px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .sheet-header h3 { font-size: 15px; font-weight: 700; }
+
+        .close-btn {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            background: var(--surface2);
+            border: none;
+            color: var(--text2);
+            font-size: 16px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .comments-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+        }
+        .comments-list::-webkit-scrollbar { width: 4px; }
+        .comments-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        .comment-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .comment-av {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700; color: #000;
+            flex-shrink: 0; overflow: hidden;
+        }
+        .comment-av img { width: 100%; height: 100%; object-fit: cover; }
+
+        .comment-body { flex: 1; }
+        .comment-author { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+        .comment-text { font-size: 14px; line-height: 1.4; color: #ccc; }
+        .comment-time { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+        .no-comments {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            height: 100%;
+            color: var(--text3); gap: 10px;
+        }
+        .no-comments i { font-size: 40px; }
+        .no-comments p { font-size: 13px; }
+
+        .comment-input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 12px 16px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom));
+            border-top: 1px solid var(--border);
+            background: var(--surface);
+            flex-shrink: 0;
+        }
+
+        .comment-input {
+            flex: 1;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 10px 16px;
+            color: var(--text);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .comment-input:focus { border-color: var(--accent); }
+
+        .send-btn {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            color: #000;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            transition: opacity 0.2s;
+        }
+        .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ── FOOTER ── */
+        .footer-bar {
+            position: fixed;
+            bottom: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 100%; max-width: 450px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 8px 24px;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .footer-btn {
+            display: flex; flex-direction: column;
+            align-items: center; gap: 2px;
+            background: none; border: none;
+            color: var(--text3);
+            cursor: pointer;
+            padding: 6px 12px;
+            transition: color 0.2s;
+        }
+        .footer-btn:hover { color: var(--text2); }
+        .footer-btn.active { color: var(--accent); }
+        .footer-btn i { font-size: 19px; }
+        .footer-btn span { font-size: 10px; font-weight: 500; }
+
+        /* ── LOADING ── */
+        .loading-full {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            height: 100vh; gap: 14px;
+            color: var(--text2);
+        }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-card {
+            height: 100vh;
+            scroll-snap-align: start;
+            display: flex; align-items: center; justify-content: center;
+        }
+    </style>
 </head>
 <body>
-<div class="header-wrapper">
-  <div class="header">
-    <img src="IMG_0696.png" class="logo-img" alt="Patholytica Logo">
-    <div class="header-actions">
-      <!-- Auth buttons (shown when logged out) -->
-      <div class="auth-buttons" id="authButtons">
-        <a href="login.html" class="btn-login">Log In</a>
-      </div>
-      <!-- User welcome (shown when logged in) -->
-      <div class="user-welcome" id="userWelcome">
-        <span class="welcome-text" id="welcomeText">Welcome</span>
-      </div>
+
+<div class="app">
+    <div class="scroller" id="scroller">
+        <div class="loading-full">
+            <div class="spinner"></div>
+            <div>Loading facts...</div>
+        </div>
     </div>
-  </div>
 </div>
 
-<!-- Floating Create Button -->
-<button class="fab-create" id="fabCreateBtn" onclick="createArticle()" title="Create Article">
-  <i class="fas fa-plus"></i>
-</button>
-
-<div class="list-container">
-  <ul class="article-list" id="articleList">
-    <li class="loading-state">Loading articles...</li>
-  </ul>
+<!-- Comments overlay + sheet -->
+<div class="overlay" id="overlay" onclick="closeComments()"></div>
+<div class="comments-sheet" id="commentsSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+        <h3>Comments <span id="commentCountHeader" style="color:var(--text3);font-weight:400;font-size:13px;"></span></h3>
+        <button class="close-btn" onclick="closeComments()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="comments-list" id="commentsList">
+        <div class="no-comments">
+            <i class="fas fa-comment-dots"></i>
+            <p>No comments yet</p>
+        </div>
+    </div>
+    <div class="comment-input-row">
+        <input class="comment-input" id="commentInput" placeholder="Share your thoughts..." />
+        <button class="send-btn" id="sendBtn" onclick="sendComment()">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
 </div>
 
-<footer class="footer">
-  <div class="footer-stats">
-    <span class="article-count" id="articleCount">0</span> articles accessible
-  </div>
-</footer>
-
-<!-- Footer Bar Navigation -->
+<!-- Footer -->
 <div class="footer-bar">
-  <button class="footer-btn active" onclick="window.location.href='index.html'">
-    <i class="fas fa-home"></i>
-    <span>Home</span>
-  </button>
-  <button class="footer-btn" onclick="window.location.href='https://patholytica.com/dailyfeed'">
-    <i class="fas fa-scroll"></i>
-    <span>Feed</span>
-  </button>
-  <button class="footer-btn" onclick="window.location.href='explore.html'">
-    <i class="fas fa-search"></i>
-    <span>Explore</span>
-  </button>
-  <button class="footer-btn" onclick="window.location.href='profile.html'">
-    <i class="fas fa-user"></i>
-    <span>Profile</span>
-  </button>
+    <button class="footer-btn" onclick="location.href='index.html'">
+        <i class="fas fa-home"></i><span>Home</span>
+    </button>
+    <button class="footer-btn active">
+        <i class="fas fa-bolt"></i><span>Facts</span>
+    </button>
+    <button class="footer-btn" onclick="location.href='explore.html'">
+        <i class="fas fa-search"></i><span>Explore</span>
+    </button>
+    <button class="footer-btn" onclick="location.href='profile.html'">
+        <i class="fas fa-user"></i><span>Profile</span>
+    </button>
 </div>
 
 <script type="module">
-// Import Firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { 
-  getAuth, 
-  onAuthStateChanged,
-  signOut
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
-  authDomain: "patholytica.firebaseapp.com",
-  databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "patholytica",
-  storageBucket: "patholytica.firebasestorage.app",
-  messagingSenderId: "738430635282",
-  appId: "1:738430635282:web:8451ef380447c7611137cb"
+    apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+    authDomain: "patholytica.firebaseapp.com",
+    databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "patholytica",
+    storageBucket: "patholytica.firebasestorage.app",
+    messagingSenderId: "738430635282",
+    appId: "1:738430635282:web:8451ef380447c7611137cb"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-
-// Initialize Supabase
 const supabase = window.supabase.createClient(
-  "https://vduqewqyvszfquntmark.supabase.co",
-  "sb_publishable_YseP73aoHam8YT6B0b9EQQ_iAUEWARI"
+    "https://vduqewqyvszfquntmark.supabase.co",
+    "sb_publishable_YseP73aoHam8YT6B0b9EQQ_iAUEWARI"
 );
 
-// Load articles from Supabase
-async function loadArticles() {
-  const articleList = document.getElementById('articleList');
-  
-  try {
-    console.log('Fetching articles...');
-    
-    // Fetch articles first
-    const { data: articles, error: articlesError } = await supabase
-      .from('articles')
-      .select('*')
-      .order('created_at', { ascending: false });
+// ── STATE ──
+let articles = [];
+let userLikes = new Set();
+let userBookmarks = new Set();
+let currentArticleId = null;
+let currentUser = null;
+let isLoading = false;
+let hasMore = true;
+let offset = 0;
+const LIMIT = 10;
+let viewTimers = {};
+let viewedSet = new Set();
+let commentCounts = {};
 
-    console.log('Articles response:', { articles, error: articlesError });
-
-    if (articlesError) {
-      console.error('Error fetching articles:', articlesError);
-      articleList.innerHTML = '<li class="error-state">Error loading articles: ' + articlesError.message + '</li>';
-      return;
-    }
-
-    if (!articles || articles.length === 0) {
-      articleList.innerHTML = '<li class="loading-state">No articles found.</li>';
-      document.getElementById('articleCount').textContent = '0';
-      return;
-    }
-
-    // Get unique firebase_user_ids from articles
-    const firebaseUserIds = [...new Set(articles.map(a => a.firebase_user_id).filter(Boolean))];
-    console.log('Fetching users with firebase_uids:', firebaseUserIds);
-    
-    // Fetch users by firebase_uid
-    const { data: users, error: usersError } = await supabase
-      .from('users')
-      .select('firebase_uid, username')
-      .in('firebase_uid', firebaseUserIds);
-
-    console.log('Users response:', { users, error: usersError });
-
-    // Create a user lookup map by firebase_uid
-    const userMap = {};
-    if (users) {
-      users.forEach(user => {
-        userMap[user.firebase_uid] = user;
-      });
-    }
-
-    // Clear loading state
-    articleList.innerHTML = '';
-
-    // Create article items
-    articles.forEach(article => {
-      const li = document.createElement('li');
-      li.className = 'article-item';
-      li.onclick = () => openArticle(article.id);
-      
-      // Get author username and format with @
-      const user = userMap[article.firebase_user_id];
-      const authorName = user?.username ? `@${user.username}` : 'Unknown Author';
-      
-      // Format date
-      const date = new Date(article.created_at);
-      const formattedDate = date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
-      });
-      
-      li.innerHTML = `
-        <h2 class="article-title">${article.title}</h2>
-        <div class="article-meta">
-          <span>${authorName}</span>
-          <div class="meta-dot"></div>
-          <span>${formattedDate}</span>
-          <div class="meta-dot"></div>
-          <span>${article.views || 0} views</span>
-        </div>
-      `;
-      
-      articleList.appendChild(li);
-    });
-
-    // Update article count
-    document.getElementById('articleCount').textContent = articles.length;
-    
-  } catch (err) {
-    console.error('Unexpected error:', err);
-    articleList.innerHTML = '<li class="error-state">An unexpected error occurred: ' + err.message + '</li>';
-  }
-}
-
-// Log out function
-window.logOut = async function() {
-  try {
-    await signOut(auth);
-    console.log("User logged out");
-    // Reload page to update UI
-    window.location.reload();
-  } catch (error) {
-    console.error("Error logging out:", error);
-    alert("Error logging out. Please try again.");
-  }
+// Category labels based on tags/title keywords (you can map to your own field)
+const CATEGORIES = ['Anatomy', 'Physiology', 'Pathology', 'Pharmacology', 'Biochemistry', 'Microbiology', 'Clinical'];
+const CATEGORY_ICONS = {
+    'Anatomy': 'fa-bone',
+    'Physiology': 'fa-heartbeat',
+    'Pathology': 'fa-microscope',
+    'Pharmacology': 'fa-pills',
+    'Biochemistry': 'fa-flask',
+    'Microbiology': 'fa-virus',
+    'Clinical': 'fa-stethoscope',
+    'default': 'fa-lightbulb'
 };
 
-// Check authentication state
-onAuthStateChanged(auth, async (user) => {
-  const authButtons = document.getElementById('authButtons');
-  const userWelcome = document.getElementById('userWelcome');
-  const welcomeText = document.getElementById('welcomeText');
-  const fabCreateBtn = document.getElementById('fabCreateBtn');
-  
-  if (user) {
-    // User is logged in
-    authButtons.classList.remove('show');
-    userWelcome.classList.add('show');
-    if (fabCreateBtn) fabCreateBtn.classList.add('show');
-    
-    // Add click event to username for logout
-    welcomeText.onclick = window.logOut;
-    welcomeText.style.cursor = 'pointer';
-    
-    // Update welcome text with username if available
-    try {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('username')
-        .eq('firebase_uid', user.uid)
-        .single();
-      
-      if (userData && userData.username) {
-        welcomeText.textContent = `@${userData.username}`;
-      }
-    } catch (error) {
-      console.error('Error fetching username:', error);
+function guessCategory(article) {
+    const text = ((article.title || '') + ' ' + (article.content || '')).toLowerCase();
+    for (const cat of CATEGORIES) {
+        if (text.includes(cat.toLowerCase())) return cat;
     }
-  } else {
-    // User is logged out
-    authButtons.classList.add('show');
-    userWelcome.classList.remove('show');
-    if (fabCreateBtn) fabCreateBtn.classList.remove('show');
-  }
+    return 'Clinical';
+}
+
+// ── AUTH ──
+async function getSupabaseUser(firebaseUser) {
+    const { data } = await supabase
+        .from('users')
+        .select('user_id, firebase_uid, username, pfp')
+        .eq('firebase_uid', firebaseUser.uid)
+        .single();
+    return data;
+}
+
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        currentUser = await getSupabaseUser(user);
+        if (currentUser) {
+            await loadUserLikes();
+            await loadUserBookmarks();
+        }
+    } else {
+        currentUser = null;
+        userLikes.clear();
+        userBookmarks.clear();
+    }
 });
 
-// Load articles on page load
-loadArticles();
-</script>
-
-<script>
-function openArticle(articleId) {
-  // Navigate to article detail page
-  window.location.href = `article.html?id=${articleId}`;
+async function loadUserLikes() {
+    if (!currentUser) return;
+    const { data } = await supabase
+        .from('likes').select('article_id')
+        .eq('user_id', currentUser.user_id);
+    userLikes.clear();
+    (data || []).forEach(r => userLikes.add(r.article_id));
+    refreshActionStates();
 }
 
-function createArticle() {
-  window.location.href = 'https://patholytica.com/create';
+async function loadUserBookmarks() {
+    if (!currentUser) return;
+    // Uses localStorage as lightweight bookmark store (or swap for a Supabase bookmarks table)
+    const stored = JSON.parse(localStorage.getItem('patholytica_bookmarks') || '[]');
+    userBookmarks = new Set(stored);
+    refreshActionStates();
 }
 
-function searchArticles() {
-  // Toggle search bar visibility
-  let searchBar = document.getElementById('searchBar');
-  
-  if (!searchBar) {
-    // Create search bar if it doesn't exist
-    searchBar = document.createElement('div');
-    searchBar.id = 'searchBar';
-    searchBar.style.cssText = `
-      position: fixed;
-      top: calc(65px + env(safe-area-inset-top));
-      left: 0;
-      right: 0;
-      background: var(--bg-color);
-      border-bottom: 1px solid var(--border-color);
-      padding: 16px 24px;
-      z-index: 35;
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    `;
-    
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = 'Search articles...';
-    input.style.cssText = `
-      flex: 1;
-      padding: 10px 16px;
-      border: 1px solid var(--border-color);
-      border-radius: 20px;
-      background: var(--bg-color);
-      color: var(--text-primary);
-      font-size: 14px;
-      outline: none;
-    `;
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '<i class="fas fa-times"></i>';
-    closeBtn.style.cssText = `
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: transparent;
-      border: none;
-      color: var(--text-primary);
-      cursor: pointer;
-      font-size: 18px;
-    `;
-    closeBtn.onclick = () => {
-      searchBar.style.display = 'none';
-    };
-    
-    searchBar.appendChild(input);
-    searchBar.appendChild(closeBtn);
-    document.body.insertBefore(searchBar, document.querySelector('.list-container'));
-    
-    input.focus();
-  } else {
-    // Toggle visibility
-    searchBar.style.display = searchBar.style.display === 'none' ? 'flex' : 'none';
-    if (searchBar.style.display === 'flex') {
-      searchBar.querySelector('input').focus();
+function persistBookmarks() {
+    localStorage.setItem('patholytica_bookmarks', JSON.stringify([...userBookmarks]));
+}
+
+function refreshActionStates() {
+    document.querySelectorAll('[data-like-id]').forEach(btn => {
+        btn.classList.toggle('liked', userLikes.has(btn.dataset.likeId));
+    });
+    document.querySelectorAll('[data-bookmark-id]').forEach(btn => {
+        btn.classList.toggle('bookmarked', userBookmarks.has(btn.dataset.bookmarkId));
+    });
+}
+
+// ── LOAD ARTICLES ──
+async function loadArticles(initial = true) {
+    if (isLoading || (!initial && !hasMore)) return;
+    isLoading = true;
+
+    try {
+        const { data, error } = await supabase
+            .from('articles')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .range(offset, offset + LIMIT - 1);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            if (initial) showEmpty();
+            hasMore = false;
+            isLoading = false;
+            return;
+        }
+
+        if (data.length < LIMIT) hasMore = false;
+        offset += data.length;
+
+        const uids = [...new Set(data.map(a => a.firebase_user_id).filter(Boolean))];
+        let users = [];
+        if (uids.length) {
+            const { data: u } = await supabase
+                .from('users').select('firebase_uid, username, full_name, pfp')
+                .in('firebase_uid', uids);
+            users = u || [];
+        }
+
+        const newArticles = data.map(a => {
+            const u = users.find(x => x.firebase_uid === a.firebase_user_id);
+            return {
+                ...a,
+                author: u?.username ? `@${u.username}` : (u?.full_name || 'Anonymous'),
+                authorPfp: u?.pfp || null,
+                authorUsername: u?.username || null,
+                category: guessCategory(a)
+            };
+        });
+
+        articles = [...articles, ...newArticles];
+        await loadCommentCounts(data.map(a => a.id));
+        render(initial);
+        isLoading = false;
+
+    } catch (e) {
+        console.error(e);
+        if (initial) showError();
+        isLoading = false;
     }
-  }
 }
 
+function showEmpty() {
+    document.getElementById('scroller').innerHTML = `
+        <div class="loading-full">
+            <i class="fas fa-inbox" style="font-size:44px;color:var(--text3)"></i>
+            <div>No facts found</div>
+        </div>`;
+}
+function showError() {
+    document.getElementById('scroller').innerHTML = `
+        <div class="loading-full">
+            <i class="fas fa-exclamation-triangle" style="font-size:44px;color:var(--text3)"></i>
+            <div>Failed to load</div>
+        </div>`;
+}
+
+async function loadCommentCounts(ids) {
+    if (!ids.length) return;
+    const { data } = await supabase
+        .from('comments').select('article_id')
+        .in('article_id', ids);
+    (data || []).forEach(r => {
+        commentCounts[r.article_id] = (commentCounts[r.article_id] || 0) + 1;
+    });
+}
+
+// ── RENDER ──
+function render(initial = true) {
+    const scroller = document.getElementById('scroller');
+
+    if (initial) {
+        scroller.innerHTML = '';
+    } else {
+        scroller.querySelector('.loading-card')?.remove();
+    }
+
+    const startIdx = initial ? 0 : articles.length - LIMIT;
+    const total = articles.length;
+
+    for (let i = startIdx; i < total; i++) {
+        const a = articles[i];
+        const card = buildCard(a, i, total);
+        scroller.appendChild(card);
+    }
+
+    if (hasMore) {
+        const lc = document.createElement('div');
+        lc.className = 'loading-card';
+        lc.innerHTML = '<div class="spinner"></div>';
+        scroller.appendChild(lc);
+    }
+
+    if (initial) {
+        scroller.addEventListener('scroll', onScroll);
+        setupObserver();
+    } else {
+        setupObserver();
+    }
+
+    refreshActionStates();
+}
+
+function buildCard(article, index, total) {
+    const card = document.createElement('div');
+    card.className = 'flash-card';
+    card.dataset.articleId = article.id;
+    card.dataset.index = index;
+
+    const cat = article.category;
+    const icon = CATEGORY_ICONS[cat] || CATEGORY_ICONS['default'];
+    const isLiked = userLikes.has(article.id);
+    const isBookmarked = userBookmarks.has(article.id);
+    const likes = article.likes || 0;
+    const views = article.views || 0;
+    const comments = commentCounts[article.id] || 0;
+
+    // Avatar
+    let avatarHTML;
+    if (article.authorPfp) {
+        avatarHTML = `<img src="${article.authorPfp}" alt="">`;
+    } else {
+        const l = (article.authorUsername || article.author || 'A').replace('@','').charAt(0).toUpperCase();
+        avatarHTML = l;
+    }
+
+    // Parse content into paragraphs, bold anything in [[...]] markers or ALL CAPS short words
+    const rawContent = article.content || 'No content available.';
+    const paragraphs = rawContent.split('\n\n').filter(p => p.trim());
+    const contentHTML = paragraphs.map(p => `<p>${highlightTerms(p.trim())}</p>`).join('');
+
+    // Build progress dots (max 8 shown)
+    const dotsCount = Math.min(total, 8);
+    const activeDot = Math.min(index, dotsCount - 1);
+    const dotsHTML = Array.from({length: dotsCount}, (_, di) =>
+        `<div class="dot${di === activeDot ? ' active' : ''}"></div>`
+    ).join('');
+
+    card.innerHTML = `
+        <div class="card-top">
+            <div class="category-badge">
+                <i class="fas ${icon}"></i>
+                ${cat}
+            </div>
+            <div class="author-pill">
+                <div class="author-avatar">${avatarHTML}</div>
+                <div class="author-name">${article.author}</div>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="fact-number">#${String(index + 1).padStart(3,'0')}</div>
+
+            <div class="card-inner">
+                <div class="fact-label"><i class="fas fa-lightbulb"></i> Fact</div>
+                <div class="fact-title">${article.title || 'Untitled'}</div>
+                <div class="fact-divider"></div>
+                <div class="fact-body">${contentHTML}</div>
+            </div>
+
+            <div class="fact-tags">
+                <span class="tag"><i class="fas fa-calendar-alt" style="font-size:9px;margin-right:3px"></i>${formatDate(new Date(article.created_at))}</span>
+                <span class="tag"><i class="fas fa-eye" style="font-size:9px;margin-right:3px"></i>${formatNum(views)}</span>
+                <span class="tag" style="cursor:pointer" onclick="openExpand('${article.id}')">
+                    <i class="fas fa-external-link-alt" style="font-size:9px;margin-right:3px"></i>Full article
+                </span>
+            </div>
+        </div>
+
+        <!-- Side actions -->
+        <div class="action-bar">
+            <button class="action-btn ${isLiked ? 'liked' : ''}" data-like-id="${article.id}" onclick="handleLike(this,'${article.id}')">
+                <div class="action-icon"><i class="fas fa-heart"></i></div>
+                <span class="like-count">${formatNum(likes)}</span>
+            </button>
+
+            <button class="action-btn" data-comment-id="${article.id}" onclick="handleComments('${article.id}')">
+                <div class="action-icon"><i class="fas fa-comment"></i></div>
+                <span class="cmt-count">${formatNum(comments)}</span>
+            </button>
+
+            <button class="action-btn ${isBookmarked ? 'bookmarked' : ''}" data-bookmark-id="${article.id}" onclick="handleBookmark(this,'${article.id}')">
+                <div class="action-icon"><i class="fas fa-bookmark"></i></div>
+                <span>${isBookmarked ? 'Saved' : 'Save'}</span>
+            </button>
+
+            <button class="action-btn" onclick="handleShare('${article.id}','${(article.title||'').replace(/'/g,"\\'")}')">
+                <div class="action-icon"><i class="fas fa-share"></i></div>
+                <span>Share</span>
+            </button>
+        </div>
+
+        <div class="progress-dots">${dotsHTML}</div>
+    `;
+
+    return card;
+}
+
+function highlightTerms(text) {
+    // Bold anything between [[double brackets]]
+    return text.replace(/\[\[(.+?)\]\]/g, '<strong>$1</strong>');
+}
+
+// ── SCROLL / INFINITE LOAD ──
+function onScroll(e) {
+    const el = e.target;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight * 0.8 && hasMore && !isLoading) {
+        loadArticles(false);
+    }
+}
+
+// ── INTERSECTION OBSERVER for view tracking ──
+function setupObserver() {
+    const obs = new IntersectionObserver(entries => {
+        entries.forEach(en => {
+            const id = en.target.dataset.articleId;
+            if (!id) return;
+            if (en.isIntersecting && en.intersectionRatio >= 0.75) {
+                startView(id);
+            } else {
+                clearView(id);
+            }
+        });
+    }, { threshold: [0.75] });
+
+    document.querySelectorAll('.flash-card').forEach(c => obs.observe(c));
+}
+
+function startView(id) {
+    if (viewedSet.has(id) || viewTimers[id]) return;
+    viewTimers[id] = setTimeout(() => incrementView(id), 5000);
+}
+function clearView(id) {
+    if (viewTimers[id]) { clearTimeout(viewTimers[id]); delete viewTimers[id]; }
+}
+
+async function incrementView(id) {
+    if (viewedSet.has(id)) return;
+    viewedSet.add(id);
+    try {
+        const { data: row } = await supabase.from('articles').select('views').eq('id', id).single();
+        const nv = (row?.views || 0) + 1;
+        await supabase.from('articles').update({ views: nv }).eq('id', id);
+        const idx = articles.findIndex(a => a.id === id);
+        if (idx !== -1) articles[idx].views = nv;
+        // Update the tag pill live
+        document.querySelectorAll(`.flash-card[data-article-id="${id}"] .fact-tags .tag`).forEach(t => {
+            if (t.innerHTML.includes('fa-eye')) t.innerHTML = `<i class="fas fa-eye" style="font-size:9px;margin-right:3px"></i>${formatNum(nv)}`;
+        });
+    } catch(e) { viewedSet.delete(id); }
+}
+
+// ── LIKE ──
+window.handleLike = async function(btn, id) {
+    if (!currentUser) { location.href = 'https://patholytica.com/login'; return; }
+
+    const wasLiked = userLikes.has(id);
+    const countEl = btn.querySelector('.like-count');
+    const art = articles.find(a => a.id === id);
+    if (!art) return;
+
+    const orig = art.likes || 0;
+    if (wasLiked) {
+        userLikes.delete(id);
+        btn.classList.remove('liked');
+        art.likes = Math.max(0, orig - 1);
+    } else {
+        userLikes.add(id);
+        btn.classList.add('liked');
+        art.likes = orig + 1;
+    }
+    countEl.textContent = formatNum(art.likes);
+
+    try {
+        if (wasLiked) {
+            await supabase.from('likes').delete().eq('article_id', id).eq('user_id', currentUser.user_id);
+        } else {
+            await supabase.from('likes').insert([{ article_id: id, user_id: currentUser.user_id }]);
+        }
+        await supabase.from('articles').update({ likes: art.likes }).eq('id', id);
+    } catch(e) {
+        // rollback
+        if (wasLiked) { userLikes.add(id); btn.classList.add('liked'); }
+        else { userLikes.delete(id); btn.classList.remove('liked'); }
+        art.likes = orig;
+        countEl.textContent = formatNum(orig);
+    }
+};
+
+// ── BOOKMARK ──
+window.handleBookmark = function(btn, id) {
+    const isBookmarked = userBookmarks.has(id);
+    const label = btn.querySelector('span');
+    if (isBookmarked) {
+        userBookmarks.delete(id);
+        btn.classList.remove('bookmarked');
+        label.textContent = 'Save';
+    } else {
+        userBookmarks.add(id);
+        btn.classList.add('bookmarked');
+        label.textContent = 'Saved';
+    }
+    persistBookmarks();
+};
+
+// ── SHARE ──
+window.handleShare = function(id, title) {
+    const url = `${location.origin}/article.html?id=${id}`;
+    if (navigator.share) {
+        navigator.share({ title, url }).catch(() => {});
+    } else {
+        navigator.clipboard.writeText(url).then(() => {
+            showToast('Link copied!');
+        });
+    }
+};
+
+// ── EXPAND ──
+window.openExpand = function(id) {
+    location.href = `article.html?id=${id}`;
+};
+
+// ── COMMENTS ──
+window.handleComments = async function(id) {
+    currentArticleId = id;
+    const cnt = commentCounts[id] || 0;
+    document.getElementById('commentCountHeader').textContent = cnt ? `(${cnt})` : '';
+    await loadComments(id);
+    document.getElementById('commentsSheet').classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+};
+
+window.closeComments = function() {
+    document.getElementById('commentsSheet').classList.remove('active');
+    document.getElementById('overlay').classList.remove('active');
+};
+
+async function loadComments(id) {
+    const list = document.getElementById('commentsList');
+    list.innerHTML = '<div class="loading-full" style="height:100px"><div class="spinner" style="width:28px;height:28px;border-width:3px"></div></div>';
+
+    const { data: comments, error } = await supabase
+        .from('comments').select('*').eq('article_id', id)
+        .order('created_at', { ascending: true });
+
+    if (error || !comments?.length) {
+        list.innerHTML = `<div class="no-comments"><i class="fas fa-comment-dots"></i><p>No comments yet</p></div>`;
+        return;
+    }
+
+    const uids = [...new Set(comments.map(c => c.user_id).filter(Boolean))];
+    let usersMap = {};
+    if (uids.length) {
+        const { data: u } = await supabase
+            .from('users').select('user_id, username, full_name, pfp').in('user_id', uids);
+        (u || []).forEach(x => usersMap[x.user_id] = x);
+    }
+
+    list.innerHTML = comments.map(c => {
+        const u = usersMap[c.user_id];
+        const name = u?.username ? `@${u.username}` : (u?.full_name || 'Anonymous');
+        let av;
+        if (u?.pfp) av = `<img src="${u.pfp}" alt="">`;
+        else av = (u?.username || 'A').charAt(0).toUpperCase();
+
+        return `<div class="comment-item">
+            <div class="comment-av">${av}</div>
+            <div class="comment-body">
+                <div class="comment-author">${name}</div>
+                <div class="comment-text">${c.comment_text}</div>
+                <div class="comment-time">${formatDate(new Date(c.created_at))}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+window.sendComment = async function() {
+    const input = document.getElementById('commentInput');
+    const text = input.value.trim();
+    if (!text || !currentArticleId) return;
+
+    const btn = document.getElementById('sendBtn');
+    btn.disabled = true;
+
+    if (!currentUser) { location.href = 'https://patholytica.com/login'; return; }
+
+    try {
+        const { error } = await supabase.from('comments').insert([{
+            article_id: currentArticleId,
+            user_id: currentUser.user_id,
+            comment_text: text
+        }]);
+        if (error) throw error;
+
+        input.value = '';
+        commentCounts[currentArticleId] = (commentCounts[currentArticleId] || 0) + 1;
+        document.getElementById('commentCountHeader').textContent = `(${commentCounts[currentArticleId]})`;
+
+        // Update comment count on card
+        document.querySelectorAll(`[data-comment-id="${currentArticleId}"] .cmt-count`).forEach(el => {
+            el.textContent = formatNum(commentCounts[currentArticleId]);
+        });
+
+        await loadComments(currentArticleId);
+    } catch(e) {
+        console.error(e);
+        showToast('Failed to post comment');
+    } finally {
+        btn.disabled = false;
+    }
+};
+
+document.getElementById('commentInput').addEventListener('keypress', e => {
+    if (e.key === 'Enter') window.sendComment();
+});
+
+// ── HELPERS ──
+function formatDate(date) {
+    const diff = Date.now() - date;
+    const m = Math.floor(diff / 60000);
+    const h = Math.floor(diff / 3600000);
+    const d = Math.floor(diff / 86400000);
+    if (m < 60) return `${m}m ago`;
+    if (h < 24) return `${h}h ago`;
+    if (d < 7) return `${d}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function formatNum(n) {
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return String(n);
+}
+
+function showToast(msg) {
+    const t = document.createElement('div');
+    t.style.cssText = `position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+        background:var(--surface);border:1px solid var(--border);color:var(--text);
+        padding:10px 20px;border-radius:20px;font-size:13px;z-index:9999;
+        box-shadow:0 4px 20px rgba(0,0,0,0.4);pointer-events:none;`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
+}
+
+// ── INIT ──
+loadArticles(true);
 </script>
 </body>
 </html>
