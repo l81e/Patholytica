@@ -1,302 +1,2152 @@
--- ============================================================
--- PATHOLYTICA DATABASE - FULL RECREATION SCRIPT (CORRECTED)
--- ============================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Article Scroller - Patholytica</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-color: #1f1f1f;
+            --text-primary: #fff;
+            --text-secondary: #aaa;
+            --card-bg: #1f1f1f;
+            --hover-bg: #2a2a2a;
+            --border-color: #303030;
+            --accent: #3ea6ff;
+            --accent-hover: #2d8ed6;
+        }
 
+        body.light-theme {
+            --bg-color: #f9f9f9;
+            --text-primary: #0f0f0f;
+            --text-secondary: #606060;
+            --card-bg: #f9f9f9;
+            --hover-bg: #f0f0f0;
+            --border-color: #e5e5e5;
+            --accent: #065fd4;
+            --accent-hover: #0448a3;
+        }
 
--- ============================================================
--- STEP 1: SEQUENCES
--- ============================================================
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-CREATE SEQUENCE IF NOT EXISTS comments_id_seq;
-CREATE SEQUENCE IF NOT EXISTS likes_id_seq;
-CREATE SEQUENCE IF NOT EXISTS media_id_seq;
-CREATE SEQUENCE IF NOT EXISTS playlist_items_id_seq;
-CREATE SEQUENCE IF NOT EXISTS playlists_id_seq;
-CREATE SEQUENCE IF NOT EXISTS saved_articles_id_seq;
-CREATE SEQUENCE IF NOT EXISTS subscriptions_id_seq;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            overflow: hidden;
+            transition: background 0.2s ease, color 0.2s ease;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
 
+        .app-container {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            background: var(--bg-color);
+        }
 
--- ============================================================
--- STEP 2: TABLES (dependency order)
--- ============================================================
+        .scroller-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            background: var(--bg-color);
+            overflow: hidden;
+        }
 
-CREATE TABLE public.users (
-  user_id    bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  email      character varying NOT NULL DEFAULT '' UNIQUE,
-  username   character varying NOT NULL DEFAULT '' UNIQUE,
-  password   character varying NOT NULL DEFAULT '',
-  full_name  character varying NOT NULL DEFAULT '',
-  created_at timestamp without time zone NOT NULL DEFAULT now(),
-  updated_at timestamp with time zone NOT NULL DEFAULT now(),
-  firebase_uid text UNIQUE,
-  pfp        text,
-  bio        text,
-  CONSTRAINT users_pkey PRIMARY KEY (user_id)
-);
+        .posts-wrapper {
+            height: 100%;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+        }
 
-CREATE TABLE public.posts (
-  id         bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  content    text,
-  CONSTRAINT posts_pkey PRIMARY KEY (id)
-);
+        .posts-wrapper::-webkit-scrollbar { display: none; }
 
-CREATE TABLE public.articles (
-  id               bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  created_at       timestamp with time zone NOT NULL DEFAULT now(),
-  title            text NOT NULL DEFAULT '',
-  views            numeric,
-  user_id          bigint,
-  content          text,
-  likes            integer DEFAULT 0,
-  updated_at       timestamp with time zone DEFAULT now(),
-  firebase_user_id text,
-  CONSTRAINT articles_pkey PRIMARY KEY (id),
-  CONSTRAINT articles_firebase_user_id_fkey
-    FOREIGN KEY (firebase_user_id) REFERENCES public.users(firebase_uid)
-);
+        .article-card {
+            position: relative;
+            height: 100vh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            background: var(--bg-color);
+            padding: 8px 20px 100px;
+            padding-top: calc(16px + env(safe-area-inset-top));
+            display: flex;
+            flex-direction: column;
+        }
 
-CREATE TABLE public.comments (
-  id           bigint NOT NULL DEFAULT nextval('comments_id_seq'),
-  article_id   bigint NOT NULL,
-  user_id      bigint NOT NULL,
-  line_number  integer,
-  comment_text text NOT NULL,
-  created_at   timestamp with time zone DEFAULT now(),
-  updated_at   timestamp with time zone DEFAULT now(),
-  CONSTRAINT comments_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_comments_article FOREIGN KEY (article_id) REFERENCES public.articles(id),
-  CONSTRAINT fk_comments_user    FOREIGN KEY (user_id)    REFERENCES public.users(user_id)
-);
+        .card-top-line {
+            width: calc(100% + 40px);
+            margin-left: -20px;
+            height: 1px;
+            background: var(--border-color);
+            flex-shrink: 0;
+            margin-bottom: 14px;
+        }
 
-CREATE TABLE public.likes (
-  id         bigint NOT NULL DEFAULT nextval('likes_id_seq'),
-  article_id bigint NOT NULL,
-  user_id    bigint NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT likes_pkey PRIMARY KEY (id),
-  CONSTRAINT likes_article_id_user_id_key UNIQUE (article_id, user_id),
-  CONSTRAINT fk_likes_article FOREIGN KEY (article_id) REFERENCES public.articles(id),
-  CONSTRAINT fk_likes_user    FOREIGN KEY (user_id)    REFERENCES public.users(user_id)
-);
+        .article-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 0;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 50;
+        }
 
-CREATE TABLE public.media (
-  id            bigint NOT NULL DEFAULT nextval('media_id_seq'),
-  article_id    bigint NOT NULL,
-  type          character varying NOT NULL
-                  CHECK (type = ANY (ARRAY['image', 'audio', 'pdf', 'youtube'])),
-  url           text NOT NULL,
-  caption       text,
-  display_order integer DEFAULT 0,
-  created_at    timestamp with time zone DEFAULT now(),
-  updated_at    timestamp with time zone DEFAULT now(),
-  CONSTRAINT media_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_media_article FOREIGN KEY (article_id) REFERENCES public.articles(id)
-);
+        .author-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
 
-CREATE TABLE public.playlists (
-  id          bigint NOT NULL DEFAULT nextval('playlists_id_seq'),
-  user_id     bigint NOT NULL,
-  name        character varying NOT NULL,
-  description text,
-  created_at  timestamp with time zone DEFAULT now(),
-  updated_at  timestamp with time zone DEFAULT now(),
-  CONSTRAINT playlists_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_playlists_user FOREIGN KEY (user_id) REFERENCES public.users(user_id)
-);
+        .author-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-CREATE TABLE public.playlist_items (
-  id          bigint NOT NULL DEFAULT nextval('playlist_items_id_seq'),
-  playlist_id bigint NOT NULL,
-  article_id  bigint NOT NULL,
-  added_at    timestamp with time zone DEFAULT now(),
-  CONSTRAINT playlist_items_pkey PRIMARY KEY (id),
-  CONSTRAINT playlist_items_playlist_id_article_id_key UNIQUE (playlist_id, article_id),
-  CONSTRAINT fk_playlist_items_playlist FOREIGN KEY (playlist_id) REFERENCES public.playlists(id),
-  CONSTRAINT fk_playlist_items_article  FOREIGN KEY (article_id)  REFERENCES public.articles(id)
-);
+        .author-info { flex: 1; }
 
-CREATE TABLE public.saved_articles (
-  id         bigint NOT NULL DEFAULT nextval('saved_articles_id_seq'),
-  user_id    bigint NOT NULL,
-  article_id bigint NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT saved_articles_pkey PRIMARY KEY (id),
-  CONSTRAINT saved_articles_user_id_article_id_key UNIQUE (user_id, article_id),
-  CONSTRAINT fk_saved_articles_user    FOREIGN KEY (user_id)    REFERENCES public.users(user_id),
-  CONSTRAINT fk_saved_articles_article FOREIGN KEY (article_id) REFERENCES public.articles(id)
-);
+        .author-name {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 17px;
+            margin-bottom: 2px;
+        }
 
-CREATE TABLE public.subscriptions (
-  id            bigint NOT NULL DEFAULT nextval('subscriptions_id_seq'),
-  subscriber_id bigint NOT NULL,
-  author_id     bigint NOT NULL,
-  created_at    timestamp with time zone DEFAULT now(),
-  CONSTRAINT subscriptions_pkey PRIMARY KEY (id),
-  CONSTRAINT subscriptions_subscriber_id_author_id_key UNIQUE (subscriber_id, author_id),
-  CONSTRAINT fk_subscriptions_subscriber FOREIGN KEY (subscriber_id) REFERENCES public.users(user_id),
-  CONSTRAINT fk_subscriptions_author     FOREIGN KEY (author_id)     REFERENCES public.users(user_id)
-);
+        .article-date { color: var(--text-secondary); font-size: 12px; }
 
+        .header-bottom-line {
+            width: calc(100% + 40px);
+            margin-left: -20px;
+            height: 1px;
+            background: var(--border-color);
+            flex-shrink: 0;
+            margin-top: 14px;
+            margin-bottom: 14px;
+        }
 
--- ============================================================
--- STEP 3: INDEXES
--- ============================================================
+        .article-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            line-height: 1.25;
+        }
 
-CREATE INDEX idx_comments_article_id      ON public.comments      USING btree (article_id);
-CREATE INDEX idx_comments_user_id         ON public.comments      USING btree (user_id);
-CREATE INDEX idx_likes_article_id         ON public.likes         USING btree (article_id);
-CREATE INDEX idx_likes_user_id            ON public.likes         USING btree (user_id);
-CREATE INDEX idx_media_article_id         ON public.media         USING btree (article_id);
-CREATE INDEX idx_playlist_items_playlist  ON public.playlist_items USING btree (playlist_id);
-CREATE INDEX idx_saved_articles_user      ON public.saved_articles USING btree (user_id);
-CREATE INDEX idx_subscriptions_author     ON public.subscriptions  USING btree (author_id);
-CREATE INDEX idx_subscriptions_subscriber ON public.subscriptions  USING btree (subscriber_id);
+        .article-stats {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 12px;
+            flex-shrink: 0;
+        }
 
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
 
--- ============================================================
--- STEP 4: FUNCTIONS & TRIGGERS
--- ============================================================
+        .stat-item.views i { color: var(--accent); }
+        .stat-item.likes i { color: #ef4444; }
 
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+        .article-content {
+            color: var(--text-primary);
+            font-size: 16px;
+            line-height: 1.6;
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 60px;
+        }
 
-CREATE OR REPLACE FUNCTION update_articles_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+        .article-content::-webkit-scrollbar { width: 4px; }
+        .article-content::-webkit-scrollbar-track { background: var(--border-color); }
+        .article-content::-webkit-scrollbar-thumb { background: var(--text-secondary); border-radius: 2px; }
 
-CREATE OR REPLACE TRIGGER articles_updated_at_trigger
-  BEFORE UPDATE ON public.articles
-  FOR EACH ROW EXECUTE FUNCTION update_articles_updated_at();
+        .content-paragraph { margin-bottom: 14px; }
 
-CREATE OR REPLACE TRIGGER update_comments_updated_at
-  BEFORE UPDATE ON public.comments
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+        .media-embed { margin: 16px 0; max-width: 100%; }
 
-CREATE OR REPLACE TRIGGER update_media_updated_at
-  BEFORE UPDATE ON public.media
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+        .media-embed img {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+        }
 
-CREATE OR REPLACE TRIGGER update_playlists_updated_at
-  BEFORE UPDATE ON public.playlists
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+        .media-caption {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            font-style: italic;
+        }
 
+        .custom-audio-player {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 100%;
+            border: 1px solid var(--border-color);
+        }
 
--- ============================================================
--- STEP 5: ENABLE RLS
--- ============================================================
+        .play-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
 
-ALTER TABLE public.articles       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.comments       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.likes          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.media          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.playlist_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.playlists      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.posts          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.saved_articles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.subscriptions  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.users          ENABLE ROW LEVEL SECURITY;
+        .play-btn:hover { background: var(--accent-hover); transform: scale(1.05); }
 
+        .audio-info { flex: 1; min-width: 0; overflow: hidden; }
 
--- ============================================================
--- STEP 6: RLS POLICIES
--- ============================================================
+        .audio-title {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-primary);
+        }
 
--- ARTICLES
-CREATE POLICY "Allow public read access"          ON public.articles FOR SELECT USING (true);
-CREATE POLICY "Allow public update views"         ON public.articles FOR UPDATE USING (true) WITH CHECK (true);
-CREATE POLICY "Anyone can view articles"          ON public.articles FOR SELECT USING (true);
-CREATE POLICY "Articles are viewable by everyone" ON public.articles FOR SELECT USING (true);
-CREATE POLICY "Users can insert their own articles" ON public.articles FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can update their own articles" ON public.articles FOR UPDATE
-  USING    (firebase_user_id = current_setting('request.jwt.claim.sub', true))
-  WITH CHECK (firebase_user_id = current_setting('request.jwt.claim.sub', true));
-CREATE POLICY "Users can delete their own articles" ON public.articles FOR DELETE
-  USING (firebase_user_id = current_setting('request.jwt.claim.sub', true));
+        .waveform-container {
+            position: relative;
+            height: 32px;
+            background: var(--hover-bg);
+            border-radius: 4px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            overflow: hidden;
+        }
 
--- COMMENTS
-CREATE POLICY "Comments are viewable by everyone"      ON public.comments FOR SELECT USING (true);
-CREATE POLICY "Authenticated users can create comments" ON public.comments FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can update their own comments"    ON public.comments FOR UPDATE USING (true);
-CREATE POLICY "Users can delete their own comments"    ON public.comments FOR DELETE USING (true);
+        .waveform-progress {
+            position: absolute;
+            top: 0; left: 0;
+            height: 100%;
+            background: var(--accent);
+            opacity: 0.3;
+            transition: width 0.1s linear;
+        }
 
--- LIKES
-CREATE POLICY "Allow read likes"                   ON public.likes FOR SELECT USING (true);
-CREATE POLICY "Likes are viewable by everyone"     ON public.likes FOR SELECT USING (true);
-CREATE POLICY "Authenticated users can like articles" ON public.likes FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can insert likes"             ON public.likes FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can delete own likes"         ON public.likes FOR DELETE USING (true);
-CREATE POLICY "Users can unlike articles"          ON public.likes FOR DELETE USING (true);
+        .waveform-bars {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 4px;
+        }
 
--- MEDIA
-CREATE POLICY "Anyone can view media"                    ON public.media FOR SELECT USING (true);
-CREATE POLICY "Media is viewable by everyone"            ON public.media FOR SELECT USING (true);
-CREATE POLICY "Users can insert media"                   ON public.media FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can insert media for their articles" ON public.media FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can delete their own article media" ON public.media FOR DELETE USING (true);
+        .waveform-bar {
+            width: 2px;
+            background: var(--text-secondary);
+            border-radius: 2px;
+            opacity: 0.6;
+        }
 
--- PLAYLIST ITEMS
-CREATE POLICY "Playlist items are viewable by everyone"  ON public.playlist_items FOR SELECT USING (true);
-CREATE POLICY "Users can add items to their playlists"   ON public.playlist_items FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can remove items from their playlists" ON public.playlist_items FOR DELETE USING (true);
+        .audio-time {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
 
--- PLAYLISTS
-CREATE POLICY "Playlists are viewable by everyone" ON public.playlists FOR SELECT USING (true);
-CREATE POLICY "Users can create playlists"         ON public.playlists FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can update their playlists"   ON public.playlists FOR UPDATE USING (true);
-CREATE POLICY "Users can delete their playlists"   ON public.playlists FOR DELETE USING (true);
+        .action-buttons {
+            position: absolute;
+            right: 16px;
+            bottom: 143px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
+        }
 
--- POSTS
-CREATE POLICY "Enable read access for all users" ON public.posts FOR SELECT USING (true);
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
 
--- SAVED ARTICLES
-CREATE POLICY "Saved articles are viewable by everyone" ON public.saved_articles FOR SELECT USING (true);
-CREATE POLICY "Users can save articles"                 ON public.saved_articles FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can unsave articles"               ON public.saved_articles FOR DELETE USING (true);
+        .action-btn:active { transform: scale(0.9); }
 
--- SUBSCRIPTIONS
-CREATE POLICY "Subscriptions are viewable by everyone" ON public.subscriptions FOR SELECT USING (true);
-CREATE POLICY "Users can subscribe to authors"         ON public.subscriptions FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can unsubscribe"                  ON public.subscriptions FOR DELETE USING (true);
+        .action-btn svg {
+            width: 28px;
+            height: 28px;
+            stroke: var(--text-primary);
+            fill: none;
+            stroke-width: 2;
+        }
 
--- USERS
-CREATE POLICY "Allow public insert for new users"    ON public.users FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public select"                  ON public.users FOR SELECT USING (true);
-CREATE POLICY "Allow public update"                  ON public.users FOR UPDATE USING (true);
-CREATE POLICY "Anyone can view users"                ON public.users FOR SELECT USING (true);
-CREATE POLICY "User profiles are viewable by everyone" ON public.users FOR SELECT USING (true);
-CREATE POLICY "Users can insert themselves"          ON public.users FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can update their own profile"   ON public.users FOR UPDATE
-  USING    (firebase_uid = current_setting('request.jwt.claim.sub', true))
-  WITH CHECK (firebase_uid = current_setting('request.jwt.claim.sub', true));
+        .action-btn.liked svg { fill: #ef4444; stroke: #ef4444; }
 
+        .action-btn span {
+            color: var(--text-primary);
+            font-size: 11px;
+            font-weight: 600;
+        }
 
--- ============================================================
--- STEP 7: STORAGE BUCKET
--- ============================================================
+        .comments-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 199;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
 
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES ('media', 'media', true, null, null)
-ON CONFLICT (id) DO NOTHING;
+        .comments-overlay.active { opacity: 1; pointer-events: all; }
 
+        .comments-popup {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: calc(100% - 40px);
+            max-width: 500px;
+            height: 70vh;
+            max-height: 600px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
 
--- ============================================================
--- STEP 8: STORAGE BUCKET RLS POLICIES
--- ============================================================
+        .comments-popup.active {
+            opacity: 1;
+            pointer-events: all;
+            transform: translate(-50%, -50%) scale(1);
+        }
 
-CREATE POLICY "Allow public reads" ON storage.objects
-  FOR SELECT TO anon, authenticated
-  USING (bucket_id = 'media');
+        .comments-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
 
-CREATE POLICY "Allow uploads" ON storage.objects
-  FOR INSERT TO anon, authenticated
-  WITH CHECK (bucket_id = 'media');
+        .comments-header h3 { font-size: 16px; font-weight: 600; }
+
+        .close-comments {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px; height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s ease;
+        }
+
+        .close-comments:hover { background: var(--hover-bg); }
+
+        .comments-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+        }
+
+        .comments-list::-webkit-scrollbar { width: 6px; }
+        .comments-list::-webkit-scrollbar-track { background: transparent; }
+        .comments-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+        .comment-item { display: flex; gap: 12px; margin-bottom: 20px; }
+
+        .comment-avatar {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .comment-content { flex: 1; }
+        .comment-author { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+        .comment-text { font-size: 14px; line-height: 1.4; margin-bottom: 6px; }
+        .comment-time { font-size: 11px; color: var(--text-secondary); }
+
+        .comment-input-wrapper {
+            padding: 12px 20px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-color);
+            border-radius: 0 0 16px 16px;
+        }
+
+        .comment-input-container { display: flex; gap: 8px; align-items: center; }
+
+        .comment-input {
+            flex: 1;
+            background: var(--hover-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 10px 16px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+        }
+
+        .comment-input:focus { border-color: var(--accent); }
+
+        .send-comment-btn {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .send-comment-btn:hover { background: var(--accent-hover); }
+        .send-comment-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .no-comments {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+            gap: 12px;
+        }
+
+        .no-comments i { font-size: 48px; opacity: 0.5; }
+
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-primary);
+            gap: 16px;
+        }
+
+        .spinner {
+            width: 48px; height: 48px;
+            border: 4px solid var(--border-color);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @keyframes shimmer {
+            0%   { background-position: -400px 0; }
+            100% { background-position:  400px 0; }
+        }
+
+        .skeleton-base {
+            background: linear-gradient(
+                90deg,
+                var(--hover-bg) 25%,
+                var(--border-color) 50%,
+                var(--hover-bg) 75%
+            );
+            background-size: 800px 100%;
+            animation: shimmer 1.4s infinite linear;
+            border-radius: 6px;
+        }
+
+        .skeleton-card {
+            position: relative;
+            height: 100vh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            background: var(--bg-color);
+            padding: 8px 20px 100px;
+            padding-top: calc(16px + env(safe-area-inset-top));
+            display: flex;
+            flex-direction: column;
+        }
+
+        .skeleton-card .card-top-line {
+            width: calc(100% + 40px);
+            margin-left: -20px;
+            height: 1px;
+            background: var(--border-color);
+            flex-shrink: 0;
+            margin-bottom: 14px;
+        }
+
+        .skeleton-header { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+        .skeleton-avatar { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
+        .skeleton-author-block { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+        .skeleton-name  { height: 14px; width: 120px; }
+        .skeleton-date  { height: 10px; width: 70px; }
+
+        .skeleton-divider {
+            width: calc(100% + 40px);
+            margin-left: -20px;
+            height: 1px;
+            background: var(--border-color);
+            flex-shrink: 0;
+            margin-top: 14px;
+            margin-bottom: 14px;
+        }
+
+        .skeleton-title       { height: 22px; width: 85%; margin-bottom: 8px; }
+        .skeleton-title-short { height: 22px; width: 60%; margin-bottom: 10px; }
+        .skeleton-stats { display: flex; gap: 12px; margin-bottom: 14px; flex-shrink: 0; }
+        .skeleton-stat  { height: 13px; width: 52px; }
+        .skeleton-line          { height: 13px; margin-bottom: 10px; width: 100%; }
+        .skeleton-line.w90      { width: 90%; }
+        .skeleton-line.w75      { width: 75%; }
+        .skeleton-line.w80      { width: 80%; }
+        .skeleton-line.w65      { width: 65%; }
+        .skeleton-line.w95      { width: 95%; }
+
+        /* ── GAME CARD ── */
+        .game-card {
+            position: relative;
+            height: 100vh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            background: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 24px 100px;
+            padding-top: calc(24px + env(safe-area-inset-top));
+            overflow: hidden;
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 50% 30%, rgba(62,166,255,0.07) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .game-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(62,166,255,0.15);
+            border: 1px solid rgba(62,166,255,0.3);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 18px;
+        }
+
+        .game-title {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            text-align: center;
+            letter-spacing: -0.5px;
+        }
+
+        .game-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 28px;
+            text-align: center;
+        }
+
+        .game-area {
+            width: 100%;
+            max-width: 360px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .game-score-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .game-score-pill {
+            background: var(--hover-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 5px 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .game-score-pill span {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* Reflex Tap */
+        .reflex-target {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: var(--hover-bg);
+            border: 3px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            transition: transform 0.1s ease;
+            user-select: none;
+        }
+
+        .reflex-target:active { transform: scale(0.93); }
+
+        .reflex-target.waiting {
+            background: var(--hover-bg);
+            border-color: var(--border-color);
+            animation: reflex-pulse 1.5s ease-in-out infinite;
+        }
+
+        .reflex-target.go {
+            background: rgba(62,166,255,0.2);
+            border-color: var(--accent);
+            animation: reflex-glow 0.5s ease infinite alternate;
+        }
+
+        .reflex-target.too-early {
+            background: rgba(239,68,68,0.2);
+            border-color: #ef4444;
+        }
+
+        @keyframes reflex-pulse {
+            0%, 100% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.04); opacity: 1; }
+        }
+
+        @keyframes reflex-glow {
+            from { box-shadow: 0 0 12px rgba(62,166,255,0.3); }
+            to   { box-shadow: 0 0 28px rgba(62,166,255,0.7); }
+        }
+
+        .reflex-message {
+            font-size: 15px;
+            color: var(--text-secondary);
+            text-align: center;
+            min-height: 22px;
+        }
+
+        .reflex-result {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--accent);
+            text-align: center;
+            min-height: 40px;
+        }
+
+        /* Word Scramble */
+        .scramble-word {
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: 6px;
+            color: var(--accent);
+            text-align: center;
+            font-family: 'Courier New', monospace;
+        }
+
+        .scramble-input {
+            width: 100%;
+            background: var(--hover-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px 18px;
+            color: var(--text-primary);
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .scramble-input:focus { border-color: var(--accent); }
+        .scramble-input.correct { border-color: #22c55e; background: rgba(34,197,94,0.1); }
+        .scramble-input.wrong { border-color: #ef4444; background: rgba(239,68,68,0.1); animation: shake 0.3s ease; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+
+        .scramble-hint {
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .game-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 32px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 0.02em;
+        }
+
+        .game-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .game-btn:active { transform: translateY(0); }
+
+        .game-btn.secondary {
+            background: var(--hover-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Quick Math */
+        .math-question {
+            font-size: 40px;
+            font-weight: 800;
+            color: var(--text-primary);
+            text-align: center;
+            letter-spacing: -1px;
+        }
+
+        .math-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .math-option {
+            background: var(--hover-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px 12px;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+
+        .math-option:hover { border-color: var(--accent); background: rgba(62,166,255,0.07); }
+        .math-option.correct { border-color: #22c55e; background: rgba(34,197,94,0.15); color: #22c55e; }
+        .math-option.wrong { border-color: #ef4444; background: rgba(239,68,68,0.15); color: #ef4444; }
+        .math-option:disabled { cursor: default; }
+
+        .math-timer-bar-wrap {
+            width: 100%;
+            height: 6px;
+            background: var(--hover-bg);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .math-timer-bar {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 3px;
+            transition: width 0.1s linear, background 0.3s ease;
+        }
+
+        /* Memory Match */
+        .memory-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            width: 100%;
+        }
+
+        .memory-card {
+            aspect-ratio: 1;
+            border-radius: 10px;
+            background: var(--hover-bg);
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease;
+            perspective: 600px;
+        }
+
+        .memory-card .card-face {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 24px;
+            transition: all 0.25s ease;
+        }
+
+        .memory-card.hidden .card-face { filter: blur(8px); opacity: 0; transform: scale(0.5); }
+        .memory-card.revealed { border-color: var(--accent); background: rgba(62,166,255,0.1); }
+        .memory-card.matched { border-color: #22c55e; background: rgba(34,197,94,0.15); cursor: default; }
+        .memory-card.matched .card-face { filter: none; opacity: 1; transform: scale(1); }
+
+        /* ── END GAME CARD ── */
+
+        .footer-bar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 450px;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            padding: 8px 24px;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .footer-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.2s ease;
+            padding: 6px 12px;
+        }
+
+        .footer-btn:hover  { color: var(--text-primary); }
+        .footer-btn.active { color: var(--accent); }
+        .footer-btn i      { font-size: 20px; }
+        .footer-btn span   { font-size: 10px; font-weight: 500; }
+
+        @media (max-width: 768px) {
+            .footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+            .footer-btn { padding: 6px 8px; }
+            .footer-btn i { font-size: 18px; }
+            .footer-btn span { font-size: 9px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <div class="scroller-container">
+            <div class="posts-wrapper" id="postsWrapper">
+                <!-- Skeleton card 1 -->
+                <div class="skeleton-card">
+                    <div class="card-top-line"></div>
+                    <div class="skeleton-header">
+                        <div class="skeleton-avatar skeleton-base"></div>
+                        <div class="skeleton-author-block">
+                            <div class="skeleton-name skeleton-base"></div>
+                            <div class="skeleton-date skeleton-base"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-divider"></div>
+                    <div class="skeleton-title skeleton-base"></div>
+                    <div class="skeleton-title-short skeleton-base"></div>
+                    <div class="skeleton-stats">
+                        <div class="skeleton-stat skeleton-base"></div>
+                        <div class="skeleton-stat skeleton-base"></div>
+                    </div>
+                    <div class="skeleton-line skeleton-base"></div>
+                    <div class="skeleton-line w90 skeleton-base"></div>
+                    <div class="skeleton-line w95 skeleton-base"></div>
+                    <div class="skeleton-line w80 skeleton-base"></div>
+                    <div class="skeleton-line skeleton-base"></div>
+                    <div class="skeleton-line w75 skeleton-base"></div>
+                    <div class="skeleton-line w90 skeleton-base"></div>
+                    <div class="skeleton-line w65 skeleton-base"></div>
+                    <div class="skeleton-line skeleton-base"></div>
+                    <div class="skeleton-line w80 skeleton-base"></div>
+                </div>
+                <!-- Skeleton card 2 -->
+                <div class="skeleton-card">
+                    <div class="card-top-line"></div>
+                    <div class="skeleton-header">
+                        <div class="skeleton-avatar skeleton-base"></div>
+                        <div class="skeleton-author-block">
+                            <div class="skeleton-name skeleton-base"></div>
+                            <div class="skeleton-date skeleton-base"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-divider"></div>
+                    <div class="skeleton-title skeleton-base"></div>
+                    <div class="skeleton-title-short skeleton-base"></div>
+                    <div class="skeleton-stats">
+                        <div class="skeleton-stat skeleton-base"></div>
+                        <div class="skeleton-stat skeleton-base"></div>
+                    </div>
+                    <div class="skeleton-line skeleton-base"></div>
+                    <div class="skeleton-line w95 skeleton-base"></div>
+                    <div class="skeleton-line w80 skeleton-base"></div>
+                    <div class="skeleton-line w90 skeleton-base"></div>
+                    <div class="skeleton-line w75 skeleton-base"></div>
+                    <div class="skeleton-line skeleton-base"></div>
+                    <div class="skeleton-line w65 skeleton-base"></div>
+                    <div class="skeleton-line w90 skeleton-base"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="comments-overlay" id="commentsOverlay" onclick="closeComments()"></div>
+
+    <div class="comments-popup" id="commentsPopup">
+        <div class="comments-header">
+            <h3>Comments</h3>
+            <button class="close-comments" onclick="closeComments()">×</button>
+        </div>
+        <div class="comments-list" id="commentsList">
+            <div class="no-comments">
+                <i class="fas fa-comments"></i>
+                <div>No comments yet</div>
+                <div style="font-size: 12px;">Be the first to comment!</div>
+            </div>
+        </div>
+        <div class="comment-input-wrapper">
+            <div class="comment-input-container">
+                <input type="text" class="comment-input" id="commentInput" placeholder="Add a comment...">
+                <button class="send-comment-btn" id="sendCommentBtn" onclick="sendComment()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-bar">
+        <button class="footer-btn" onclick="window.location.href='index.html'">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </button>
+        <button class="footer-btn active" onclick="window.location.href='https://patholytica.com/dailyfeed'">
+            <i class="fas fa-scroll"></i>
+            <span>Feed</span>
+        </button>
+        <button class="footer-btn" onclick="window.location.href='explore.html'">
+            <i class="fas fa-search"></i>
+            <span>Explore</span>
+        </button>
+        <button class="footer-btn" onclick="window.location.href='profile.html'">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </button>
+    </div>
+
+    <script>
+        if (localStorage.getItem("theme") === "light") {
+            document.body.classList.add("light-theme");
+        }
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+            authDomain: "patholytica.firebaseapp.com",
+            databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "patholytica",
+            storageBucket: "patholytica.firebasestorage.app",
+            messagingSenderId: "738430635282",
+            appId: "1:738430635282:web:8451ef380447c7611137cb"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        const supabase = window.supabase.createClient(
+            "https://vduqewqyvszfquntmark.supabase.co",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
+        );
+
+        let articles = [];
+        let userLikes = new Set();
+        let currentArticleId = null;
+        let isLoading = false;
+        let hasMore = true;
+        let offset = 0;
+        const LIMIT = 10;
+        let currentUser = null;
+        let viewTimers = {};
+        let viewedArticles = new Set();
+
+        // ── GAME INSERTION INTERVAL ──
+        const GAME_EVERY = 6; // insert a game card after every N articles
+
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return (num || 0).toString();
+        }
+
+        function skeletonCardHTML() {
+            return `
+                <div class="card-top-line"></div>
+                <div class="skeleton-header">
+                    <div class="skeleton-avatar skeleton-base"></div>
+                    <div class="skeleton-author-block">
+                        <div class="skeleton-name skeleton-base"></div>
+                        <div class="skeleton-date skeleton-base"></div>
+                    </div>
+                </div>
+                <div class="skeleton-divider"></div>
+                <div class="skeleton-title skeleton-base"></div>
+                <div class="skeleton-title-short skeleton-base"></div>
+                <div class="skeleton-stats">
+                    <div class="skeleton-stat skeleton-base"></div>
+                    <div class="skeleton-stat skeleton-base"></div>
+                </div>
+                <div class="skeleton-line skeleton-base"></div>
+                <div class="skeleton-line w90 skeleton-base"></div>
+                <div class="skeleton-line w95 skeleton-base"></div>
+                <div class="skeleton-line w80 skeleton-base"></div>
+                <div class="skeleton-line skeleton-base"></div>
+                <div class="skeleton-line w75 skeleton-base"></div>
+                <div class="skeleton-line w90 skeleton-base"></div>
+                <div class="skeleton-line w65 skeleton-base"></div>
+                <div class="skeleton-line skeleton-base"></div>
+                <div class="skeleton-line w80 skeleton-base"></div>
+            `;
+        }
+
+        async function getCurrentUser() {
+            try {
+                const firebaseUser = auth.currentUser;
+                if (!firebaseUser) return null;
+                const { data: userData, error } = await supabase
+                    .from('users')
+                    .select('user_id, firebase_uid, username')
+                    .eq('firebase_uid', firebaseUser.uid)
+                    .single();
+                if (error) return null;
+                return userData;
+            } catch (error) {
+                console.error('Error getting current user:', error);
+                return null;
+            }
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = await getCurrentUser();
+                if (currentUser) await loadUserLikes();
+            } else {
+                currentUser = null;
+                userLikes.clear();
+            }
+        });
+
+        async function loadUserLikes() {
+            if (!currentUser) return;
+            try {
+                const { data: likes, error } = await supabase
+                    .from('likes')
+                    .select('article_id')
+                    .eq('user_id', currentUser.user_id);
+                if (error) throw error;
+                userLikes.clear();
+                likes.forEach(like => userLikes.add(like.article_id));
+                updateLikeButtons();
+            } catch (error) {
+                console.error('Error loading user likes:', error);
+            }
+        }
+
+        function updateLikeButtons() {
+            document.querySelectorAll('.like-btn').forEach(btn => {
+                if (userLikes.has(btn.dataset.id)) btn.classList.add('liked');
+                else btn.classList.remove('liked');
+            });
+        }
+
+        async function loadArticles(isInitial = true) {
+            if (isLoading || (!isInitial && !hasMore)) return;
+            isLoading = true;
+
+            try {
+                const { data: articlesData, error: articlesError } = await supabase
+                    .from('articles')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .range(offset, offset + LIMIT - 1);
+
+                if (articlesError) throw articlesError;
+
+                if (!articlesData || articlesData.length === 0) {
+                    if (isInitial) {
+                        document.getElementById('postsWrapper').innerHTML = `
+                            <div class="loading-container">
+                                <i class="fas fa-inbox" style="font-size: 48px;"></i>
+                                <div>No articles found</div>
+                            </div>`;
+                    }
+                    hasMore = false;
+                    isLoading = false;
+                    return;
+                }
+
+                if (articlesData.length < LIMIT) hasMore = false;
+                offset += articlesData.length;
+
+                const userIds = [...new Set(articlesData.map(a => a.firebase_user_id).filter(Boolean))];
+                let usersData = [];
+                if (userIds.length > 0) {
+                    const { data: users } = await supabase
+                        .from('users')
+                        .select('firebase_uid, username, full_name, pfp')
+                        .in('firebase_uid', userIds);
+                    usersData = users || [];
+                }
+
+                const articleIds = articlesData.map(a => a.id);
+                const { data: mediaData } = await supabase
+                    .from('media')
+                    .select('*')
+                    .in('article_id', articleIds)
+                    .order('display_order', { ascending: true });
+
+                const newArticles = articlesData.map(article => {
+                    const user = usersData?.find(u => u.firebase_uid === article.firebase_user_id);
+                    return {
+                        ...article,
+                        author: user?.username ? `@${user.username}` : (user?.full_name || 'Anonymous'),
+                        authorPfp: user?.pfp || null,
+                        authorUsername: user?.username || null,
+                        media: mediaData?.filter(m => m.article_id === article.id) || []
+                    };
+                });
+
+                articles = [...articles, ...newArticles];
+                renderArticles(isInitial);
+                isLoading = false;
+
+            } catch (error) {
+                console.error('Error loading articles:', error);
+                if (isInitial) {
+                    document.getElementById('postsWrapper').innerHTML = `
+                        <div class="loading-container">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 48px;"></i>
+                            <div>Failed to load articles</div>
+                        </div>`;
+                }
+                isLoading = false;
+            }
+        }
+
+        function createMediaElement(mediaItem) {
+            const mediaDiv = document.createElement('div');
+            mediaDiv.className = 'media-embed';
+
+            if (mediaItem.type === 'image') {
+                mediaDiv.innerHTML = `
+                    <img src="${mediaItem.url}" alt="${mediaItem.caption || 'Article image'}">
+                    ${mediaItem.caption ? `<div class="media-caption">${mediaItem.caption}</div>` : ''}
+                `;
+            } else if (mediaItem.type === 'audio') {
+                const audioId = 'audio-' + Math.random().toString(36).substr(2, 9);
+                mediaDiv.innerHTML = `
+                    <div class="custom-audio-player">
+                        <button class="play-btn" onclick="toggleAudio(this, '${audioId}')">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <div class="audio-info">
+                            <div class="audio-title">${mediaItem.caption || 'Audio'}</div>
+                            <div class="waveform-container" onclick="seekAudio(event, this, '${audioId}')">
+                                <div class="waveform-progress"></div>
+                                <div class="waveform-bars">
+                                    ${Array(15).fill(0).map(() => `<div class="waveform-bar" style="height: ${Math.random() * 60 + 20}%"></div>`).join('')}
+                                </div>
+                            </div>
+                            <div class="audio-time">
+                                <span class="current-time">0:00</span>
+                                <span class="duration">0:00</span>
+                            </div>
+                        </div>
+                        <audio id="${audioId}" src="${mediaItem.url}" style="display: none;"></audio>
+                    </div>
+                    ${mediaItem.caption ? `<div class="media-caption">${mediaItem.caption}</div>` : ''}
+                `;
+                setTimeout(() => {
+                    const audio = document.getElementById(audioId);
+                    if (audio) {
+                        audio.addEventListener('loadedmetadata', function () {
+                            const duration = Math.floor(audio.duration);
+                            const mins = Math.floor(duration / 60);
+                            const secs = duration % 60;
+                            const durationSpan = audio.closest('.custom-audio-player').querySelector('.duration');
+                            if (durationSpan) durationSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+                        });
+                    }
+                }, 100);
+            }
+            return mediaDiv;
+        }
+
+        function getAvatarContent(article) {
+            if (article.authorPfp) return `<img src="${article.authorPfp}" alt="${article.author}">`;
+            let letter = 'A';
+            if (article.authorUsername) {
+                letter = article.authorUsername.charAt(0).toUpperCase();
+            } else if (article.author) {
+                const atIndex = article.author.indexOf('@');
+                letter = atIndex !== -1 && article.author.length > atIndex + 1
+                    ? article.author.charAt(atIndex + 1).toUpperCase()
+                    : article.author.charAt(0).toUpperCase();
+            }
+            return letter;
+        }
+
+        function renderArticles(isInitial = true) {
+            const wrapper = document.getElementById('postsWrapper');
+
+            if (isInitial) {
+                wrapper.innerHTML = '';
+            } else {
+                const lastChild = wrapper.lastElementChild;
+                if (lastChild && lastChild.classList.contains('skeleton-card')) lastChild.remove();
+            }
+
+            const startIndex = isInitial ? 0 : articles.length - LIMIT;
+
+            for (let index = startIndex; index < articles.length; index++) {
+                const article = articles[index];
+                const articleDiv = document.createElement('div');
+                articleDiv.className = 'article-card';
+                articleDiv.dataset.index = index;
+                articleDiv.dataset.articleId = article.id;
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'article-content';
+
+                const paragraphs = (article.content || 'No content available').split('\n\n');
+                paragraphs.forEach((paragraph, pIndex) => {
+                    if (paragraph.trim()) {
+                        const p = document.createElement('div');
+                        p.className = 'content-paragraph';
+                        p.textContent = paragraph.trim();
+                        contentDiv.appendChild(p);
+                        if (article.media?.length > 0) {
+                            article.media.filter(m => m.display_order === pIndex)
+                                .forEach(m => contentDiv.appendChild(createMediaElement(m)));
+                        }
+                    }
+                });
+
+                if (article.media) {
+                    article.media.filter(m => m.display_order >= paragraphs.length)
+                        .forEach(m => contentDiv.appendChild(createMediaElement(m)));
+                }
+
+                const isLiked = userLikes.has(article.id);
+                const avatarContent = getAvatarContent(article);
+
+                articleDiv.innerHTML = `
+                    <div class="card-top-line"></div>
+                    <div class="article-header">
+                        <div class="author-avatar">${avatarContent}</div>
+                        <div class="author-info">
+                            <div class="author-name">${article.author}</div>
+                            <div class="article-date">${formatDate(new Date(article.created_at))}</div>
+                        </div>
+                    </div>
+                    <div class="header-bottom-line"></div>
+                    <div class="article-title">${article.title || 'Untitled'}</div>
+                    <div class="article-stats">
+                        <div class="stat-item views">
+                            <i class="fas fa-eye"></i>
+                            <span>${formatNumber(article.views || 0)}</span>
+                        </div>
+                        <div class="stat-item likes">
+                            <i class="fas fa-heart"></i>
+                            <span>${formatNumber(article.likes || 0)}</span>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="action-btn like-btn ${isLiked ? 'liked' : ''}" data-id="${article.id}">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                            <span class="like-count">${article.likes || 0}</span>
+                        </button>
+                        <button class="action-btn comment-btn" data-id="${article.id}">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            <span class="comment-count">0</span>
+                        </button>
+                        <button class="action-btn expand-btn" data-id="${article.id}">
+                            <svg viewBox="0 0 24 24">
+                                <polyline points="15 3 21 3 21 9"></polyline>
+                                <polyline points="9 21 3 21 3 15"></polyline>
+                                <line x1="21" y1="3" x2="14" y2="10"></line>
+                                <line x1="3" y1="21" x2="10" y2="14"></line>
+                            </svg>
+                            <span>Open</span>
+                        </button>
+                    </div>
+                `;
+
+                articleDiv.querySelector('.article-stats').insertAdjacentElement('afterend', contentDiv);
+                wrapper.appendChild(articleDiv);
+
+                // ── INSERT GAME CARD AFTER EVERY N-TH ARTICLE (1-based position) ──
+                const oneBasedPos = index + 1;
+                if (oneBasedPos % GAME_EVERY === 0) {
+                    const gameIndex = Math.floor(oneBasedPos / GAME_EVERY) - 1;
+                    const gameDiv = createGameCard(gameIndex);
+                    wrapper.appendChild(gameDiv);
+                }
+            }
+
+            if (hasMore) {
+                const skeletonDiv = document.createElement('div');
+                skeletonDiv.className = 'skeleton-card';
+                skeletonDiv.innerHTML = skeletonCardHTML();
+                wrapper.appendChild(skeletonDiv);
+            }
+
+            document.querySelectorAll('.like-btn').forEach(btn => btn.addEventListener('click', handleLike));
+            document.querySelectorAll('.comment-btn').forEach(btn => btn.addEventListener('click', handleComments));
+            document.querySelectorAll('.expand-btn').forEach(btn => btn.addEventListener('click', handleExpand));
+
+            if (isInitial) {
+                wrapper.addEventListener('scroll', handleScroll);
+                loadCommentCounts();
+                setupIntersectionObserver();
+            } else {
+                setupIntersectionObserverForNew(startIndex);
+                loadCommentCounts();
+            }
+        }
+
+        // ────────────────────────────────────────────────
+        //  GAME CARD FACTORY
+        //  Cycles through 4 games: 0=Reflex, 1=Scramble, 2=Math, 3=Memory
+        // ────────────────────────────────────────────────
+        window.createGameCard = function(gameIndex) {
+            const type = gameIndex % 4;
+            const el = document.createElement('div');
+            el.className = 'game-card';
+            el.dataset.gameType = type;
+
+            switch (type) {
+                case 0: buildReflexGame(el); break;
+                case 1: buildScrambleGame(el); break;
+                case 2: buildMathGame(el); break;
+                case 3: buildMemoryGame(el); break;
+            }
+
+            return el;
+        };
+
+        // ── GAME 0: REFLEX TAP ──────────────────────────
+        function buildReflexGame(el) {
+            el.innerHTML = `
+                <div class="game-badge"><i class="fas fa-bolt"></i> Mini Game</div>
+                <div class="game-title">Reflex Tap</div>
+                <div class="game-subtitle">Tap the circle the instant it turns blue</div>
+                <div class="game-area">
+                    <div class="game-score-row">
+                        <div class="game-score-pill">Best: <span id="rt-best-${el.id || (el._uid = 'g' + Math.random().toString(36).substr(2,6))}">—</span> ms</div>
+                        <div class="game-score-pill">Last: <span id="rt-last-${el._uid}">—</span> ms</div>
+                    </div>
+                    <div class="reflex-target waiting" id="rt-target-${el._uid}">⚡</div>
+                    <div class="reflex-message" id="rt-msg-${el._uid}">Press Start to begin</div>
+                    <div class="reflex-result" id="rt-result-${el._uid}"></div>
+                    <button class="game-btn" id="rt-btn-${el._uid}">Start</button>
+                </div>
+            `;
+
+            const uid = el._uid;
+            const target = el.querySelector(`#rt-target-${uid}`);
+            const msg    = el.querySelector(`#rt-msg-${uid}`);
+            const result = el.querySelector(`#rt-result-${uid}`);
+            const btn    = el.querySelector(`#rt-btn-${uid}`);
+            const bestEl = el.querySelector(`#rt-best-${uid}`);
+            const lastEl = el.querySelector(`#rt-last-${uid}`);
+
+            let state = 'idle'; // idle | waiting | go
+            let goTimer = null;
+            let goTime = null;
+            let best = null;
+
+            function reset() {
+                clearTimeout(goTimer);
+                state = 'idle';
+                target.className = 'reflex-target waiting';
+                target.textContent = '⚡';
+                result.textContent = '';
+                msg.textContent = 'Press Start to begin';
+                btn.textContent = 'Start';
+                btn.style.display = 'block';
+            }
+
+            btn.addEventListener('click', () => {
+                btn.style.display = 'none';
+                state = 'waiting';
+                target.className = 'reflex-target waiting';
+                target.textContent = '⏳';
+                msg.textContent = 'Wait for blue…';
+                result.textContent = '';
+                const delay = 1500 + Math.random() * 3000;
+                goTimer = setTimeout(() => {
+                    state = 'go';
+                    goTime = performance.now();
+                    target.className = 'reflex-target go';
+                    target.textContent = '👆';
+                    msg.textContent = 'TAP NOW!';
+                }, delay);
+            });
+
+            target.addEventListener('click', () => {
+                if (state === 'waiting') {
+                    clearTimeout(goTimer);
+                    state = 'idle';
+                    target.className = 'reflex-target too-early';
+                    target.textContent = '😬';
+                    msg.textContent = 'Too early!';
+                    result.textContent = '';
+                    btn.textContent = 'Try Again';
+                    btn.style.display = 'block';
+                } else if (state === 'go') {
+                    const ms = Math.round(performance.now() - goTime);
+                    state = 'idle';
+                    lastEl.textContent = ms;
+                    if (best === null || ms < best) { best = ms; bestEl.textContent = ms; }
+                    target.className = 'reflex-target';
+                    target.textContent = '✅';
+                    const rating = ms < 200 ? '🔥 Insane!' : ms < 300 ? '⚡ Fast!' : ms < 450 ? '👍 Good' : '🐢 Slow';
+                    result.textContent = `${ms} ms`;
+                    msg.textContent = rating;
+                    btn.textContent = 'Play Again';
+                    btn.style.display = 'block';
+                }
+            });
+        }
+
+        // ── GAME 1: WORD SCRAMBLE ───────────────────────
+        const SCRAMBLE_WORDS = [
+            { word: 'PATHOLOGY', hint: 'Study of disease' },
+            { word: 'DIAGNOSIS', hint: 'Identifying an illness' },
+            { word: 'CELLULAR',  hint: 'Relating to cells' },
+            { word: 'BIOPSY',    hint: 'Tissue sample test' },
+            { word: 'GENOME',    hint: 'Complete DNA set' },
+            { word: 'MICROBE',   hint: 'Tiny organism' },
+            { word: 'PROTEIN',   hint: 'Molecular building block' },
+            { word: 'THERAPY',   hint: 'Treatment for illness' },
+            { word: 'CULTURE',   hint: 'Growing cells in lab' },
+            { word: 'ANTIGEN',   hint: 'Triggers immune response' },
+        ];
+
+        function scramble(word) {
+            let arr = word.split('');
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            const result = arr.join('');
+            return result === word ? scramble(word) : result;
+        }
+
+        function buildScrambleGame(el) {
+            const uid = 'g' + Math.random().toString(36).substr(2, 6);
+            el._uid = uid;
+
+            el.innerHTML = `
+                <div class="game-badge"><i class="fas fa-font"></i> Mini Game</div>
+                <div class="game-title">Word Scramble</div>
+                <div class="game-subtitle">Unscramble the medical word</div>
+                <div class="game-area">
+                    <div class="game-score-row">
+                        <div class="game-score-pill">Score: <span id="ws-score-${uid}">0</span></div>
+                        <div class="game-score-pill">Round: <span id="ws-round-${uid}">1</span>/5</div>
+                    </div>
+                    <div class="scramble-word" id="ws-scrambled-${uid}">??????</div>
+                    <div class="scramble-hint" id="ws-hint-${uid}">Hint: …</div>
+                    <input class="scramble-input" id="ws-input-${uid}" maxlength="12" placeholder="TYPE HERE" autocomplete="off" autocorrect="off" spellcheck="false">
+                    <div style="display:flex;gap:10px;">
+                        <button class="game-btn" id="ws-submit-${uid}">Check</button>
+                        <button class="game-btn secondary" id="ws-skip-${uid}">Skip</button>
+                    </div>
+                </div>
+            `;
+
+            const scrambledEl = el.querySelector(`#ws-scrambled-${uid}`);
+            const hintEl      = el.querySelector(`#ws-hint-${uid}`);
+            const input       = el.querySelector(`#ws-input-${uid}`);
+            const submitBtn   = el.querySelector(`#ws-submit-${uid}`);
+            const skipBtn     = el.querySelector(`#ws-skip-${uid}`);
+            const scoreEl     = el.querySelector(`#ws-score-${uid}`);
+            const roundEl     = el.querySelector(`#ws-round-${uid}`);
+
+            let round = 0;
+            let score = 0;
+            let usedIndices = [];
+            let currentWord = '';
+
+            function pickWord() {
+                if (usedIndices.length >= SCRAMBLE_WORDS.length) usedIndices = [];
+                let idx;
+                do { idx = Math.floor(Math.random() * SCRAMBLE_WORDS.length); }
+                while (usedIndices.includes(idx));
+                usedIndices.push(idx);
+                return SCRAMBLE_WORDS[idx];
+            }
+
+            function nextRound() {
+                round++;
+                if (round > 5) {
+                    scrambledEl.textContent = '🎉';
+                    hintEl.textContent = `Final score: ${score}/5`;
+                    input.style.display = 'none';
+                    submitBtn.textContent = 'Play Again';
+                    skipBtn.style.display = 'none';
+                    submitBtn.onclick = () => {
+                        round = 0; score = 0; usedIndices = [];
+                        input.style.display = '';
+                        submitBtn.textContent = 'Check';
+                        skipBtn.style.display = '';
+                        submitBtn.onclick = checkAnswer;
+                        nextRound();
+                    };
+                    return;
+                }
+                roundEl.textContent = round;
+                const entry = pickWord();
+                currentWord = entry.word;
+                scrambledEl.textContent = scramble(currentWord);
+                hintEl.textContent = `Hint: ${entry.hint}`;
+                input.value = '';
+                input.className = 'scramble-input';
+            }
+
+            function checkAnswer() {
+                const guess = input.value.trim().toUpperCase();
+                if (!guess) return;
+                if (guess === currentWord) {
+                    input.className = 'scramble-input correct';
+                    score++;
+                    scoreEl.textContent = score;
+                    setTimeout(nextRound, 700);
+                } else {
+                    input.className = 'scramble-input wrong';
+                    setTimeout(() => { input.className = 'scramble-input'; }, 600);
+                }
+            }
+
+            submitBtn.addEventListener('click', checkAnswer);
+            skipBtn.addEventListener('click', () => nextRound());
+            input.addEventListener('keypress', e => { if (e.key === 'Enter') checkAnswer(); });
+
+            nextRound();
+        }
+
+        // ── GAME 2: QUICK MATH ──────────────────────────
+        function buildMathGame(el) {
+            const uid = 'g' + Math.random().toString(36).substr(2, 6);
+            el._uid = uid;
+
+            el.innerHTML = `
+                <div class="game-badge"><i class="fas fa-calculator"></i> Mini Game</div>
+                <div class="game-title">Quick Math</div>
+                <div class="game-subtitle">Pick the correct answer before time runs out</div>
+                <div class="game-area">
+                    <div class="game-score-row">
+                        <div class="game-score-pill">Score: <span id="qm-score-${uid}">0</span></div>
+                        <div class="game-score-pill">Round: <span id="qm-round-${uid}">1</span>/8</div>
+                    </div>
+                    <div class="math-timer-bar-wrap">
+                        <div class="math-timer-bar" id="qm-bar-${uid}" style="width:100%"></div>
+                    </div>
+                    <div class="math-question" id="qm-q-${uid}">?</div>
+                    <div class="math-options" id="qm-opts-${uid}"></div>
+                </div>
+            `;
+
+            const qEl      = el.querySelector(`#qm-q-${uid}`);
+            const optsEl   = el.querySelector(`#qm-opts-${uid}`);
+            const scoreEl  = el.querySelector(`#qm-score-${uid}`);
+            const roundEl  = el.querySelector(`#qm-round-${uid}`);
+            const barEl    = el.querySelector(`#qm-bar-${uid}`);
+
+            let round = 0;
+            let score = 0;
+            let timerInterval = null;
+            let timeLeft = 0;
+            const TIME_LIMIT = 7;
+
+            function generateQuestion() {
+                const ops = ['+', '-', '×'];
+                const op = ops[Math.floor(Math.random() * ops.length)];
+                let a, b, answer;
+                if (op === '+') { a = Math.floor(Math.random() * 50) + 1; b = Math.floor(Math.random() * 50) + 1; answer = a + b; }
+                else if (op === '-') { a = Math.floor(Math.random() * 50) + 20; b = Math.floor(Math.random() * 20) + 1; answer = a - b; }
+                else { a = Math.floor(Math.random() * 12) + 2; b = Math.floor(Math.random() * 12) + 2; answer = a * b; }
+                return { question: `${a} ${op} ${b}`, answer };
+            }
+
+            function makeOptions(correct) {
+                const opts = new Set([correct]);
+                while (opts.size < 4) {
+                    const offset = Math.floor(Math.random() * 20) - 10;
+                    const candidate = correct + offset;
+                    if (candidate !== correct && candidate > 0) opts.add(candidate);
+                }
+                return [...opts].sort(() => Math.random() - 0.5);
+            }
+
+            function stopTimer() { clearInterval(timerInterval); }
+
+            function startTimer(onExpire) {
+                stopTimer();
+                timeLeft = TIME_LIMIT;
+                barEl.style.width = '100%';
+                barEl.style.background = 'var(--accent)';
+                timerInterval = setInterval(() => {
+                    timeLeft -= 0.1;
+                    const pct = (timeLeft / TIME_LIMIT) * 100;
+                    barEl.style.width = pct + '%';
+                    if (pct < 30) barEl.style.background = '#ef4444';
+                    else if (pct < 60) barEl.style.background = '#f59e0b';
+                    if (timeLeft <= 0) { stopTimer(); onExpire(); }
+                }, 100);
+            }
+
+            function nextRound() {
+                round++;
+                if (round > 8) {
+                    stopTimer();
+                    qEl.textContent = score >= 6 ? '🏆' : score >= 4 ? '👍' : '😅';
+                    optsEl.innerHTML = `
+                        <div style="grid-column:1/-1;text-align:center;font-size:15px;color:var(--text-secondary)">
+                            Final score: ${score}/8
+                        </div>
+                        <button class="game-btn" style="grid-column:1/-1" id="qm-replay-${uid}">Play Again</button>
+                    `;
+                    barEl.style.width = '0%';
+                    el.querySelector(`#qm-replay-${uid}`).addEventListener('click', () => {
+                        round = 0; score = 0;
+                        scoreEl.textContent = 0;
+                        nextRound();
+                    });
+                    return;
+                }
+                roundEl.textContent = round;
+                const { question, answer } = generateQuestion();
+                qEl.textContent = question;
+                const options = makeOptions(answer);
+                optsEl.innerHTML = options.map(o => `<button class="math-option" data-val="${o}">${o}</button>`).join('');
+
+                function handleTimeout() {
+                    optsEl.querySelectorAll('.math-option').forEach(btn => {
+                        btn.disabled = true;
+                        if (parseInt(btn.dataset.val) === answer) btn.classList.add('correct');
+                    });
+                    setTimeout(nextRound, 1000);
+                }
+
+                startTimer(handleTimeout);
+
+                optsEl.querySelectorAll('.math-option').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        stopTimer();
+                        optsEl.querySelectorAll('.math-option').forEach(b => b.disabled = true);
+                        const chosen = parseInt(btn.dataset.val);
+                        if (chosen === answer) {
+                            btn.classList.add('correct');
+                            score++;
+                            scoreEl.textContent = score;
+                        } else {
+                            btn.classList.add('wrong');
+                            optsEl.querySelectorAll('.math-option').forEach(b => {
+                                if (parseInt(b.dataset.val) === answer) b.classList.add('correct');
+                            });
+                        }
+                        setTimeout(nextRound, 900);
+                    });
+                });
+            }
+
+            nextRound();
+        }
+
+        // ── GAME 3: MEMORY MATCH ────────────────────────
+        const MEMORY_EMOJIS = ['🧬','🔬','💊','🩺','🧪','🫀','🧠','🦠'];
+
+        function buildMemoryGame(el) {
+            const uid = 'g' + Math.random().toString(36).substr(2, 6);
+            el._uid = uid;
+
+            el.innerHTML = `
+                <div class="game-badge"><i class="fas fa-brain"></i> Mini Game</div>
+                <div class="game-title">Memory Match</div>
+                <div class="game-subtitle">Find all matching pairs</div>
+                <div class="game-area">
+                    <div class="game-score-row">
+                        <div class="game-score-pill">Moves: <span id="mm-moves-${uid}">0</span></div>
+                        <div class="game-score-pill">Pairs: <span id="mm-pairs-${uid}">0</span>/8</div>
+                    </div>
+                    <div class="memory-grid" id="mm-grid-${uid}"></div>
+                </div>
+            `;
+
+            const gridEl  = el.querySelector(`#mm-grid-${uid}`);
+            const movesEl = el.querySelector(`#mm-moves-${uid}`);
+            const pairsEl = el.querySelector(`#mm-pairs-${uid}`);
+
+            let tiles = [];
+            let flipped = [];
+            let matched = 0;
+            let moves = 0;
+            let locked = false;
+
+            function initBoard() {
+                matched = 0; moves = 0; flipped = []; locked = false;
+                movesEl.textContent = 0; pairsEl.textContent = 0;
+                const pairs = [...MEMORY_EMOJIS, ...MEMORY_EMOJIS]
+                    .sort(() => Math.random() - 0.5);
+                gridEl.innerHTML = '';
+                tiles = pairs.map((emoji, i) => {
+                    const card = document.createElement('div');
+                    card.className = 'memory-card hidden';
+                    card.dataset.emoji = emoji;
+                    card.dataset.idx = i;
+                    card.innerHTML = `<div class="card-face">${emoji}</div>`;
+                    card.addEventListener('click', () => flipCard(card));
+                    gridEl.appendChild(card);
+                    return card;
+                });
+            }
+
+            function flipCard(card) {
+                if (locked || card.classList.contains('matched') || card.classList.contains('revealed')) return;
+                card.classList.remove('hidden');
+                card.classList.add('revealed');
+                flipped.push(card);
+
+                if (flipped.length === 2) {
+                    locked = true;
+                    moves++;
+                    movesEl.textContent = moves;
+                    const [a, b] = flipped;
+                    if (a.dataset.emoji === b.dataset.emoji) {
+                        a.classList.replace('revealed', 'matched');
+                        b.classList.replace('revealed', 'matched');
+                        flipped = [];
+                        locked = false;
+                        matched++;
+                        pairsEl.textContent = matched;
+                        if (matched === 8) {
+                            setTimeout(() => {
+                                gridEl.innerHTML = `
+                                    <div style="grid-column:1/-1;text-align:center;padding:20px 0;">
+                                        <div style="font-size:48px;margin-bottom:8px;">🎉</div>
+                                        <div style="font-size:16px;font-weight:700;color:var(--text-primary)">Completed!</div>
+                                        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">${moves} moves</div>
+                                        <button class="game-btn" id="mm-replay-${uid}">Play Again</button>
+                                    </div>
+                                `;
+                                el.querySelector(`#mm-replay-${uid}`).addEventListener('click', initBoard);
+                            }, 400);
+                        }
+                    } else {
+                        setTimeout(() => {
+                            a.classList.replace('revealed', 'hidden');
+                            b.classList.replace('revealed', 'hidden');
+                            flipped = [];
+                            locked = false;
+                        }, 900);
+                    }
+                }
+            }
+
+            initBoard();
+        }
+
+        // ────────────────────────────────────────────────
+
+        function setupIntersectionObserver() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const articleId = entry.target.dataset.articleId;
+                    if (!articleId) return;
+                    if (entry.isIntersecting && entry.intersectionRatio >= 0.75) startViewTimer(articleId);
+                    else clearViewTimer(articleId);
+                });
+            }, { threshold: [0.75] });
+
+            document.querySelectorAll('.article-card').forEach(card => {
+                if (card.dataset.articleId) observer.observe(card);
+            });
+        }
+
+        function setupIntersectionObserverForNew(startIndex) {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const articleId = entry.target.dataset.articleId;
+                    if (!articleId) return;
+                    if (entry.isIntersecting && entry.intersectionRatio >= 0.75) startViewTimer(articleId);
+                    else clearViewTimer(articleId);
+                });
+            }, { threshold: [0.75] });
+
+            document.querySelectorAll('.article-card').forEach(card => {
+                if (card.dataset.index >= startIndex && card.dataset.articleId) observer.observe(card);
+            });
+        }
+
+        function startViewTimer(articleId) {
+            if (viewedArticles.has(articleId) || viewTimers[articleId]) return;
+            viewTimers[articleId] = setTimeout(async () => { await incrementView(articleId); }, 5000);
+        }
+
+        function clearViewTimer(articleId) {
+            if (viewTimers[articleId]) { clearTimeout(viewTimers[articleId]); delete viewTimers[articleId]; }
+        }
+
+        async function incrementView(articleId) {
+            if (viewedArticles.has(articleId)) return;
+            try {
+                viewedArticles.add(articleId);
+                const { data: article, error: fetchError } = await supabase
+                    .from('articles').select('views').eq('id', articleId).single();
+                if (fetchError) throw fetchError;
+                const newViews = (article.views || 0) + 1;
+                const { error: updateError } = await supabase
+                    .from('articles').update({ views: newViews }).eq('id', articleId);
+                if (updateError) throw updateError;
+                const idx = articles.findIndex(a => a.id === articleId);
+                if (idx !== -1) articles[idx].views = newViews;
+                const card = document.querySelector(`.article-card[data-article-id="${articleId}"]`);
+                if (card) {
+                    const viewSpan = card.querySelector('.stat-item.views span');
+                    if (viewSpan) viewSpan.textContent = formatNumber(newViews);
+                }
+            } catch (error) {
+                console.error('Error incrementing view:', error);
+                viewedArticles.delete(articleId);
+            }
+        }
+
+        async function loadCommentCounts() {
+            try {
+                const { data: comments, error } = await supabase.from('comments').select('article_id');
+                if (error) throw error;
+                const counts = {};
+                comments.forEach(c => { counts[c.article_id] = (counts[c.article_id] || 0) + 1; });
+                document.querySelectorAll('.comment-btn').forEach(btn => {
+                    btn.querySelector('.comment-count').textContent = counts[btn.dataset.id] || 0;
+                });
+            } catch (error) {
+                console.error('Error loading comment counts:', error);
+            }
+        }
+
+        function formatDate(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        async function handleLike(e) {
+            const articleId = e.currentTarget.dataset.id;
+            const btn = e.currentTarget;
+            const countSpan = btn.querySelector('.like-count');
+            const article = articles.find(a => a.id === articleId);
+            if (!article) return;
+
+            if (!currentUser) {
+                alert('Please log in to like articles');
+                window.location.href = 'https://patholytica.com/login';
+                return;
+            }
+
+            const wasLiked = userLikes.has(articleId);
+            const originalCount = article.likes || 0;
+
+            if (wasLiked) {
+                userLikes.delete(articleId);
+                btn.classList.remove('liked');
+                article.likes = Math.max(0, originalCount - 1);
+            } else {
+                userLikes.add(articleId);
+                btn.classList.add('liked');
+                article.likes = originalCount + 1;
+            }
+            countSpan.textContent = article.likes;
+
+            const card = btn.closest('.article-card');
+            if (card) {
+                const likeStatSpan = card.querySelector('.stat-item.likes span');
+                if (likeStatSpan) likeStatSpan.textContent = formatNumber(article.likes);
+            }
+
+            try {
+                if (wasLiked) {
+                    const { error } = await supabase.from('likes').delete()
+                        .eq('article_id', articleId).eq('user_id', currentUser.user_id);
+                    if (error) throw error;
+                } else {
+                    const { error } = await supabase.from('likes')
+                        .insert([{ article_id: articleId, user_id: currentUser.user_id }]);
+                    if (error) throw error;
+                }
+                await supabase.from('articles').update({ likes: article.likes }).eq('id', articleId);
+            } catch (error) {
+                console.error('Error updating like:', error);
+                if (wasLiked) { userLikes.add(articleId); btn.classList.add('liked'); }
+                else { userLikes.delete(articleId); btn.classList.remove('liked'); }
+                article.likes = originalCount;
+                countSpan.textContent = article.likes;
+                const card2 = btn.closest('.article-card');
+                if (card2) {
+                    const s = card2.querySelector('.stat-item.likes span');
+                    if (s) s.textContent = formatNumber(originalCount);
+                }
+                alert('Failed to update like. Please try again.');
+            }
+        }
+
+        async function handleComments(e) {
+            const articleId = e.currentTarget.dataset.id;
+            currentArticleId = articleId;
+            await loadComments(articleId);
+            openComments();
+        }
+
+        async function loadComments(articleId) {
+            const commentsList = document.getElementById('commentsList');
+            commentsList.innerHTML = '<div class="loading-container"><div class="spinner" style="width: 32px; height: 32px; border-width: 3px;"></div></div>';
+
+            try {
+                const { data: comments, error } = await supabase
+                    .from('comments').select('*').eq('article_id', articleId)
+                    .order('created_at', { ascending: true });
+                if (error) throw error;
+
+                if (!comments || comments.length === 0) {
+                    commentsList.innerHTML = `
+                        <div class="no-comments">
+                            <i class="fas fa-comments"></i>
+                            <div>No comments yet</div>
+                            <div style="font-size: 12px;">Be the first to comment!</div>
+                        </div>`;
+                    return;
+                }
+
+                const userIds = [...new Set(comments.map(c => c.user_id).filter(Boolean))];
+                let usersMap = {};
+                if (userIds.length > 0) {
+                    const { data: users } = await supabase
+                        .from('users').select('user_id, username, full_name, pfp').in('user_id', userIds);
+                    if (users) users.forEach(u => { usersMap[u.user_id] = u; });
+                }
+
+                commentsList.innerHTML = comments.map(comment => {
+                    const user = usersMap[comment.user_id];
+                    const author = user?.username ? `@${user.username}` : (user?.full_name || 'Anonymous');
+                    let avatarContent;
+                    if (user?.pfp) {
+                        avatarContent = `<img src="${user.pfp}" alt="${author}">`;
+                    } else {
+                        let letter = 'A';
+                        if (user?.username) letter = user.username.charAt(0).toUpperCase();
+                        else if (author) {
+                            const atIndex = author.indexOf('@');
+                            letter = atIndex !== -1 && author.length > atIndex + 1
+                                ? author.charAt(atIndex + 1).toUpperCase()
+                                : author.charAt(0).toUpperCase();
+                        }
+                        avatarContent = letter;
+                    }
+                    return `
+                        <div class="comment-item">
+                            <div class="comment-avatar">${avatarContent}</div>
+                            <div class="comment-content">
+                                <div class="comment-author">${author}</div>
+                                <div class="comment-text">${comment.comment_text}</div>
+                                <div class="comment-time">${formatDate(new Date(comment.created_at))}</div>
+                            </div>
+                        </div>`;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error loading comments:', error);
+                commentsList.innerHTML = `
+                    <div class="no-comments">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>Failed to load comments</div>
+                    </div>`;
+            }
+        }
+
+        window.openComments = function () {
+            document.getElementById('commentsPopup').classList.add('active');
+            document.getElementById('commentsOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        window.closeComments = function () {
+            document.getElementById('commentsPopup').classList.remove('active');
+            document.getElementById('commentsOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        window.sendComment = async function () {
+            const input = document.getElementById('commentInput');
+            const text = input.value.trim();
+            if (!text || !currentArticleId) return;
+            const sendBtn = document.getElementById('sendCommentBtn');
+            sendBtn.disabled = true;
+            try {
+                if (!currentUser) currentUser = await getCurrentUser();
+                if (!currentUser) { window.location.href = 'https://patholytica.com/login'; return; }
+                const { error } = await supabase.from('comments')
+                    .insert([{ article_id: currentArticleId, user_id: currentUser.user_id, comment_text: text }]);
+                if (error) throw error;
+                input.value = '';
+                await loadComments(currentArticleId);
+                const commentBtn = document.querySelector(`.comment-btn[data-id="${currentArticleId}"]`);
+                if (commentBtn) {
+                    const countSpan = commentBtn.querySelector('.comment-count');
+                    countSpan.textContent = parseInt(countSpan.textContent) + 1;
+                }
+            } catch (error) {
+                console.error('Error posting comment:', error);
+                alert('Failed to post comment. Please try again.');
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+
+        document.getElementById('commentInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') window.sendComment();
+        });
+
+        function handleExpand(e) {
+            window.location.href = `article.html?id=${e.currentTarget.dataset.id}`;
+        }
+
+        function handleScroll(e) {
+            const container = e.target;
+            if (container.scrollTop + container.clientHeight >= container.scrollHeight * 0.8 && hasMore && !isLoading) {
+                loadArticles(false);
+            }
+        }
+
+        loadArticles(true);
+    </script>
+
+    <script>
+        window.toggleAudio = function (btn, audioId) {
+            const player = btn.closest('.custom-audio-player');
+            const audio = document.getElementById(audioId);
+            const icon = btn.querySelector('i');
+            if (audio.paused) {
+                audio.play();
+                icon.className = 'fas fa-pause';
+                audio.ontimeupdate = function () {
+                    const progress = (audio.currentTime / audio.duration) * 100;
+                    player.querySelector('.waveform-progress').style.width = progress + '%';
+                    const currentMins = Math.floor(audio.currentTime / 60);
+                    const currentSecs = Math.floor(audio.currentTime % 60);
+                    player.querySelector('.current-time').textContent = `${currentMins}:${currentSecs.toString().padStart(2, '0')}`;
+                };
+                audio.onended = function () {
+                    icon.className = 'fas fa-play';
+                    player.querySelector('.waveform-progress').style.width = '0%';
+                    player.querySelector('.current-time').textContent = '0:00';
+                };
+            } else {
+                audio.pause();
+                icon.className = 'fas fa-play';
+            }
+        };
+
+        window.seekAudio = function (event, container, audioId) {
+            const audio = document.getElementById(audioId);
+            const rect = container.getBoundingClientRect();
+            const percentage = (event.clientX - rect.left) / rect.width;
+            audio.currentTime = percentage * audio.duration;
+        };
+    </script>
+</body>
+</html>
