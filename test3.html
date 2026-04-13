@@ -2,642 +2,1441 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Patholytica — Batch Create</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Article Scroller - Patholytica</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --bg: #0f0f0f;
-            --text: #f1f1f1;
-            --sub: #aaa;
-            --card: #181818;
-            --hover: #222;
-            --border: #2a2a2a;
-            --accent: #3ea6ff;
-            --accent-h: #2d8ed6;
-            --success: #2ecc71;
-            --error: #e74c3c;
-            --warning: #f39c12;
+            --bg-color: #1f1f1f;
+            --text-primary: #fff;
+            --text-secondary: #aaa;
+            --card-bg: #1f1f1f;
+            --hover-bg: #2a2a2a;
+            --border-color: #303030;
+            --accent: #f1d19e;
+            --accent-hover: #d9b87a;
         }
-        body.light {
-            --bg: #f9f9f9; --text: #0f0f0f; --sub: #606060;
-            --card: #fff; --hover: #f0f0f0; --border: #e0e0e0;
-            --accent: #065fd4; --accent-h: #0448a3;
+
+        body.light-theme {
+            --bg-color: #f9f9f9;
+            --text-primary: #0f0f0f;
+            --text-secondary: #606060;
+            --card-bg: #f9f9f9;
+            --hover-bg: #f0f0f0;
+            --border-color: #e5e5e5;
+            --accent: #c49a3c;
+            --accent-hover: #a07c28;
         }
-        * { margin:0; padding:0; box-sizing:border-box; }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg); color: var(--text);
-            transition: background .2s, color .2s;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            overflow: hidden;
+            transition: background 0.2s ease, color 0.2s ease;
+            position: fixed;
+            width: 100%;
+            height: 100%;
         }
 
-        .app {
-            position: fixed; top:0; left:50%; transform:translateX(-50%);
-            width:100%; max-width:480px; height:100vh;
-            background: var(--bg); display:flex; flex-direction:column;
-            overflow:hidden;
+        .app-container {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            background: var(--bg-color);
         }
 
-        /* Header */
-        .header {
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border);
-            display:flex; align-items:center; justify-content:space-between;
+        .scroller-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            background: var(--bg-color);
+            overflow: hidden;
+        }
+
+        .posts-wrapper {
+            height: 100%;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+        }
+
+        .posts-wrapper::-webkit-scrollbar { display: none; }
+
+        .article-card {
+            position: relative;
+            height: 100vh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            background: var(--bg-color);
+            padding: 8px 20px 100px;
+            padding-top: calc(16px + env(safe-area-inset-top));
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-top-line {
+            width: calc(100% + 40px);
+            margin-left: -20px;
+            height: 1px;
+            background: var(--border-color);
             flex-shrink: 0;
-            background: var(--bg);
-        }
-        .header-left { display:flex; align-items:center; gap:12px; }
-        .back-btn, .theme-btn {
-            width:36px; height:36px; border-radius:50%;
-            background:var(--hover); border:1px solid var(--border);
-            color:var(--text); cursor:pointer;
-            display:flex; align-items:center; justify-content:center;
-            font-size:14px; transition:background .2s;
-        }
-        .back-btn:hover, .theme-btn:hover { background:var(--border); }
-        .header-title { font-size:15px; font-weight:700; }
-        .header-sub { font-size:11px; color:var(--sub); margin-top:1px; }
-
-        /* Body split */
-        .body {
-            flex:1; display:flex; flex-direction:column;
-            overflow:hidden; padding:16px;
-            gap:14px;
+            margin-bottom: 14px;
         }
 
-        /* Format hint */
-        .format-hint {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius:10px;
-            padding:10px 14px;
-            flex-shrink:0;
-        }
-        .format-hint-title {
-            font-size:10px; font-weight:700; letter-spacing:.08em;
-            text-transform:uppercase; color:var(--sub); margin-bottom:6px;
-        }
-        .format-hint code {
-            font-size:11px; color:var(--accent);
-            background: rgba(62,166,255,.1);
-            padding:2px 6px; border-radius:4px;
-            font-family: 'SF Mono', 'Fira Code', monospace;
-            display:block; line-height:1.7; word-break:break-all;
+        .article-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 50;
         }
 
-        /* Textarea */
-        .textarea-wrap { flex:1; position:relative; min-height:0; }
-        .big-input {
-            width:100%; height:100%;
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius:12px;
-            padding:16px;
-            font-size:14px; line-height:1.7;
-            color:var(--text);
-            font-family: 'SF Mono', 'Fira Code', monospace;
-            resize:none; outline:none;
-            transition:border-color .2s;
+        .author-avatar {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; font-weight: bold;
+            color: #1f1f1f;
+            overflow: hidden; flex-shrink: 0;
         }
-        .big-input:focus { border-color:var(--accent); }
-        .big-input::placeholder { color:var(--sub); opacity:.5; font-style:italic; }
+        .author-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .author-info { flex: 1; }
+        .author-name { color: var(--text-primary); font-weight: 600; font-size: 17px; margin-bottom: 2px; }
+        .article-date { color: var(--text-secondary); font-size: 12px; }
 
-        /* Counter */
-        .input-meta {
-            position:absolute; bottom:10px; right:12px;
-            font-size:10px; color:var(--sub); pointer-events:none;
-        }
-        .input-meta span { color:var(--accent); font-weight:700; }
-
-        /* Buttons */
-        .btn-row {
-            display:flex; gap:10px; flex-shrink:0;
-            padding-bottom: calc(env(safe-area-inset-bottom));
-        }
-        .btn {
-            flex:1; padding:14px;
-            border-radius:12px; border:none;
-            font-size:14px; font-weight:700;
-            cursor:pointer; transition:all .2s;
-            display:flex; align-items:center; justify-content:center; gap:8px;
-        }
-        .btn-preview {
-            background:var(--hover); color:var(--text);
-            border:1px solid var(--border);
-        }
-        .btn-preview:hover { background:var(--border); }
-        .btn-publish {
-            background:var(--accent); color:#fff;
-        }
-        .btn-publish:hover { background:var(--accent-h); transform:translateY(-1px); }
-        .btn:disabled { opacity:.4; cursor:not-allowed; transform:none !important; }
-
-        /* Preview panel (slides up) */
-        .preview-overlay {
-            position:fixed; inset:0;
-            background:rgba(0,0,0,.75);
-            backdrop-filter:blur(6px);
-            z-index:200;
-            display:none; align-items:flex-end; justify-content:center;
-        }
-        .preview-overlay.show { display:flex; }
-        .preview-sheet {
-            background:var(--bg);
-            border-radius:20px 20px 0 0;
-            border:1px solid var(--border);
-            width:100%; max-width:480px;
-            max-height:88vh;
-            display:flex; flex-direction:column;
-            animation:slideUp .3s cubic-bezier(.4,0,.2,1);
-            padding-bottom: env(safe-area-inset-bottom);
-        }
-        @keyframes slideUp {
-            from { transform:translateY(100%); opacity:0; }
-            to   { transform:translateY(0);    opacity:1; }
-        }
-        .preview-handle {
-            width:36px; height:4px; background:var(--border);
-            border-radius:2px; margin:14px auto 0;
-            flex-shrink:0;
-        }
-        .preview-header {
-            padding:14px 18px 10px;
-            display:flex; align-items:center; justify-content:space-between;
-            border-bottom:1px solid var(--border);
-            flex-shrink:0;
-        }
-        .preview-header-title {
-            font-size:15px; font-weight:700;
-        }
-        .preview-count {
-            font-size:12px; font-weight:700;
-            background:var(--accent); color:#fff;
-            padding:3px 10px; border-radius:20px;
-        }
-        .close-preview {
-            width:32px; height:32px; border-radius:50%;
-            background:var(--hover); border:1px solid var(--border);
-            color:var(--text); cursor:pointer;
-            display:flex; align-items:center; justify-content:center; font-size:13px;
-        }
-        .preview-list {
-            flex:1; overflow-y:auto; padding:14px;
-            display:flex; flex-direction:column; gap:10px;
-        }
-        .preview-list::-webkit-scrollbar { width:3px; }
-        .preview-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
-
-        /* Preview cards */
-        .preview-card {
-            background:var(--card);
-            border:1px solid var(--border);
-            border-radius:12px;
-            padding:14px;
-            position:relative;
-        }
-        .preview-card-num {
-            position:absolute; top:10px; right:12px;
-            font-size:10px; font-weight:700; letter-spacing:.06em;
-            color:var(--sub); background:var(--hover);
-            padding:2px 8px; border-radius:8px;
-        }
-        .preview-card-title {
-            font-size:15px; font-weight:800;
-            line-height:1.3; margin-bottom:8px;
-            padding-right:44px;
-            letter-spacing:-.01em;
-        }
-        .preview-card-body {
-            font-size:13px; line-height:1.65;
-            color:var(--sub);
-            white-space:pre-wrap; word-break:break-word;
-        }
-        .preview-card.error-card {
-            border-color:var(--error);
-        }
-        .preview-card.error-card .preview-card-title {
-            color:var(--error);
+        .header-bottom-line {
+            width: calc(100% + 40px);
+            margin-left: -20px;
+            height: 1px;
+            background: var(--border-color);
+            flex-shrink: 0;
+            margin-top: 14px;
+            margin-bottom: 14px;
         }
 
-        /* Publish from preview */
-        .preview-footer {
-            padding:12px 14px;
-            border-top:1px solid var(--border);
-            display:flex; gap:10px;
-            flex-shrink:0;
+        .article-title {
+            font-size: 22px; font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 10px; line-height: 1.25;
         }
 
-        /* Progress overlay */
-        .progress-overlay {
-            position:fixed; inset:0;
-            background:rgba(0,0,0,.65);
-            backdrop-filter:blur(4px);
-            z-index:400;
-            display:none; align-items:center; justify-content:center;
+        .article-stats {
+            display: flex; align-items: center;
+            gap: 14px; margin-bottom: 12px; flex-shrink: 0;
         }
-        .progress-overlay.show { display:flex; }
-        .progress-box {
-            background:var(--card); border:1px solid var(--border);
-            border-radius:16px; padding:32px 28px;
-            text-align:center; width:260px;
+        .stat-item { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text-secondary); }
+        .stat-item.views i { color: var(--accent); }
+        .stat-item.likes i { color: #ef4444; }
+
+        .article-content {
+            color: var(--text-primary);
+            font-size: 16px; line-height: 1.6;
+            flex: 1; overflow-y: auto;
+            padding-right: 60px;
         }
-        .progress-spinner {
-            width:44px; height:44px;
-            border:3px solid var(--border); border-top-color:var(--accent);
-            border-radius:50%; animation:spin .8s linear infinite;
-            margin:0 auto 16px;
-        }
-        @keyframes spin { to { transform:rotate(360deg); } }
-        .progress-label { font-size:14px; font-weight:700; margin-bottom:4px; }
-        .progress-sub { font-size:12px; color:var(--sub); }
-        .progress-bar-wrap {
-            margin-top:14px; background:var(--hover);
-            border-radius:4px; height:6px; overflow:hidden;
-        }
-        .progress-bar {
-            height:100%; background:var(--accent);
-            border-radius:4px; transition:width .3s ease;
-            width:0%;
+        .article-content::-webkit-scrollbar { width: 4px; }
+        .article-content::-webkit-scrollbar-track { background: var(--border-color); }
+        .article-content::-webkit-scrollbar-thumb { background: var(--text-secondary); border-radius: 2px; }
+        .content-paragraph { margin-bottom: 14px; }
+
+        /* ══════════════════════════════════════
+           MCQ CARD
+        ══════════════════════════════════════ */
+        .mcq-card {
+            position: relative;
+            height: 100vh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            background: var(--bg-color);
+            padding: 8px 20px 100px;
+            padding-top: calc(16px + env(safe-area-inset-top));
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Notification */
-        .notif {
-            position:fixed; top:70px; left:50%; transform:translateX(-50%);
-            background:var(--card); border:1px solid var(--border);
-            border-radius:10px; padding:13px 18px;
-            box-shadow:0 8px 32px rgba(0,0,0,.4);
-            z-index:500; display:none; align-items:center; gap:10px;
-            min-width:260px; max-width:360px;
-        }
-        .notif.show { display:flex; animation:notifIn .25s ease; }
-        .notif.success { border-left:3px solid var(--success); }
-        .notif.error   { border-left:3px solid var(--error); }
-        .notif.warning { border-left:3px solid var(--warning); }
-        .notif i { font-size:17px; }
-        .notif.success i { color:var(--success); }
-        .notif.error   i { color:var(--error); }
-        .notif.warning i { color:var(--warning); }
-        .notif span { font-size:13px; font-weight:500; }
-        @keyframes notifIn {
-            from { transform:translateX(-50%) translateY(-16px); opacity:0; }
-            to   { transform:translateX(-50%) translateY(0); opacity:1; }
+        .mcq-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 3px 10px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            flex-shrink: 0;
+            align-self: flex-start;
         }
 
-        @media (max-width:480px) {
-            .notif { left:12px; right:12px; transform:none; min-width:auto; }
-            .notif.show { animation:notifInM .25s ease; }
-            @keyframes notifInM {
-                from { transform:translateY(-16px); opacity:0; }
-                to   { transform:translateY(0); opacity:1; }
-            }
+        .mcq-author-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .mcq-question {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.35;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+            padding-right: 50px;
+        }
+
+        .mcq-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 60px;
+        }
+        .mcq-options::-webkit-scrollbar { width: 3px; }
+        .mcq-options::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+
+        .mcq-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: var(--hover-bg);
+            cursor: pointer;
+            transition: border-color 0.15s ease, background 0.15s ease;
+            text-align: left;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.4;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .mcq-option:hover:not(:disabled) {
+            border-color: var(--accent);
+        }
+
+        .mcq-option .opt-letter {
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            border: 1.5px solid var(--border-color);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 800;
+            flex-shrink: 0;
+            color: var(--text-secondary);
+            transition: all 0.15s ease;
+        }
+
+        .mcq-option .opt-text { flex: 1; }
+
+        .mcq-option:disabled { cursor: default; }
+
+        .mcq-option.selected-correct {
+            border-color: #4ade80;
+            background: rgba(74,222,128,0.08);
+        }
+        .mcq-option.selected-correct .opt-letter {
+            background: #4ade80;
+            border-color: #4ade80;
+            color: #1a1a1a;
+        }
+
+        .mcq-option.selected-wrong {
+            border-color: #ef4444;
+            background: rgba(239,68,68,0.07);
+        }
+        .mcq-option.selected-wrong .opt-letter {
+            background: #ef4444;
+            border-color: #ef4444;
+            color: #fff;
+        }
+
+        .mcq-option.reveal-correct {
+            border-color: rgba(74,222,128,0.5);
+        }
+        .mcq-option.reveal-correct .opt-letter {
+            border-color: #4ade80;
+            color: #4ade80;
+        }
+
+        .mcq-result-msg {
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 14px;
+            flex-shrink: 0;
+            padding-right: 60px;
+            min-height: 20px;
+            color: var(--text-secondary);
+        }
+        .mcq-result-msg.correct { color: #4ade80; }
+        .mcq-result-msg.wrong   { color: #ef4444; }
+
+        /* ── action buttons (shared by article + mcq) ── */
+        .action-buttons {
+            position: absolute;
+            right: 16px;
+            bottom: 143px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
+        }
+        .action-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+            background: none; border: none; cursor: pointer; transition: transform 0.1s;
+        }
+        .action-btn:active { transform: scale(0.9); }
+        .action-btn svg { width: 28px; height: 28px; stroke: var(--text-primary); fill: none; stroke-width: 2; }
+        .action-btn.liked svg { fill: #ef4444; stroke: #ef4444; }
+        .action-btn span { color: var(--text-primary); font-size: 11px; font-weight: 600; }
+
+        /* ── Media ── */
+        .media-embed { margin: 16px 0; max-width: 100%; }
+        .media-embed img { width: 100%; max-width: 100%; height: auto; border-radius: 8px; display: block; }
+        .media-caption { font-size: 13px; color: var(--text-secondary); margin-top: 6px; font-style: italic; }
+
+        .custom-audio-player {
+            background: var(--card-bg); border-radius: 12px; padding: 16px;
+            display: flex; align-items: center; gap: 12px; max-width: 100%;
+            border: 1px solid var(--border-color);
+        }
+        .play-btn {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: var(--accent); border: none; color: #1f1f1f;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 16px; transition: background 0.2s ease; flex-shrink: 0;
+        }
+        .play-btn:hover { background: var(--accent-hover); }
+        .audio-info { flex: 1; min-width: 0; overflow: hidden; }
+        .audio-title { font-size: 13px; font-weight: 500; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
+        .waveform-container { position: relative; height: 32px; background: var(--hover-bg); border-radius: 4px; margin-bottom: 6px; cursor: pointer; overflow: hidden; }
+        .waveform-progress { position: absolute; top: 0; left: 0; height: 100%; background: var(--accent); opacity: 0.3; transition: width 0.1s linear; }
+        .waveform-bars { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: space-around; padding: 0 4px; }
+        .waveform-bar { width: 2px; background: var(--text-secondary); border-radius: 2px; opacity: 0.6; }
+        .audio-time { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); }
+
+        /* ── Comments ── */
+        .comments-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 199; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .comments-overlay.active { opacity: 1; pointer-events: all; }
+        .comments-popup {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: calc(100% - 40px); max-width: 500px;
+            height: 70vh; max-height: 600px;
+            background: var(--card-bg); border-radius: 16px; z-index: 200;
+            opacity: 0; pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .comments-popup.active { opacity: 1; pointer-events: all; transform: translate(-50%, -50%) scale(1); }
+        .comments-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border-color); }
+        .comments-header h3 { font-size: 16px; font-weight: 600; }
+        .close-comments { background: none; border: none; color: var(--text-primary); font-size: 24px; cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s ease; }
+        .close-comments:hover { background: var(--hover-bg); }
+        .comments-list { flex: 1; overflow-y: auto; padding: 16px 20px; }
+        .comments-list::-webkit-scrollbar { width: 6px; }
+        .comments-list::-webkit-scrollbar-track { background: transparent; }
+        .comments-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        .comment-item { display: flex; gap: 12px; margin-bottom: 20px; }
+        .comment-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: #1f1f1f; flex-shrink: 0; overflow: hidden; }
+        .comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .comment-content { flex: 1; }
+        .comment-author { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+        .comment-text { font-size: 14px; line-height: 1.4; margin-bottom: 6px; }
+        .comment-time { font-size: 11px; color: var(--text-secondary); }
+        .comment-input-wrapper { padding: 12px 20px; border-top: 1px solid var(--border-color); background: var(--bg-color); border-radius: 0 0 16px 16px; }
+        .comment-input-container { display: flex; gap: 8px; align-items: center; }
+        .comment-input { flex: 1; background: var(--hover-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 10px 16px; color: var(--text-primary); font-size: 14px; outline: none; }
+        .comment-input:focus { border-color: var(--accent); }
+        .send-comment-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); border: none; color: #1f1f1f; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: background 0.2s ease; }
+        .send-comment-btn:hover { background: var(--accent-hover); }
+        .send-comment-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .no-comments { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary); gap: 12px; }
+        .no-comments i { font-size: 48px; opacity: 0.5; }
+        .loading-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-primary); gap: 16px; }
+        .spinner { width: 48px; height: 48px; border: 3px solid var(--border-color); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Skeleton ── */
+        @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+        .skeleton-base {
+            background: linear-gradient(90deg, var(--hover-bg) 25%, var(--border-color) 50%, var(--hover-bg) 75%);
+            background-size: 800px 100%; animation: shimmer 1.4s infinite linear; border-radius: 6px;
+        }
+        .skeleton-card { position: relative; height: 100vh; scroll-snap-align: start; scroll-snap-stop: always; background: var(--bg-color); padding: 8px 20px 100px; padding-top: calc(16px + env(safe-area-inset-top)); display: flex; flex-direction: column; }
+        .skeleton-card .card-top-line { width: calc(100% + 40px); margin-left: -20px; height: 1px; background: var(--border-color); flex-shrink: 0; margin-bottom: 14px; }
+        .skeleton-header { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+        .skeleton-avatar { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
+        .skeleton-author-block { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+        .skeleton-name { height: 14px; width: 120px; }
+        .skeleton-date { height: 10px; width: 70px; }
+        .skeleton-divider { width: calc(100% + 40px); margin-left: -20px; height: 1px; background: var(--border-color); flex-shrink: 0; margin-top: 14px; margin-bottom: 14px; }
+        .skeleton-title { height: 22px; width: 85%; margin-bottom: 8px; }
+        .skeleton-title-short { height: 22px; width: 60%; margin-bottom: 10px; }
+        .skeleton-stats { display: flex; gap: 12px; margin-bottom: 14px; flex-shrink: 0; }
+        .skeleton-stat { height: 13px; width: 52px; }
+        .skeleton-line { height: 13px; margin-bottom: 10px; width: 100%; }
+        .skeleton-line.w90 { width: 90%; } .skeleton-line.w75 { width: 75%; }
+        .skeleton-line.w80 { width: 80%; } .skeleton-line.w65 { width: 65%; }
+        .skeleton-line.w95 { width: 95%; }
+
+        /* ── Game cards ── */
+        .game-card { position: relative; height: 100vh; scroll-snap-align: start; scroll-snap-stop: always; background: var(--bg-color); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 28px 100px; padding-top: calc(24px + env(safe-area-inset-top)); }
+        .game-badge { display: flex; align-items: center; gap: 6px; border: 1px solid var(--border-color); border-radius: 4px; padding: 3px 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 20px; }
+        .game-title { font-size: 24px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; text-align: center; letter-spacing: -0.5px; }
+        .game-subtitle { font-size: 13px; color: var(--text-secondary); margin-bottom: 28px; text-align: center; line-height: 1.4; }
+        .game-area { width: 100%; max-width: 360px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+        .game-score-row { display: flex; gap: 10px; align-items: center; width: 100%; }
+        .game-score-pill { flex: 1; text-align: center; background: var(--hover-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 10px; font-size: 12px; color: var(--text-secondary); }
+        .game-score-pill span { font-weight: 700; color: var(--text-primary); }
+        .reflex-target { width: 110px; height: 110px; border-radius: 50%; border: 2px solid var(--border-color); background: var(--hover-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 36px; user-select: none; transition: border-color 0.15s ease, background 0.15s ease; }
+        .reflex-target.waiting { animation: reflex-idle 2s ease-in-out infinite; }
+        .reflex-target.go { border-color: var(--accent); background: rgba(241,209,158,0.12); }
+        .reflex-target.too-early { border-color: #ef4444; background: rgba(239,68,68,0.08); }
+        @keyframes reflex-idle { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+        .reflex-message { font-size: 14px; color: var(--text-secondary); text-align: center; min-height: 20px; }
+        .reflex-result { font-size: 30px; font-weight: 800; color: var(--accent); text-align: center; min-height: 36px; letter-spacing: -1px; }
+        .scramble-word { font-size: 32px; font-weight: 800; letter-spacing: 8px; color: var(--accent); text-align: center; font-family: 'Courier New', monospace; }
+        .scramble-input { width: 100%; background: var(--hover-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 13px 16px; color: var(--text-primary); font-size: 18px; font-weight: 700; text-align: center; letter-spacing: 4px; text-transform: uppercase; outline: none; transition: border-color 0.15s ease; }
+        .scramble-input:focus { border-color: var(--accent); }
+        .scramble-input.correct { border-color: #4ade80; color: #4ade80; }
+        .scramble-input.wrong { border-color: #ef4444; color: #ef4444; animation: shake 0.3s ease; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .scramble-hint { font-size: 12px; color: var(--text-secondary); text-align: center; }
+        .math-question { font-size: 42px; font-weight: 800; color: var(--text-primary); text-align: center; letter-spacing: -1px; line-height: 1; }
+        .math-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+        .math-option { background: var(--hover-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px 10px; font-size: 20px; font-weight: 700; color: var(--text-primary); text-align: center; cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease; user-select: none; }
+        .math-option:hover:not(:disabled) { border-color: var(--accent); }
+        .math-option.correct { border-color: #4ade80; background: rgba(74,222,128,0.08); color: #4ade80; }
+        .math-option.wrong { border-color: #ef4444; background: rgba(239,68,68,0.08); color: #ef4444; }
+        .math-option:disabled { cursor: default; }
+        .math-timer-bar-wrap { width: 100%; height: 3px; background: var(--border-color); border-radius: 2px; overflow: hidden; }
+        .math-timer-bar { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.1s linear, background 0.3s ease; }
+        .memory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; }
+        .memory-card { aspect-ratio: 1; border-radius: 8px; background: var(--hover-bg); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; transition: border-color 0.15s ease, background 0.15s ease; overflow: hidden; }
+        .memory-card .card-face { font-size: 22px; transition: opacity 0.2s ease, transform 0.2s ease; }
+        .memory-card.hidden .card-face { opacity: 0; transform: scale(0.4); }
+        .memory-card.revealed { border-color: var(--accent); }
+        .memory-card.matched { border-color: #4ade80; background: rgba(74,222,128,0.07); cursor: default; }
+        .memory-card.matched .card-face { opacity: 1; transform: scale(1); }
+        .game-btn { background: var(--accent); color: #1a1a1a; border: none; border-radius: 8px; padding: 11px 28px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s ease; letter-spacing: 0.01em; }
+        .game-btn:hover { background: var(--accent-hover); }
+        .game-btn.secondary { background: var(--hover-bg); color: var(--text-primary); border: 1px solid var(--border-color); }
+        .game-btn.secondary:hover { border-color: var(--accent); }
+
+        /* ── Footer ── */
+        .footer-bar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 450px; background: var(--card-bg); border-top: 1px solid var(--border-color); padding: 8px 24px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+        .footer-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: none; color: var(--text-secondary); cursor: pointer; transition: color 0.2s ease; padding: 6px 12px; }
+        .footer-btn:hover { color: var(--text-primary); }
+        .footer-btn.active { color: var(--accent); }
+        .footer-btn i { font-size: 20px; }
+        .footer-btn span { font-size: 10px; font-weight: 500; }
+        @media (max-width: 768px) {
+            .footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+            .footer-btn { padding: 6px 8px; }
+            .footer-btn i { font-size: 18px; }
+            .footer-btn span { font-size: 9px; }
         }
     </style>
 </head>
 <body>
 
-<div class="app">
-    <div class="header">
-        <div class="header-left">
-            <button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
-            <div>
-                <div class="header-title">Batch Create</div>
-                <div class="header-sub">Multiple articles at once</div>
+    <div class="app-container">
+        <div class="scroller-container">
+            <div class="posts-wrapper" id="postsWrapper">
+                <!-- Skeleton placeholders -->
+                <div class="skeleton-card">
+                    <div class="card-top-line"></div>
+                    <div class="skeleton-header">
+                        <div class="skeleton-avatar skeleton-base"></div>
+                        <div class="skeleton-author-block">
+                            <div class="skeleton-name skeleton-base"></div>
+                            <div class="skeleton-date skeleton-base"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-divider"></div>
+                    <div class="skeleton-title skeleton-base"></div>
+                    <div class="skeleton-title-short skeleton-base"></div>
+                    <div class="skeleton-stats"><div class="skeleton-stat skeleton-base"></div><div class="skeleton-stat skeleton-base"></div></div>
+                    <div class="skeleton-line skeleton-base"></div><div class="skeleton-line w90 skeleton-base"></div>
+                    <div class="skeleton-line w95 skeleton-base"></div><div class="skeleton-line w80 skeleton-base"></div>
+                    <div class="skeleton-line skeleton-base"></div><div class="skeleton-line w75 skeleton-base"></div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="card-top-line"></div>
+                    <div class="skeleton-header">
+                        <div class="skeleton-avatar skeleton-base"></div>
+                        <div class="skeleton-author-block">
+                            <div class="skeleton-name skeleton-base"></div>
+                            <div class="skeleton-date skeleton-base"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-divider"></div>
+                    <div class="skeleton-title skeleton-base"></div>
+                    <div class="skeleton-title-short skeleton-base"></div>
+                    <div class="skeleton-stats"><div class="skeleton-stat skeleton-base"></div><div class="skeleton-stat skeleton-base"></div></div>
+                    <div class="skeleton-line skeleton-base"></div><div class="skeleton-line w90 skeleton-base"></div>
+                    <div class="skeleton-line w80 skeleton-base"></div><div class="skeleton-line w65 skeleton-base"></div>
+                </div>
             </div>
         </div>
-        <button class="theme-btn" onclick="toggleTheme()"><i class="fas fa-circle-half-stroke"></i></button>
     </div>
 
-    <div class="body">
-        <!-- Format hint -->
-        <div class="format-hint">
-            <div class="format-hint-title">Format</div>
-            <code>art1:[Title]:[Content]::art2:[Title]:[Content]::art3:…</code>
+    <div class="comments-overlay" id="commentsOverlay" onclick="closeComments()"></div>
+    <div class="comments-popup" id="commentsPopup">
+        <div class="comments-header">
+            <h3>Comments</h3>
+            <button class="close-comments" onclick="closeComments()">×</button>
         </div>
-
-        <!-- Big textarea -->
-        <div class="textarea-wrap">
-            <textarea class="big-input" id="batchInput"
-                placeholder="art1:Introduction to Pathology:Pathology is the study of disease and its causes...::art2:Cell Biology Basics:Cells are the fundamental unit of life..."
-                oninput="onInput()"></textarea>
-            <div class="input-meta"><span id="artCount">0</span> articles detected</div>
-        </div>
-
-        <!-- Action buttons -->
-        <div class="btn-row">
-            <button class="btn btn-preview" id="previewBtn" onclick="openPreview()" disabled>
-                <i class="fas fa-eye"></i> Preview
-            </button>
-            <button class="btn btn-publish" id="publishBtn" onclick="publishAll()" disabled>
-                <i class="fas fa-paper-plane"></i> Publish All
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- Preview sheet -->
-<div class="preview-overlay" id="previewOverlay">
-    <div class="preview-sheet">
-        <div class="preview-handle"></div>
-        <div class="preview-header">
-            <div class="preview-header-title">Preview</div>
-            <div style="display:flex;align-items:center;gap:8px;">
-                <div class="preview-count" id="previewCount">0 articles</div>
-                <button class="close-preview" onclick="closePreview()"><i class="fas fa-times"></i></button>
+        <div class="comments-list" id="commentsList">
+            <div class="no-comments">
+                <i class="fas fa-comments"></i>
+                <div>No comments yet</div>
+                <div style="font-size: 12px;">Be the first to comment!</div>
             </div>
         </div>
-        <div class="preview-list" id="previewList"></div>
-        <div class="preview-footer">
-            <button class="btn btn-preview" style="flex:.6;" onclick="closePreview()">
-                <i class="fas fa-pencil"></i> Edit
-            </button>
-            <button class="btn btn-publish" id="previewPublishBtn" onclick="publishAll(); closePreview();">
-                <i class="fas fa-paper-plane"></i> Publish All
-            </button>
+        <div class="comment-input-wrapper">
+            <div class="comment-input-container">
+                <input type="text" class="comment-input" id="commentInput" placeholder="Add a comment...">
+                <button class="send-comment-btn" id="sendCommentBtn" onclick="sendComment()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Progress overlay -->
-<div class="progress-overlay" id="progressOverlay">
-    <div class="progress-box">
-        <div class="progress-spinner"></div>
-        <div class="progress-label" id="progressLabel">Publishing…</div>
-        <div class="progress-sub" id="progressSub">Please wait</div>
-        <div class="progress-bar-wrap">
-            <div class="progress-bar" id="progressBar"></div>
-        </div>
+    <div class="footer-bar">
+        <button class="footer-btn" onclick="window.location.href='index.html'">
+            <i class="fas fa-home"></i><span>Home</span>
+        </button>
+        <button class="footer-btn active" onclick="window.location.href='https://patholytica.com/dailyfeed'">
+            <i class="fas fa-scroll"></i><span>Feed</span>
+        </button>
+        <button class="footer-btn" onclick="window.location.href='explore.html'">
+            <i class="fas fa-search"></i><span>Explore</span>
+        </button>
+        <button class="footer-btn" onclick="window.location.href='https://patholytica.com/Create'">
+            <i class="fas fa-plus-circle"></i><span>Create</span>
+        </button>
     </div>
-</div>
 
-<!-- Notification -->
-<div class="notif" id="notif">
-    <i class="fas fa-check-circle"></i>
-    <span id="notifText"></span>
-</div>
+    <script>
+        if (localStorage.getItem("theme") === "light") document.body.classList.add("light-theme");
+    </script>
 
-<script>
-/* ── Helpers ─────────────────────────────────────────── */
-function goBack() {
-    if (document.referrer && document.referrer.includes(location.host)) history.back();
-    else location.href = 'index.html';
-}
-function toggleTheme() {
-    document.body.classList.toggle('light');
-    localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
-}
-if (localStorage.getItem('theme') === 'light') document.body.classList.add('light');
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-function showNotif(msg, type = 'success') {
-    const el = document.getElementById('notif');
-    const icon = el.querySelector('i');
-    document.getElementById('notifText').textContent = msg;
-    el.className = `notif ${type} show`;
-    icon.className = type === 'success' ? 'fas fa-check-circle'
-                   : type === 'warning' ? 'fas fa-exclamation-triangle'
-                   : 'fas fa-exclamation-circle';
-    clearTimeout(el._t);
-    el._t = setTimeout(() => el.classList.remove('show'), 4000);
-}
+        const firebaseConfig = {
+            apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+            authDomain: "patholytica.firebaseapp.com",
+            databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "patholytica",
+            storageBucket: "patholytica.firebasestorage.app",
+            messagingSenderId: "738430635282",
+            appId: "1:738430635282:web:8451ef380447c7611137cb"
+        };
 
-function setProgress(label, sub, pct) {
-    document.getElementById('progressLabel').textContent = label;
-    document.getElementById('progressSub').textContent = sub;
-    document.getElementById('progressBar').style.width = pct + '%';
-}
+        const app  = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
 
-/* ── Parser ──────────────────────────────────────────── */
-/**
- * Parses:  art1:[Title]:[Content]::art2:[Title]:[Content]::…
- * Returns: [{ title, content }, …]  or  null if no valid articles found
- */
-function parseInput(raw) {
-    const raw_trimmed = raw.trim();
-    if (!raw_trimmed) return [];
+        const supabase = window.supabase.createClient(
+            "https://vduqewqyvszfquntmark.supabase.co",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
+        );
 
-    // Split on :: separator
-    const chunks = raw_trimmed.split('::');
-    const results = [];
+        let articles = [];
+        let userLikes = new Set();
+        let currentArticleId = null;
+        let isLoading = false;
+        let hasMore = true;
+        let offset = 0;
+        const LIMIT = 10;
+        let currentUser = null;
+        let viewTimers = {};
+        let viewedArticles = new Set();
+        const GAME_EVERY = 6;
 
-    for (const chunk of chunks) {
-        const c = chunk.trim();
-        if (!c) continue;
+        /* ══════════════════════════════════════
+           MCQ DETECTION & PARSING
+        ══════════════════════════════════════ */
+        function isMCQ(content) {
+            return typeof content === 'string' && content.trimStart().startsWith('❔');
+        }
 
-        // Match artN:[title]:[content]  — title & content may contain colons
-        // We grab everything after the first colon as "rest", then split rest on first colon
-        const prefixMatch = c.match(/^art\d+:([\s\S]+)$/i);
-        if (!prefixMatch) continue;
+        /**
+         * Parse stored MCQ format:
+         *   ❔Question text\nOption A\n✅Correct Option\nOption C\n...
+         * Returns { question, options: [{label, correct}] }
+         */
+        function parseMCQ(content) {
+            const lines = content.trim().split('\n').map(l => l.trim()).filter(Boolean);
+            const questionLine = lines[0].replace(/^❔/, '').trim();
+            const options = lines.slice(1).map(line => {
+                const correct = line.startsWith('✅');
+                const label   = line.replace(/^✅/, '').trim();
+                return { label, correct };
+            });
+            return { question: questionLine, options };
+        }
 
-        const rest = prefixMatch[1];
-        // Split on first colon to separate title from content
-        const colonIdx = rest.indexOf(':');
-        if (colonIdx === -1) continue;
+        /* ══════════════════════════════════════
+           MCQ CARD BUILDER
+        ══════════════════════════════════════ */
+        function buildMCQCard(article, index) {
+            const { question, options } = parseMCQ(article.content);
+            const isLiked = userLikes.has(article.id);
+            const avatarContent = getAvatarContent(article);
+            const letters = ['A','B','C','D','E','F'];
 
-        const title   = rest.slice(0, colonIdx).trim();
-        const content = rest.slice(colonIdx + 1).trim();
+            const card = document.createElement('div');
+            card.className = 'mcq-card';
+            card.dataset.index = index;
+            card.dataset.articleId = article.id;
 
-        if (!title && !content) continue;
+            // Header HTML
+            card.innerHTML = `
+                <div class="card-top-line"></div>
+                <div class="mcq-author-row article-header">
+                    <div class="author-avatar">${avatarContent}</div>
+                    <div class="author-info">
+                        <div class="author-name">${article.author}</div>
+                        <div class="article-date">${formatDate(new Date(article.created_at))}</div>
+                    </div>
+                </div>
+                <div class="header-bottom-line"></div>
+                <div class="mcq-badge">❔ Quick Question</div>
+                <div class="mcq-question">${escHtml(question)}</div>
+                <div class="mcq-options" id="mcq-opts-${article.id}"></div>
+                <div class="mcq-result-msg" id="mcq-msg-${article.id}"></div>
+                <div class="action-buttons">
+                    <button class="action-btn like-btn ${isLiked ? 'liked' : ''}" data-id="${article.id}">
+                        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                        <span class="like-count">${article.likes || 0}</span>
+                    </button>
+                    <button class="action-btn comment-btn" data-id="${article.id}">
+                        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                        <span class="comment-count">0</span>
+                    </button>
+                    <button class="action-btn expand-btn" data-id="${article.id}">
+                        <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                        <span>Open</span>
+                    </button>
+                </div>
+            `;
 
-        results.push({ title: title || '(no title)', content: content || '(no content)' });
-    }
+            // Build option buttons
+            const optsContainer = card.querySelector(`#mcq-opts-${article.id}`);
+            const msgEl = card.querySelector(`#mcq-msg-${article.id}`);
+            let answered = false;
 
-    return results;
-}
+            options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = `
+                    <span class="opt-letter">${letters[i] || i + 1}</span>
+                    <span class="opt-text">${escHtml(opt.label)}</span>
+                `;
 
-/* ── Live input feedback ─────────────────────────────── */
-function onInput() {
-    const raw = document.getElementById('batchInput').value;
-    const articles = parseInput(raw);
-    const n = articles.length;
-    document.getElementById('artCount').textContent = n;
+                btn.addEventListener('click', () => {
+                    if (answered) return;
+                    answered = true;
 
-    const hasValid = n > 0;
-    document.getElementById('previewBtn').disabled  = !hasValid;
-    document.getElementById('publishBtn').disabled  = !hasValid;
-    document.getElementById('previewPublishBtn').disabled = !hasValid;
-}
+                    // Disable all options
+                    optsContainer.querySelectorAll('.mcq-option').forEach(b => b.disabled = true);
 
-/* ── Preview ─────────────────────────────────────────── */
-function openPreview() {
-    const articles = parseInput(document.getElementById('batchInput').value);
-    if (!articles.length) { showNotif('No valid articles found', 'warning'); return; }
+                    if (opt.correct) {
+                        btn.classList.add('selected-correct');
+                        msgEl.textContent = '✓ Correct!';
+                        msgEl.className = 'mcq-result-msg correct';
+                    } else {
+                        btn.classList.add('selected-wrong');
+                        msgEl.className = 'mcq-result-msg wrong';
+                        // Find and reveal the correct one
+                        const correctIdx = options.findIndex(o => o.correct);
+                        if (correctIdx !== -1) {
+                            optsContainer.querySelectorAll('.mcq-option')[correctIdx]
+                                .classList.add('reveal-correct');
+                            msgEl.textContent = `✗ The answer was: ${options[correctIdx].label}`;
+                        } else {
+                            msgEl.textContent = '✗ Incorrect';
+                        }
+                    }
+                });
 
-    const list = document.getElementById('previewList');
-    list.innerHTML = '';
-    document.getElementById('previewCount').textContent =
-        articles.length + (articles.length === 1 ? ' article' : ' articles');
+                optsContainer.appendChild(btn);
+            });
 
-    articles.forEach((art, i) => {
-        const card = document.createElement('div');
-        card.className = 'preview-card';
-        card.innerHTML = `
-            <div class="preview-card-num">art${i + 1}</div>
-            <div class="preview-card-title">${escHtml(art.title)}</div>
-            <div class="preview-card-body">${escHtml(art.content)}</div>
-        `;
-        list.appendChild(card);
-    });
+            return card;
+        }
 
-    document.getElementById('previewOverlay').classList.add('show');
-}
+        function escHtml(str) {
+            return String(str)
+                .replace(/&/g,'&amp;')
+                .replace(/</g,'&lt;')
+                .replace(/>/g,'&gt;');
+        }
 
-function closePreview() {
-    document.getElementById('previewOverlay').classList.remove('show');
-}
+        /* ══════════════════════════════════════ */
 
-document.getElementById('previewOverlay').addEventListener('click', function(e) {
-    if (e.target === this) closePreview();
-});
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000)    return (num / 1000).toFixed(1) + 'K';
+            return (num || 0).toString();
+        }
 
-function escHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+        function skeletonCardHTML() {
+            return `
+                <div class="card-top-line"></div>
+                <div class="skeleton-header">
+                    <div class="skeleton-avatar skeleton-base"></div>
+                    <div class="skeleton-author-block">
+                        <div class="skeleton-name skeleton-base"></div>
+                        <div class="skeleton-date skeleton-base"></div>
+                    </div>
+                </div>
+                <div class="skeleton-divider"></div>
+                <div class="skeleton-title skeleton-base"></div>
+                <div class="skeleton-title-short skeleton-base"></div>
+                <div class="skeleton-stats">
+                    <div class="skeleton-stat skeleton-base"></div>
+                    <div class="skeleton-stat skeleton-base"></div>
+                </div>
+                <div class="skeleton-line skeleton-base"></div>
+                <div class="skeleton-line w90 skeleton-base"></div>
+                <div class="skeleton-line w95 skeleton-base"></div>
+                <div class="skeleton-line w80 skeleton-base"></div>
+                <div class="skeleton-line skeleton-base"></div>
+                <div class="skeleton-line w75 skeleton-base"></div>
+                <div class="skeleton-line w90 skeleton-base"></div>
+                <div class="skeleton-line w65 skeleton-base"></div>
+            `;
+        }
 
-/* ── Publish (wired up in module below) ─────────────────── */
-// stub; replaced by module
-window.publishAll = function() {
-    showNotif('Auth not ready yet, try again in a second', 'warning');
-};
-</script>
+        async function getCurrentUser() {
+            try {
+                const firebaseUser = auth.currentUser;
+                if (!firebaseUser) return null;
+                const { data: userData, error } = await supabase
+                    .from('users').select('user_id, firebase_uid, username')
+                    .eq('firebase_uid', firebaseUser.uid).single();
+                if (error) return null;
+                return userData;
+            } catch (e) { return null; }
+        }
 
-<script type="module">
-import { initializeApp }               from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
-    authDomain: "patholytica.firebaseapp.com",
-    databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "patholytica",
-    storageBucket: "patholytica.firebasestorage.app",
-    messagingSenderId: "738430635282",
-    appId: "1:738430635282:web:8451ef380447c7611137cb"
-};
-
-const app  = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-
-const supabase = window.supabase.createClient(
-    "https://vduqewqyvszfquntmark.supabase.co",
-    "sb_publishable_YseP73aoHam8YT6B0b9EQQ_iAUEWARI"
-);
-
-let currentUser     = null;
-let currentUserData = null;
-
-onAuthStateChanged(auth, async (user) => {
-    if (user) {
-        currentUser = user;
-        let { data: userData, error } = await supabase
-            .from('users').select('*').eq('firebase_uid', user.uid).single();
-        if (error && error.code !== 'PGRST116') { console.error(error); return; }
-        if (!userData) {
-            let { data: byEmail } = await supabase.from('users').select('*').eq('email', user.email).single();
-            if (byEmail) {
-                await supabase.from('users').update({ firebase_uid: user.uid }).eq('email', user.email);
-                userData = { ...byEmail, firebase_uid: user.uid };
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = await getCurrentUser();
+                if (currentUser) await loadUserLikes();
             } else {
-                const { data: newU } = await supabase.from('users').insert([{
-                    firebase_uid: user.uid, email: user.email,
-                    full_name: user.displayName || user.email?.split('@')[0],
-                    username: user.email?.split('@')[0] || 'user'
-                }]).select('*').single();
-                userData = newU;
+                currentUser = null;
+                userLikes.clear();
+            }
+        });
+
+        async function loadUserLikes() {
+            if (!currentUser) return;
+            try {
+                const { data: likes } = await supabase
+                    .from('likes').select('article_id').eq('user_id', currentUser.user_id);
+                userLikes.clear();
+                (likes || []).forEach(l => userLikes.add(l.article_id));
+                updateLikeButtons();
+            } catch(e) {}
+        }
+
+        function updateLikeButtons() {
+            document.querySelectorAll('.like-btn').forEach(btn => {
+                btn.classList.toggle('liked', userLikes.has(btn.dataset.id));
+            });
+        }
+
+        async function loadArticles(isInitial = true) {
+            if (isLoading || (!isInitial && !hasMore)) return;
+            isLoading = true;
+            try {
+                const { data: articlesData, error } = await supabase
+                    .from('articles').select('*')
+                    .order('created_at', { ascending: false })
+                    .range(offset, offset + LIMIT - 1);
+
+                if (error) throw error;
+
+                if (!articlesData || articlesData.length === 0) {
+                    if (isInitial) {
+                        document.getElementById('postsWrapper').innerHTML = `
+                            <div class="loading-container">
+                                <i class="fas fa-inbox" style="font-size:48px;"></i>
+                                <div>No articles found</div>
+                            </div>`;
+                    }
+                    hasMore = false;
+                    isLoading = false;
+                    return;
+                }
+
+                if (articlesData.length < LIMIT) hasMore = false;
+                offset += articlesData.length;
+
+                const userIds = [...new Set(articlesData.map(a => a.firebase_user_id).filter(Boolean))];
+                let usersData = [];
+                if (userIds.length > 0) {
+                    const { data: users } = await supabase
+                        .from('users').select('firebase_uid, username, full_name, pfp')
+                        .in('firebase_uid', userIds);
+                    usersData = users || [];
+                }
+
+                const articleIds = articlesData.map(a => a.id);
+                const { data: mediaData } = await supabase
+                    .from('media').select('*').in('article_id', articleIds)
+                    .order('display_order', { ascending: true });
+
+                const newArticles = articlesData.map(article => {
+                    const user = usersData.find(u => u.firebase_uid === article.firebase_user_id);
+                    return {
+                        ...article,
+                        author: user?.username ? `@${user.username}` : (user?.full_name || 'Anonymous'),
+                        authorPfp: user?.pfp || null,
+                        authorUsername: user?.username || null,
+                        media: (mediaData || []).filter(m => m.article_id === article.id)
+                    };
+                });
+
+                articles = [...articles, ...newArticles];
+                renderArticles(isInitial);
+                isLoading = false;
+            } catch(e) {
+                console.error('Error loading articles:', e);
+                if (isInitial) {
+                    document.getElementById('postsWrapper').innerHTML = `
+                        <div class="loading-container">
+                            <i class="fas fa-exclamation-triangle" style="font-size:48px;"></i>
+                            <div>Failed to load articles</div>
+                        </div>`;
+                }
+                isLoading = false;
             }
         }
-        currentUserData = userData;
-    } else {
-        location.href = 'login.html';
-    }
-});
 
-window.publishAll = async function() {
-    if (!currentUser) { showNotif('Please log in first', 'error'); return; }
-
-    const articles = parseInput(document.getElementById('batchInput').value);
-    if (!articles.length) { showNotif('No valid articles found', 'warning'); return; }
-
-    // Validate
-    for (let i = 0; i < articles.length; i++) {
-        if (articles[i].title.length > 60) {
-            showNotif(`Article ${i+1}: title exceeds 60 chars`, 'error'); return;
+        function createMediaElement(mediaItem) {
+            const mediaDiv = document.createElement('div');
+            mediaDiv.className = 'media-embed';
+            if (mediaItem.type === 'image') {
+                mediaDiv.innerHTML = `
+                    <img src="${mediaItem.url}" alt="${mediaItem.caption || 'Article image'}">
+                    ${mediaItem.caption ? `<div class="media-caption">${mediaItem.caption}</div>` : ''}
+                `;
+            } else if (mediaItem.type === 'audio') {
+                const audioId = 'audio-' + Math.random().toString(36).substr(2, 9);
+                mediaDiv.innerHTML = `
+                    <div class="custom-audio-player">
+                        <button class="play-btn" onclick="toggleAudio(this,'${audioId}')"><i class="fas fa-play"></i></button>
+                        <div class="audio-info">
+                            <div class="audio-title">${mediaItem.caption || 'Audio'}</div>
+                            <div class="waveform-container" onclick="seekAudio(event,this,'${audioId}')">
+                                <div class="waveform-progress"></div>
+                                <div class="waveform-bars">
+                                    ${Array(15).fill(0).map(() => `<div class="waveform-bar" style="height:${Math.random()*60+20}%"></div>`).join('')}
+                                </div>
+                            </div>
+                            <div class="audio-time"><span class="current-time">0:00</span><span class="duration">0:00</span></div>
+                        </div>
+                        <audio id="${audioId}" src="${mediaItem.url}" style="display:none;"></audio>
+                    </div>
+                `;
+                setTimeout(() => {
+                    const audio = document.getElementById(audioId);
+                    if (audio) {
+                        audio.addEventListener('loadedmetadata', () => {
+                            const d = Math.floor(audio.duration);
+                            const dEl = audio.closest('.custom-audio-player').querySelector('.duration');
+                            if (dEl) dEl.textContent = `${Math.floor(d/60)}:${(d%60).toString().padStart(2,'0')}`;
+                        });
+                    }
+                }, 100);
+            }
+            return mediaDiv;
         }
-    }
 
-    // Lock UI
-    document.getElementById('publishBtn').disabled  = true;
-    document.getElementById('previewBtn').disabled  = true;
-    document.getElementById('previewPublishBtn').disabled = true;
-    document.getElementById('progressOverlay').classList.add('show');
+        function getAvatarContent(article) {
+            if (article.authorPfp) return `<img src="${article.authorPfp}" alt="${article.author}">`;
+            let letter = 'A';
+            if (article.authorUsername) {
+                letter = article.authorUsername.charAt(0).toUpperCase();
+            } else if (article.author) {
+                const atIdx = article.author.indexOf('@');
+                letter = atIdx !== -1 && article.author.length > atIdx + 1
+                    ? article.author.charAt(atIdx + 1).toUpperCase()
+                    : article.author.charAt(0).toUpperCase();
+            }
+            return letter;
+        }
 
-    const results = { ok: 0, fail: 0 };
+        function renderArticles(isInitial = true) {
+            const wrapper = document.getElementById('postsWrapper');
 
-    for (let i = 0; i < articles.length; i++) {
-        const art = articles[i];
-        const pct = Math.round(((i) / articles.length) * 100);
-        setProgress(
-            `Publishing article ${i + 1} of ${articles.length}`,
-            `"${art.title.slice(0, 40)}${art.title.length > 40 ? '…' : ''}"`,
-            pct
-        );
+            if (isInitial) {
+                wrapper.innerHTML = '';
+            } else {
+                const last = wrapper.lastElementChild;
+                if (last && last.classList.contains('skeleton-card')) last.remove();
+            }
 
-        try {
-            const { data: inserted, error: insErr } = await supabase
-                .from('articles')
-                .insert([{
-                    title: art.title,
-                    content: art.content,
-                    firebase_user_id: currentUser.uid,
-                    views: 0,
-                    likes: 0
-                }])
-                .select().single();
+            const startIndex = isInitial ? 0 : articles.length - LIMIT;
 
-            if (insErr) throw insErr;
+            for (let index = startIndex; index < articles.length; index++) {
+                const article = articles[index];
 
-            // Auto-library
-            try {
-                const userId = currentUserData?.user_id ?? currentUserData?.id ?? null;
-                const { data: lib, error: libErr } = await supabase
-                    .from('playlists')
-                    .insert([{
-                        name: art.title,
-                        description: `Auto-created library for "${art.title}"`,
-                        user_id: userId
-                    }]).select().single();
-                if (!libErr && lib) {
-                    await supabase.from('playlist_items')
-                        .insert([{ playlist_id: lib.id, article_id: inserted.id }]);
+                // ── MCQ card ──
+                if (isMCQ(article.content)) {
+                    const mcqDiv = buildMCQCard(article, index);
+                    wrapper.appendChild(mcqDiv);
+                } else {
+                    // ── Regular article card ──
+                    const articleDiv = document.createElement('div');
+                    articleDiv.className = 'article-card';
+                    articleDiv.dataset.index = index;
+                    articleDiv.dataset.articleId = article.id;
+
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'article-content';
+                    const paragraphs = (article.content || 'No content available').split('\n\n');
+                    paragraphs.forEach((paragraph, pIndex) => {
+                        if (paragraph.trim()) {
+                            const p = document.createElement('div');
+                            p.className = 'content-paragraph';
+                            p.textContent = paragraph.trim();
+                            contentDiv.appendChild(p);
+                            if (article.media?.length > 0) {
+                                article.media.filter(m => m.display_order === pIndex)
+                                    .forEach(m => contentDiv.appendChild(createMediaElement(m)));
+                            }
+                        }
+                    });
+                    if (article.media) {
+                        article.media.filter(m => m.display_order >= paragraphs.length)
+                            .forEach(m => contentDiv.appendChild(createMediaElement(m)));
+                    }
+
+                    const isLiked = userLikes.has(article.id);
+                    const avatarContent = getAvatarContent(article);
+
+                    articleDiv.innerHTML = `
+                        <div class="card-top-line"></div>
+                        <div class="article-header">
+                            <div class="author-avatar">${avatarContent}</div>
+                            <div class="author-info">
+                                <div class="author-name">${article.author}</div>
+                                <div class="article-date">${formatDate(new Date(article.created_at))}</div>
+                            </div>
+                        </div>
+                        <div class="header-bottom-line"></div>
+                        <div class="article-title">${article.title || 'Untitled'}</div>
+                        <div class="article-stats">
+                            <div class="stat-item views"><i class="fas fa-eye"></i><span>${formatNumber(article.views || 0)}</span></div>
+                            <div class="stat-item likes"><i class="fas fa-heart"></i><span>${formatNumber(article.likes || 0)}</span></div>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="action-btn like-btn ${isLiked ? 'liked' : ''}" data-id="${article.id}">
+                                <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                <span class="like-count">${article.likes || 0}</span>
+                            </button>
+                            <button class="action-btn comment-btn" data-id="${article.id}">
+                                <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                <span class="comment-count">0</span>
+                            </button>
+                            <button class="action-btn expand-btn" data-id="${article.id}">
+                                <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                                <span>Open</span>
+                            </button>
+                        </div>
+                    `;
+
+                    articleDiv.querySelector('.article-stats').insertAdjacentElement('afterend', contentDiv);
+                    wrapper.appendChild(articleDiv);
                 }
-            } catch(e) { /* non-fatal */ }
 
-            results.ok++;
-        } catch (err) {
-            console.error(`Article ${i+1} failed:`, err);
-            results.fail++;
+                // Game card every GAME_EVERY articles
+                const oneBasedPos = index + 1;
+                if (oneBasedPos % GAME_EVERY === 0) {
+                    const gameIndex = Math.floor(oneBasedPos / GAME_EVERY) - 1;
+                    wrapper.appendChild(createGameCard(gameIndex));
+                }
+            }
+
+            if (hasMore) {
+                const skDiv = document.createElement('div');
+                skDiv.className = 'skeleton-card';
+                skDiv.innerHTML = skeletonCardHTML();
+                wrapper.appendChild(skDiv);
+            }
+
+            document.querySelectorAll('.like-btn').forEach(btn => btn.addEventListener('click', handleLike));
+            document.querySelectorAll('.comment-btn').forEach(btn => btn.addEventListener('click', handleComments));
+            document.querySelectorAll('.expand-btn').forEach(btn => btn.addEventListener('click', handleExpand));
+
+            if (isInitial) {
+                wrapper.addEventListener('scroll', handleScroll);
+                loadCommentCounts();
+                setupIntersectionObserver();
+            } else {
+                setupIntersectionObserverForNew(startIndex);
+                loadCommentCounts();
+            }
         }
-    }
 
-    setProgress('Done!', '', 100);
-    await new Promise(r => setTimeout(r, 600));
+        /* ── Game card factory (unchanged) ── */
+        window.createGameCard = function(gameIndex) {
+            const type = gameIndex % 4;
+            const el = document.createElement('div');
+            el.className = 'game-card';
+            el.dataset.gameType = type;
+            switch (type) {
+                case 0: buildReflexGame(el); break;
+                case 1: buildScrambleGame(el); break;
+                case 2: buildMathGame(el); break;
+                case 3: buildMemoryGame(el); break;
+            }
+            return el;
+        };
 
-    document.getElementById('progressOverlay').classList.remove('show');
-    document.getElementById('publishBtn').disabled  = false;
-    document.getElementById('previewBtn').disabled  = false;
-    document.getElementById('previewPublishBtn').disabled = false;
+        function buildReflexGame(el) {
+            const uid = 'g' + Math.random().toString(36).substr(2, 6);
+            el.innerHTML = `
+                <div class="game-badge">Mini Game</div>
+                <div class="game-title">Reflex Tap</div>
+                <div class="game-subtitle">Tap the moment it turns gold</div>
+                <div class="game-area">
+                    <div class="game-score-row">
+                        <div class="game-score-pill">Best <span id="rt-best-${uid}">—</span> ms</div>
+                        <div class="game-score-pill">Last <span id="rt-last-${uid}">—</span> ms</div>
+                    </div>
+                    <div class="reflex-target waiting" id="rt-target-${uid}">⚡</div>
+                    <div class="reflex-message" id="rt-msg-${uid}">Press Start</div>
+                    <div class="reflex-result" id="rt-result-${uid}"></div>
+                    <button class="game-btn" id="rt-btn-${uid}">Start</button>
+                </div>`;
+            const target = el.querySelector(`#rt-target-${uid}`);
+            const msg = el.querySelector(`#rt-msg-${uid}`);
+            const result = el.querySelector(`#rt-result-${uid}`);
+            const btn = el.querySelector(`#rt-btn-${uid}`);
+            const bestEl = el.querySelector(`#rt-best-${uid}`);
+            const lastEl = el.querySelector(`#rt-last-${uid}`);
+            let state = 'idle', goTimer = null, goTime = null, best = null;
+            btn.addEventListener('click', () => {
+                btn.style.display = 'none'; state = 'waiting';
+                target.className = 'reflex-target waiting'; target.textContent = '⏳';
+                msg.textContent = 'Wait…'; result.textContent = '';
+                goTimer = setTimeout(() => {
+                    state = 'go'; goTime = performance.now();
+                    target.className = 'reflex-target go'; target.textContent = '👆'; msg.textContent = 'NOW!';
+                }, 1500 + Math.random() * 3000);
+            });
+            target.addEventListener('click', () => {
+                if (state === 'waiting') {
+                    clearTimeout(goTimer); state = 'idle';
+                    target.className = 'reflex-target too-early'; target.textContent = '✗';
+                    msg.textContent = 'Too early!'; btn.textContent = 'Try Again'; btn.style.display = 'block';
+                } else if (state === 'go') {
+                    const ms = Math.round(performance.now() - goTime); state = 'idle';
+                    lastEl.textContent = ms;
+                    if (best === null || ms < best) { best = ms; bestEl.textContent = ms; }
+                    target.className = 'reflex-target'; target.textContent = '✓';
+                    result.textContent = `${ms} ms`;
+                    msg.textContent = ms < 200 ? 'Insane' : ms < 300 ? 'Fast' : ms < 450 ? 'Good' : 'Slow';
+                    btn.textContent = 'Again'; btn.style.display = 'block';
+                }
+            });
+        }
 
-    if (results.fail === 0) {
-        showNotif(`${results.ok} article${results.ok !== 1 ? 's' : ''} published!`, 'success');
-        document.getElementById('batchInput').value = '';
-        document.getElementById('artCount').textContent = '0';
-    } else {
-        showNotif(
-            `${results.ok} published, ${results.fail} failed — check console`,
-            results.ok > 0 ? 'warning' : 'error'
-        );
-    }
-};
-</script>
+        const SCRAMBLE_WORDS = [
+            { word: 'PATHOLOGY', hint: 'Study of disease' },
+            { word: 'DIAGNOSIS', hint: 'Identifying an illness' },
+            { word: 'CELLULAR',  hint: 'Relating to cells' },
+            { word: 'BIOPSY',    hint: 'Tissue sample test' },
+            { word: 'GENOME',    hint: 'Complete DNA set' },
+            { word: 'MICROBE',   hint: 'Tiny organism' },
+            { word: 'PROTEIN',   hint: 'Molecular building block' },
+            { word: 'THERAPY',   hint: 'Treatment for illness' },
+            { word: 'CULTURE',   hint: 'Growing cells in lab' },
+            { word: 'ANTIGEN',   hint: 'Triggers immune response' },
+        ];
 
+        function scramble(word) {
+            let arr = word.split('');
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr.join('') === word ? scramble(word) : arr.join('');
+        }
+
+        function buildScrambleGame(el) {
+            const uid = 'g' + Math.random().toString(36).substr(2, 6);
+            el.innerHTML = `
+                <div class="game-badge">Mini Game</div>
+                <div class="game-title">Word Scramble</div>
+                <div class="game-subtitle">Unscramble the medical term</div>
+                <div class="game-area">
+                    <div class="game-score-row">
+                        <div class="game-score-pill">Score <span id="ws-score-${uid}">0</span></div>
+                        <div class="game-score-pill">Round <span id="ws-round-${uid}">1</span> / 5</div>
+                    </div>
+                    <div class="scramble-word" id="ws-scrambled-${uid}">——</div>
+                    <div class="scramble-hint" id="ws-hint-${uid}"></div>
+                    <input class="scramble-input" id="ws-input-${uid}" maxlength="12" placeholder="TYPE HERE" autocomplete="off" autocorrect="off" spellcheck="false">
+                    <div style="display:flex;gap:10px;width:100%;">
+                        <button class="game-btn" style="flex:1" id="ws-submit-${uid}">Check</button>
+                        <button class="game-btn secondary" style="flex:1" id="ws-skip-${uid}">Skip</button>
+                    </div>
+                </div>`;
+            const scrambledEl = el.querySelector(`#ws-scrambled-${uid}`);
+            const hintEl = el.querySelector(`#ws-hint-${uid}`);
+            const input = el.querySelector(`#ws-input-${uid}`);
+            const submitBtn = el.querySelector(`#ws-submit-${uid}`);
+            const skipBtn = el.querySelector(`#ws-skip-${uid}`);
+            const scoreEl = el.querySelector(`#ws-score-${uid}`);
+            const roundEl = el.querySelector(`#ws-round-${uid}`);
+            let round = 0, score = 0, usedIndices = [], currentWord = '';
+            function pickWord() {
+                if (usedIndices.length >= SCRAMBLE_WORDS.length) usedIndices = [];
+                let idx;
+                do { idx = Math.floor(Math.random() * SCRAMBLE_WORDS.length); } while (usedIndices.includes(idx));
+                usedIndices.push(idx); return SCRAMBLE_WORDS[idx];
+            }
+            function nextRound() {
+                round++;
+                if (round > 5) {
+                    scrambledEl.textContent = score === 5 ? '✓' : score >= 3 ? '~' : '✗';
+                    hintEl.textContent = `${score} / 5 correct`;
+                    input.style.display = 'none'; submitBtn.textContent = 'Play Again'; skipBtn.style.display = 'none';
+                    submitBtn.onclick = () => { round = 0; score = 0; usedIndices = []; input.style.display = ''; scoreEl.textContent = 0; submitBtn.textContent = 'Check'; skipBtn.style.display = ''; submitBtn.onclick = checkAnswer; nextRound(); };
+                    return;
+                }
+                roundEl.textContent = round;
+                const entry = pickWord(); currentWord = entry.word;
+                scrambledEl.textContent = scramble(currentWord); hintEl.textContent = entry.hint;
+                input.value = ''; input.className = 'scramble-input'; input.focus();
+            }
+            function checkAnswer() {
+                const guess = input.value.trim().toUpperCase(); if (!guess) return;
+                if (guess === currentWord) { input.className = 'scramble-input correct'; score++; scoreEl.textContent = score; setTimeout(nextRound, 600); }
+                else { input.className = 'scramble-input wrong'; setTimeout(() => { input.className = 'scramble-input'; }, 500); }
+            }
+            submitBtn.addEventListener('click', checkAnswer);
+            skipBtn.addEventListener('click', nextRound);
+            input.addEventListener('keypress', e => { if (e.key === 'Enter') checkAnswer(); });
+            nextRound();
+        }
+
+        function buildMathGame(el) {
+            const uid = 'g' + Math.random().toString(36).substr(2, 6);
+            el.innerHTML = `
+                <div class="game-badge">Mini Game</div>
+                <div class="game-title">Quick Math</div>
+                <div class="game-subtitle">Pick the right answer in time</div>
+                <div class="game-area">
+                    <div class="game-score-row">
+                        <div class="game-score-pill">Score <span id="qm-score-${uid}">0</span></div>
+                        <div class="game-score-pill">Round <span id="qm-round-${uid}">1</span> / 8</div>
+                    </div>
+                    <div class="math-timer-bar-wrap"><div class="math-timer-bar" id="qm-bar-${uid}" style="width:100%"></div></div>
+                    <div class="math-question" id="qm-q-${uid}">—</div>
+                    <div class="math-options" id="qm-opts-${uid}"></div>
+                </div>`;
+            const qEl = el.querySelector(`#qm-q-${uid}`), optsEl = el.querySelector(`#qm-opts-${uid}`);
+            const scoreEl = el.querySelector(`#qm-score-${uid}`), roundEl = el.querySelector(`#qm-round-${uid}`);
+            const barEl = el.querySelector(`#qm-bar-${uid}`);
+            let round = 0, score = 0, timerInterval = null, timeLeft = 0;
+            const TIME_LIMIT = 7;
+            function genQ() {
+                const ops = ['+','−','×'], op = ops[Math.floor(Math.random()*ops.length)];
+                let a,b,ans;
+                if (op==='+'){a=Math.floor(Math.random()*50)+1;b=Math.floor(Math.random()*50)+1;ans=a+b;}
+                else if(op==='−'){a=Math.floor(Math.random()*50)+20;b=Math.floor(Math.random()*20)+1;ans=a-b;}
+                else{a=Math.floor(Math.random()*12)+2;b=Math.floor(Math.random()*12)+2;ans=a*b;}
+                return {question:`${a} ${op} ${b}`,answer:ans};
+            }
+            function makeOpts(c) {
+                const s=new Set([c]);
+                while(s.size<4){const o=Math.floor(Math.random()*20)-10,cd=c+o;if(cd!==c&&cd>0)s.add(cd);}
+                return [...s].sort(()=>Math.random()-0.5);
+            }
+            function stopTimer(){clearInterval(timerInterval);}
+            function startTimer(onExpire) {
+                stopTimer(); timeLeft=TIME_LIMIT; barEl.style.width='100%'; barEl.style.background='var(--accent)';
+                timerInterval=setInterval(()=>{
+                    timeLeft-=0.1;const pct=(timeLeft/TIME_LIMIT)*100;barEl.style.width=pct+'%';
+                    if(pct<30)barEl.style.background='#ef4444';else if(pct<60)barEl.style.background='#f59e0b';
+                    if(timeLeft<=0){stopTimer();onExpire();}
+                },100);
+            }
+            function nextRound() {
+                round++;
+                if(round>8){
+                    stopTimer();qEl.textContent=score>=6?'✓':score>=4?'~':'✗';
+                    optsEl.innerHTML=`<div style="grid-column:1/-1;text-align:center;font-size:14px;color:var(--text-secondary);padding:4px 0;">${score} / 8 correct</div><button class="game-btn" style="grid-column:1/-1" id="qm-replay-${uid}">Play Again</button>`;
+                    barEl.style.width='0%';
+                    el.querySelector(`#qm-replay-${uid}`).addEventListener('click',()=>{round=0;score=0;scoreEl.textContent=0;nextRound();});
+                    return;
+                }
+                roundEl.textContent=round;
+                const {question,answer}=genQ();qEl.textContent=question;
+                const options=makeOpts(answer);
+                optsEl.innerHTML=options.map(o=>`<button class="math-option" data-val="${o}">${o}</button>`).join('');
+                function handleTimeout(){optsEl.querySelectorAll('.math-option').forEach(b=>{b.disabled=true;if(parseInt(b.dataset.val)===answer)b.classList.add('correct');});setTimeout(nextRound,1000);}
+                startTimer(handleTimeout);
+                optsEl.querySelectorAll('.math-option').forEach(btn=>{
+                    btn.addEventListener('click',()=>{
+                        stopTimer();optsEl.querySelectorAll('.math-option').forEach(b=>b.disabled=true);
+                        const chosen=parseInt(btn.dataset.val);
+                        if(chosen===answer){btn.classList.add('correct');score++;scoreEl.textContent=score;}
+                        else{btn.classList.add('wrong');optsEl.querySelectorAll('.math-option').forEach(b=>{if(parseInt(b.dataset.val)===answer)b.classList.add('correct');});}
+                        setTimeout(nextRound,900);
+                    });
+                });
+            }
+            nextRound();
+        }
+
+        const MEMORY_EMOJIS = ['🧬','🔬','💊','🩺','🧪','🫀','🧠','🦠'];
+        function buildMemoryGame(el) {
+            const uid = 'g' + Math.random().toString(36).substr(2, 6);
+            el.innerHTML = `
+                <div class="game-badge">Mini Game</div>
+                <div class="game-title">Memory Match</div>
+                <div class="game-subtitle">Find all matching pairs</div>
+                <div class="game-area">
+                    <div class="game-score-row">
+                        <div class="game-score-pill">Moves <span id="mm-moves-${uid}">0</span></div>
+                        <div class="game-score-pill">Pairs <span id="mm-pairs-${uid}">0</span> / 8</div>
+                    </div>
+                    <div class="memory-grid" id="mm-grid-${uid}"></div>
+                </div>`;
+            const gridEl=el.querySelector(`#mm-grid-${uid}`),movesEl=el.querySelector(`#mm-moves-${uid}`),pairsEl=el.querySelector(`#mm-pairs-${uid}`);
+            let flipped=[],matched=0,moves=0,locked=false;
+            function initBoard(){
+                matched=0;moves=0;flipped=[];locked=false;movesEl.textContent=0;pairsEl.textContent=0;
+                const pairs=[...MEMORY_EMOJIS,...MEMORY_EMOJIS].sort(()=>Math.random()-0.5);
+                gridEl.innerHTML='';
+                pairs.forEach(emoji=>{
+                    const card=document.createElement('div');card.className='memory-card hidden';card.dataset.emoji=emoji;
+                    card.innerHTML=`<div class="card-face">${emoji}</div>`;
+                    card.addEventListener('click',()=>flipCard(card));gridEl.appendChild(card);
+                });
+            }
+            function flipCard(card){
+                if(locked||card.classList.contains('matched')||card.classList.contains('revealed'))return;
+                card.classList.remove('hidden');card.classList.add('revealed');flipped.push(card);
+                if(flipped.length===2){
+                    locked=true;moves++;movesEl.textContent=moves;
+                    const[a,b]=flipped;
+                    if(a.dataset.emoji===b.dataset.emoji){
+                        a.classList.replace('revealed','matched');b.classList.replace('revealed','matched');
+                        flipped=[];locked=false;matched++;pairsEl.textContent=matched;
+                        if(matched===8){setTimeout(()=>{gridEl.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:16px 0;"><div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">Completed in</div><div style="font-size:28px;font-weight:800;color:var(--accent);margin-bottom:12px;">${moves} moves</div><button class="game-btn" id="mm-replay-${uid}">Play Again</button></div>`;el.querySelector(`#mm-replay-${uid}`).addEventListener('click',initBoard);},400);}
+                    }else{setTimeout(()=>{a.classList.replace('revealed','hidden');b.classList.replace('revealed','hidden');flipped=[];locked=false;},800);}
+                }
+            }
+            initBoard();
+        }
+
+        /* ── Intersection / view tracking ── */
+        function setupIntersectionObserver() {
+            const obs = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const id = entry.target.dataset.articleId; if (!id) return;
+                    if (entry.isIntersecting && entry.intersectionRatio >= 0.75) startViewTimer(id);
+                    else clearViewTimer(id);
+                });
+            }, { threshold: [0.75] });
+            document.querySelectorAll('.article-card, .mcq-card').forEach(c => { if (c.dataset.articleId) obs.observe(c); });
+        }
+
+        function setupIntersectionObserverForNew(startIndex) {
+            const obs = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const id = entry.target.dataset.articleId; if (!id) return;
+                    if (entry.isIntersecting && entry.intersectionRatio >= 0.75) startViewTimer(id);
+                    else clearViewTimer(id);
+                });
+            }, { threshold: [0.75] });
+            document.querySelectorAll('.article-card, .mcq-card').forEach(c => {
+                if (c.dataset.index >= startIndex && c.dataset.articleId) obs.observe(c);
+            });
+        }
+
+        function startViewTimer(id) {
+            if (viewedArticles.has(id) || viewTimers[id]) return;
+            viewTimers[id] = setTimeout(async () => { await incrementView(id); }, 5000);
+        }
+        function clearViewTimer(id) {
+            if (viewTimers[id]) { clearTimeout(viewTimers[id]); delete viewTimers[id]; }
+        }
+        async function incrementView(id) {
+            if (viewedArticles.has(id)) return;
+            try {
+                viewedArticles.add(id);
+                const { data: a } = await supabase.from('articles').select('views').eq('id', id).single();
+                const nv = (a.views || 0) + 1;
+                await supabase.from('articles').update({ views: nv }).eq('id', id);
+                const idx = articles.findIndex(a => a.id === id);
+                if (idx !== -1) articles[idx].views = nv;
+                const card = document.querySelector(`.article-card[data-article-id="${id}"], .mcq-card[data-article-id="${id}"]`);
+                if (card) { const s = card.querySelector('.stat-item.views span'); if (s) s.textContent = formatNumber(nv); }
+            } catch(e) { viewedArticles.delete(id); }
+        }
+
+        async function loadCommentCounts() {
+            try {
+                const { data: comments } = await supabase.from('comments').select('article_id');
+                const counts = {};
+                (comments || []).forEach(c => { counts[c.article_id] = (counts[c.article_id] || 0) + 1; });
+                document.querySelectorAll('.comment-btn').forEach(btn => {
+                    btn.querySelector('.comment-count').textContent = counts[btn.dataset.id] || 0;
+                });
+            } catch(e) {}
+        }
+
+        function formatDate(date) {
+            const now = new Date(), ms = now - date;
+            const mins = Math.floor(ms/60000), hrs = Math.floor(ms/3600000), days = Math.floor(ms/86400000);
+            if (mins < 60) return `${mins}m ago`;
+            if (hrs < 24) return `${hrs}h ago`;
+            if (days < 7) return `${days}d ago`;
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        async function handleLike(e) {
+            const articleId = e.currentTarget.dataset.id;
+            const btn = e.currentTarget;
+            const countSpan = btn.querySelector('.like-count');
+            const article = articles.find(a => a.id === articleId);
+            if (!article) return;
+            if (!currentUser) { alert('Please log in to like articles'); window.location.href = 'https://patholytica.com/login'; return; }
+            const wasLiked = userLikes.has(articleId), origCount = article.likes || 0;
+            if (wasLiked) { userLikes.delete(articleId); btn.classList.remove('liked'); article.likes = Math.max(0, origCount - 1); }
+            else { userLikes.add(articleId); btn.classList.add('liked'); article.likes = origCount + 1; }
+            countSpan.textContent = article.likes;
+            const card = btn.closest('.article-card, .mcq-card');
+            if (card) { const s = card.querySelector('.stat-item.likes span'); if (s) s.textContent = formatNumber(article.likes); }
+            try {
+                if (wasLiked) { await supabase.from('likes').delete().eq('article_id', articleId).eq('user_id', currentUser.user_id); }
+                else { await supabase.from('likes').insert([{ article_id: articleId, user_id: currentUser.user_id }]); }
+                await supabase.from('articles').update({ likes: article.likes }).eq('id', articleId);
+            } catch(err) {
+                if (wasLiked) { userLikes.add(articleId); btn.classList.add('liked'); } else { userLikes.delete(articleId); btn.classList.remove('liked'); }
+                article.likes = origCount; countSpan.textContent = origCount;
+            }
+        }
+
+        async function handleComments(e) {
+            currentArticleId = e.currentTarget.dataset.id;
+            await loadComments(currentArticleId);
+            openComments();
+        }
+
+        async function loadComments(articleId) {
+            const list = document.getElementById('commentsList');
+            list.innerHTML = '<div class="loading-container"><div class="spinner" style="width:32px;height:32px;border-width:3px;"></div></div>';
+            try {
+                const { data: comments } = await supabase.from('comments').select('*').eq('article_id', articleId).order('created_at', { ascending: true });
+                if (!comments || !comments.length) {
+                    list.innerHTML = `<div class="no-comments"><i class="fas fa-comments"></i><div>No comments yet</div><div style="font-size:12px;">Be the first to comment!</div></div>`;
+                    return;
+                }
+                const uids = [...new Set(comments.map(c => c.user_id).filter(Boolean))];
+                let usersMap = {};
+                if (uids.length > 0) {
+                    const { data: users } = await supabase.from('users').select('user_id, username, full_name, pfp').in('user_id', uids);
+                    if (users) users.forEach(u => { usersMap[u.user_id] = u; });
+                }
+                list.innerHTML = comments.map(c => {
+                    const u = usersMap[c.user_id], author = u?.username ? `@${u.username}` : (u?.full_name || 'Anonymous');
+                    const av = u?.pfp ? `<img src="${u.pfp}" alt="${author}">` : (u?.username || 'A')[0].toUpperCase();
+                    return `<div class="comment-item"><div class="comment-avatar">${av}</div><div class="comment-content"><div class="comment-author">${author}</div><div class="comment-text">${c.comment_text}</div><div class="comment-time">${formatDate(new Date(c.created_at))}</div></div></div>`;
+                }).join('');
+            } catch(e) {
+                list.innerHTML = `<div class="no-comments"><i class="fas fa-exclamation-triangle"></i><div>Failed to load comments</div></div>`;
+            }
+        }
+
+        window.openComments = () => {
+            document.getElementById('commentsPopup').classList.add('active');
+            document.getElementById('commentsOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        };
+        window.closeComments = () => {
+            document.getElementById('commentsPopup').classList.remove('active');
+            document.getElementById('commentsOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        };
+        window.sendComment = async function() {
+            const input = document.getElementById('commentInput'), text = input.value.trim();
+            if (!text || !currentArticleId) return;
+            const sendBtn = document.getElementById('sendCommentBtn'); sendBtn.disabled = true;
+            try {
+                if (!currentUser) currentUser = await getCurrentUser();
+                if (!currentUser) { window.location.href = 'https://patholytica.com/login'; return; }
+                await supabase.from('comments').insert([{ article_id: currentArticleId, user_id: currentUser.user_id, comment_text: text }]);
+                input.value = ''; await loadComments(currentArticleId);
+                const cb = document.querySelector(`.comment-btn[data-id="${currentArticleId}"]`);
+                if (cb) { const cs = cb.querySelector('.comment-count'); cs.textContent = parseInt(cs.textContent) + 1; }
+            } catch(e) { alert('Failed to post comment.'); } finally { sendBtn.disabled = false; }
+        };
+
+        document.getElementById('commentInput').addEventListener('keypress', e => { if (e.key === 'Enter') window.sendComment(); });
+
+        function handleExpand(e) { window.location.href = `article.html?id=${e.currentTarget.dataset.id}`; }
+
+        function handleScroll(e) {
+            const c = e.target;
+            if (c.scrollTop + c.clientHeight >= c.scrollHeight * 0.8 && hasMore && !isLoading) loadArticles(false);
+        }
+
+        loadArticles(true);
+    </script>
+
+    <script>
+        window.toggleAudio = function(btn, audioId) {
+            const player = btn.closest('.custom-audio-player');
+            const audio = document.getElementById(audioId);
+            const icon = btn.querySelector('i');
+            if (audio.paused) {
+                audio.play(); icon.className = 'fas fa-pause';
+                audio.ontimeupdate = function() {
+                    const progress = (audio.currentTime / audio.duration) * 100;
+                    player.querySelector('.waveform-progress').style.width = progress + '%';
+                    const m = Math.floor(audio.currentTime / 60), s = Math.floor(audio.currentTime % 60);
+                    player.querySelector('.current-time').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+                };
+                audio.onended = function() { icon.className = 'fas fa-play'; player.querySelector('.waveform-progress').style.width = '0%'; player.querySelector('.current-time').textContent = '0:00'; };
+            } else { audio.pause(); icon.className = 'fas fa-play'; }
+        };
+        window.seekAudio = function(event, container, audioId) {
+            const audio = document.getElementById(audioId);
+            const rect = container.getBoundingClientRect();
+            audio.currentTime = ((event.clientX - rect.left) / rect.width) * audio.duration;
+        };
+    </script>
 </body>
 </html>
