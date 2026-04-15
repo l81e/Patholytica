@@ -15,8 +15,8 @@
   --card-bg: #1f1f1f;
   --hover-bg: #2a2a2a;
   --border-color: #303030;
-  --accent: #3ea6ff;
-  --accent-hover: #2d8ed6;
+  --accent: #f1d19e;
+  --accent-hover: #d4b47a;
   --accent-green: #2ecc71;
 }
 
@@ -107,7 +107,7 @@ body {
 }
 .btn-signup {
   background: var(--accent);
-  color: white;
+  color: #1f1f1f;
 }
 .btn-signup:hover {
   opacity: 0.9;
@@ -141,14 +141,14 @@ body {
   height: 56px;
   border-radius: 50%;
   background: var(--accent);
-  color: white;
+  color: #1f1f1f;
   border: none;
   cursor: pointer;
   display: none;
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  box-shadow: 0 4px 12px rgba(62, 166, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(241, 209, 158, 0.4);
   transition: all 0.3s ease;
   z-index: 50;
   padding-bottom: env(safe-area-inset-bottom);
@@ -158,7 +158,7 @@ body {
 }
 .fab-create:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 16px rgba(62, 166, 255, 0.5);
+  box-shadow: 0 6px 16px rgba(241, 209, 158, 0.5);
 }
 .fab-create:active {
   transform: scale(0.95);
@@ -225,6 +225,51 @@ body {
   color: #ff4444;
   font-size: 16px;
 }
+
+/* Pong Game */
+.pong-section {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto 32px auto;
+  padding: 0 24px;
+}
+.pong-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  opacity: 0.6;
+}
+.pong-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+#pongCanvas {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  display: block;
+  background: #141414;
+  max-width: 100%;
+}
+.pong-score {
+  font-size: 13px;
+  color: var(--text-secondary);
+  letter-spacing: 2px;
+}
+.pong-score span {
+  color: var(--accent);
+  font-weight: 600;
+}
+.pong-hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.5;
+  text-align: center;
+}
+
 .footer {
   background: var(--bg-color);
   border-top: 1px solid var(--border-color);
@@ -333,17 +378,17 @@ body {
     padding: 8px 16px;
     padding-bottom: calc(8px + env(safe-area-inset-bottom));
   }
-  
   .footer-btn {
     padding: 6px 8px;
   }
-  
   .footer-btn i {
     font-size: 18px;
   }
-  
   .footer-btn span {
     font-size: 9px;
+  }
+  .pong-section {
+    padding: 0 16px;
   }
 }
 </style>
@@ -351,13 +396,11 @@ body {
 <body>
 <div class="header-wrapper">
   <div class="header">
-    <img src="IMG_0696.png" class="logo-img" alt="Patholytica Logo">
+    <img src="IMG_3220.png" class="logo-img" alt="Patholytica Logo">
     <div class="header-actions">
-      <!-- Auth buttons (shown when logged out) -->
       <div class="auth-buttons" id="authButtons">
         <a href="login.html" class="btn-login">Log In</a>
       </div>
-      <!-- User welcome (shown when logged in) -->
       <div class="user-welcome" id="userWelcome">
         <span class="welcome-text" id="welcomeText">Welcome</span>
       </div>
@@ -374,6 +417,16 @@ body {
   <ul class="article-list" id="articleList">
     <li class="loading-state">Loading articles...</li>
   </ul>
+</div>
+
+<!-- Pong Game -->
+<div class="pong-section">
+  <div class="pong-label">Mini Pong</div>
+  <div class="pong-wrapper">
+    <div class="pong-score">YOU <span id="playerScore">0</span> &nbsp;—&nbsp; <span id="aiScore">0</span> AI</div>
+    <canvas id="pongCanvas" width="480" height="200"></canvas>
+    <div class="pong-hint" id="pongHint">Click or tap to start &nbsp;·&nbsp; Mouse / drag to move paddle</div>
+  </div>
 </div>
 
 <footer class="footer">
@@ -396,14 +449,13 @@ body {
     <i class="fas fa-search"></i>
     <span>Explore</span>
   </button>
-  <button class="footer-btn" onclick="window.location.href='profile.html'">
-    <i class="fas fa-user"></i>
-    <span>Profile</span>
+  <button class="footer-btn" onclick="window.location.href='https://patholytica.com/create'">
+    <i class="fas fa-plus-circle"></i>
+    <span>Create</span>
   </button>
 </div>
 
 <script type="module">
-// Import Firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
   getAuth, 
@@ -411,7 +463,6 @@ import {
   signOut
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
   authDomain: "patholytica.firebaseapp.com",
@@ -422,33 +473,24 @@ const firebaseConfig = {
   appId: "1:738430635282:web:8451ef380447c7611137cb"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// Initialize Supabase
 const supabase = window.supabase.createClient(
   "https://vduqewqyvszfquntmark.supabase.co",
   "sb_publishable_YseP73aoHam8YT6B0b9EQQ_iAUEWARI"
 );
 
-// Load articles from Supabase
 async function loadArticles() {
   const articleList = document.getElementById('articleList');
   
   try {
-    console.log('Fetching articles...');
-    
-    // Fetch articles first
     const { data: articles, error: articlesError } = await supabase
       .from('articles')
       .select('*')
       .order('created_at', { ascending: false });
 
-    console.log('Articles response:', { articles, error: articlesError });
-
     if (articlesError) {
-      console.error('Error fetching articles:', articlesError);
       articleList.innerHTML = '<li class="error-state">Error loading articles: ' + articlesError.message + '</li>';
       return;
     }
@@ -459,19 +501,13 @@ async function loadArticles() {
       return;
     }
 
-    // Get unique firebase_user_ids from articles
     const firebaseUserIds = [...new Set(articles.map(a => a.firebase_user_id).filter(Boolean))];
-    console.log('Fetching users with firebase_uids:', firebaseUserIds);
     
-    // Fetch users by firebase_uid
     const { data: users, error: usersError } = await supabase
       .from('users')
       .select('firebase_uid, username')
       .in('firebase_uid', firebaseUserIds);
 
-    console.log('Users response:', { users, error: usersError });
-
-    // Create a user lookup map by firebase_uid
     const userMap = {};
     if (users) {
       users.forEach(user => {
@@ -479,20 +515,16 @@ async function loadArticles() {
       });
     }
 
-    // Clear loading state
     articleList.innerHTML = '';
 
-    // Create article items
     articles.forEach(article => {
       const li = document.createElement('li');
       li.className = 'article-item';
       li.onclick = () => openArticle(article.id);
       
-      // Get author username and format with @
       const user = userMap[article.firebase_user_id];
       const authorName = user?.username ? `@${user.username}` : 'Unknown Author';
       
-      // Format date
       const date = new Date(article.created_at);
       const formattedDate = date.toLocaleDateString('en-US', { 
         year: 'numeric', 
@@ -506,37 +538,28 @@ async function loadArticles() {
           <span>${authorName}</span>
           <div class="meta-dot"></div>
           <span>${formattedDate}</span>
-          <div class="meta-dot"></div>
-          <span>${article.views || 0} views</span>
         </div>
       `;
       
       articleList.appendChild(li);
     });
 
-    // Update article count
     document.getElementById('articleCount').textContent = articles.length;
     
   } catch (err) {
-    console.error('Unexpected error:', err);
     articleList.innerHTML = '<li class="error-state">An unexpected error occurred: ' + err.message + '</li>';
   }
 }
 
-// Log out function
 window.logOut = async function() {
   try {
     await signOut(auth);
-    console.log("User logged out");
-    // Reload page to update UI
     window.location.reload();
   } catch (error) {
-    console.error("Error logging out:", error);
     alert("Error logging out. Please try again.");
   }
 };
 
-// Check authentication state
 onAuthStateChanged(auth, async (user) => {
   const authButtons = document.getElementById('authButtons');
   const userWelcome = document.getElementById('userWelcome');
@@ -544,16 +567,13 @@ onAuthStateChanged(auth, async (user) => {
   const fabCreateBtn = document.getElementById('fabCreateBtn');
   
   if (user) {
-    // User is logged in
     authButtons.classList.remove('show');
     userWelcome.classList.add('show');
     if (fabCreateBtn) fabCreateBtn.classList.add('show');
     
-    // Add click event to username for logout
     welcomeText.onclick = window.logOut;
     welcomeText.style.cursor = 'pointer';
     
-    // Update welcome text with username if available
     try {
       const { data: userData } = await supabase
         .from('users')
@@ -568,20 +588,17 @@ onAuthStateChanged(auth, async (user) => {
       console.error('Error fetching username:', error);
     }
   } else {
-    // User is logged out
     authButtons.classList.add('show');
     userWelcome.classList.remove('show');
     if (fabCreateBtn) fabCreateBtn.classList.remove('show');
   }
 });
 
-// Load articles on page load
 loadArticles();
 </script>
 
 <script>
 function openArticle(articleId) {
-  // Navigate to article detail page
   window.location.href = `article.html?id=${articleId}`;
 }
 
@@ -589,72 +606,180 @@ function createArticle() {
   window.location.href = 'https://patholytica.com/create';
 }
 
-function searchArticles() {
-  // Toggle search bar visibility
-  let searchBar = document.getElementById('searchBar');
-  
-  if (!searchBar) {
-    // Create search bar if it doesn't exist
-    searchBar = document.createElement('div');
-    searchBar.id = 'searchBar';
-    searchBar.style.cssText = `
-      position: fixed;
-      top: calc(65px + env(safe-area-inset-top));
-      left: 0;
-      right: 0;
-      background: var(--bg-color);
-      border-bottom: 1px solid var(--border-color);
-      padding: 16px 24px;
-      z-index: 35;
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    `;
-    
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = 'Search articles...';
-    input.style.cssText = `
-      flex: 1;
-      padding: 10px 16px;
-      border: 1px solid var(--border-color);
-      border-radius: 20px;
-      background: var(--bg-color);
-      color: var(--text-primary);
-      font-size: 14px;
-      outline: none;
-    `;
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '<i class="fas fa-times"></i>';
-    closeBtn.style.cssText = `
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: transparent;
-      border: none;
-      color: var(--text-primary);
-      cursor: pointer;
-      font-size: 18px;
-    `;
-    closeBtn.onclick = () => {
-      searchBar.style.display = 'none';
-    };
-    
-    searchBar.appendChild(input);
-    searchBar.appendChild(closeBtn);
-    document.body.insertBefore(searchBar, document.querySelector('.list-container'));
-    
-    input.focus();
-  } else {
-    // Toggle visibility
-    searchBar.style.display = searchBar.style.display === 'none' ? 'flex' : 'none';
-    if (searchBar.style.display === 'flex') {
-      searchBar.querySelector('input').focus();
+// ── Pong ──────────────────────────────────────────────────────────────────────
+(function() {
+  const canvas = document.getElementById('pongCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // Responsive canvas width
+  function resizeCanvas() {
+    const maxW = Math.min(480, canvas.parentElement.offsetWidth - 0);
+    canvas.width = maxW;
+    canvas.height = Math.round(maxW * (200 / 480));
+  }
+  resizeCanvas();
+  window.addEventListener('resize', () => { resizeCanvas(); resetPositions(); });
+
+  const ACCENT = '#f1d19e';
+  const PAD_W = 8, PAD_H_RATIO = 0.22;
+  const BALL_R = 5;
+  const AI_SPEED_RATIO = 0.035;
+
+  let W, H, padH;
+  let playerY, aiY;
+  let ballX, ballY, ballVX, ballVY;
+  let playerScore = 0, aiScore = 0;
+  let running = false;
+  let speed;
+
+  function getDims() {
+    W = canvas.width;
+    H = canvas.height;
+    padH = Math.round(H * PAD_H_RATIO);
+    speed = W * 0.012;
+  }
+
+  function resetPositions() {
+    getDims();
+    playerY = (H - padH) / 2;
+    aiY = (H - padH) / 2;
+    ballX = W / 2;
+    ballY = H / 2;
+    const angle = (Math.random() * 0.6 - 0.3) + (Math.random() > 0.5 ? 0 : Math.PI);
+    ballVX = Math.cos(angle) * speed;
+    ballVY = Math.sin(angle) * speed;
+    // Make sure ball always moves horizontally
+    if (Math.abs(ballVX) < speed * 0.5) ballVX = ballVX < 0 ? -speed * 0.7 : speed * 0.7;
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Center dashed line
+    ctx.setLineDash([6, 8]);
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(W / 2, 0);
+    ctx.lineTo(W / 2, H);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Player paddle (left)
+    ctx.fillStyle = ACCENT;
+    ctx.beginPath();
+    ctx.roundRect(4, playerY, PAD_W, padH, 4);
+    ctx.fill();
+
+    // AI paddle (right)
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.beginPath();
+    ctx.roundRect(W - 4 - PAD_W, aiY, PAD_W, padH, 4);
+    ctx.fill();
+
+    // Ball
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(ballX, ballY, BALL_R, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function update() {
+    if (!running) return;
+
+    // Move ball
+    ballX += ballVX;
+    ballY += ballVY;
+
+    // Top / bottom bounce
+    if (ballY - BALL_R <= 0) { ballY = BALL_R; ballVY = Math.abs(ballVY); }
+    if (ballY + BALL_R >= H) { ballY = H - BALL_R; ballVY = -Math.abs(ballVY); }
+
+    // AI movement
+    const aiCenter = aiY + padH / 2;
+    const aiMove = H * AI_SPEED_RATIO;
+    if (aiCenter < ballY - 4) aiY = Math.min(H - padH, aiY + aiMove);
+    else if (aiCenter > ballY + 4) aiY = Math.max(0, aiY - aiMove);
+
+    // Player paddle collision
+    if (
+      ballX - BALL_R <= 4 + PAD_W &&
+      ballX - BALL_R >= 2 &&
+      ballY >= playerY &&
+      ballY <= playerY + padH
+    ) {
+      ballX = 4 + PAD_W + BALL_R;
+      const hit = (ballY - (playerY + padH / 2)) / (padH / 2);
+      const angle = hit * 0.9;
+      const spd = Math.sqrt(ballVX * ballVX + ballVY * ballVY) * 1.04;
+      ballVX = Math.abs(Math.cos(angle) * spd);
+      ballVY = Math.sin(angle) * spd;
+    }
+
+    // AI paddle collision
+    if (
+      ballX + BALL_R >= W - 4 - PAD_W &&
+      ballX + BALL_R <= W - 2 &&
+      ballY >= aiY &&
+      ballY <= aiY + padH
+    ) {
+      ballX = W - 4 - PAD_W - BALL_R;
+      const hit = (ballY - (aiY + padH / 2)) / (padH / 2);
+      const angle = hit * 0.9;
+      const spd = Math.sqrt(ballVX * ballVX + ballVY * ballVY) * 1.02;
+      ballVX = -Math.abs(Math.cos(angle) * spd);
+      ballVY = Math.sin(angle) * spd;
+    }
+
+    // Score
+    if (ballX - BALL_R <= 0) {
+      aiScore++;
+      document.getElementById('aiScore').textContent = aiScore;
+      resetPositions();
+    }
+    if (ballX + BALL_R >= W) {
+      playerScore++;
+      document.getElementById('playerScore').textContent = playerScore;
+      resetPositions();
     }
   }
-}
 
+  let animId;
+  function loop() {
+    update();
+    draw();
+    animId = requestAnimationFrame(loop);
+  }
+
+  function startGame() {
+    if (running) return;
+    running = true;
+    document.getElementById('pongHint').textContent = 'Mouse / drag to move your paddle';
+    loop();
+  }
+
+  // Mouse control
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const my = e.clientY - rect.top;
+    playerY = Math.max(0, Math.min(H - padH, my - padH / 2));
+  });
+
+  // Touch control
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const ty = e.touches[0].clientY - rect.top;
+    playerY = Math.max(0, Math.min(H - padH, ty - padH / 2));
+  }, { passive: false });
+
+  // Start on click or tap
+  canvas.addEventListener('click', startGame);
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); startGame(); }, { passive: false });
+
+  resetPositions();
+  draw();
+})();
 </script>
 </body>
 </html>
