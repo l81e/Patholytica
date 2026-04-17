@@ -128,6 +128,7 @@
             font-size: 22px; font-weight: 700;
             color: var(--text-primary);
             margin-bottom: 10px; line-height: 1.25;
+            flex-shrink: 0;
         }
 
         .article-stats {
@@ -149,9 +150,7 @@
         .article-content::-webkit-scrollbar-thumb { background: var(--text-secondary); border-radius: 2px; }
         .content-paragraph { margin-bottom: 14px; }
 
-        /* ══════════════════════════════════════
-           MCQ CARD
-        ══════════════════════════════════════ */
+        /* ── MCQ ── */
         .mcq-card {
             position: relative;
             height: 100vh;
@@ -162,6 +161,7 @@
             padding-top: calc(16px + env(safe-area-inset-top));
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
 
         .mcq-badge {
@@ -181,33 +181,39 @@
             align-self: flex-start;
         }
 
-        .mcq-author-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-shrink: 0;
-        }
-
         .mcq-question {
             font-size: 20px;
             font-weight: 700;
             color: var(--text-primary);
             line-height: 1.35;
-            margin-bottom: 20px;
+            margin-bottom: 14px;
             flex-shrink: 0;
             padding-right: 50px;
         }
+
+        /* media that sits between question and options */
+        .mcq-media {
+            padding-right: 60px;
+            flex-shrink: 0;
+            margin-bottom: 14px;
+        }
+
+        .mcq-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 60px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+        .mcq-scroll-area::-webkit-scrollbar { width: 3px; }
+        .mcq-scroll-area::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
 
         .mcq-options {
             display: flex;
             flex-direction: column;
             gap: 10px;
-            flex: 1;
-            overflow-y: auto;
-            padding-right: 60px;
         }
-        .mcq-options::-webkit-scrollbar { width: 3px; }
-        .mcq-options::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
 
         .mcq-option {
             display: flex;
@@ -225,11 +231,10 @@
             color: var(--text-primary);
             line-height: 1.4;
             -webkit-tap-highlight-color: transparent;
+            width: 100%;
         }
 
-        .mcq-option:hover:not(:disabled) {
-            border-color: var(--accent);
-        }
+        .mcq-option:hover:not(:disabled) { border-color: var(--accent); }
 
         .mcq-option .opt-letter {
             width: 26px; height: 26px;
@@ -243,50 +248,27 @@
         }
 
         .mcq-option .opt-text { flex: 1; }
-
         .mcq-option:disabled { cursor: default; }
 
-        .mcq-option.selected-correct {
-            border-color: #4ade80;
-            background: rgba(74,222,128,0.08);
-        }
-        .mcq-option.selected-correct .opt-letter {
-            background: #4ade80;
-            border-color: #4ade80;
-            color: #1a1a1a;
-        }
-
-        .mcq-option.selected-wrong {
-            border-color: #ef4444;
-            background: rgba(239,68,68,0.07);
-        }
-        .mcq-option.selected-wrong .opt-letter {
-            background: #ef4444;
-            border-color: #ef4444;
-            color: #fff;
-        }
-
-        .mcq-option.reveal-correct {
-            border-color: rgba(74,222,128,0.5);
-        }
-        .mcq-option.reveal-correct .opt-letter {
-            border-color: #4ade80;
-            color: #4ade80;
-        }
+        .mcq-option.selected-correct { border-color: #4ade80; background: rgba(74,222,128,0.08); }
+        .mcq-option.selected-correct .opt-letter { background: #4ade80; border-color: #4ade80; color: #1a1a1a; }
+        .mcq-option.selected-wrong { border-color: #ef4444; background: rgba(239,68,68,0.07); }
+        .mcq-option.selected-wrong .opt-letter { background: #ef4444; border-color: #ef4444; color: #fff; }
+        .mcq-option.reveal-correct { border-color: rgba(74,222,128,0.5); }
+        .mcq-option.reveal-correct .opt-letter { border-color: #4ade80; color: #4ade80; }
 
         .mcq-result-msg {
             font-size: 13px;
             font-weight: 600;
             margin-top: 14px;
-            flex-shrink: 0;
-            padding-right: 60px;
             min-height: 20px;
             color: var(--text-secondary);
+            flex-shrink: 0;
         }
         .mcq-result-msg.correct { color: #4ade80; }
         .mcq-result-msg.wrong   { color: #ef4444; }
 
-        /* ── action buttons (shared by article + mcq) ── */
+        /* ── Action buttons ── */
         .action-buttons {
             position: absolute;
             right: 16px;
@@ -460,7 +442,6 @@
     <div class="app-container">
         <div class="scroller-container">
             <div class="posts-wrapper" id="postsWrapper">
-                <!-- Skeleton placeholders -->
                 <div class="skeleton-card">
                     <div class="card-top-line"></div>
                     <div class="skeleton-header">
@@ -574,18 +555,11 @@
         let viewedArticles = new Set();
         const GAME_EVERY = 6;
 
-        /* ══════════════════════════════════════
-           MCQ DETECTION & PARSING
-        ══════════════════════════════════════ */
+        // ── MCQ helpers ──
         function isMCQ(content) {
             return typeof content === 'string' && content.trimStart().startsWith('❔');
         }
 
-        /**
-         * Parse stored MCQ format:
-         *   ❔Question text\nOption A\n✅Correct Option\nOption C\n...
-         * Returns { question, options: [{label, correct}] }
-         */
         function parseMCQ(content) {
             const lines = content.trim().split('\n').map(l => l.trim()).filter(Boolean);
             const questionLine = lines[0].replace(/^❔/, '').trim();
@@ -597,12 +571,78 @@
             return { question: questionLine, options };
         }
 
-        /* ══════════════════════════════════════
-           MCQ CARD BUILDER
-        ══════════════════════════════════════ */
+        function escHtml(str) {
+            return String(str)
+                .replace(/&/g,'&amp;')
+                .replace(/</g,'&lt;')
+                .replace(/>/g,'&gt;');
+        }
+
+        // ── Media renderer ──
+        function createMediaElement(m) {
+            const d = document.createElement('div');
+            d.className = 'media-embed';
+
+            if (m.type === 'image') {
+                d.innerHTML = `<img src="${m.url}" alt="${m.caption || ''}">${m.caption ? `<div class="media-caption">${m.caption}</div>` : ''}`;
+
+            } else if (m.type === 'audio') {
+                const aid = 'audio-' + Math.random().toString(36).substr(2, 9);
+                const bars = Array(15).fill(0).map(() => `<div class="waveform-bar" style="height:${Math.random()*60+20}%"></div>`).join('');
+                d.innerHTML = `
+                    <div class="custom-audio-player">
+                        <button class="play-btn" onclick="toggleAudio(this,'${aid}')"><i class="fas fa-play"></i></button>
+                        <div class="audio-info">
+                            <div class="audio-title">${m.caption || 'Audio'}</div>
+                            <div class="waveform-container" onclick="seekAudio(event,this,'${aid}')">
+                                <div class="waveform-progress"></div>
+                                <div class="waveform-bars">${bars}</div>
+                            </div>
+                            <div class="audio-time"><span class="current-time">0:00</span><span class="duration">0:00</span></div>
+                        </div>
+                        <audio id="${aid}" src="${m.url}" style="display:none;"></audio>
+                    </div>`;
+                setTimeout(() => {
+                    const audio = document.getElementById(aid);
+                    if (audio) {
+                        audio.addEventListener('loadedmetadata', () => {
+                            const dur = Math.floor(audio.duration);
+                            const dEl = audio.closest('.custom-audio-player')?.querySelector('.duration');
+                            if (dEl) dEl.textContent = `${Math.floor(dur/60)}:${(dur%60).toString().padStart(2,'0')}`;
+                        });
+                    }
+                }, 100);
+
+            } else if (m.type === 'pdf') {
+                d.innerHTML = `<div style="background:var(--hover-bg);border:1px solid var(--border-color);border-radius:12px;overflow:hidden;margin:4px 0;">
+                    <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border-color);">
+                        <i class="fas fa-file-pdf" style="color:#e74c3c;font-size:18px;flex-shrink:0;"></i>
+                        <span style="font-size:13px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-primary);">${m.caption || 'Document'}</span>
+                        <a href="${m.url}" target="_blank" rel="noopener" style="font-size:11px;font-weight:700;color:var(--accent);background:rgba(241,209,158,0.1);border:1px solid rgba(241,209,158,0.2);border-radius:8px;padding:4px 10px;text-decoration:none;white-space:nowrap;flex-shrink:0;">Open PDF</a>
+                    </div>
+                    <iframe src="${m.url}" style="width:100%;height:220px;border:none;display:block;"></iframe>
+                </div>`;
+
+            } else if (m.type === 'youtube') {
+                const ytMatch = m.url.match(/embed\/([A-Za-z0-9_-]{11})/);
+                const videoId = ytMatch ? ytMatch[1] : '';
+                const label = m.caption || (videoId ? `youtube.com/watch?v=${videoId}` : 'YouTube Video');
+                d.innerHTML = `<div style="background:var(--hover-bg);border:1px solid var(--border-color);border-radius:12px;overflow:hidden;margin:4px 0;">
+                    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border-color);">
+                        <i class="fab fa-youtube" style="color:#ff0000;font-size:16px;flex-shrink:0;"></i>
+                        <span style="font-size:13px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-primary);">${label}</span>
+                        ${videoId ? `<a href="https://www.youtube.com/watch?v=${videoId}" target="_blank" rel="noopener" style="font-size:11px;font-weight:700;color:#ff0000;background:rgba(255,0,0,0.1);border:1px solid rgba(255,0,0,0.2);border-radius:8px;padding:4px 10px;text-decoration:none;white-space:nowrap;flex-shrink:0;">Watch</a>` : ''}
+                    </div>
+                    <iframe src="${m.url}" title="${label}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width:100%;aspect-ratio:16/9;border:none;display:block;"></iframe>
+                </div>`;
+            }
+            return d;
+        }
+
+        // ── MCQ card builder ──
         function buildMCQCard(article, index) {
             const { question, options } = parseMCQ(article.content);
-            const isLiked = userLikes.has(article.id);
+            const isLiked = userLikes.has(String(article.id));
             const avatarContent = getAvatarContent(article);
             const letters = ['A','B','C','D','E','F'];
 
@@ -611,10 +651,10 @@
             card.dataset.index = index;
             card.dataset.articleId = article.id;
 
-            // Header HTML
+            // Static top section (header, badge, question, media)
             card.innerHTML = `
                 <div class="card-top-line"></div>
-                <div class="mcq-author-row article-header">
+                <div class="article-header">
                     <div class="author-avatar">${avatarContent}</div>
                     <div class="author-info">
                         <div class="author-name">${article.author}</div>
@@ -624,12 +664,15 @@
                 <div class="header-bottom-line"></div>
                 <div class="mcq-badge">❔ Quick Question</div>
                 <div class="mcq-question">${escHtml(question)}</div>
-                <div class="mcq-options" id="mcq-opts-${article.id}"></div>
-                <div class="mcq-result-msg" id="mcq-msg-${article.id}"></div>
+                <div class="mcq-media" id="mcq-media-${article.id}"></div>
+                <div class="mcq-scroll-area">
+                    <div class="mcq-options" id="mcq-opts-${article.id}"></div>
+                    <div class="mcq-result-msg" id="mcq-msg-${article.id}"></div>
+                </div>
                 <div class="action-buttons">
                     <button class="action-btn like-btn ${isLiked ? 'liked' : ''}" data-id="${article.id}">
                         <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                        <span class="like-count">${article.likes || 0}</span>
+                        <span class="like-count">${formatNumber(article.likes || 0)}</span>
                     </button>
                     <button class="action-btn comment-btn" data-id="${article.id}">
                         <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
@@ -642,6 +685,12 @@
                 </div>
             `;
 
+            // Render media above options if present
+            if (article.media && article.media.length > 0) {
+                const mediaContainer = card.querySelector(`#mcq-media-${article.id}`);
+                article.media.forEach(m => mediaContainer.appendChild(createMediaElement(m)));
+            }
+
             // Build option buttons
             const optsContainer = card.querySelector(`#mcq-opts-${article.id}`);
             const msgEl = card.querySelector(`#mcq-msg-${article.id}`);
@@ -650,18 +699,11 @@
             options.forEach((opt, i) => {
                 const btn = document.createElement('button');
                 btn.className = 'mcq-option';
-                btn.innerHTML = `
-                    <span class="opt-letter">${letters[i] || i + 1}</span>
-                    <span class="opt-text">${escHtml(opt.label)}</span>
-                `;
-
+                btn.innerHTML = `<span class="opt-letter">${letters[i] || i + 1}</span><span class="opt-text">${escHtml(opt.label)}</span>`;
                 btn.addEventListener('click', () => {
                     if (answered) return;
                     answered = true;
-
-                    // Disable all options
                     optsContainer.querySelectorAll('.mcq-option').forEach(b => b.disabled = true);
-
                     if (opt.correct) {
                         btn.classList.add('selected-correct');
                         msgEl.textContent = '✓ Correct!';
@@ -669,37 +711,49 @@
                     } else {
                         btn.classList.add('selected-wrong');
                         msgEl.className = 'mcq-result-msg wrong';
-                        // Find and reveal the correct one
                         const correctIdx = options.findIndex(o => o.correct);
                         if (correctIdx !== -1) {
-                            optsContainer.querySelectorAll('.mcq-option')[correctIdx]
-                                .classList.add('reveal-correct');
+                            optsContainer.querySelectorAll('.mcq-option')[correctIdx].classList.add('reveal-correct');
                             msgEl.textContent = `✗ The answer was: ${options[correctIdx].label}`;
                         } else {
                             msgEl.textContent = '✗ Incorrect';
                         }
                     }
                 });
-
                 optsContainer.appendChild(btn);
             });
 
             return card;
         }
 
-        function escHtml(str) {
-            return String(str)
-                .replace(/&/g,'&amp;')
-                .replace(/</g,'&lt;')
-                .replace(/>/g,'&gt;');
-        }
-
-        /* ══════════════════════════════════════ */
-
+        // ── Helpers ──
         function formatNumber(num) {
             if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
             if (num >= 1000)    return (num / 1000).toFixed(1) + 'K';
             return (num || 0).toString();
+        }
+
+        function formatDate(date) {
+            const now = new Date(), ms = now - date;
+            const mins = Math.floor(ms/60000), hrs = Math.floor(ms/3600000), days = Math.floor(ms/86400000);
+            if (mins < 60) return `${mins}m ago`;
+            if (hrs < 24) return `${hrs}h ago`;
+            if (days < 7) return `${days}d ago`;
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function getAvatarContent(article) {
+            if (article.authorPfp) return `<img src="${article.authorPfp}" alt="${article.author}">`;
+            let letter = 'A';
+            if (article.authorUsername) {
+                letter = article.authorUsername.charAt(0).toUpperCase();
+            } else if (article.author) {
+                const atIdx = article.author.indexOf('@');
+                letter = atIdx !== -1 && article.author.length > atIdx + 1
+                    ? article.author.charAt(atIdx + 1).toUpperCase()
+                    : article.author.charAt(0).toUpperCase();
+            }
+            return letter;
         }
 
         function skeletonCardHTML() {
@@ -730,15 +784,16 @@
             `;
         }
 
+        // ── Auth ──
         async function getCurrentUser() {
             try {
                 const firebaseUser = auth.currentUser;
                 if (!firebaseUser) return null;
-                const { data: userData, error } = await supabase
+                const { data, error } = await supabase
                     .from('users').select('user_id, firebase_uid, username')
                     .eq('firebase_uid', firebaseUser.uid).single();
                 if (error) return null;
-                return userData;
+                return data;
             } catch (e) { return null; }
         }
 
@@ -752,23 +807,79 @@
             }
         });
 
+        // ── Likes ──
         async function loadUserLikes() {
             if (!currentUser) return;
             try {
                 const { data: likes } = await supabase
                     .from('likes').select('article_id').eq('user_id', currentUser.user_id);
                 userLikes.clear();
-                (likes || []).forEach(l => userLikes.add(l.article_id));
+                (likes || []).forEach(l => userLikes.add(String(l.article_id)));
                 updateLikeButtons();
             } catch(e) {}
         }
 
         function updateLikeButtons() {
             document.querySelectorAll('.like-btn').forEach(btn => {
-                btn.classList.toggle('liked', userLikes.has(btn.dataset.id));
+                btn.classList.toggle('liked', userLikes.has(String(btn.dataset.id)));
             });
         }
 
+        async function handleLike(e) {
+            const btn = e.currentTarget;
+            const id = String(btn.dataset.id);
+            const countSpan = btn.querySelector('.like-count');
+
+            if (!currentUser) {
+                alert('Please log in to like articles');
+                window.location.href = 'https://patholytica.com/login';
+                return;
+            }
+            if (btn.dataset.processing === 'true') return;
+            btn.dataset.processing = 'true';
+
+            const wasLiked = userLikes.has(id);
+            const artIdx = articles.findIndex(a => String(a.id) === id);
+            const prevRealCount = artIdx !== -1 ? (articles[artIdx].likes || 0) : 0;
+            const newCount = wasLiked ? Math.max(0, prevRealCount - 1) : prevRealCount + 1;
+
+            if (wasLiked) { userLikes.delete(id); btn.classList.remove('liked'); }
+            else { userLikes.add(id); btn.classList.add('liked'); }
+            countSpan.textContent = formatNumber(newCount);
+            const card = btn.closest('.article-card, .mcq-card');
+            if (card) { const s = card.querySelector('.stat-item.likes span'); if (s) s.textContent = formatNumber(newCount); }
+            if (artIdx !== -1) articles[artIdx].likes = newCount;
+
+            try {
+                if (wasLiked) {
+                    await supabase.from('likes').delete().eq('article_id', parseInt(id)).eq('user_id', currentUser.user_id);
+                    const { error: rpcErr } = await supabase.rpc('decrement_likes', { article_id: parseInt(id) });
+                    if (rpcErr) {
+                        const { data: fresh } = await supabase.from('articles').select('likes').eq('id', id).single();
+                        await supabase.from('articles').update({ likes: Math.max(0, (fresh?.likes || 1) - 1) }).eq('id', id);
+                    }
+                } else {
+                    const { error: insErr } = await supabase.from('likes').insert([{ article_id: parseInt(id), user_id: currentUser.user_id }]);
+                    if (insErr && insErr.code !== '23505') throw insErr;
+                    const { error: rpcErr } = await supabase.rpc('increment_likes', { article_id: parseInt(id) });
+                    if (rpcErr) {
+                        const { data: fresh } = await supabase.from('articles').select('likes').eq('id', id).single();
+                        await supabase.from('articles').update({ likes: (fresh?.likes || 0) + 1 }).eq('id', id);
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                if (wasLiked) { userLikes.add(id); btn.classList.add('liked'); }
+                else { userLikes.delete(id); btn.classList.remove('liked'); }
+                countSpan.textContent = formatNumber(prevRealCount);
+                if (card) { const s = card.querySelector('.stat-item.likes span'); if (s) s.textContent = formatNumber(prevRealCount); }
+                if (artIdx !== -1) articles[artIdx].likes = prevRealCount;
+            } finally {
+                btn.dataset.processing = 'false';
+            }
+        }
+
+        // ── Load articles ──
         async function loadArticles(isInitial = true) {
             if (isLoading || (!isInitial && !hasMore)) return;
             isLoading = true;
@@ -782,15 +893,9 @@
 
                 if (!articlesData || articlesData.length === 0) {
                     if (isInitial) {
-                        document.getElementById('postsWrapper').innerHTML = `
-                            <div class="loading-container">
-                                <i class="fas fa-inbox" style="font-size:48px;"></i>
-                                <div>No articles found</div>
-                            </div>`;
+                        document.getElementById('postsWrapper').innerHTML = `<div class="loading-container"><i class="fas fa-inbox" style="font-size:48px;"></i><div>No articles found</div></div>`;
                     }
-                    hasMore = false;
-                    isLoading = false;
-                    return;
+                    hasMore = false; isLoading = false; return;
                 }
 
                 if (articlesData.length < LIMIT) hasMore = false;
@@ -827,70 +932,13 @@
             } catch(e) {
                 console.error('Error loading articles:', e);
                 if (isInitial) {
-                    document.getElementById('postsWrapper').innerHTML = `
-                        <div class="loading-container">
-                            <i class="fas fa-exclamation-triangle" style="font-size:48px;"></i>
-                            <div>Failed to load articles</div>
-                        </div>`;
+                    document.getElementById('postsWrapper').innerHTML = `<div class="loading-container"><i class="fas fa-exclamation-triangle" style="font-size:48px;"></i><div>Failed to load articles</div></div>`;
                 }
                 isLoading = false;
             }
         }
 
-        function createMediaElement(mediaItem) {
-            const mediaDiv = document.createElement('div');
-            mediaDiv.className = 'media-embed';
-            if (mediaItem.type === 'image') {
-                mediaDiv.innerHTML = `
-                    <img src="${mediaItem.url}" alt="${mediaItem.caption || 'Article image'}">
-                    ${mediaItem.caption ? `<div class="media-caption">${mediaItem.caption}</div>` : ''}
-                `;
-            } else if (mediaItem.type === 'audio') {
-                const audioId = 'audio-' + Math.random().toString(36).substr(2, 9);
-                mediaDiv.innerHTML = `
-                    <div class="custom-audio-player">
-                        <button class="play-btn" onclick="toggleAudio(this,'${audioId}')"><i class="fas fa-play"></i></button>
-                        <div class="audio-info">
-                            <div class="audio-title">${mediaItem.caption || 'Audio'}</div>
-                            <div class="waveform-container" onclick="seekAudio(event,this,'${audioId}')">
-                                <div class="waveform-progress"></div>
-                                <div class="waveform-bars">
-                                    ${Array(15).fill(0).map(() => `<div class="waveform-bar" style="height:${Math.random()*60+20}%"></div>`).join('')}
-                                </div>
-                            </div>
-                            <div class="audio-time"><span class="current-time">0:00</span><span class="duration">0:00</span></div>
-                        </div>
-                        <audio id="${audioId}" src="${mediaItem.url}" style="display:none;"></audio>
-                    </div>
-                `;
-                setTimeout(() => {
-                    const audio = document.getElementById(audioId);
-                    if (audio) {
-                        audio.addEventListener('loadedmetadata', () => {
-                            const d = Math.floor(audio.duration);
-                            const dEl = audio.closest('.custom-audio-player').querySelector('.duration');
-                            if (dEl) dEl.textContent = `${Math.floor(d/60)}:${(d%60).toString().padStart(2,'0')}`;
-                        });
-                    }
-                }, 100);
-            }
-            return mediaDiv;
-        }
-
-        function getAvatarContent(article) {
-            if (article.authorPfp) return `<img src="${article.authorPfp}" alt="${article.author}">`;
-            let letter = 'A';
-            if (article.authorUsername) {
-                letter = article.authorUsername.charAt(0).toUpperCase();
-            } else if (article.author) {
-                const atIdx = article.author.indexOf('@');
-                letter = atIdx !== -1 && article.author.length > atIdx + 1
-                    ? article.author.charAt(atIdx + 1).toUpperCase()
-                    : article.author.charAt(0).toUpperCase();
-            }
-            return letter;
-        }
-
+        // ── Render ──
         function renderArticles(isInitial = true) {
             const wrapper = document.getElementById('postsWrapper');
 
@@ -906,12 +954,9 @@
             for (let index = startIndex; index < articles.length; index++) {
                 const article = articles[index];
 
-                // ── MCQ card ──
                 if (isMCQ(article.content)) {
-                    const mcqDiv = buildMCQCard(article, index);
-                    wrapper.appendChild(mcqDiv);
+                    wrapper.appendChild(buildMCQCard(article, index));
                 } else {
-                    // ── Regular article card ──
                     const articleDiv = document.createElement('div');
                     articleDiv.className = 'article-card';
                     articleDiv.dataset.index = index;
@@ -937,7 +982,7 @@
                             .forEach(m => contentDiv.appendChild(createMediaElement(m)));
                     }
 
-                    const isLiked = userLikes.has(article.id);
+                    const isLiked = userLikes.has(String(article.id));
                     const avatarContent = getAvatarContent(article);
 
                     articleDiv.innerHTML = `
@@ -958,7 +1003,7 @@
                         <div class="action-buttons">
                             <button class="action-btn like-btn ${isLiked ? 'liked' : ''}" data-id="${article.id}">
                                 <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                                <span class="like-count">${article.likes || 0}</span>
+                                <span class="like-count">${formatNumber(article.likes || 0)}</span>
                             </button>
                             <button class="action-btn comment-btn" data-id="${article.id}">
                                 <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
@@ -970,16 +1015,13 @@
                             </button>
                         </div>
                     `;
-
                     articleDiv.querySelector('.article-stats').insertAdjacentElement('afterend', contentDiv);
                     wrapper.appendChild(articleDiv);
                 }
 
-                // Game card every GAME_EVERY articles
                 const oneBasedPos = index + 1;
                 if (oneBasedPos % GAME_EVERY === 0) {
-                    const gameIndex = Math.floor(oneBasedPos / GAME_EVERY) - 1;
-                    wrapper.appendChild(createGameCard(gameIndex));
+                    wrapper.appendChild(createGameCard(Math.floor(oneBasedPos / GAME_EVERY) - 1));
                 }
             }
 
@@ -1004,7 +1046,7 @@
             }
         }
 
-        /* ── Game card factory (unchanged) ── */
+        // ── Game cards ──
         window.createGameCard = function(gameIndex) {
             const type = gameIndex % 4;
             const el = document.createElement('div');
@@ -1260,7 +1302,7 @@
             initBoard();
         }
 
-        /* ── Intersection / view tracking ── */
+        // ── Intersection / view tracking ──
         function setupIntersectionObserver() {
             const obs = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
@@ -1306,6 +1348,7 @@
             } catch(e) { viewedArticles.delete(id); }
         }
 
+        // ── Comments ──
         async function loadCommentCounts() {
             try {
                 const { data: comments } = await supabase.from('comments').select('article_id');
@@ -1315,38 +1358,6 @@
                     btn.querySelector('.comment-count').textContent = counts[btn.dataset.id] || 0;
                 });
             } catch(e) {}
-        }
-
-        function formatDate(date) {
-            const now = new Date(), ms = now - date;
-            const mins = Math.floor(ms/60000), hrs = Math.floor(ms/3600000), days = Math.floor(ms/86400000);
-            if (mins < 60) return `${mins}m ago`;
-            if (hrs < 24) return `${hrs}h ago`;
-            if (days < 7) return `${days}d ago`;
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }
-
-        async function handleLike(e) {
-            const articleId = e.currentTarget.dataset.id;
-            const btn = e.currentTarget;
-            const countSpan = btn.querySelector('.like-count');
-            const article = articles.find(a => a.id === articleId);
-            if (!article) return;
-            if (!currentUser) { alert('Please log in to like articles'); window.location.href = 'https://patholytica.com/login'; return; }
-            const wasLiked = userLikes.has(articleId), origCount = article.likes || 0;
-            if (wasLiked) { userLikes.delete(articleId); btn.classList.remove('liked'); article.likes = Math.max(0, origCount - 1); }
-            else { userLikes.add(articleId); btn.classList.add('liked'); article.likes = origCount + 1; }
-            countSpan.textContent = article.likes;
-            const card = btn.closest('.article-card, .mcq-card');
-            if (card) { const s = card.querySelector('.stat-item.likes span'); if (s) s.textContent = formatNumber(article.likes); }
-            try {
-                if (wasLiked) { await supabase.from('likes').delete().eq('article_id', articleId).eq('user_id', currentUser.user_id); }
-                else { await supabase.from('likes').insert([{ article_id: articleId, user_id: currentUser.user_id }]); }
-                await supabase.from('articles').update({ likes: article.likes }).eq('id', articleId);
-            } catch(err) {
-                if (wasLiked) { userLikes.add(articleId); btn.classList.add('liked'); } else { userLikes.delete(articleId); btn.classList.remove('liked'); }
-                article.likes = origCount; countSpan.textContent = origCount;
-            }
         }
 
         async function handleComments(e) {
@@ -1422,18 +1433,34 @@
             const audio = document.getElementById(audioId);
             const icon = btn.querySelector('i');
             if (audio.paused) {
-                audio.play(); icon.className = 'fas fa-pause';
+                audio.play();
+                icon.className = 'fas fa-pause';
                 audio.ontimeupdate = function() {
                     const progress = (audio.currentTime / audio.duration) * 100;
-                    player.querySelector('.waveform-progress').style.width = progress + '%';
-                    const m = Math.floor(audio.currentTime / 60), s = Math.floor(audio.currentTime % 60);
-                    player.querySelector('.current-time').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+                    const prog = player.querySelector('.waveform-progress');
+                    if (prog) prog.style.width = progress + '%';
+                    const ct = player.querySelector('.current-time');
+                    if (ct) {
+                        const m = Math.floor(audio.currentTime / 60), s = Math.floor(audio.currentTime % 60);
+                        ct.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+                    }
                 };
-                audio.onended = function() { icon.className = 'fas fa-play'; player.querySelector('.waveform-progress').style.width = '0%'; player.querySelector('.current-time').textContent = '0:00'; };
-            } else { audio.pause(); icon.className = 'fas fa-play'; }
+                audio.onended = function() {
+                    icon.className = 'fas fa-play';
+                    const prog = player.querySelector('.waveform-progress');
+                    if (prog) prog.style.width = '0%';
+                    const ct = player.querySelector('.current-time');
+                    if (ct) ct.textContent = '0:00';
+                };
+            } else {
+                audio.pause();
+                icon.className = 'fas fa-play';
+            }
         };
+
         window.seekAudio = function(event, container, audioId) {
             const audio = document.getElementById(audioId);
+            if (!audio || !audio.duration) return;
             const rect = container.getBoundingClientRect();
             audio.currentTime = ((event.clientX - rect.left) / rect.width) * audio.duration;
         };
