@@ -678,73 +678,93 @@ const supabase = window.supabase.createClient(
 // Expose supabase globally so the non-module script can use it
 window._supabase = supabase;
 
+// loadArticles:
 async function loadArticles(libraryId = null) {
-  const articleList = document.getElementById('articleList');
-  articleList.innerHTML = '<li class="loading-state">Loading articles...</li>';
+  const list = document.getElementById('articleList');
+  list.innerHTML = '<li class="loading-state"><div class="loading-spinner"></div>Loading articles…</li>';
 
   try {
-    let query = supabase.from('articles').select('*').order('created_at', { ascending: false });
+    let articleIds = null;
 
-    if (libraryId) {
-      query = query.eq('library_id', libraryId);
+    if (libraryId !== null) {
+      const { data: items, error: itemsErr } = await supabase
+        .from('playlist_items')
+        .select('article_id')
+        .eq('playlist_id', libraryId);
+
+      if (itemsErr) {
+        list.innerHTML = `<li class="error-state">Error loading library: ${itemsErr.message}</li>`;
+        return;
+      }
+
+      if (!items || items.length === 0) {
+        list.innerHTML = '<li class="loading-state">No articles in this library.</li>';
+        document.getElementById('articleCountLabel').textContent = '0';
+        return;
+      }
+
+      articleIds = items.map(i => i.article_id);
     }
 
-    const { data: articles, error: articlesError } = await query;
+    let query = supabase
+      .from('articles')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-    if (articlesError) {
-      articleList.innerHTML = '<li class="error-state">Error loading articles: ' + articlesError.message + '</li>';
+    if (articleIds !== null) {
+      query = query.in('id', articleIds);
+    }
+
+    const { data: articles, error } = await query;
+
+    if (error) {
+      list.innerHTML = `<li class="error-state">Error loading articles: ${error.message}</li>`;
       return;
     }
 
     if (!articles || articles.length === 0) {
-      articleList.innerHTML = '<li class="loading-state">' + (libraryId ? 'No articles in this library.' : 'No articles found.') + '</li>';
-      document.getElementById('articleCount').textContent = '0';
+      list.innerHTML = `<li class="loading-state">${libraryId !== null ? 'No articles found.' : 'No articles found.'}</li>`;
+      document.getElementById('articleCountLabel').textContent = '0';
       return;
     }
 
-    const firebaseUserIds = [...new Set(articles.map(a => a.firebase_user_id).filter(Boolean))];
-    
-    const { data: users } = await supabase
-      .from('users')
-      .select('firebase_uid, username')
-      .in('firebase_uid', firebaseUserIds);
-
+    const authorIds = [...new Set(articles.map(a => a.firebase_user_id).filter(Boolean))];
     const userMap = {};
-    if (users) {
-      users.forEach(user => { userMap[user.firebase_uid] = user; });
+    if (authorIds.length > 0) {
+      const { data: users } = await supabase
+        .from('users')
+        .select('firebase_uid, username')
+        .in('firebase_uid', authorIds);
+      if (users) users.forEach(u => { userMap[u.firebase_uid] = u; });
     }
 
-    articleList.innerHTML = '';
-
+    list.innerHTML = '';
     articles.forEach(article => {
       const li = document.createElement('li');
       li.className = 'article-item';
-      li.onclick = () => openArticle(article.id);
-      
-      const user = userMap[article.firebase_user_id];
-      const authorName = user?.username ? `@${user.username}` : 'Unknown Author';
-      
-      const date = new Date(article.created_at);
-      const formattedDate = date.toLocaleDateString('en-US', { 
-        year: 'numeric', month: 'short', day: 'numeric' 
+      li.onclick = () => window.location.href = `article.html?id=${article.id}`;
+
+      const author = userMap[article.firebase_user_id];
+      const authorName = author?.username ? `@${author.username}` : 'Unknown Author';
+      const date = new Date(article.created_at).toLocaleDateString('en-US', {
+        year: 'numeric', month: 'short', day: 'numeric'
       });
-      
+
       li.innerHTML = `
-        <h2 class="article-title">${article.title}</h2>
+        <h2 class="article-title">${escHtml(article.title || 'Untitled')}</h2>
         <div class="article-meta">
-          <span>${authorName}</span>
+          <span>${escHtml(authorName)}</span>
           <div class="meta-dot"></div>
-          <span>${formattedDate}</span>
-        </div>
-      `;
-      
-      articleList.appendChild(li);
+          <span>${date}</span>
+        </div>`;
+
+      list.appendChild(li);
     });
 
-    document.getElementById('articleCount').textContent = articles.length;
-    
-  } catch (err) {
-    articleList.innerHTML = '<li class="error-state">An unexpected error occurred: ' + err.message + '</li>';
+    document.getElementById('articleCountLabel').textContent = articles.length;
+
+  } catch(err) {
+    list.innerHTML = `<li class="error-state">Unexpected error: ${err.message}</li>`;
   }
 }
 
@@ -807,58 +827,67 @@ function createArticle() {
 }
 
 // ── Library Filter ────────────────────────────────────────────────────────────
+//startLibrary:
 async function startLibrary() {
-  const input = document.getElementById('libraryIdInput');
+  const input  = document.getElementById('libraryIdInput');
+  const btn    = document.getElementById('startBtn');
+  const banner = document.getElementById('libraryBanner');
+  const bName  = document.getElementById('libraryBannerName');
+  const bMeta  = document.getElementById('libraryBannerMeta');
+
   const val = input.value.trim();
   if (!val || isNaN(val) || parseInt(val) <= 0) {
+    input.classList.add('error');
+    setTimeout(() => input.classList.remove('error'), 1200);
     input.focus();
-    input.style.borderColor = '#ff6b6b';
-    setTimeout(() => input.style.borderColor = '', 1200);
     return;
   }
 
   const libraryId = parseInt(val);
-  const banner = document.getElementById('libraryBanner');
-  const bannerName = document.getElementById('libraryBannerName');
-  const bannerMeta = document.getElementById('libraryBannerMeta');
 
-  bannerName.textContent = 'Loading library…';
-  bannerMeta.innerHTML = '';
+  btn.disabled = true;
+  btn.textContent = '…';
+  bName.textContent = 'Loading…';
+  bMeta.innerHTML = '';
   banner.classList.add('show');
 
-  try {
-    const supabase = window._supabase;
+  const supabase = window._supabase;
 
-    // Fetch library info
+  try {
+    // Correct table name from schema: playlists
     const { data: lib, error: libErr } = await supabase
-      .from('libraries')
+      .from('playlists')
       .select('*')
       .eq('id', libraryId)
       .single();
 
     if (libErr || !lib) {
-      bannerName.textContent = `Library #${libraryId}`;
-      bannerMeta.innerHTML = `<span><i class="fas fa-exclamation-circle"></i> Library not found</span>`;
+      bName.textContent = `Library #${libraryId}`;
+      bMeta.innerHTML = `<span><i class="fas fa-exclamation-circle"></i> Library not found</span>`;
     } else {
-      bannerName.textContent = lib.name || `Library #${libraryId}`;
+      bName.textContent = lib.name || `Library #${libraryId}`;
 
-      const metaParts = [];
+      const parts = [];
       if (lib.description) {
-        metaParts.push(`<span><i class="fas fa-align-left"></i> ${lib.description}</span>`);
+        parts.push(`<span><i class="fas fa-align-left"></i> ${lib.description}</span>`);
       }
       if (lib.created_at) {
-        const d = new Date(lib.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-        metaParts.push(`<span><i class="fas fa-calendar-alt"></i> ${d}</span>`);
+        const d = new Date(lib.created_at).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'short', day: 'numeric'
+        });
+        parts.push(`<span><i class="fas fa-calendar-alt"></i> ${d}</span>`);
       }
-      metaParts.push(`<span><i class="fas fa-hashtag"></i> ID ${libraryId}</span>`);
-      bannerMeta.innerHTML = metaParts.join('');
+      parts.push(`<span><i class="fas fa-hashtag"></i> ID ${libraryId}</span>`);
+      bMeta.innerHTML = parts.join('');
     }
-  } catch (e) {
-    bannerName.textContent = `Library #${libraryId}`;
-    bannerMeta.innerHTML = `<span><i class="fas fa-hashtag"></i> ID ${libraryId}</span>`;
+  } catch(e) {
+    bName.textContent = `Library #${libraryId}`;
+    bMeta.innerHTML = `<span><i class="fas fa-hashtag"></i> ID ${libraryId}</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Start';
   }
 
-  // Load filtered articles
   window._loadArticles(libraryId);
 }
 
