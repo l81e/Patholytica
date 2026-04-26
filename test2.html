@@ -1,598 +1,871 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Library — Patholytica</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-:root {
-  --bg-color: #1f1f1f;
-  --text-primary: #fff;
-  --text-secondary: #aaa;
-  --card-bg: #1f1f1f;
-  --hover-bg: #2a2a2a;
-  --border-color: #303030;
-  --accent: #f1d19e;
-  --accent-hover: #d4b47a;
-  --accent-green: #2ecc71;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Patholytica — Batch Create</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-color: #1f1f1f;
+            --text-primary: #fff;
+            --text-secondary: #aaa;
+            --card-bg: #1f1f1f;
+            --hover-bg: #2a2a2a;
+            --border-color: #303030;
+            --accent: #f1d19e;
+            --accent-hover: #d9b87a;
+            --success: #4ade80;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+        body.light-theme {
+            --bg-color: #f9f9f9;
+            --text-primary: #0f0f0f;
+            --text-secondary: #606060;
+            --card-bg: #f9f9f9;
+            --hover-bg: #f0f0f0;
+            --border-color: #e5e5e5;
+            --accent: #c49a3c;
+            --accent-hover: #a07c28;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            transition: background .2s, color .2s;
+            overflow: hidden;
+            height: 100vh;
+            width: 100%;
+            position: fixed;
+        }
 
-* { box-sizing: border-box; }
-html, body {
-  margin: 0;
-  padding: 0;
-  min-height: 100%;
-  font-family: "Roboto", Arial, sans-serif;
-  overflow-x: hidden;
-  max-width: 100vw;
-}
-body {
-  background: var(--bg-color);
-  color: var(--text-primary);
-}
+        .app {
+            position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: 450px; height: 100vh;
+            background: var(--bg-color);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
 
-/* Header */
-.header-wrapper {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  background: var(--bg-color);
-  padding-top: env(safe-area-inset-top);
-  border-bottom: 1px solid var(--border-color);
-  z-index: 40;
-}
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 24px;
-}
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.back-btn {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  background: transparent;
-  border: none;
-  color: var(--text-primary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  transition: background 0.2s ease;
-}
-.back-btn:hover { background: var(--hover-bg); }
-.logo-img {
-  height: 26px;
-  width: auto;
-  cursor: pointer;
-}
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.auth-buttons { display: none; gap: 12px; }
-.auth-buttons.show { display: flex; }
-.btn-login {
-  padding: 7px 18px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  text-decoration: none;
-  transition: background 0.2s ease;
-}
-.btn-login:hover { background: var(--hover-bg); }
-.user-welcome { display: none; align-items: center; gap: 10px; font-size: 14px; }
-.user-welcome.show { display: flex; }
-.welcome-text {
-  font-weight: 500;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-.welcome-text:hover { color: var(--accent); }
+        /* Header */
+        .header {
+            padding: 12px 18px;
+            padding-top: calc(12px + env(safe-area-inset-top));
+            border-bottom: 1px solid var(--border-color);
+            display: flex; flex-direction: column; gap: 14px;
+            flex-shrink: 0;
+            background: var(--bg-color);
+        }
+        .header-top { display: flex; align-items: center; gap: 12px; }
+        .header-actions { display: flex; gap: 8px; width: 100%; }
 
-/* Main */
-.main-container {
-  max-width: 900px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 24px 24px 100px;
-  padding-top: calc(65px + env(safe-area-inset-top) + 24px);
-}
+        .icon-btn {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: var(--hover-bg); border: 1px solid var(--border-color);
+            color: var(--text-primary); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; transition: border-color .2s;
+        }
+        .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .header-title { font-size: 15px; font-weight: 700; }
+        .header-sub { font-size: 10px; color: var(--text-secondary); margin-top: 1px; }
 
-/* Library Header Card */
-.library-header-card {
-  background: #252525;
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 28px 24px 24px;
-  margin-bottom: 32px;
-}
-.library-icon {
-  width: 52px; height: 52px;
-  background: rgba(241, 209, 158, 0.12);
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  color: var(--accent);
-  margin-bottom: 16px;
-}
-.library-title {
-  font-family: 'Merriweather', Georgia, serif;
-  font-size: 32px;
-  font-weight: 700;
-  margin: 0 0 12px 0;
-  line-height: 1.25;
-  color: var(--text-primary);
-  word-wrap: break-word;
-}
-.library-description {
-  font-size: 15px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: 16px;
-}
-.library-meta-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px 16px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 20px;
-}
-.library-meta-row span {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.library-meta-row i { font-size: 11px; opacity: 0.7; }
-.author-link {
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-.author-link:hover { color: var(--accent); }
+        /* Body */
+        .body {
+            flex: 1; display: flex; flex-direction: column;
+            overflow: hidden; padding: 12px 16px;
+            gap: 10px; min-height: 0;
+        }
 
-/* Action Buttons */
-.library-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.lib-btn {
-  padding: 9px 20px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  transition: all 0.2s ease;
-}
-.lib-btn-primary {
-  background: var(--accent);
-  color: #1f1f1f;
-}
-.lib-btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
-.lib-btn-secondary {
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-}
-.lib-btn-secondary:hover { background: var(--hover-bg); }
+        /* Format hints */
+        .format-hints {
+            display: flex; flex-direction: column; gap: 6px;
+            flex-shrink: 0;
+        }
+        .format-hint {
+            background: var(--hover-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 8px 12px;
+        }
+        .format-hint-row {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .format-badge {
+            font-size: 9px; font-weight: 700; letter-spacing: .08em;
+            text-transform: uppercase; padding: 2px 7px; border-radius: 4px;
+            flex-shrink: 0;
+        }
+        .badge-article { background: rgba(241,209,158,.15); color: var(--accent); }
+        .badge-mcq     { background: rgba(74,222,128,.12);  color: #4ade80; }
+        .format-hint code {
+            font-size: 10px; color: var(--text-secondary);
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            word-break: break-all; line-height: 1.5;
+        }
+        .format-hint code em { color: var(--accent); font-style: normal; font-weight: 700; }
+        .format-hint code .mcq-em { color: #4ade80; font-style: normal; font-weight: 700; }
 
-/* Articles */
-.articles-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-.articles-section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: 0.3px;
-}
-.articles-count-badge {
-  font-size: 12px;
-  color: var(--text-secondary);
-  background: #2a2a2a;
-  padding: 3px 10px;
-  border-radius: 20px;
-  border: 1px solid var(--border-color);
-}
+        /* Textarea */
+        .textarea-wrap { flex: 1; position: relative; min-height: 0; margin-bottom: env(safe-area-inset-bottom); }
+        .big-input {
+            width: 100%; height: 100%;
+            background: var(--hover-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 13px; line-height: 1.65;
+            color: var(--text-primary);
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            resize: none; outline: none;
+            transition: border-color .2s;
+        }
+        .big-input:focus { border-color: var(--accent); }
+        .big-input::placeholder { color: var(--text-secondary); opacity: .5; font-style: italic; font-size: 12px; }
 
-.article-list { list-style: none; margin: 0; padding: 0; }
-.article-item {
-  padding: 22px 0;
-  border-bottom: 1px solid var(--border-color);
-  cursor: pointer;
-  transition: background 0.2s ease;
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-}
-.article-item:hover {
-  background: var(--hover-bg);
-  margin: 0 -12px;
-  padding: 22px 12px;
-}
-.article-number {
-  font-size: 13px;
-  color: var(--text-secondary);
-  opacity: 0.5;
-  min-width: 22px;
-  padding-top: 4px;
-  font-weight: 600;
-  text-align: right;
-  flex-shrink: 0;
-}
-.article-body { flex: 1; min-width: 0; }
-.article-title {
-  font-family: 'Merriweather', Georgia, serif;
-  font-size: 22px;
-  font-weight: 700;
-  margin: 0 0 7px 0;
-  line-height: 1.35;
-  color: var(--text-primary);
-  word-wrap: break-word;
-}
-.article-item:hover .article-title { color: var(--accent); }
-.article-meta {
-  font-size: 13px;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.meta-dot {
-  width: 3px; height: 3px;
-  background: var(--text-secondary);
-  border-radius: 50%;
-}
+        .input-meta {
+            position: absolute; bottom: 9px; right: 11px;
+            font-size: 10px; color: var(--text-secondary);
+            pointer-events: none; display: flex; gap: 10px;
+        }
+        .input-meta .art-ct  { color: var(--accent); font-weight: 700; }
+        .input-meta .mcq-ct  { color: #4ade80; font-weight: 700; }
 
-/* States */
-.loading-state, .error-state, .empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-secondary);
-  font-size: 15px;
-}
-.error-state { color: #ff6b6b; }
-.loading-spinner {
-  width: 36px; height: 36px;
-  border: 3px solid var(--border-color);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  margin: 0 auto 16px;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.empty-icon { font-size: 40px; opacity: 0.3; margin-bottom: 12px; }
-.empty-title { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+        /* Buttons */
+        .btn {
+            flex: 1; padding: 10px 6px;
+            border-radius: 10px; border: none;
+            font-size: 12px; font-weight: 700;
+            cursor: pointer; transition: all .2s;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .btn-secondary {
+            background: var(--hover-bg); color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-primary { background: var(--accent); color: #1a1a1a; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-library {
+            background: rgba(241,209,158,0.1);
+            color: var(--accent);
+            border: 1px solid rgba(241,209,158,0.3);
+        }
+        .btn-library:hover {
+            background: rgba(241,209,158,0.18);
+            border-color: var(--accent);
+        }
+        .btn:disabled { opacity: .35; cursor: not-allowed; }
 
-/* Footer Bar */
-.footer-bar {
-  position: fixed;
-  bottom: 0; left: 50%;
-  transform: translateX(-50%);
-  width: 100%; max-width: 450px;
-  background: var(--card-bg);
-  border-top: 1px solid var(--border-color);
-  padding: 8px 24px;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom));
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  z-index: 100;
-}
-.footer-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color 0.2s ease;
-  padding: 6px 12px;
-}
-.footer-btn:hover { color: var(--text-primary); }
-.footer-btn.active { color: var(--accent); }
-.footer-btn i { font-size: 20px; }
-.footer-btn span { font-size: 10px; font-weight: 500; }
+        /* Preview sheet */
+        .preview-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.75);
+            z-index: 200;
+            display: none; align-items: flex-end; justify-content: center;
+        }
+        .preview-overlay.show { display: flex; }
+        .preview-sheet {
+            background: var(--bg-color);
+            border-radius: 20px 20px 0 0;
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+            width: 100%; max-width: 450px;
+            max-height: 88vh;
+            display: flex; flex-direction: column;
+            animation: slideUp .3s cubic-bezier(.4,0,.2,1);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+        .preview-handle {
+            width: 36px; height: 4px; background: var(--border-color);
+            border-radius: 2px; margin: 12px auto 0; flex-shrink: 0;
+        }
+        .preview-header {
+            padding: 12px 18px 10px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        .preview-header-title { font-size: 14px; font-weight: 700; }
+        .preview-meta { display: flex; align-items: center; gap: 8px; }
+        .preview-pill {
+            font-size: 11px; font-weight: 700;
+            padding: 3px 10px; border-radius: 20px;
+        }
+        .pill-art { background: rgba(241,209,158,.2); color: var(--accent); }
+        .pill-mcq { background: rgba(74,222,128,.15); color: #4ade80; }
+        .close-btn {
+            width: 30px; height: 30px; border-radius: 50%;
+            background: var(--hover-bg); border: 1px solid var(--border-color);
+            color: var(--text-primary); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 12px;
+        }
+        .preview-list {
+            flex: 1; overflow-y: auto; padding: 12px 14px;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .preview-list::-webkit-scrollbar { width: 3px; }
+        .preview-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
 
-@media (max-width: 768px) {
-  .main-container {
-    padding: 16px 16px 100px;
-    padding-top: calc(65px + env(safe-area-inset-top) + 16px);
-  }
-  .library-title { font-size: 24px; }
-  .article-title { font-size: 18px; }
-  .library-header-card { padding: 20px 16px; }
-  .footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
-  .footer-btn { padding: 6px 8px; }
-  .footer-btn i { font-size: 18px; }
-  .footer-btn span { font-size: 9px; }
-}
-</style>
+        /* Preview cards */
+        .preview-card {
+            background: var(--hover-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 14px;
+            position: relative;
+        }
+        .preview-card.mcq-card { border-color: rgba(74,222,128,.3); }
+        .preview-card-badge {
+            position: absolute; top: 10px; right: 10px;
+            font-size: 9px; font-weight: 700; letter-spacing: .06em;
+            padding: 2px 7px; border-radius: 6px;
+        }
+        .badge-art-sm { background: rgba(241,209,158,.15); color: var(--accent); }
+        .badge-mcq-sm { background: rgba(74,222,128,.12); color: #4ade80; }
+        .preview-card-title {
+            font-size: 14px; font-weight: 800;
+            line-height: 1.3; margin-bottom: 6px;
+            padding-right: 60px; letter-spacing: -.01em;
+        }
+        .preview-card-body {
+            font-size: 12px; line-height: 1.6;
+            color: var(--text-secondary);
+            white-space: pre-wrap; word-break: break-word;
+        }
+        .mcq-options { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+        .mcq-option {
+            font-size: 12px; padding: 5px 10px;
+            border-radius: 6px; border: 1px solid var(--border-color);
+            display: flex; align-items: center; gap: 7px;
+            color: var(--text-secondary);
+        }
+        .mcq-option.correct {
+            border-color: rgba(74,222,128,.4);
+            color: #4ade80;
+            background: rgba(74,222,128,.06);
+        }
+        .mcq-option .opt-icon { font-size: 10px; flex-shrink: 0; }
+
+        .preview-footer {
+            padding: 10px 14px;
+            border-top: 1px solid var(--border-color);
+            display: flex; gap: 8px; flex-shrink: 0;
+        }
+
+        /* Library sheet */
+        .library-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.75);
+            z-index: 300;
+            display: none; align-items: flex-end; justify-content: center;
+        }
+        .library-overlay.show { display: flex; }
+        .library-sheet {
+            background: var(--bg-color);
+            border-radius: 20px 20px 0 0;
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+            width: 100%; max-width: 450px;
+            max-height: 70vh;
+            display: flex; flex-direction: column;
+            animation: slideUp .3s cubic-bezier(.4,0,.2,1);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .library-sheet-handle {
+            width: 36px; height: 4px; background: var(--border-color);
+            border-radius: 2px; margin: 12px auto 0; flex-shrink: 0;
+        }
+        .library-sheet-header {
+            padding: 12px 18px 10px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        .library-sheet-title { font-size: 14px; font-weight: 700; }
+        .library-sheet-body {
+            flex: 1; overflow-y: auto;
+            padding: 16px 18px;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        .library-sheet-body::-webkit-scrollbar { width: 3px; }
+        .library-sheet-body::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+
+        .lib-field label {
+            display: block; font-size: 10px; font-weight: 700;
+            letter-spacing: .08em; text-transform: uppercase;
+            color: var(--text-secondary); margin-bottom: 6px;
+        }
+        .lib-input {
+            width: 100%; padding: 10px 14px;
+            background: var(--hover-bg); border: 1px solid var(--border-color);
+            border-radius: 10px; color: var(--text-primary);
+            font-size: 14px; outline: none;
+            font-family: inherit;
+            transition: border-color .2s;
+        }
+        .lib-input:focus { border-color: var(--accent); }
+        .lib-input::placeholder { color: var(--text-secondary); opacity: .5; }
+        .lib-textarea {
+            width: 100%; padding: 10px 14px;
+            background: var(--hover-bg); border: 1px solid var(--border-color);
+            border-radius: 10px; color: var(--text-primary);
+            font-size: 13px; outline: none; resize: none;
+            font-family: inherit; line-height: 1.5;
+            transition: border-color .2s;
+            min-height: 60px;
+        }
+        .lib-textarea:focus { border-color: var(--accent); }
+        .lib-textarea::placeholder { color: var(--text-secondary); opacity: .5; }
+
+        .lib-info {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 14px;
+            background: rgba(241,209,158,0.06);
+            border: 1px solid rgba(241,209,158,0.15);
+            border-radius: 10px;
+            font-size: 12px; color: var(--text-secondary);
+        }
+        .lib-info i { color: var(--accent); font-size: 13px; flex-shrink: 0; }
+
+        .library-sheet-footer {
+            padding: 10px 18px;
+            border-top: 1px solid var(--border-color);
+            display: flex; gap: 8px; flex-shrink: 0;
+        }
+
+        /* Progress overlay */
+        .progress-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.7);
+            z-index: 400;
+            display: none; align-items: center; justify-content: center;
+        }
+        .progress-overlay.show { display: flex; }
+        .progress-box {
+            background: var(--hover-bg); border: 1px solid var(--border-color);
+            border-radius: 16px; padding: 28px 24px;
+            text-align: center; width: 240px;
+        }
+        .progress-spinner {
+            width: 40px; height: 40px;
+            border: 3px solid var(--border-color); border-top-color: var(--accent);
+            border-radius: 50%; animation: spin .8s linear infinite;
+            margin: 0 auto 14px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .progress-label { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+        .progress-sub { font-size: 11px; color: var(--text-secondary); }
+        .progress-bar-wrap {
+            margin-top: 12px; background: var(--border-color);
+            border-radius: 4px; height: 5px; overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%; background: var(--accent);
+            border-radius: 4px; transition: width .3s ease; width: 0%;
+        }
+
+        /* Notification */
+        .notif {
+            position: fixed; top: 64px; left: 50%; transform: translateX(-50%);
+            background: var(--hover-bg); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 11px 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,.4);
+            z-index: 500; display: none; align-items: center; gap: 9px;
+            min-width: 240px; max-width: 340px;
+        }
+        .notif.show { display: flex; animation: notifIn .25s ease; }
+        .notif.success { border-left: 3px solid var(--success); }
+        .notif.error   { border-left: 3px solid var(--error); }
+        .notif.warning { border-left: 3px solid var(--warning); }
+        .notif i { font-size: 15px; }
+        .notif.success i { color: var(--success); }
+        .notif.error   i { color: var(--error); }
+        .notif.warning i { color: var(--warning); }
+        .notif span { font-size: 12px; font-weight: 500; }
+        @keyframes notifIn {
+            from { transform: translateX(-50%) translateY(-12px); opacity: 0; }
+            to   { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+    </style>
 </head>
 <body>
 
-<div class="header-wrapper">
-  <div class="header">
-    <div class="header-left">
-      <button class="back-btn" onclick="window.history.back()"><i class="fas fa-arrow-left"></i></button>
-      <img src="IMG_3220.png" class="logo-img" alt="Patholytica" onclick="window.location.href='index.html'">
+<div class="app">
+    <div class="header">
+        <div class="header-top">
+            <button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
+            <div>
+                <div class="header-title">Batch Create</div>
+                <div class="header-sub">Articles & MCQs at once</div>
+            </div>
+        </div>
+        
+        <div class="header-actions">
+            <button class="btn btn-secondary" id="previewBtn" onclick="openPreview()" disabled>
+                <i class="fas fa-eye"></i> Preview
+            </button>
+            <button class="btn btn-library" id="libraryBtn" onclick="openLibrarySheet()" disabled>
+                <i class="fas fa-book-open"></i> + Library
+            </button>
+            <button class="btn btn-primary" id="publishBtn" onclick="publishAll()" disabled>
+                <i class="fas fa-paper-plane"></i> Publish
+            </button>
+        </div>
     </div>
-    <div class="header-actions">
-      <div class="auth-buttons" id="authButtons">
-        <a href="login.html" class="btn-login">Log In</a>
-      </div>
-      <div class="user-welcome" id="userWelcome">
-        <span class="welcome-text" id="welcomeText">Welcome</span>
-      </div>
+
+    <div class="body">
+        <div class="format-hints">
+            <div class="format-hint">
+                <div class="format-hint-row">
+                    <span class="format-badge badge-article">Article</span>
+                    <code><em>art1</em>:[Title]:[Content]::</code>
+                </div>
+            </div>
+            <div class="format-hint">
+                <div class="format-hint-row">
+                    <span class="format-badge badge-mcq">MCQ</span>
+                    <code><span class="mcq-em">mcqart1</span>:[Question]:[opt1<em>{right}</em>@opt2@opt3]::</code>
+                </div>
+            </div>
+        </div>
+
+        <div class="textarea-wrap">
+            <textarea class="big-input" id="batchInput"
+                placeholder="art1:Intro to Pathology:Pathology is the study of disease...::mcqart1:What is pathology?:Study of disease{right}@Study of anatomy@Study of physiology@Study of genetics::"
+                oninput="onInput()"></textarea>
+            <div class="input-meta">
+                <span><span class="art-ct" id="artCount">0</span> art</span>
+                <span><span class="mcq-ct" id="mcqCount">0</span> mcq</span>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
-<div class="main-container">
-  <div id="pageState">
-    <div class="loading-state">
-      <div class="loading-spinner"></div>
-      Loading library…
+<div class="preview-overlay" id="previewOverlay">
+    <div class="preview-sheet">
+        <div class="preview-handle"></div>
+        <div class="preview-header">
+            <div class="preview-header-title">Preview</div>
+            <div class="preview-meta">
+                <span class="preview-pill pill-art" id="pillArt">0 art</span>
+                <span class="preview-pill pill-mcq" id="pillMcq">0 mcq</span>
+                <button class="close-btn" onclick="closePreview()"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div class="preview-list" id="previewList"></div>
+        <div class="preview-footer">
+            <button class="btn btn-secondary" style="flex:.5;" onclick="closePreview()">
+                <i class="fas fa-pencil"></i> Edit
+            </button>
+            <button class="btn btn-primary" id="previewPublishBtn" onclick="publishAll(); closePreview();">
+                <i class="fas fa-paper-plane"></i> Publish All
+            </button>
+        </div>
     </div>
-  </div>
 </div>
 
-<div class="footer-bar">
-  <button class="footer-btn" onclick="window.location.href='index.html'">
-    <i class="fas fa-home"></i><span>Home</span>
-  </button>
-  <button class="footer-btn" onclick="window.location.href='https://patholytica.com/dailyfeed'">
-    <i class="fas fa-scroll"></i><span>Feed</span>
-  </button>
-  <button class="footer-btn" onclick="window.location.href='explore.html'">
-    <i class="fas fa-search"></i><span>Explore</span>
-  </button>
-  <button class="footer-btn" onclick="window.location.href='https://patholytica.com/create'">
-    <i class="fas fa-plus-circle"></i><span>Create</span>
-  </button>
+<div class="library-overlay" id="libraryOverlay">
+    <div class="library-sheet">
+        <div class="library-sheet-handle"></div>
+        <div class="library-sheet-header">
+            <div class="library-sheet-title">Publish to Library</div>
+            <button class="close-btn" onclick="closeLibrarySheet()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="library-sheet-body">
+            <div class="lib-info">
+                <i class="fas fa-info-circle"></i>
+                All articles will be published and automatically added to this library.
+            </div>
+            <div class="lib-field">
+                <label>Library Name</label>
+                <input class="lib-input" id="libName" placeholder="e.g. Pathology Week 1" maxlength="80">
+            </div>
+            <div class="lib-field">
+                <label>Description <span style="opacity:.45;font-weight:400;text-transform:none;letter-spacing:0">— optional</span></label>
+                <textarea class="lib-textarea" id="libDesc" placeholder="What is this library about?" rows="2"></textarea>
+            </div>
+        </div>
+        <div class="library-sheet-footer">
+            <button class="btn btn-secondary" style="flex:.5" onclick="closeLibrarySheet()">Cancel</button>
+            <button class="btn btn-primary" id="libPublishBtn" onclick="publishWithLibrary()">
+                <i class="fas fa-book-open"></i> Publish & Create Library
+            </button>
+        </div>
+    </div>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+<div class="progress-overlay" id="progressOverlay">
+    <div class="progress-box">
+        <div class="progress-spinner"></div>
+        <div class="progress-label" id="progressLabel">Publishing…</div>
+        <div class="progress-sub" id="progressSub">Please wait</div>
+        <div class="progress-bar-wrap">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+    </div>
+</div>
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
-  authDomain: "patholytica.firebaseapp.com",
-  databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "patholytica",
-  storageBucket: "patholytica.firebasestorage.app",
-  messagingSenderId: "738430635282",
-  appId: "1:738430635282:web:8451ef380447c7611137cb"
+<div class="notif" id="notif">
+    <i class="fas fa-check-circle"></i>
+    <span id="notifText"></span>
+</div>
+
+<script>
+function goBack() {
+    if (document.referrer && document.referrer.includes(location.host)) history.back();
+    else location.href = 'index.html';
+}
+if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-theme');
+
+function showNotif(msg, type = 'success') {
+    const el = document.getElementById('notif');
+    const icon = el.querySelector('i');
+    document.getElementById('notifText').textContent = msg;
+    el.className = `notif ${type} show`;
+    icon.className = type === 'success' ? 'fas fa-check-circle'
+                   : type === 'warning' ? 'fas fa-exclamation-triangle'
+                   : 'fas fa-exclamation-circle';
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+function setProgress(label, sub, pct) {
+    document.getElementById('progressLabel').textContent = label;
+    document.getElementById('progressSub').textContent = sub;
+    document.getElementById('progressBar').style.width = pct + '%';
+}
+
+function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ── Parser ── */
+function parseInput(raw) {
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+    const chunks = trimmed.split('::');
+    const results = [];
+    for (const chunk of chunks) {
+        const c = chunk.trim();
+        if (!c) continue;
+        const mcqMatch = c.match(/^mcqart\d+:([\s\S]+)$/i);
+        if (mcqMatch) {
+            const rest = mcqMatch[1];
+            const firstColon = rest.indexOf(':');
+            if (firstColon === -1) continue;
+            const question = rest.slice(0, firstColon).trim();
+            const optStr   = rest.slice(firstColon + 1).trim();
+            const rawOpts  = optStr.split('@').map(o => o.trim()).filter(Boolean);
+            if (!question || rawOpts.length === 0) continue;
+            const options = rawOpts.map(o => {
+                const isRight = o.includes('{right}');
+                const label   = o.replace('{right}', '').trim();
+                return { label, correct: isRight };
+            });
+            if (!options.some(o => o.correct)) options[0].correct = true;
+            results.push({ type: 'mcq', question, options });
+            continue;
+        }
+        const artMatch = c.match(/^art\d+:([\s\S]+)$/i);
+        if (artMatch) {
+            const rest = artMatch[1];
+            const firstColon = rest.indexOf(':');
+            if (firstColon === -1) continue;
+            const title   = rest.slice(0, firstColon).trim();
+            const content = rest.slice(firstColon + 1).trim();
+            if (!title && !content) continue;
+            results.push({ type: 'article', title: title || '(no title)', content: content || '(no content)' });
+        }
+    }
+    return results;
+}
+
+/* ── Live counter ── */
+function onInput() {
+    const parsed = parseInput(document.getElementById('batchInput').value);
+    const artN = parsed.filter(p => p.type === 'article').length;
+    const mcqN = parsed.filter(p => p.type === 'mcq').length;
+    document.getElementById('artCount').textContent = artN;
+    document.getElementById('mcqCount').textContent = mcqN;
+    const hasAny = parsed.length > 0;
+    document.getElementById('previewBtn').disabled        = !hasAny;
+    document.getElementById('publishBtn').disabled        = !hasAny;
+    document.getElementById('libraryBtn').disabled        = !hasAny;
+    document.getElementById('previewPublishBtn').disabled = !hasAny;
+}
+
+/* ── Preview ── */
+function openPreview() {
+    const parsed = parseInput(document.getElementById('batchInput').value);
+    if (!parsed.length) { showNotif('No valid articles found', 'warning'); return; }
+    const artN = parsed.filter(p => p.type === 'article').length;
+    const mcqN = parsed.filter(p => p.type === 'mcq').length;
+    document.getElementById('pillArt').textContent = artN + ' art';
+    document.getElementById('pillMcq').textContent = mcqN + ' mcq';
+    const list = document.getElementById('previewList');
+    list.innerHTML = '';
+    parsed.forEach(item => {
+        const card = document.createElement('div');
+        if (item.type === 'article') {
+            card.className = 'preview-card';
+            card.innerHTML = `
+                <div class="preview-card-badge badge-art-sm">ARTICLE</div>
+                <div class="preview-card-title">${escHtml(item.title)}</div>
+                <div class="preview-card-body">${escHtml(item.content.slice(0, 160))}${item.content.length > 160 ? '…' : ''}</div>`;
+        } else {
+            card.className = 'preview-card mcq-card';
+            const optsHTML = item.options.map(o => `
+                <div class="mcq-option ${o.correct ? 'correct' : ''}">
+                    <span class="opt-icon">${o.correct ? '✓' : '○'}</span>
+                    ${escHtml(o.label)}
+                </div>`).join('');
+            card.innerHTML = `
+                <div class="preview-card-badge badge-mcq-sm">MCQ</div>
+                <div class="preview-card-title">❔ ${escHtml(item.question)}</div>
+                <div class="mcq-options">${optsHTML}</div>`;
+        }
+        list.appendChild(card);
+    });
+    document.getElementById('previewOverlay').classList.add('show');
+}
+
+function closePreview() {
+    document.getElementById('previewOverlay').classList.remove('show');
+}
+document.getElementById('previewOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closePreview();
+});
+
+/* ── Library sheet ── */
+function openLibrarySheet() {
+    const parsed = parseInput(document.getElementById('batchInput').value);
+    if (!parsed.length) { showNotif('No valid items found', 'warning'); return; }
+    document.getElementById('libraryOverlay').classList.add('show');
+}
+function closeLibrarySheet() {
+    document.getElementById('libraryOverlay').classList.remove('show');
+}
+document.getElementById('libraryOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeLibrarySheet();
+});
+
+/* ── Publish helpers ── */
+async function doPublishItems(parsed, supabase, currentUser) {
+    const results = { ok: 0, fail: 0, ids: [] };
+    for (let i = 0; i < parsed.length; i++) {
+        const item = parsed[i];
+        const pct  = Math.round(((i + 1) / parsed.length) * 80);
+        if (item.type === 'article') {
+            setProgress(
+                `Publishing ${i + 1} of ${parsed.length}`,
+                `"${item.title.slice(0, 36)}${item.title.length > 36 ? '…' : ''}"`,
+                pct
+            );
+            try {
+                const { data: inserted, error: insErr } = await supabase
+                    .from('articles')
+                    .insert([{ title: item.title, content: item.content, firebase_user_id: currentUser.uid, views: 0, likes: 0 }])
+                    .select().single();
+                if (insErr) throw insErr;
+                results.ok++;
+                results.ids.push(inserted.id);
+            } catch (err) { console.error(err); results.fail++; }
+        } else {
+            setProgress(
+                `Publishing ${i + 1} of ${parsed.length}`,
+                `"${item.question.slice(0, 36)}${item.question.length > 36 ? '…' : ''}"`,
+                pct
+            );
+            try {
+                const contentLines = item.options.map(o => o.correct ? `✅${o.label}` : o.label).join('\n');
+                const fullContent  = `❔${item.question}\n${contentLines}`;
+                const { data: inserted, error: insErr } = await supabase
+                    .from('articles')
+                    .insert([{ title: item.question, content: fullContent, firebase_user_id: currentUser.uid, views: 0, likes: 0 }])
+                    .select().single();
+                if (insErr) throw insErr;
+                results.ok++;
+                results.ids.push(inserted.id);
+            } catch (err) { console.error(err); results.fail++; }
+        }
+    }
+    return results;
+}
+
+function lockUI() {
+    ['publishBtn','previewBtn','libraryBtn','previewPublishBtn','libPublishBtn'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.disabled = true;
+    });
+    document.getElementById('progressOverlay').classList.add('show');
+}
+
+function unlockUI() {
+    ['publishBtn','previewBtn','libraryBtn','previewPublishBtn','libPublishBtn'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.disabled = false;
+    });
+    document.getElementById('progressOverlay').classList.remove('show');
+    onInput();
+}
+
+function clearInput() {
+    document.getElementById('batchInput').value = '';
+    document.getElementById('artCount').textContent = '0';
+    document.getElementById('mcqCount').textContent = '0';
+    ['publishBtn','previewBtn','libraryBtn','previewPublishBtn'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.disabled = true;
+    });
+}
+
+window.publishAll = function() {
+    showNotif('Auth not ready yet, try again in a second', 'warning');
 };
 
-const app = initializeApp(firebaseConfig);
+window.publishWithLibrary = function() {
+    showNotif('Auth not ready yet, try again in a second', 'warning');
+};
+</script>
+
+<script type="module">
+import { initializeApp }               from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+    authDomain: "patholytica.firebaseapp.com",
+    databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "patholytica",
+    storageBucket: "patholytica.firebasestorage.app",
+    messagingSenderId: "738430635282",
+    appId: "1:738430635282:web:8451ef380447c7611137cb"
+};
+
+const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 const supabase = window.supabase.createClient(
-  "https://vduqewqyvszfquntmark.supabase.co",
-  "sb_publishable_YseP73aoHam8YT6B0b9EQQ_iAUEWARI"
+    "https://vduqewqyvszfquntmark.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
 );
 
-const urlParams = new URLSearchParams(window.location.search);
-const libraryId = urlParams.get('id');
-
-// ── Auth ──────────────────────────────────────────────────────────────────────
-window.logOut = async function() {
-  try { await signOut(auth); window.location.reload(); } catch(e) {}
-};
+let currentUser     = null;
+let currentUserData = null;
 
 onAuthStateChanged(auth, async (user) => {
-  const authButtons = document.getElementById('authButtons');
-  const userWelcome = document.getElementById('userWelcome');
-  const welcomeText = document.getElementById('welcomeText');
-
-  if (user) {
-    authButtons.classList.remove('show');
-    userWelcome.classList.add('show');
-    welcomeText.onclick = window.logOut;
-
-    try {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('username')
-        .eq('firebase_uid', user.uid)
-        .single();
-      if (userData?.username) welcomeText.textContent = `@${userData.username}`;
-    } catch(e) {}
-  } else {
-    authButtons.classList.add('show');
-    userWelcome.classList.remove('show');
-  }
-
-  // Load library regardless of auth
-  if (libraryId) {
-    await loadLibrary();
-  } else {
-    showError('No library ID specified.');
-  }
+    if (user) {
+        currentUser = user;
+        let { data: userData, error } = await supabase
+            .from('users').select('*').eq('firebase_uid', user.uid).single();
+        if (error && error.code !== 'PGRST116') { console.error(error); return; }
+        if (!userData) {
+            let { data: byEmail } = await supabase.from('users').select('*').eq('email', user.email).single();
+            if (byEmail) {
+                await supabase.from('users').update({ firebase_uid: user.uid }).eq('email', user.email);
+                userData = { ...byEmail, firebase_uid: user.uid };
+            } else {
+                const { data: newU } = await supabase.from('users').insert([{
+                    firebase_uid: user.uid, email: user.email,
+                    full_name: user.displayName || user.email?.split('@')[0],
+                    username: user.email?.split('@')[0] || 'user'
+                }]).select('*').single();
+                userData = newU;
+            }
+        }
+        currentUserData = userData;
+    } else {
+        location.href = 'login.html';
+    }
 });
 
-// ── Show helpers ──────────────────────────────────────────────────────────────
-function showError(msg) {
-  document.getElementById('pageState').innerHTML = `
-    <div class="error-state">
-      <div style="font-size:36px;margin-bottom:12px;">📚</div>
-      <div>${msg}</div>
-      <br>
-      <button class="lib-btn lib-btn-secondary" onclick="window.location.href='index.html'" style="margin:0 auto;">
-        <i class="fas fa-arrow-left"></i> Go Back
-      </button>
-    </div>`;
-}
+/* ── Publish all (no library) ── */
+window.publishAll = async function() {
+    if (!currentUser) { showNotif('Please log in first', 'error'); return; }
+    const parsed = parseInput(document.getElementById('batchInput').value);
+    if (!parsed.length) { showNotif('No valid items found', 'warning'); return; }
 
-// ── Load Library ──────────────────────────────────────────────────────────────
-async function loadLibrary() {
-  try {
-    // 1. Fetch library from 'libraries' table (same pattern as index.html uses library_id on articles)
-    const { data: library, error: libErr } = await supabase
-      .from('libraries')
-      .select('*')
-      .eq('id', libraryId)
-      .single();
+    lockUI();
+    const results = await doPublishItems(parsed, supabase, currentUser);
+    setProgress('Done!', '', 100);
+    await new Promise(r => setTimeout(r, 600));
+    unlockUI();
 
-    if (libErr || !library) {
-      showError('Library not found.');
-      return;
+    if (results.fail === 0) {
+        showNotif(`${results.ok} item${results.ok !== 1 ? 's' : ''} published!`, 'success');
+        clearInput();
+    } else {
+        showNotif(`${results.ok} published, ${results.fail} failed`, results.ok > 0 ? 'warning' : 'error');
     }
-
-    // 2. Fetch creator — uses firebase_uid like the rest of the codebase
-    const { data: creator } = await supabase
-      .from('users')
-      .select('firebase_uid, username')
-      .eq('firebase_uid', library.firebase_user_id)
-      .single();
-
-    // 3. Fetch articles that belong to this library (same column used in index.html filter)
-    const { data: articles, error: artErr } = await supabase
-      .from('articles')
-      .select('*')
-      .eq('library_id', libraryId)
-      .order('created_at', { ascending: false });
-
-    if (artErr) {
-      showError('Error loading articles: ' + artErr.message);
-      return;
-    }
-
-    // 4. Resolve article authors
-    const authorIds = [...new Set((articles || []).map(a => a.firebase_user_id).filter(Boolean))];
-    const userMap = {};
-
-    if (authorIds.length > 0) {
-      const { data: users } = await supabase
-        .from('users')
-        .select('firebase_uid, username')
-        .in('firebase_uid', authorIds);
-      if (users) users.forEach(u => { userMap[u.firebase_uid] = u; });
-    }
-
-    renderLibrary(library, creator, articles || [], userMap);
-
-  } catch(err) {
-    showError('An unexpected error occurred.');
-  }
-}
-
-// ── Render ────────────────────────────────────────────────────────────────────
-function renderLibrary(library, creator, articles, userMap) {
-  const authorName = creator?.username ? `@${creator.username}` : 'Unknown';
-  const createdDate = new Date(library.created_at).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric'
-  });
-  const count = articles.length;
-
-  // Build article list HTML
-  let articlesHTML = '';
-  if (count === 0) {
-    articlesHTML = `
-      <div class="empty-state">
-        <div class="empty-icon"><i class="fas fa-file-alt"></i></div>
-        <div class="empty-title">No articles yet</div>
-        <div style="font-size:13px;">This library doesn't have any articles.</div>
-      </div>`;
-  } else {
-    articlesHTML = '<ul class="article-list" id="articleList">';
-    articles.forEach((article, i) => {
-      const user = userMap[article.firebase_user_id];
-      const author = user?.username ? `@${user.username}` : 'Unknown';
-      const date = new Date(article.created_at).toLocaleDateString('en-US', {
-        year: 'numeric', month: 'short', day: 'numeric'
-      });
-      articlesHTML += `
-        <li class="article-item" onclick="window.location.href='article.html?id=${article.id}'">
-          <div class="article-number">${i + 1}</div>
-          <div class="article-body">
-            <h2 class="article-title">${escHtml(article.title || 'Untitled')}</h2>
-            <div class="article-meta">
-              <span>${escHtml(author)}</span>
-              <div class="meta-dot"></div>
-              <span>${date}</span>
-            </div>
-          </div>
-        </li>`;
-    });
-    articlesHTML += '</ul>';
-  }
-
-  document.getElementById('pageState').innerHTML = `
-    <div class="library-header-card">
-      <div class="library-icon"><i class="fas fa-book-open"></i></div>
-      <h1 class="library-title">${escHtml(library.name || 'Untitled Library')}</h1>
-      ${library.description ? `<p class="library-description">${escHtml(library.description)}</p>` : ''}
-      <div class="library-meta-row">
-        <span class="author-link" onclick="window.location.href='profile.html?username=${creator?.username || ''}'">
-          <i class="fas fa-user"></i> ${escHtml(authorName)}
-        </span>
-        <span><i class="fas fa-calendar-alt"></i> ${createdDate}</span>
-        <span><i class="fas fa-file-alt"></i> ${count} article${count !== 1 ? 's' : ''}</span>
-        <span><i class="fas fa-hashtag"></i> ID ${library.id}</span>
-      </div>
-      <div class="library-actions">
-        ${count > 0 ? `
-        <button class="lib-btn lib-btn-primary" onclick="window.location.href='article.html?id=${articles[0].id}'">
-          <i class="fas fa-play"></i> Read First
-        </button>` : ''}
-        <button class="lib-btn lib-btn-secondary" onclick="shareLibrary()">
-          <i class="fas fa-share"></i> Share
-        </button>
-      </div>
-    </div>
-
-    <div class="articles-section-header">
-      <div class="articles-section-title">Articles</div>
-      <div class="articles-count-badge">${count}</div>
-    </div>
-
-    ${articlesHTML}
-  `;
-}
-
-window.shareLibrary = function() {
-  const url = window.location.href;
-  if (navigator.share) {
-    navigator.share({ title: 'Patholytica Library', url });
-  } else {
-    navigator.clipboard.writeText(url).then(() => alert('Link copied!'));
-  }
 };
 
-function escHtml(text) {
-  const d = document.createElement('div');
-  d.textContent = text;
-  return d.innerHTML;
-}
+/* ── Publish all + create library ── */
+window.publishWithLibrary = async function() {
+    if (!currentUser) { showNotif('Please log in first', 'error'); return; }
+
+    const libName = document.getElementById('libName').value.trim();
+    if (!libName) { showNotif('Please enter a library name', 'warning'); return; }
+
+    const parsed = parseInput(document.getElementById('batchInput').value);
+    if (!parsed.length) { showNotif('No valid items found', 'warning'); return; }
+
+    closeLibrarySheet();
+    lockUI();
+
+    const results = await doPublishItems(parsed, supabase, currentUser);
+
+    if (results.ids.length === 0) {
+        setProgress('Done!', '', 100);
+        await new Promise(r => setTimeout(r, 500));
+        unlockUI();
+        showNotif('All items failed to publish', 'error');
+        return;
+    }
+
+    setProgress('Creating library…', libName, 90);
+    try {
+        const libDesc = document.getElementById('libDesc').value.trim();
+        const { data: library, error: libErr } = await supabase
+            .from('playlists')
+            .insert([{
+                name: libName,
+                description: libDesc || null,
+                user_id: currentUserData.user_id
+            }])
+            .select().single();
+        if (libErr) throw libErr;
+
+        setProgress('Adding to library…', `${results.ids.length} items`, 95);
+        const playlistItems = results.ids.map(article_id => ({
+            playlist_id: library.id,
+            article_id
+        }));
+        const { error: itemsErr } = await supabase.from('playlist_items').insert(playlistItems);
+        if (itemsErr) throw itemsErr;
+
+        setProgress('Done!', '', 100);
+        await new Promise(r => setTimeout(r, 600));
+        unlockUI();
+
+        const failNote = results.fail > 0 ? `, ${results.fail} failed` : '';
+        showNotif(`${results.ok} items published & added to "${libName}"${failNote}`, results.fail > 0 ? 'warning' : 'success');
+        clearInput();
+        document.getElementById('libName').value = '';
+        document.getElementById('libDesc').value = '';
+
+    } catch (err) {
+        console.error('Library creation error:', err);
+        setProgress('Done!', '', 100);
+        await new Promise(r => setTimeout(r, 500));
+        unlockUI();
+        showNotif(`${results.ok} items published but library failed: ${err.message}`, 'warning');
+    }
+};
 </script>
 </body>
 </html>
