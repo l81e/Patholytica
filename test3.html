@@ -53,13 +53,15 @@
         /* Header */
         .header {
             padding: 12px 18px;
-            padding-top: calc(12px + env(safe-area-inset-top));
+            padding-top: calc(10px + env(safe-area-inset-top));
             border-bottom: 1px solid var(--border-color);
-            display: flex; align-items: center; justify-content: space-between;
+            display: flex; flex-direction: column; gap: 12px;
             flex-shrink: 0;
             background: var(--bg-color);
         }
-        .header-left { display: flex; align-items: center; gap: 12px; }
+        .header-top { display: flex; align-items: center; gap: 12px; }
+        .header-actions { display: flex; gap: 8px; width: 100%; }
+
         .icon-btn {
             width: 34px; height: 34px; border-radius: 50%;
             background: var(--hover-bg); border: 1px solid var(--border-color);
@@ -74,7 +76,7 @@
         /* Body */
         .body {
             flex: 1; display: flex; flex-direction: column;
-            overflow: hidden; padding: 12px 16px;
+            overflow: hidden; padding: 10px 16px;
             gap: 10px; min-height: 0;
         }
 
@@ -87,7 +89,7 @@
             background: var(--hover-bg);
             border: 1px solid var(--border-color);
             border-radius: 10px;
-            padding: 8px 12px;
+            padding: 6px 12px;
         }
         .format-hint-row {
             display: flex; align-items: center; gap: 8px;
@@ -107,8 +109,14 @@
         .format-hint code em { color: var(--accent); font-style: normal; font-weight: 700; }
         .format-hint code .mcq-em { color: #4ade80; font-style: normal; font-weight: 700; }
 
-        /* Textarea */
-        .textarea-wrap { flex: 1; position: relative; min-height: 0; }
+        /* Textarea Fix */
+        .textarea-wrap { 
+            flex: 1; 
+            position: relative; 
+            min-height: 150px; 
+            max-height: 60vh; /* Prevents stretching past screen */
+            margin-bottom: calc(10px + env(safe-area-inset-bottom)); 
+        }
         .big-input {
             width: 100%; height: 100%;
             background: var(--hover-bg);
@@ -133,16 +141,12 @@
         .input-meta .mcq-ct  { color: #4ade80; font-weight: 700; }
 
         /* Buttons */
-        .btn-row {
-            display: flex; gap: 8px; flex-shrink: 0;
-            padding-bottom: env(safe-area-inset-bottom);
-        }
         .btn {
-            flex: 1; padding: 12px;
+            flex: 1; padding: 10px 6px;
             border-radius: 10px; border: none;
-            font-size: 13px; font-weight: 700;
+            font-size: 12px; font-weight: 700;
             cursor: pointer; transition: all .2s;
-            display: flex; align-items: center; justify-content: center; gap: 7px;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
         }
         .btn-secondary {
             background: var(--hover-bg); color: var(--text-primary);
@@ -155,7 +159,6 @@
             background: rgba(241,209,158,0.1);
             color: var(--accent);
             border: 1px solid rgba(241,209,158,0.3);
-            flex: 1.2;
         }
         .btn-library:hover {
             background: rgba(241,209,158,0.18);
@@ -403,18 +406,28 @@
 
 <div class="app">
     <div class="header">
-        <div class="header-left">
+        <div class="header-top">
             <button class="icon-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
             <div>
                 <div class="header-title">Batch Create</div>
                 <div class="header-sub">Articles & MCQs at once</div>
             </div>
         </div>
-        <button class="icon-btn" onclick="toggleTheme()"><i class="fas fa-circle-half-stroke"></i></button>
+        
+        <div class="header-actions">
+            <button class="btn btn-secondary" id="previewBtn" onclick="openPreview()" disabled>
+                <i class="fas fa-eye"></i> Preview
+            </button>
+            <button class="btn btn-library" id="libraryBtn" onclick="openLibrarySheet()" disabled>
+                <i class="fas fa-book-open"></i> + Library
+            </button>
+            <button class="btn btn-primary" id="publishBtn" onclick="publishAll()" disabled>
+                <i class="fas fa-paper-plane"></i> Publish
+            </button>
+        </div>
     </div>
 
     <div class="body">
-        <!-- Format hints -->
         <div class="format-hints">
             <div class="format-hint">
                 <div class="format-hint-row">
@@ -430,7 +443,6 @@
             </div>
         </div>
 
-        <!-- Textarea -->
         <div class="textarea-wrap">
             <textarea class="big-input" id="batchInput"
                 placeholder="art1:Intro to Pathology:Pathology is the study of disease...::mcqart1:What is pathology?:Study of disease{right}@Study of anatomy@Study of physiology@Study of genetics::"
@@ -440,23 +452,9 @@
                 <span><span class="mcq-ct" id="mcqCount">0</span> mcq</span>
             </div>
         </div>
-
-        <!-- Buttons -->
-        <div class="btn-row">
-            <button class="btn btn-secondary" id="previewBtn" onclick="openPreview()" disabled>
-                <i class="fas fa-eye"></i> Preview
-            </button>
-            <button class="btn btn-library" id="libraryBtn" onclick="openLibrarySheet()" disabled>
-                <i class="fas fa-book-open"></i> + Library
-            </button>
-            <button class="btn btn-primary" id="publishBtn" onclick="publishAll()" disabled>
-                <i class="fas fa-paper-plane"></i> Publish
-            </button>
-        </div>
     </div>
 </div>
 
-<!-- Preview sheet -->
 <div class="preview-overlay" id="previewOverlay">
     <div class="preview-sheet">
         <div class="preview-handle"></div>
@@ -480,7 +478,6 @@
     </div>
 </div>
 
-<!-- Library sheet -->
 <div class="library-overlay" id="libraryOverlay">
     <div class="library-sheet">
         <div class="library-sheet-handle"></div>
@@ -511,7 +508,6 @@
     </div>
 </div>
 
-<!-- Progress overlay -->
 <div class="progress-overlay" id="progressOverlay">
     <div class="progress-box">
         <div class="progress-spinner"></div>
@@ -523,7 +519,6 @@
     </div>
 </div>
 
-<!-- Notification -->
 <div class="notif" id="notif">
     <i class="fas fa-check-circle"></i>
     <span id="notifText"></span>
@@ -533,10 +528,6 @@
 function goBack() {
     if (document.referrer && document.referrer.includes(location.host)) history.back();
     else location.href = 'index.html';
-}
-function toggleTheme() {
-    const isLight = document.body.classList.toggle('light-theme');
-    localStorage.setItem('theme', isLight ? 'light' : 'dark');
 }
 if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-theme');
 
@@ -727,7 +718,7 @@ function unlockUI() {
         const el = document.getElementById(id); if (el) el.disabled = false;
     });
     document.getElementById('progressOverlay').classList.remove('show');
-    onInput(); // re-evaluate disabled state properly
+    onInput();
 }
 
 function clearInput() {
@@ -832,7 +823,6 @@ window.publishWithLibrary = async function() {
     closeLibrarySheet();
     lockUI();
 
-    // Step 1 — publish articles
     const results = await doPublishItems(parsed, supabase, currentUser);
 
     if (results.ids.length === 0) {
@@ -843,7 +833,6 @@ window.publishWithLibrary = async function() {
         return;
     }
 
-    // Step 2 — create library
     setProgress('Creating library…', libName, 90);
     try {
         const libDesc = document.getElementById('libDesc').value.trim();
@@ -857,7 +846,6 @@ window.publishWithLibrary = async function() {
             .select().single();
         if (libErr) throw libErr;
 
-        // Step 3 — link articles to library
         setProgress('Adding to library…', `${results.ids.length} items`, 95);
         const playlistItems = results.ids.map(article_id => ({
             playlist_id: library.id,
