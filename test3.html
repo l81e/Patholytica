@@ -158,8 +158,9 @@ body { background: var(--bg-color); color: var(--text-primary); }
   background: rgba(241,209,158,0.12); border: 1px solid rgba(241,209,158,0.2);
   display: flex; align-items: center; justify-content: center;
   font-size: 13px; font-weight: 700; color: var(--accent);
-  flex-shrink: 0; text-transform: uppercase;
+  flex-shrink: 0; text-transform: uppercase; overflow: hidden;
 }
+.creator-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .creator-info { flex: 1; min-width: 0; }
 .creator-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .creator-count { font-size: 11px; color: var(--text-secondary); }
@@ -540,16 +541,21 @@ async function loadCreators() {
     const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,3);
     if (!sorted.length) { el.innerHTML=''; return; }
     const uids = sorted.map(([u])=>u);
-    const { data: users } = await supabase.from('users').select('firebase_uid, username').in('firebase_uid', uids);
+    const { data: users } = await supabase.from('users').select('firebase_uid, username, pfp').in('firebase_uid', uids);
     const um = {};
     if (users) users.forEach(u=>{um[u.firebase_uid]=u;});
     const rc=['gold','silver','bronze'], rl=['#1','#2','#3'];
     el.innerHTML = sorted.map(([uid,count],i)=>{
-      const u=um[uid]; const name=u?.username?`@${u.username}`:'Unknown';
+      const u=um[uid];
+      const name=u?.username?`@${u.username}`:'Unknown';
       const init=(u?.username||'?').replace(/^@/,'')[0].toUpperCase();
-      return `<div class="creator-row" onclick="window.location.href='profile.html?uid=${window.escHtml(uid)}'">
+      const avatarHTML = u?.pfp
+        ? `<img src="${u.pfp}" alt="${init}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+        : init;
+      const profileLink = u?.username ? `profile.html?username=${window.escHtml(u.username)}` : '#';
+      return `<div class="creator-row" onclick="window.location.href='${profileLink}'">
         <div class="creator-rank ${rc[i]}">${rl[i]}</div>
-        <div class="creator-avatar">${init}</div>
+        <div class="creator-avatar">${avatarHTML}</div>
         <div class="creator-info">
           <div class="creator-name">${window.escHtml(name)}</div>
           <div class="creator-count">${count} article${count!==1?'s':''}</div>
