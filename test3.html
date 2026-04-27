@@ -5,178 +5,362 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Patholytica — Library</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
-  --bg-color: #0a0a0a;
-  --text-primary: #ffffff;
-  --text-secondary: #888888;
-  --card-bg: rgba(30, 30, 30, 0.6);
-  --hover-bg: rgba(241, 209, 158, 0.08);
-  --border-color: rgba(255, 255, 255, 0.1);
+  --bg-color: #1f1f1f;
+  --text-primary: #fff;
+  --text-secondary: #aaa;
+  --card-bg: #1f1f1f;
+  --hover-bg: #2a2a2a;
+  --border-color: #303030;
   --accent: #f1d19e;
-  --accent-glow: rgba(241, 209, 158, 0.3);
-  --glass: blur(12px);
+  --accent-green: #2ecc71;
 }
 
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-/* Custom Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-color); }
-::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent); }
-
+* { box-sizing: border-box; }
 html, body {
   margin: 0; padding: 0;
   min-height: 100%;
-  font-family: "DM Sans", sans-serif;
-  background: var(--bg-color);
-  color: var(--text-primary);
-  overflow-x: hidden;
+  font-family: "DM Sans", "Roboto", Arial, sans-serif;
+  overflow-x: hidden; max-width: 100vw;
 }
-
-/* Background Ambient Glow */
-body::before {
-  content: ''; position: fixed; top: -10%; left: -10%; width: 40%; height: 40%;
-  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
-  z-index: -1; pointer-events: none; opacity: 0.4;
-}
+body { background: var(--bg-color); color: var(--text-primary); }
 
 .header-wrapper {
   position: fixed; top: 0; left: 0; right: 0;
-  background: rgba(10, 10, 10, 0.8);
-  backdrop-filter: var(--glass);
-  -webkit-backdrop-filter: var(--glass);
+  background: var(--bg-color);
   padding-top: env(safe-area-inset-top);
   border-bottom: 1px solid var(--border-color);
-  z-index: 100;
+  z-index: 40;
 }
-
 .header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 24px; max-width: 1200px; margin: 0 auto;
+  padding: 12px 24px;
 }
+.logo-img { height: 28px; width: auto; cursor: pointer; }
+.header-actions { display: flex; align-items: center; gap: 16px; }
+.auth-buttons { display: none; gap: 12px; }
+.auth-buttons.show { display: flex; }
+.btn-login {
+  padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: 500;
+  cursor: pointer; text-decoration: none;
+  border: 1px solid var(--border-color); background: transparent; color: var(--text-primary);
+  transition: background 0.2s ease;
+}
+.btn-login:hover { background: var(--hover-bg); }
+.user-welcome { display: none; align-items: center; gap: 10px; font-size: 14px; }
+.user-welcome.show { display: flex; }
+.welcome-text { font-weight: 500; cursor: pointer; transition: color 0.2s ease; }
+.welcome-text:hover { color: var(--accent); }
 
-.logo-img { height: 26px; width: auto; filter: brightness(1.2); }
+.header-create-btn {
+  display: none;
+  align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(241,209,158,0.12);
+  border: 1px solid rgba(241,209,158,0.3);
+  color: var(--accent); font-size: 14px;
+  cursor: pointer; transition: background 0.2s ease, border-color 0.2s ease;
+  flex-shrink: 0;
+}
+.header-create-btn.show { display: flex; }
+.header-create-btn:hover { background: rgba(241,209,158,0.22); border-color: var(--accent); }
 
 .list-container {
-  max-width: 800px; width: 100%; margin: 0 auto;
-  padding: 16px 24px 120px;
-  padding-top: calc(80px + env(safe-area-inset-top));
+  max-width: 900px; width: 100%; margin: 0 auto;
+  padding: 16px 24px 32px;
+  padding-top: calc(65px + env(safe-area-inset-top) + 16px);
 }
 
-/* ── Library Entry (Cyber Input) ── */
+/* ── Library entry ── */
 .library-entry {
-  display: flex; align-items: center; gap: 12px;
-  margin-bottom: 32px;
-  background: var(--card-bg);
-  padding: 8px; border-radius: 16px;
-  border: 1px solid var(--border-color);
-  backdrop-filter: var(--glass);
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
 }
-
 .library-id-input {
-  flex: 1; background: transparent; border: none;
-  color: var(--accent); font-family: 'JetBrains Mono', monospace;
-  font-size: 18px; padding: 12px; outline: none;
-  letter-spacing: 2px;
+  flex: 1; min-width: 120px; max-width: 100%;
+  background: #2a2a2a; border: 1px solid var(--border-color);
+  border-radius: 10px; color: var(--text-primary);
+  font-size: 15px; padding: 10px 14px; outline: none;
+  transition: border-color 0.2s ease; -moz-appearance: textfield;
+  font-family: "DM Sans", sans-serif;
 }
-
+.library-id-input::-webkit-outer-spin-button,
+.library-id-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.library-id-input::placeholder { color: var(--text-secondary); opacity: 0.6; }
+.library-id-input:focus { border-color: var(--accent); }
+.library-id-input.error { border-color: #ff6b6b; }
 .btn-start {
-  padding: 12px 28px; border-radius: 12px;
-  background: var(--accent); color: #000;
-  border: none; font-size: 14px; font-weight: 700;
-  cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
-  transition: all 0.3s ease;
+  padding: 10px 22px; border-radius: 10px;
+  background: var(--accent); color: #1f1f1f;
+  border: none; font-size: 14px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+  font-family: "DM Sans", sans-serif;
+  transition: opacity 0.2s ease, transform 0.15s ease;
 }
-.btn-start:hover { box-shadow: 0 0 20px var(--accent-glow); transform: translateY(-2px); }
+.btn-start:hover { opacity: 0.88; transform: translateY(-1px); }
+.btn-start:active { transform: scale(0.97); }
+.btn-start:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-/* ── Article Cards (The Core Change) ── */
+/* ── Library banner ── */
+.library-banner {
+  display: none; background: #252525;
+  border: 1px solid var(--border-color); border-radius: 12px;
+  padding: 14px 18px; margin-bottom: 14px;
+  gap: 14px; align-items: flex-start;
+}
+.library-banner.show { display: flex; }
+.library-banner-icon {
+  width: 36px; height: 36px; border-radius: 9px;
+  background: rgba(241,209,158,0.12);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent); font-size: 15px; flex-shrink: 0;
+}
+.library-banner-info { flex: 1; min-width: 0; }
+.library-banner-name {
+  font-size: 15px; font-weight: 600; margin-bottom: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.library-banner-meta {
+  font-size: 12px; color: var(--text-secondary);
+  display: flex; flex-wrap: wrap; gap: 6px 12px;
+}
+.library-banner-meta span { display: flex; align-items: center; gap: 5px; }
+.library-banner-meta i { font-size: 11px; opacity: 0.7; }
+.library-banner-clear {
+  background: none; border: none; color: var(--text-secondary);
+  cursor: pointer; font-size: 14px; padding: 4px; border-radius: 50%;
+  transition: color 0.2s ease, background 0.2s ease; flex-shrink: 0;
+}
+.library-banner-clear:hover { color: var(--text-primary); background: var(--hover-bg); }
+
+/* ── Active creators ── */
+.creators-section { margin-bottom: 6px; }
+.section-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--text-secondary); margin-bottom: 8px; opacity: 0.6;
+  font-weight: 600;
+}
+.creators-list { display: flex; flex-direction: column; gap: 2px; }
+.creator-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 10px; border-radius: 10px;
+  cursor: pointer; transition: background 0.2s ease;
+}
+.creator-row:hover { background: var(--hover-bg); }
+.creator-rank { font-size: 12px; width: 18px; text-align: center; flex-shrink: 0; font-weight: 600; color: var(--text-secondary); }
+.creator-rank.gold   { color: #f1d19e; }
+.creator-rank.silver { color: #b0b0b0; }
+.creator-rank.bronze { color: #cd7f32; }
+.creator-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(241,209,158,0.12); border: 1px solid rgba(241,209,158,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: var(--accent);
+  flex-shrink: 0; text-transform: uppercase; overflow: hidden;
+}
+.creator-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.creator-info { flex: 1; min-width: 0; }
+.creator-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.creator-count { font-size: 11px; color: var(--text-secondary); }
+.creator-badge {
+  font-size: 11px; font-weight: 600; color: var(--accent);
+  background: rgba(241,209,158,0.1); border: 1px solid rgba(241,209,158,0.2);
+  border-radius: 20px; padding: 2px 9px; white-space: nowrap; flex-shrink: 0;
+}
+.creator-skeleton { display: flex; align-items: center; gap: 12px; padding: 8px 10px; }
+.skel-circle { width: 32px; height: 32px; border-radius: 50%; background: #2a2a2a; flex-shrink: 0; animation: shimmer 1.4s infinite; }
+.skel-line   { height: 11px; border-radius: 6px; background: #2a2a2a; animation: shimmer 1.4s infinite; }
+
+/* ── Date group ── */
+.date-group-header {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--text-secondary); opacity: 0.55;
+  padding: 14px 0 8px;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky; top: calc(65px + env(safe-area-inset-top));
+  background: var(--bg-color); z-index: 10;
+  font-weight: 600;
+}
+
+/* ── Articles ── */
+.article-list { list-style: none; margin: 0; padding: 0; }
 .article-item {
-  position: relative;
-  padding: 24px; margin-bottom: 16px;
-  background: var(--card-bg);
+  padding: 16px 0; border-bottom: 1px solid var(--border-color);
+  cursor: pointer; transition: background 0.2s ease;
+}
+.article-item:hover { background: var(--hover-bg); margin: 0 -12px; padding: 16px 12px; }
+.article-title {
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: 28px; font-weight: 700; margin: 0 0 6px 0;
+  line-height: 1.3; color: var(--text-primary); word-wrap: break-word;
+}
+.article-item:hover .article-title { color: var(--accent); }
+.article-meta { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.meta-dot { width: 3px; height: 3px; background: var(--text-secondary); border-radius: 50%; }
+
+/* ── Load more ── */
+.load-more-row { padding: 10px 0; border-bottom: 1px solid var(--border-color); }
+.btn-load-more {
+  background: none; border: none; color: var(--accent);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  padding: 5px 0; display: flex; align-items: center; gap: 6px;
+  opacity: 0.85; transition: opacity 0.2s ease;
+  font-family: "DM Sans", sans-serif;
+}
+.btn-load-more:hover { opacity: 1; }
+.btn-load-more i { font-size: 11px; transition: transform 0.2s ease; }
+.btn-load-more.open i { transform: rotate(180deg); }
+.btn-load-more.loading { opacity: 0.5; pointer-events: none; }
+
+/* ── Skeletons ── */
+.skeleton-article { padding: 16px 0; border-bottom: 1px solid var(--border-color); }
+.skel-title-lg { height: 28px; border-radius: 6px; background: #2a2a2a; margin-bottom: 8px; width: 75%; animation: shimmer 1.4s infinite; }
+.skel-title-sm { height: 20px; border-radius: 6px; background: #2a2a2a; margin-bottom: 8px; width: 45%; animation: shimmer 1.4s infinite; }
+.skel-meta     { height: 11px; border-radius: 6px; background: #2a2a2a; width: 28%; animation: shimmer 1.4s infinite; }
+@keyframes shimmer { 0%,100%{opacity:0.45} 50%{opacity:0.9} }
+
+.loading-state { text-align: center; padding: 32px; color: var(--text-secondary); font-size: 15px; }
+.error-state   { text-align: center; padding: 32px; color: #ff4444; font-size: 15px; }
+
+/* ── Pong Easter Egg ── */
+.pong-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  align-items: center; justify-content: center;
+}
+.pong-overlay.show { display: flex; }
+.pong-modal {
+  background: #141414;
   border: 1px solid var(--border-color);
   border-radius: 20px;
+  padding: 20px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.88);
+  position: relative;
+  max-width: calc(100vw - 48px);
+}
+.pong-modal-close {
+  position: absolute; top: 12px; right: 12px;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: none; border: 1px solid var(--border-color);
+  color: var(--text-secondary); font-size: 13px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.pong-modal-close:hover { background: var(--hover-bg); color: var(--text-primary); }
+.pong-modal-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--text-secondary); opacity: 0.5; font-weight: 600;
+  margin-bottom: 2px;
+}
+.pong-score { font-size: 13px; color: var(--text-secondary); letter-spacing: 2px; }
+.pong-score span { color: var(--accent); font-weight: 600; }
+#pongCanvas {
+  border: 1px solid var(--border-color); border-radius: 10px;
+  display: block; background: #0e0e0e; max-width: 100%;
+}
+.pong-hint { font-size: 11px; color: var(--text-secondary); opacity: 0.45; text-align: center; }
+
+/* ── Footer info ── */
+.footer {
+  background: var(--bg-color); border-top: 1px solid var(--border-color);
+  padding: 14px 24px 6px;
+  text-align: center;
+  color: var(--text-secondary); font-size: 14px;
+}
+.article-count {
+  color: var(--accent); font-weight: 600;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-  backdrop-filter: var(--glass);
-  overflow: hidden;
+  border-bottom: 1px dashed rgba(241,209,158,0.35);
+  transition: border-color 0.2s ease;
+  display: inline-block;
+}
+.article-count:hover { border-color: var(--accent); }
+
+.footer-credit {
+  text-align: center;
+  padding: 4px 0;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom) + 8px);
+  font-size: 12px;
+  color: var(--text-secondary);
+  opacity: 0.45;
+}
+.footer-credit a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-.article-item::after {
-  content: ''; position: absolute; top: 0; left: 0; width: 2px; height: 0;
-  background: var(--accent); transition: height 0.3s ease;
-}
-
-.article-item:hover {
-  border-color: var(--accent-glow);
-  transform: translateX(8px);
-  background: rgba(40, 40, 40, 0.8);
-}
-
-.article-item:hover::after { height: 100%; }
-
-.article-title {
-  font-family: 'Merriweather', serif;
-  font-size: 24px; font-weight: 700; margin: 0 0 10px 0;
-  line-height: 1.4; color: var(--text-primary);
-}
-
-.article-meta {
-  font-size: 12px; color: var(--text-secondary);
-  display: flex; align-items: center; gap: 12px;
-  font-weight: 500; letter-spacing: 0.5px;
-}
-
-.creator-avatar {
-  width: 36px; height: 36px; border-radius: 50%;
-  border: 1px solid var(--accent-glow);
-  background: #1a1a1a; transition: transform 0.3s ease;
-}
-
-.creator-row:hover .creator-avatar {
-  transform: scale(1.1) rotate(5deg);
-  border-color: var(--accent);
-}
-
-/* ── Date Group Header ── */
-.date-group-header {
-  font-size: 10px; text-transform: uppercase; letter-spacing: 3px;
-  color: var(--accent); opacity: 0.8;
-  padding: 24px 0 12px; font-weight: 700;
-}
-
-/* ── Pong Easter Egg Custom Styles ── */
-#pongCanvas { border: 1px solid var(--accent-glow); box-shadow: 0 0 30px rgba(0,0,0,0.5); }
-.pong-modal { border: 1px solid var(--accent); }
-
-/* ── Footer ── */
+/* ── Footer bar ── */
 .footer-bar {
-  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-  width: 90%; max-width: 400px;
-  background: rgba(20, 20, 20, 0.8);
-  backdrop-filter: var(--glass);
-  border: 1px solid var(--border-color);
-  border-radius: 24px; padding: 10px;
-  display: flex; justify-content: space-around; z-index: 1000;
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 400px;
+  background: rgba(20, 20, 20, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 100;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .footer-btn {
-  background: none; border: none; color: var(--text-secondary);
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  transition: 0.3s; cursor: pointer;
+  background: none;
+  border: none;
+  color: #888888;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  text-decoration: none;
+  flex: 1;
+  font-family: "DM Sans", sans-serif;
+}
+.footer-btn i { font-size: 18px; }
+.footer-btn span {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.footer-btn.active,
+.footer-btn:hover {
+  color: var(--accent);
+  transform: translateY(-2px);
+}
+.footer-btn.active i {
+  text-shadow: 0 0 10px rgba(241, 209, 158, 0.5);
 }
 
-.footer-btn.active, .footer-btn:hover { color: var(--accent); }
-.footer-btn i { font-size: 18px; }
-.footer-btn span { font-size: 9px; font-weight: 700; text-transform: uppercase; }
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .footer-bar {
+    bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+}
 
-@media (max-width: 600px) {
-  .article-title { font-size: 20px; }
-  .list-container { padding: 16px 16px 120px; }
+@media (max-width: 768px) {
+  .list-container { padding: 12px 16px 24px; padding-top: calc(65px + env(safe-area-inset-top) + 12px); }
+  .article-title { font-size: 22px; }
+  .article-meta { font-size: 12px; }
+  .footer { padding: 12px 16px 6px; font-size: 13px; }
+  .library-id-input { max-width: 100%; font-size: 14px; }
+  .btn-start { font-size: 13px; padding: 9px 14px; }
 }
 </style>
 </head>
@@ -184,124 +368,506 @@ body::before {
 
 <div class="header-wrapper">
   <div class="header">
-    <img src="IMG_3220.png" class="logo-img" alt="Patholytica">
+    <img src="IMG_3220.png" class="logo-img" alt="Patholytica Logo">
     <div class="header-actions">
-        <div id="userWelcome" class="user-welcome">
-            <span id="welcomeText" class="welcome-text" style="font-size:12px; color:var(--accent); font-weight:700; cursor:pointer;"></span>
-        </div>
+      <div class="auth-buttons" id="authButtons">
+        <a href="login.html" class="btn-login">Log In</a>
+      </div>
+      <div class="user-welcome" id="userWelcome">
+        <span class="welcome-text" id="welcomeText">Welcome</span>
+        <button class="header-create-btn" id="fabCreateBtn" onclick="window.location.href='https://patholytica.com/create'">
+          <i class="fas fa-plus"></i>
+        </button>
+      </div>
     </div>
   </div>
 </div>
 
 <div class="list-container">
+
   <div class="library-entry">
-    <input type="number" id="libraryIdInput" class="library-id-input" placeholder="ACCESS_ID" min="1" inputmode="numeric">
-    <button class="btn-start" id="startBtn" onclick="startLibrary()">Sync</button>
+    <input type="number" id="libraryIdInput" class="library-id-input"
+      placeholder="Library ID" min="1" inputmode="numeric" pattern="[0-9]*"
+      onkeydown="if(event.key==='Enter') startLibrary()">
+    <button class="btn-start" id="startBtn" onclick="startLibrary()">Start</button>
   </div>
 
-  <div class="library-banner" id="libraryBanner" style="display:none; margin-bottom:20px; padding:20px; background:rgba(241,209,158,0.05); border-radius:16px; border:1px dashed var(--accent-glow);">
-    <div id="libraryBannerName" style="font-weight:700; color:var(--accent); margin-bottom:5px;"></div>
-    <div id="libraryBannerMeta" style="font-size:11px; color:var(--text-secondary);"></div>
+  <div class="library-banner" id="libraryBanner">
+    <div class="library-banner-icon"><i class="fas fa-book-open"></i></div>
+    <div class="library-banner-info">
+      <div class="library-banner-name" id="libraryBannerName">—</div>
+      <div class="library-banner-meta" id="libraryBannerMeta"></div>
+    </div>
+    <button class="library-banner-clear" onclick="clearLibraryFilter()"><i class="fas fa-times"></i></button>
   </div>
 
   <div class="creators-section">
-    <div class="date-group-header">Top Contributors</div>
-    <div class="creators-list" id="creatorsList" style="display:flex; gap:10px; overflow-x:auto; padding-bottom:10px; margin-bottom:20px;">
-        </div>
+    <div class="section-label">Active Creators</div>
+    <div class="creators-list" id="creatorsList">
+      <div class="creator-skeleton"><div class="skel-circle"></div><div style="flex:1"><div class="skel-line" style="width:42%;margin-bottom:5px"></div><div class="skel-line" style="width:24%"></div></div></div>
+      <div class="creator-skeleton"><div class="skel-circle"></div><div style="flex:1"><div class="skel-line" style="width:56%;margin-bottom:5px"></div><div class="skel-line" style="width:20%"></div></div></div>
+      <div class="creator-skeleton"><div class="skel-circle"></div><div style="flex:1"><div class="skel-line" style="width:34%;margin-bottom:5px"></div><div class="skel-line" style="width:28%"></div></div></div>
+    </div>
   </div>
 
-  <div class="date-group-header">Recent Archival</div>
   <ul class="article-list" id="articleList">
-    </ul>
+    <li class="skeleton-article"><div class="skel-title-lg"></div><div class="skel-title-sm"></div><div class="skel-meta"></div></li>
+    <li class="skeleton-article"><div class="skel-title-lg" style="width:62%"></div><div class="skel-title-sm" style="width:40%"></div><div class="skel-meta" style="width:22%"></div></li>
+    <li class="skeleton-article"><div class="skel-title-lg" style="width:78%"></div><div class="skel-title-sm" style="width:52%"></div><div class="skel-meta" style="width:30%"></div></li>
+  </ul>
+
 </div>
 
+<!-- Pong Easter Egg Modal -->
 <div class="pong-overlay" id="pongOverlay">
-    <div class="pong-modal">
-      <button class="pong-modal-close" onclick="closePong()"><i class="fas fa-times"></i></button>
-      <div class="pong-modal-title">System.Breakout</div>
-      <div class="pong-score">USR <span id="playerScore">0</span> — <span id="aiScore">0</span> SYS</div>
-      <canvas id="pongCanvas" width="480" height="200"></canvas>
-      <div class="pong-hint" id="pongHint">Tap to initialize paddle</div>
-    </div>
+  <div class="pong-modal">
+    <button class="pong-modal-close" onclick="closePong()"><i class="fas fa-times"></i></button>
+    <div class="pong-modal-title">🦦 Easter Egg</div>
+    <div class="pong-score">YOU <span id="playerScore">0</span> &nbsp;—&nbsp; <span id="aiScore">0</span> AI</div>
+    <canvas id="pongCanvas" width="480" height="200"></canvas>
+    <div class="pong-hint" id="pongHint">Click or tap to start &nbsp;·&nbsp; Mouse / drag to move paddle</div>
+  </div>
 </div>
 
-<div class="footer-bar">
-  <button class="footer-btn active" onclick="location.href='index.html'"><i class="fas fa-home"></i><span>Home</span></button>
-  <button class="footer-btn" onclick="location.href='#'"><i class="fas fa-scroll"></i><span>Feed</span></button>
-  <button class="footer-btn" onclick="location.href='explore.html'"><i class="fas fa-search"></i><span>Explore</span></button>
-  <button class="footer-btn" onclick="openPong()"><i class="fas fa-gamepad"></i><span>Break</span></button>
+<footer class="footer">
+  <span class="article-count" id="articleCount" title="🏓">0</span> articles accessible
+</footer>
+
+<div class="footer-credit">
+  Prototype by <a href="https://www.instagram.com/eyadayms?" target="_blank">Eyad</a>
 </div>
+
+<nav class="footer-bar">
+  <button class="footer-btn active" onclick="location.href='index.html'">
+    <i class="fas fa-home"></i>
+    <span>Home</span>
+  </button>
+  <button class="footer-btn" onclick="location.href='https://patholytica.com/dailyfeed'">
+    <i class="fas fa-scroll"></i>
+    <span>Feed</span>
+  </button>
+  <button class="footer-btn" onclick="location.href='explore.html'">
+    <i class="fas fa-search"></i>
+    <span>Explore</span>
+  </button>
+  <button class="footer-btn" onclick="openPong()">
+    <i class="fas fa-gamepad"></i>
+    <span>Break</span>
+  </button>
+</nav>
+
+<script>
+window.escHtml = function(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; };
+
+// ── Pong Easter Egg ──────────────────────────────────────────
+var pongRunning = false;
+var pongInitialized = false;
+
+function openPong() {
+  document.getElementById('pongOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  if (!pongInitialized) { initPong(); pongInitialized = true; }
+}
+
+function closePong() {
+  document.getElementById('pongOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+  pongRunning = false;
+}
+
+document.getElementById('pongOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closePong();
+});
+
+function initPong() {
+  const canvas = document.getElementById('pongCanvas');
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    const maxW = Math.min(480, window.innerWidth - 80);
+    canvas.width = maxW;
+    canvas.height = Math.round(maxW * (200 / 480));
+  }
+  resize();
+  window.addEventListener('resize', () => { resize(); resetPos(); });
+
+  const ACCENT = '#f1d19e', PAD_W = 8, PAD_H_R = 0.22, BALL_R = 5, AI_S = 0.035;
+  let W, H, padH, pY, aY, bX, bY, bVX, bVY, pScore = 0, aScore = 0, spd;
+
+  function dims() { W = canvas.width; H = canvas.height; padH = Math.round(H * PAD_H_R); spd = W * 0.012; }
+
+  function resetPos() {
+    dims(); pY = aY = (H - padH) / 2; bX = W / 2; bY = H / 2;
+    const ang = (Math.random() * 0.6 - 0.3) + (Math.random() > 0.5 ? 0 : Math.PI);
+    bVX = Math.cos(ang) * spd; bVY = Math.sin(ang) * spd;
+    if (Math.abs(bVX) < spd * 0.5) bVX = bVX < 0 ? -spd * 0.7 : spd * 0.7;
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.setLineDash([6, 8]); ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = ACCENT; ctx.beginPath(); ctx.roundRect(4, pY, PAD_W, padH, 4); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.roundRect(W - 4 - PAD_W, aY, PAD_W, padH, 4); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(bX, bY, BALL_R, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function update() {
+    if (!pongRunning) return;
+    bX += bVX; bY += bVY;
+    if (bY - BALL_R <= 0) { bY = BALL_R; bVY = Math.abs(bVY); }
+    if (bY + BALL_R >= H) { bY = H - BALL_R; bVY = -Math.abs(bVY); }
+    const am = H * AI_S, ac = aY + padH / 2;
+    if (ac < bY - 4) aY = Math.min(H - padH, aY + am);
+    else if (ac > bY + 4) aY = Math.max(0, aY - am);
+    if (bX - BALL_R <= 4 + PAD_W && bX - BALL_R >= 2 && bY >= pY && bY <= pY + padH) {
+      bX = 4 + PAD_W + BALL_R;
+      const h = (bY - (pY + padH / 2)) / (padH / 2), s = Math.sqrt(bVX * bVX + bVY * bVY) * 1.04;
+      bVX = Math.abs(Math.cos(h * 0.9) * s); bVY = Math.sin(h * 0.9) * s;
+    }
+    if (bX + BALL_R >= W - 4 - PAD_W && bX + BALL_R <= W - 2 && bY >= aY && bY <= aY + padH) {
+      bX = W - 4 - PAD_W - BALL_R;
+      const h = (bY - (aY + padH / 2)) / (padH / 2), s = Math.sqrt(bVX * bVX + bVY * bVY) * 1.02;
+      bVX = -Math.abs(Math.cos(h * 0.9) * s); bVY = Math.sin(h * 0.9) * s;
+    }
+    if (bX - BALL_R <= 0) {
+      aScore++; document.getElementById('aiScore').textContent = aScore;
+      if (aScore >= 12) {
+        pongRunning = false;
+        document.getElementById('pongHint').textContent = 'AI wins! Click or tap to play again.';
+        pScore = 0; aScore = 0;
+        document.getElementById('playerScore').textContent = 0;
+        document.getElementById('aiScore').textContent = 0;
+        resetPos(); return;
+      }
+      resetPos();
+    }
+    if (bX + BALL_R >= W) {
+      pScore++; document.getElementById('playerScore').textContent = pScore;
+      if (pScore >= 12) {
+        pongRunning = false;
+        document.getElementById('pongHint').textContent = 'You win! Click or tap to play again.';
+        pScore = 0; aScore = 0;
+        document.getElementById('playerScore').textContent = 0;
+        document.getElementById('aiScore').textContent = 0;
+        resetPos(); return;
+      }
+      resetPos();
+    }
+  }
+
+  function loop() { update(); draw(); requestAnimationFrame(loop); }
+
+  function start() {
+    if (pongRunning) return;
+    pongRunning = true;
+    document.getElementById('pongHint').textContent = 'Mouse / drag to move your paddle';
+    requestAnimationFrame(loop);
+  }
+
+  canvas.addEventListener('mousemove', e => {
+    const r = canvas.getBoundingClientRect();
+    pY = Math.max(0, Math.min(H - padH, e.clientY - r.top - padH / 2));
+  });
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    const r = canvas.getBoundingClientRect();
+    pY = Math.max(0, Math.min(H - padH, e.touches[0].clientY - r.top - padH / 2));
+  }, { passive: false });
+  canvas.addEventListener('click', start);
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); start(); }, { passive: false });
+
+  resetPos();
+  draw();
+}
+</script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// ... (Your existing Firebase / Supabase Init) ...
-const supabase = window.supabase.createClient("https://vduqewqyvszfquntmark.supabase.co", "sb_publishable_YseP73aoHam8YT6B0b9EQQ_iAUEWARI");
+const firebaseConfig = {
+  apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+  authDomain: "patholytica.firebaseapp.com",
+  databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "patholytica",
+  storageBucket: "patholytica.firebasestorage.app",
+  messagingSenderId: "738430635282",
+  appId: "1:738430635282:web:8451ef380447c7611137cb"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const supabase = window.supabase.createClient(
+  "https://vduqewqyvszfquntmark.supabase.co",
+  "sb_publishable_YseP73aoHam8YT6B0b9EQQ_iAUEWARI"
+);
 window._supabase = supabase;
 
-// Updated Article Rendering for Cyber-Noir UI
+window.logOut = async function() {
+  try { await signOut(auth); window.location.reload(); } catch(e) {}
+};
+
+onAuthStateChanged(auth, async (user) => {
+  const authButtons  = document.getElementById('authButtons');
+  const userWelcome  = document.getElementById('userWelcome');
+  const welcomeText  = document.getElementById('welcomeText');
+  const fabCreateBtn = document.getElementById('fabCreateBtn');
+  if (user) {
+    authButtons.classList.remove('show');
+    userWelcome.classList.add('show');
+    fabCreateBtn?.classList.add('show');
+    welcomeText.onclick = window.logOut;
+    try {
+      const { data: ud } = await supabase.from('users').select('username').eq('firebase_uid', user.uid).single();
+      if (ud?.username) welcomeText.textContent = `@${ud.username}`;
+    } catch(e) {}
+  } else {
+    authButtons.classList.add('show');
+    userWelcome.classList.remove('show');
+    fabCreateBtn?.classList.remove('show');
+  }
+});
+
+const PREVIEW = 3;
+
+function monthRange(dateStr) {
+  const d = new Date(dateStr);
+  const y = d.getUTCFullYear(), m = d.getUTCMonth();
+  return {
+    start: new Date(Date.UTC(y, m, 1)).toISOString(),
+    end:   new Date(Date.UTC(y, m+1, 1)).toISOString()
+  };
+}
+
+function monthLabel(dateStr) {
+  return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+}
+
 function renderArticleItem(article, userMap) {
   const li = document.createElement('li');
   li.className = 'article-item';
   li.onclick = () => { window.location.href = `article.html?id=${article.id}`; };
   const author = userMap[article.firebase_user_id];
-  const name = author?.username ? `@${author.username}` : 'unknown_entity';
-  const date = new Date(article.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
-  
+  const name = author?.username ? `@${author.username}` : 'Unknown Author';
+  const date = new Date(article.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   li.innerHTML = `
-    <h2 class="article-title">${article.title || 'NULL_TITLE'}</h2>
+    <h2 class="article-title">${window.escHtml(article.title || 'Untitled')}</h2>
     <div class="article-meta">
-      <span style="color:var(--accent)">${name}</span>
-      <span style="opacity:0.3">|</span>
+      <span>${window.escHtml(name)}</span>
+      <div class="meta-dot"></div>
       <span>${date}</span>
     </div>`;
   return li;
 }
 
-// Global Load Articles
-window._loadArticles = async function(libraryId = null) {
-    const list = document.getElementById('articleList');
-    list.innerHTML = '<div style="padding:20px; opacity:0.5; font-family:monospace;">INITIALIZING_STREAM...</div>';
-    
-    let query = supabase.from('articles').select('*').order('created_at', { ascending: false });
-    if (libraryId) {
-        const { data: items } = await supabase.from('playlist_items').select('article_id').eq('playlist_id', libraryId);
-        if (items) query = query.in('id', items.map(i => i.article_id));
+async function loadCreators() {
+  const el = document.getElementById('creatorsList');
+  try {
+    const { data: articles, error } = await supabase.from('articles').select('firebase_user_id');
+    if (error || !articles) { el.innerHTML=''; return; }
+    const counts = {};
+    articles.forEach(a => { if(a.firebase_user_id) counts[a.firebase_user_id]=(counts[a.firebase_user_id]||0)+1; });
+    const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    if (!sorted.length) { el.innerHTML=''; return; }
+    const uids = sorted.map(([u])=>u);
+    const { data: users } = await supabase.from('users').select('firebase_uid, username, pfp').in('firebase_uid', uids);
+    const um = {};
+    if (users) users.forEach(u=>{um[u.firebase_uid]=u;});
+    const rc=['gold','silver','bronze'], rl=['#1','#2','#3'];
+    el.innerHTML = sorted.map(([uid,count],i)=>{
+      const u=um[uid];
+      const name=u?.username?`@${u.username}`:'Unknown';
+      const init=(u?.username||'?').replace(/^@/,'')[0].toUpperCase();
+      const avatarHTML = u?.pfp
+        ? `<img src="${u.pfp}" alt="${init}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+        : init;
+      const profileLink = u?.username ? `profile.html?username=${window.escHtml(u.username)}` : '#';
+      return `<div class="creator-row" onclick="window.location.href='${profileLink}'">
+        <div class="creator-rank ${rc[i]}">${rl[i]}</div>
+        <div class="creator-avatar">${avatarHTML}</div>
+        <div class="creator-info">
+          <div class="creator-name">${window.escHtml(name)}</div>
+          <div class="creator-count">${count} article${count!==1?'s':''}</div>
+        </div>
+        <div class="creator-badge">${count}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { document.getElementById('creatorsList').innerHTML=''; }
+}
+
+async function loadArticles(libraryArticleIds = null) {
+  const list = document.getElementById('articleList');
+  list.innerHTML = `
+    <li class="skeleton-article"><div class="skel-title-lg"></div><div class="skel-title-sm"></div><div class="skel-meta"></div></li>
+    <li class="skeleton-article"><div class="skel-title-lg" style="width:62%"></div><div class="skel-title-sm" style="width:40%"></div><div class="skel-meta" style="width:22%"></div></li>
+    <li class="skeleton-article"><div class="skel-title-lg" style="width:78%"></div><div class="skel-title-sm" style="width:52%"></div><div class="skel-meta" style="width:30%"></div></li>`;
+
+  try {
+    let metaQuery = supabase.from('articles').select('id, created_at, firebase_user_id').order('created_at', { ascending: false });
+    if (libraryArticleIds) metaQuery = metaQuery.in('id', libraryArticleIds);
+    const { data: meta, error: metaErr } = await metaQuery;
+
+    if (metaErr) { list.innerHTML=`<li class="error-state">Error: ${metaErr.message}</li>`; return; }
+    if (!meta || meta.length===0) {
+      list.innerHTML='<li class="loading-state">No articles found.</li>';
+      document.getElementById('articleCount').textContent='0';
+      return;
     }
 
-    const { data: articles } = await query;
-    const { data: users } = await supabase.from('users').select('firebase_uid, username');
-    const userMap = {}; users?.forEach(u => userMap[u.firebase_uid] = u);
+    document.getElementById('articleCount').textContent = meta.length;
+
+    const monthGroups = {};
+    meta.forEach(a => {
+      const label = monthLabel(a.created_at);
+      if (!monthGroups[label]) monthGroups[label] = { count:0, firstDate:a.created_at };
+      monthGroups[label].count++;
+    });
 
     list.innerHTML = '';
-    articles?.forEach(a => list.appendChild(renderArticleItem(a, userMap)));
+    const userMap = {};
+
+    for (const [label, group] of Object.entries(monthGroups)) {
+      const { start, end } = monthRange(group.firstDate);
+
+      let previewQuery = supabase.from('articles').select('*')
+        .gte('created_at', start).lt('created_at', end)
+        .order('created_at', { ascending: false }).limit(PREVIEW);
+      if (libraryArticleIds) previewQuery = previewQuery.in('id', libraryArticleIds);
+      const { data: preview } = await previewQuery;
+      if (!preview || preview.length===0) continue;
+
+      const newIds = [...new Set(preview.map(a=>a.firebase_user_id).filter(Boolean))].filter(id=>!userMap[id]);
+      if (newIds.length) {
+        const { data: nu } = await supabase.from('users').select('firebase_uid, username').in('firebase_uid', newIds);
+        if (nu) nu.forEach(u=>{userMap[u.firebase_uid]=u;});
+      }
+
+      const headerLi = document.createElement('li');
+      headerLi.innerHTML = `<div class="date-group-header">${label}</div>`;
+      list.appendChild(headerLi);
+
+      preview.forEach(a => list.appendChild(renderArticleItem(a, userMap)));
+
+      const remaining = group.count - preview.length;
+      if (remaining > 0) {
+        const moreLi = document.createElement('li');
+        moreLi.className = 'load-more-row';
+        let expanded = false, expandedItems = [];
+        const btn = document.createElement('button');
+        btn.className = 'btn-load-more';
+        btn.innerHTML = `<i class="fas fa-chevron-down"></i> Show ${remaining} more from ${label}`;
+
+        btn.onclick = async () => {
+          if (expanded) {
+            expandedItems.forEach(el=>el.remove());
+            expandedItems=[]; expanded=false;
+            btn.classList.remove('open');
+            btn.innerHTML=`<i class="fas fa-chevron-down"></i> Show ${remaining} more from ${label}`;
+            return;
+          }
+          btn.classList.add('loading');
+          btn.innerHTML=`<i class="fas fa-circle-notch fa-spin"></i> Loading…`;
+          try {
+            let mq = supabase.from('articles').select('*')
+              .gte('created_at', start).lt('created_at', end)
+              .order('created_at', { ascending: false })
+              .range(PREVIEW, group.count-1);
+            if (libraryArticleIds) mq = mq.in('id', libraryArticleIds);
+            const { data: more, error: mErr } = await mq;
+            if (mErr || !more) throw new Error(mErr?.message||'fetch failed');
+            const nids=[...new Set(more.map(a=>a.firebase_user_id).filter(Boolean))].filter(id=>!userMap[id]);
+            if (nids.length) {
+              const { data: nu } = await supabase.from('users').select('firebase_uid, username').in('firebase_uid', nids);
+              if (nu) nu.forEach(u=>{userMap[u.firebase_uid]=u;});
+            }
+            more.forEach(a=>{
+              const el=renderArticleItem(a, userMap);
+              list.insertBefore(el, moreLi);
+              expandedItems.push(el);
+            });
+            expanded=true;
+            btn.classList.remove('loading'); btn.classList.add('open');
+            btn.innerHTML=`<i class="fas fa-chevron-down"></i> Collapse ${label}`;
+          } catch(e) {
+            btn.classList.remove('loading');
+            btn.innerHTML=`<i class="fas fa-chevron-down"></i> Show ${remaining} more from ${label}`;
+          }
+        };
+        moreLi.appendChild(btn);
+        list.appendChild(moreLi);
+      }
+    }
+
+  } catch(err) {
+    list.innerHTML=`<li class="error-state">Unexpected error: ${err.message}</li>`;
+  }
+}
+
+window._loadArticles = async function(libraryId = null) {
+  let ids = null;
+  if (libraryId !== null) {
+    const { data: items, error } = await supabase.from('playlist_items').select('article_id').eq('playlist_id', libraryId);
+    if (error) { document.getElementById('articleList').innerHTML=`<li class="error-state">Error: ${error.message}</li>`; return; }
+    if (!items||items.length===0) {
+      document.getElementById('articleList').innerHTML='<li class="loading-state">No articles in this library.</li>';
+      document.getElementById('articleCount').textContent='0';
+      return;
+    }
+    ids = items.map(i=>i.article_id);
+  }
+  await loadArticles(ids);
 };
 
-_loadArticles();
+loadCreators();
+window._loadArticles(null);
 </script>
 
 <script>
-// Pong Visual Polish
-function initPong() {
-  const canvas = document.getElementById('pongCanvas');
-  const ctx = canvas.getContext('2d');
-  const ACCENT = '#f1d19e';
-  
-  // Custom Draw with Glow
-  function drawBall(x, y) {
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = ACCENT;
-    ctx.fillStyle = ACCENT;
-    ctx.beginPath();
-    ctx.arc(x, y, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
+async function startLibrary() {
+  const input=document.getElementById('libraryIdInput');
+  const btn=document.getElementById('startBtn');
+  const banner=document.getElementById('libraryBanner');
+  const bName=document.getElementById('libraryBannerName');
+  const bMeta=document.getElementById('libraryBannerMeta');
+  const val=input.value.trim();
+  if (!val||isNaN(val)||parseInt(val)<=0) {
+    input.classList.add('error');
+    setTimeout(()=>input.classList.remove('error'),1200);
+    input.focus(); return;
   }
-  // ... (Rest of your robust Pong logic)
+  const libraryId=parseInt(val);
+  btn.disabled=true; btn.textContent='…';
+  bName.textContent='Loading…'; bMeta.innerHTML='';
+  banner.classList.add('show');
+  try {
+    const { data:lib, error:libErr } = await window._supabase.from('playlists').select('*').eq('id',libraryId).single();
+    if (libErr||!lib) {
+      bName.textContent=`Library #${libraryId}`;
+      bMeta.innerHTML=`<span><i class="fas fa-exclamation-circle"></i> Library not found</span>`;
+    } else {
+      bName.textContent=lib.name||`Library #${libraryId}`;
+      const parts=[];
+      if(lib.description) parts.push(`<span><i class="fas fa-align-left"></i> ${lib.description}</span>`);
+      if(lib.created_at){
+        const d=new Date(lib.created_at).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
+        parts.push(`<span><i class="fas fa-calendar-alt"></i> ${d}</span>`);
+      }
+      parts.push(`<span><i class="fas fa-hashtag"></i> ID ${libraryId}</span>`);
+      bMeta.innerHTML=parts.join('');
+    }
+  } catch(e) {
+    bName.textContent=`Library #${libraryId}`;
+    bMeta.innerHTML=`<span><i class="fas fa-hashtag"></i> ID ${libraryId}</span>`;
+  } finally { btn.disabled=false; btn.textContent='Start'; }
+  window._loadArticles(libraryId);
 }
-// Existing startLibrary / clear functions remain same logic
-</script>
 
+function clearLibraryFilter() {
+  document.getElementById('libraryIdInput').value='';
+  document.getElementById('libraryBanner').classList.remove('show');
+  window._loadArticles(null);
+}
+</script>
 </body>
 </html>
