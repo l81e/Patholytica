@@ -437,7 +437,6 @@
         flex-shrink: 0;
     }
 
-    /* ID search row inside card */
     .lp-card-id-row {
         display: flex;
         gap: 8px;
@@ -506,7 +505,6 @@
         flex-shrink: 0;
     }
 
-    /* Scrollable library list inside the card */
     .lp-card-scroll {
         flex: 1;
         overflow-y: auto;
@@ -783,7 +781,66 @@
     let filteredArticleIds = null;
     let anchorArticleId = null;
 
-    // ── Build the picker as the first card in the feed ───────
+    // ── Skeleton HTML ─────────────────────────────────────────
+    function skeletonCardHTML() {
+        return `
+            <div class="card-top-line"></div>
+            <div class="skeleton-header">
+                <div class="skeleton-avatar skeleton-base"></div>
+                <div class="skeleton-author-block">
+                    <div class="skeleton-name skeleton-base"></div>
+                    <div class="skeleton-date skeleton-base"></div>
+                </div>
+            </div>
+            <div class="skeleton-divider"></div>
+            <div class="skeleton-title skeleton-base"></div>
+            <div class="skeleton-title-short skeleton-base"></div>
+            <div class="skeleton-stats">
+                <div class="skeleton-stat skeleton-base"></div>
+                <div class="skeleton-stat skeleton-base"></div>
+            </div>
+            <div class="skeleton-line skeleton-base"></div>
+            <div class="skeleton-line w90 skeleton-base"></div>
+            <div class="skeleton-line w95 skeleton-base"></div>
+            <div class="skeleton-line w80 skeleton-base"></div>
+            <div class="skeleton-line skeleton-base"></div>
+            <div class="skeleton-line w75 skeleton-base"></div>
+            <div class="skeleton-line w90 skeleton-base"></div>
+            <div class="skeleton-line w65 skeleton-base"></div>
+        `;
+    }
+
+    // ── Swap picker for skeleton immediately, then load ───────
+    function swapPickerForSkeleton() {
+        const pickerCard = document.getElementById('libraryPickerCard');
+        if (pickerCard) {
+            const skDiv = document.createElement('div');
+            skDiv.className = 'skeleton-card';
+            skDiv.innerHTML = skeletonCardHTML();
+            pickerCard.replaceWith(skDiv);
+        }
+    }
+
+    function applyFilterAndReload(articleIds) {
+        filteredArticleIds = articleIds;
+
+        // Immediately replace picker with skeleton so scroll doesn't freeze
+        swapPickerForSkeleton();
+
+        // Reset feed state
+        articles = [];
+        offset = 0;
+        hasMore = true;
+        isLoading = false;
+
+        // Remove any existing article/mcq cards but leave the skeleton
+        const wrapper = document.getElementById('postsWrapper');
+        wrapper.querySelectorAll('.article-card, .mcq-card').forEach(c => c.remove());
+
+        loadArticles(true);
+    }
+
+    // ── Build the picker as the first card in the feed ────────
     function buildPickerCard() {
         const card = document.createElement('div');
         card.className = 'library-picker-card';
@@ -824,9 +881,8 @@
     }
 
     async function initLibraryPicker() {
-        const wrapper  = document.getElementById('postsWrapper');
+        const wrapper    = document.getElementById('postsWrapper');
         const pickerCard = buildPickerCard();
-        // Insert picker as the very first card
         wrapper.insertBefore(pickerCard, wrapper.firstChild);
 
         const grid     = document.getElementById('lpGrid');
@@ -846,21 +902,45 @@
             idGoBtn.disabled = true;
             idGoBtn.textContent = '…';
             idError.textContent = '';
+
+            // Swap to skeleton immediately before the async check
+            swapPickerForSkeleton();
+
             try {
                 const { data: art, error } = await supabase
                     .from('articles').select('id').eq('id', id).single();
                 if (error || !art) {
-                    idError.textContent = `No article found with ID ${id}.`;
-                    idGoBtn.disabled = false;
-                    idGoBtn.textContent = 'Go';
+                    // Article not found — put picker back is complex, just reload without anchor
+                    anchorArticleId = null;
+                    articles = [];
+                    offset = 0;
+                    hasMore = true;
+                    isLoading = false;
+                    document.getElementById('postsWrapper').querySelectorAll('.article-card, .mcq-card').forEach(c => c.remove());
+                    // Show error in a toast-style since picker is gone
+                    const errToast = document.createElement('div');
+                    errToast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#ef4444;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;';
+                    errToast.textContent = `No article found with ID ${id}.`;
+                    document.body.appendChild(errToast);
+                    setTimeout(() => errToast.remove(), 3000);
+                    loadArticles(true);
                     return;
                 }
                 anchorArticleId = id;
-                applyFilterAndReload(null);
+                filteredArticleIds = null;
+                articles = [];
+                offset = 0;
+                hasMore = true;
+                isLoading = false;
+                document.getElementById('postsWrapper').querySelectorAll('.article-card, .mcq-card').forEach(c => c.remove());
+                loadArticles(true);
             } catch(e) {
-                idError.textContent = 'Error checking article ID.';
-                idGoBtn.disabled = false;
-                idGoBtn.textContent = 'Go';
+                // On error just load normally
+                articles = [];
+                offset = 0;
+                hasMore = true;
+                isLoading = false;
+                loadArticles(true);
             }
         }
         idGoBtn.addEventListener('click', handleIdSearch);
@@ -927,12 +1007,26 @@
             startBtn.addEventListener('click', async () => {
                 startBtn.disabled = true;
                 startBtn.textContent = 'Loading…';
+
+                // Swap picker for skeleton IMMEDIATELY before any async work
+                swapPickerForSkeleton();
+
                 const playlistIds = [...selected].map(Number);
                 const { data: items } = await supabase
                     .from('playlist_items').select('article_id')
                     .in('playlist_id', playlistIds);
                 const articleIds = [...new Set((items || []).map(r => r.article_id))];
-                applyFilterAndReload(articleIds.length > 0 ? articleIds : null);
+
+                filteredArticleIds = articleIds.length > 0 ? articleIds : null;
+                articles = [];
+                offset = 0;
+                hasMore = true;
+                isLoading = false;
+
+                const wrapper = document.getElementById('postsWrapper');
+                wrapper.querySelectorAll('.article-card, .mcq-card').forEach(c => c.remove());
+
+                loadArticles(true);
             });
 
         } catch(e) {
@@ -941,21 +1035,7 @@
         }
     }
 
-    // Called when user confirms a selection — removes picker card and reloads feed with filter
-    function applyFilterAndReload(articleIds) {
-        filteredArticleIds = articleIds;
-        const pickerCard = document.getElementById('libraryPickerCard');
-        if (pickerCard) pickerCard.remove();
-        // Reset feed
-        articles = [];
-        offset = 0;
-        hasMore = true;
-        isLoading = false;
-        document.getElementById('postsWrapper').innerHTML = '';
-        loadArticles(true);
-    }
-
-    // ── MCQ helpers ──────────────────────────────────────────
+    // ── MCQ helpers ───────────────────────────────────────────
     function isMCQ(content) {
         return typeof content === 'string' && content.trimStart().startsWith('❔');
     }
@@ -982,7 +1062,7 @@
             .replace(/>/g,'&gt;');
     }
 
-    // ── Media renderer ───────────────────────────────────────
+    // ── Media renderer ────────────────────────────────────────
     function createMediaElement(m) {
         const d = document.createElement('div');
         d.className = 'media-embed';
@@ -1043,7 +1123,7 @@
         return d;
     }
 
-    // ── MCQ card builder ─────────────────────────────────────
+    // ── MCQ card builder ──────────────────────────────────────
     function buildMCQCard(article, index) {
         const { question, options } = parseMCQ(article.content);
         const isLiked = userLikes.has(String(article.id));
@@ -1128,7 +1208,7 @@
         return card;
     }
 
-    // ── Helpers ──────────────────────────────────────────────
+    // ── Helpers ───────────────────────────────────────────────
     function formatNumber(num) {
         if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
         if (num >= 1000)    return (num / 1000).toFixed(1) + 'K';
@@ -1158,35 +1238,7 @@
         return letter;
     }
 
-    function skeletonCardHTML() {
-        return `
-            <div class="card-top-line"></div>
-            <div class="skeleton-header">
-                <div class="skeleton-avatar skeleton-base"></div>
-                <div class="skeleton-author-block">
-                    <div class="skeleton-name skeleton-base"></div>
-                    <div class="skeleton-date skeleton-base"></div>
-                </div>
-            </div>
-            <div class="skeleton-divider"></div>
-            <div class="skeleton-title skeleton-base"></div>
-            <div class="skeleton-title-short skeleton-base"></div>
-            <div class="skeleton-stats">
-                <div class="skeleton-stat skeleton-base"></div>
-                <div class="skeleton-stat skeleton-base"></div>
-            </div>
-            <div class="skeleton-line skeleton-base"></div>
-            <div class="skeleton-line w90 skeleton-base"></div>
-            <div class="skeleton-line w95 skeleton-base"></div>
-            <div class="skeleton-line w80 skeleton-base"></div>
-            <div class="skeleton-line skeleton-base"></div>
-            <div class="skeleton-line w75 skeleton-base"></div>
-            <div class="skeleton-line w90 skeleton-base"></div>
-            <div class="skeleton-line w65 skeleton-base"></div>
-        `;
-    }
-
-    // ── Auth ─────────────────────────────────────────────────
+    // ── Auth ──────────────────────────────────────────────────
     async function getCurrentUser() {
         try {
             const firebaseUser = auth.currentUser;
@@ -1314,8 +1366,9 @@
 
             if (filteredArticleIds !== null) {
                 if (filteredArticleIds.length === 0) {
-                    document.getElementById('postsWrapper').innerHTML =
-                        `<div class="loading-container"><i class="fas fa-inbox" style="font-size:48px;"></i><div>No articles in selected libraries</div></div>`;
+                    const wrapper = document.getElementById('postsWrapper');
+                    wrapper.querySelectorAll('.skeleton-card').forEach(s => s.remove());
+                    wrapper.innerHTML += `<div class="loading-container" style="height:100vh;scroll-snap-align:start;"><i class="fas fa-inbox" style="font-size:48px;"></i><div>No articles in selected libraries</div></div>`;
                     isLoading = false;
                     return;
                 }
@@ -1327,8 +1380,9 @@
 
             if (!articlesData || articlesData.length === 0) {
                 if (isInitial) {
-                    document.getElementById('postsWrapper').innerHTML =
-                        `<div class="loading-container"><i class="fas fa-inbox" style="font-size:48px;"></i><div>No articles found</div></div>`;
+                    const wrapper = document.getElementById('postsWrapper');
+                    wrapper.querySelectorAll('.skeleton-card').forEach(s => s.remove());
+                    wrapper.innerHTML += `<div class="loading-container" style="height:100vh;scroll-snap-align:start;"><i class="fas fa-inbox" style="font-size:48px;"></i><div>No articles found</div></div>`;
                 }
                 hasMore = false; isLoading = false; return;
             }
@@ -1341,8 +1395,9 @@
         } catch(e) {
             console.error('Error loading articles:', e);
             if (isInitial) {
-                document.getElementById('postsWrapper').innerHTML =
-                    `<div class="loading-container"><i class="fas fa-exclamation-triangle" style="font-size:48px;"></i><div>Failed to load articles</div></div>`;
+                const wrapper = document.getElementById('postsWrapper');
+                wrapper.querySelectorAll('.skeleton-card').forEach(s => s.remove());
+                wrapper.innerHTML += `<div class="loading-container" style="height:100vh;scroll-snap-align:start;"><i class="fas fa-exclamation-triangle" style="font-size:48px;"></i><div>Failed to load articles</div></div>`;
             }
             isLoading = false;
         }
@@ -1383,7 +1438,11 @@
         const wrapper = document.getElementById('postsWrapper');
 
         if (isInitial) {
-            wrapper.innerHTML = '';
+            // Remove skeleton placeholders and any stale article cards
+            // but do NOT innerHTML = '' — the skeleton from swapPickerForSkeleton
+            // is already visible and keeps the scroll position stable
+            wrapper.querySelectorAll('.skeleton-card').forEach(s => s.remove());
+            wrapper.querySelectorAll('.article-card, .mcq-card').forEach(c => c.remove());
         } else {
             const last = wrapper.lastElementChild;
             if (last && last.classList.contains('skeleton-card')) last.remove();
