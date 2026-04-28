@@ -42,6 +42,7 @@
             height: 100%;
         }
 
+        /* Feed hidden until picker dismisses */
         .app-container {
             position: fixed;
             top: 0;
@@ -51,6 +52,13 @@
             max-width: 450px;
             height: 100vh;
             background: var(--bg-color);
+            visibility: hidden;
+            opacity: 0;
+        }
+        .app-container.visible {
+            visibility: visible;
+            opacity: 1;
+            transition: opacity 0.35s ease;
         }
 
         .scroller-container {
@@ -526,7 +534,7 @@
 </head>
 <body>
 
-    <!-- Library Picker -->
+    <!-- Library Picker — shown first, feed hidden behind it -->
     <div id="libraryPicker">
         <div class="lp-logo">Patholytica</div>
         <h2>What do you want to study?</h2>
@@ -546,43 +554,10 @@
 
     <canvas id="confettiCanvas"></canvas>
 
-    <div class="app-container">
+    <!-- Feed — hidden until picker is dismissed -->
+    <div class="app-container" id="appContainer">
         <div class="scroller-container">
-            <div class="posts-wrapper" id="postsWrapper">
-                <div class="skeleton-card">
-                    <div class="card-top-line"></div>
-                    <div class="skeleton-header">
-                        <div class="skeleton-avatar skeleton-base"></div>
-                        <div class="skeleton-author-block">
-                            <div class="skeleton-name skeleton-base"></div>
-                            <div class="skeleton-date skeleton-base"></div>
-                        </div>
-                    </div>
-                    <div class="skeleton-divider"></div>
-                    <div class="skeleton-title skeleton-base"></div>
-                    <div class="skeleton-title-short skeleton-base"></div>
-                    <div class="skeleton-stats"><div class="skeleton-stat skeleton-base"></div><div class="skeleton-stat skeleton-base"></div></div>
-                    <div class="skeleton-line skeleton-base"></div><div class="skeleton-line w90 skeleton-base"></div>
-                    <div class="skeleton-line w95 skeleton-base"></div><div class="skeleton-line w80 skeleton-base"></div>
-                    <div class="skeleton-line skeleton-base"></div><div class="skeleton-line w75 skeleton-base"></div>
-                </div>
-                <div class="skeleton-card">
-                    <div class="card-top-line"></div>
-                    <div class="skeleton-header">
-                        <div class="skeleton-avatar skeleton-base"></div>
-                        <div class="skeleton-author-block">
-                            <div class="skeleton-name skeleton-base"></div>
-                            <div class="skeleton-date skeleton-base"></div>
-                        </div>
-                    </div>
-                    <div class="skeleton-divider"></div>
-                    <div class="skeleton-title skeleton-base"></div>
-                    <div class="skeleton-title-short skeleton-base"></div>
-                    <div class="skeleton-stats"><div class="skeleton-stat skeleton-base"></div><div class="skeleton-stat skeleton-base"></div></div>
-                    <div class="skeleton-line skeleton-base"></div><div class="skeleton-line w90 skeleton-base"></div>
-                    <div class="skeleton-line w80 skeleton-base"></div><div class="skeleton-line w65 skeleton-base"></div>
-                </div>
-            </div>
+            <div class="posts-wrapper" id="postsWrapper"></div>
         </div>
     </div>
 
@@ -740,39 +715,54 @@
         let currentUser = null;
         let viewTimers = {};
         let viewedArticles = new Set();
-        let selectedLibraryIds = []; // null = all, array = filtered
+        // null = no filter; array of article IDs = filtered
+        let filteredArticleIds = null;
 
-        // ── Library Picker ──
+        // ── Library Picker ──────────────────────────────────────
         async function initLibraryPicker() {
-            const grid = document.getElementById('lpGrid');
-            const startBtn = document.getElementById('lpStartBtn');
-            const skipBtn = document.getElementById('lpSkipBtn');
-            const hint = document.getElementById('lpCountHint');
-            let selected = new Set();
+            const grid       = document.getElementById('lpGrid');
+            const startBtn   = document.getElementById('lpStartBtn');
+            const skipBtn    = document.getElementById('lpSkipBtn');
+            const hint       = document.getElementById('lpCountHint');
+            const selected   = new Set(); // set of playlist IDs (strings)
 
             try {
+                // Libraries live in "playlists" table, articles linked via "playlist_items"
                 const { data: libs, error } = await supabase
-                    .from('libraries')
-                    .select('id, title, article_count')
-                    .order('title', { ascending: true });
+                    .from('playlists')
+                    .select('id, name, description')
+                    .order('name', { ascending: true });
 
                 if (error || !libs || libs.length === 0) {
-                    // No libraries or error — skip picker
-                    dismissPicker([]);
+                    // Nothing to pick from — go straight to full feed
+                    dismissPicker(null);
                     return;
                 }
 
+                // Also pull article counts per playlist
+                const { data: countRows } = await supabase
+                    .from('playlist_items')
+                    .select('playlist_id');
+
+                const countMap = {};
+                (countRows || []).forEach(r => {
+                    countMap[r.playlist_id] = (countMap[r.playlist_id] || 0) + 1;
+                });
+
                 grid.innerHTML = '';
+
                 libs.forEach(lib => {
+                    const articleCount = countMap[lib.id] || 0;
                     const item = document.createElement('div');
                     item.className = 'lp-item';
                     item.dataset.id = lib.id;
                     item.innerHTML = `
                         <div class="lp-check">✓</div>
                         <div class="lp-info">
-                            <div class="lp-name">${lib.title}</div>
-                            <div class="lp-meta">${lib.article_count != null ? lib.article_count + ' articles' : 'Library'}</div>
+                            <div class="lp-name">${lib.name || 'Untitled Library'}</div>
+                            <div class="lp-meta">${articleCount} article${articleCount !== 1 ? 's' : ''}${lib.description ? ' · ' + lib.description : ''}</div>
                         </div>`;
+
                     item.addEventListener('click', () => {
                         const id = String(lib.id);
                         if (selected.has(id)) {
@@ -786,43 +776,56 @@
                         const n = selected.size;
                         hint.textContent = `${n} / 5 selected`;
                         startBtn.disabled = n === 0;
-                        // Grey out unselected when at max
+                        // Grey out unchosen items when cap reached
                         grid.querySelectorAll('.lp-item').forEach(el => {
                             if (!el.classList.contains('selected')) {
-                                el.style.opacity = n >= 5 ? '0.4' : '1';
-                                el.style.pointerEvents = n >= 5 ? 'none' : '';
+                                el.style.opacity        = n >= 5 ? '0.4' : '1';
+                                el.style.pointerEvents  = n >= 5 ? 'none' : '';
                             } else {
-                                el.style.opacity = '1';
-                                el.style.pointerEvents = '';
+                                el.style.opacity        = '1';
+                                el.style.pointerEvents  = '';
                             }
                         });
                     });
+
                     grid.appendChild(item);
                 });
 
-                startBtn.addEventListener('click', () => {
-                    dismissPicker([...selected]);
-                });
-                skipBtn.addEventListener('click', () => {
-                    dismissPicker([]);
+                startBtn.addEventListener('click', async () => {
+                    startBtn.disabled = true;
+                    startBtn.textContent = 'Loading…';
+                    // Resolve selected playlist IDs → article IDs
+                    const playlistIds = [...selected].map(Number);
+                    const { data: items } = await supabase
+                        .from('playlist_items')
+                        .select('article_id')
+                        .in('playlist_id', playlistIds);
+                    const articleIds = [...new Set((items || []).map(r => r.article_id))];
+                    dismissPicker(articleIds.length > 0 ? articleIds : null);
                 });
 
+                skipBtn.addEventListener('click', () => dismissPicker(null));
+
             } catch(e) {
-                dismissPicker([]);
+                console.error('Library picker error:', e);
+                dismissPicker(null);
             }
         }
 
-        function dismissPicker(libIds) {
-            selectedLibraryIds = libIds; // empty = show all
+        function dismissPicker(articleIds) {
+            filteredArticleIds = articleIds; // null = show all
             const picker = document.getElementById('libraryPicker');
             picker.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-            picker.style.opacity = '0';
-            picker.style.transform = 'translateY(-12px)';
+            picker.style.opacity    = '0';
+            picker.style.transform  = 'translateY(-12px)';
+            // Reveal the feed
+            const app = document.getElementById('appContainer');
+            app.classList.add('visible');
             setTimeout(() => { picker.style.display = 'none'; }, 400);
             loadArticles(true);
         }
 
-        // ── MCQ helpers ──
+        // ── MCQ helpers ──────────────────────────────────────────
         function isMCQ(content) {
             return typeof content === 'string' && content.trimStart().startsWith('❔');
         }
@@ -835,6 +838,11 @@
                 const label   = line.replace(/^✅/, '').trim();
                 return { label, correct };
             });
+            // Fisher-Yates shuffle so order is different every render
+            for (let i = options.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [options[i], options[j]] = [options[j], options[i]];
+            }
             return { question: questionLine, options };
         }
 
@@ -845,7 +853,7 @@
                 .replace(/>/g,'&gt;');
         }
 
-        // ── Media renderer ──
+        // ── Media renderer ───────────────────────────────────────
         function createMediaElement(m) {
             const d = document.createElement('div');
             d.className = 'media-embed';
@@ -906,7 +914,7 @@
             return d;
         }
 
-        // ── MCQ card builder ──
+        // ── MCQ card builder ─────────────────────────────────────
         function buildMCQCard(article, index) {
             const { question, options } = parseMCQ(article.content);
             const isLiked = userLikes.has(String(article.id));
@@ -957,7 +965,7 @@
             }
 
             const optsContainer = card.querySelector(`#mcq-opts-${article.id}`);
-            const msgEl = card.querySelector(`#mcq-msg-${article.id}`);
+            const msgEl         = card.querySelector(`#mcq-msg-${article.id}`);
             let answered = false;
 
             options.forEach((opt, i) => {
@@ -991,7 +999,7 @@
             return card;
         }
 
-        // ── Helpers ──
+        // ── Helpers ──────────────────────────────────────────────
         function formatNumber(num) {
             if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
             if (num >= 1000)    return (num / 1000).toFixed(1) + 'K';
@@ -1002,8 +1010,8 @@
             const now = new Date(), ms = now - date;
             const mins = Math.floor(ms/60000), hrs = Math.floor(ms/3600000), days = Math.floor(ms/86400000);
             if (mins < 60) return `${mins}m ago`;
-            if (hrs < 24) return `${hrs}h ago`;
-            if (days < 7) return `${days}d ago`;
+            if (hrs < 24)  return `${hrs}h ago`;
+            if (days < 7)  return `${days}d ago`;
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }
 
@@ -1049,7 +1057,7 @@
             `;
         }
 
-        // ── Auth ──
+        // ── Auth ─────────────────────────────────────────────────
         async function getCurrentUser() {
             try {
                 const firebaseUser = auth.currentUser;
@@ -1072,7 +1080,7 @@
             }
         });
 
-        // ── Likes ──
+        // ── Likes ─────────────────────────────────────────────────
         async function loadUserLikes() {
             if (!currentUser) return;
             try {
@@ -1092,7 +1100,7 @@
 
         async function handleLike(e) {
             const btn = e.currentTarget;
-            const id = String(btn.dataset.id);
+            const id  = String(btn.dataset.id);
             const countSpan = btn.querySelector('.like-count');
 
             if (!currentUser) {
@@ -1104,12 +1112,12 @@
             btn.dataset.processing = 'true';
 
             const wasLiked = userLikes.has(id);
-            const artIdx = articles.findIndex(a => String(a.id) === id);
+            const artIdx   = articles.findIndex(a => String(a.id) === id);
             const prevRealCount = artIdx !== -1 ? (articles[artIdx].likes || 0) : 0;
             const newCount = wasLiked ? Math.max(0, prevRealCount - 1) : prevRealCount + 1;
 
             if (wasLiked) { userLikes.delete(id); btn.classList.remove('liked'); }
-            else { userLikes.add(id); btn.classList.add('liked'); }
+            else          { userLikes.add(id);    btn.classList.add('liked'); }
             countSpan.textContent = formatNumber(newCount);
             const card = btn.closest('.article-card, .mcq-card');
             if (card) { const s = card.querySelector('.stat-item.likes span'); if (s) s.textContent = formatNumber(newCount); }
@@ -1135,7 +1143,7 @@
             } catch (err) {
                 console.error(err);
                 if (wasLiked) { userLikes.add(id); btn.classList.add('liked'); }
-                else { userLikes.delete(id); btn.classList.remove('liked'); }
+                else          { userLikes.delete(id); btn.classList.remove('liked'); }
                 countSpan.textContent = formatNumber(prevRealCount);
                 if (card) { const s = card.querySelector('.stat-item.likes span'); if (s) s.textContent = formatNumber(prevRealCount); }
                 if (artIdx !== -1) articles[artIdx].likes = prevRealCount;
@@ -1144,7 +1152,7 @@
             }
         }
 
-        // ── Load articles ──
+        // ── Load articles ─────────────────────────────────────────
         async function loadArticles(isInitial = true) {
             if (isLoading || (!isInitial && !hasMore)) return;
             isLoading = true;
@@ -1155,9 +1163,16 @@
                     .order('created_at', { ascending: false })
                     .range(offset, offset + LIMIT - 1);
 
-                // If libraries were selected, filter by library_id
-                if (selectedLibraryIds.length > 0) {
-                    query = query.in('library_id', selectedLibraryIds);
+                // If library filter is active, restrict to those article IDs
+                if (filteredArticleIds !== null) {
+                    if (filteredArticleIds.length === 0) {
+                        // Edge case: selected libraries had no articles
+                        document.getElementById('postsWrapper').innerHTML =
+                            `<div class="loading-container"><i class="fas fa-inbox" style="font-size:48px;"></i><div>No articles in selected libraries</div></div>`;
+                        isLoading = false;
+                        return;
+                    }
+                    query = query.in('id', filteredArticleIds);
                 }
 
                 const { data: articlesData, error } = await query;
@@ -1166,7 +1181,8 @@
 
                 if (!articlesData || articlesData.length === 0) {
                     if (isInitial) {
-                        document.getElementById('postsWrapper').innerHTML = `<div class="loading-container"><i class="fas fa-inbox" style="font-size:48px;"></i><div>No articles found</div></div>`;
+                        document.getElementById('postsWrapper').innerHTML =
+                            `<div class="loading-container"><i class="fas fa-inbox" style="font-size:48px;"></i><div>No articles found</div></div>`;
                     }
                     hasMore = false; isLoading = false; return;
                 }
@@ -1192,8 +1208,8 @@
                     const user = usersData.find(u => u.firebase_uid === article.firebase_user_id);
                     return {
                         ...article,
-                        author: user?.username ? `@${user.username}` : (user?.full_name || 'Anonymous'),
-                        authorPfp: user?.pfp || null,
+                        author:         user?.username ? `@${user.username}` : (user?.full_name || 'Anonymous'),
+                        authorPfp:      user?.pfp || null,
                         authorUsername: user?.username || null,
                         media: (mediaData || []).filter(m => m.article_id === article.id)
                     };
@@ -1205,13 +1221,14 @@
             } catch(e) {
                 console.error('Error loading articles:', e);
                 if (isInitial) {
-                    document.getElementById('postsWrapper').innerHTML = `<div class="loading-container"><i class="fas fa-exclamation-triangle" style="font-size:48px;"></i><div>Failed to load articles</div></div>`;
+                    document.getElementById('postsWrapper').innerHTML =
+                        `<div class="loading-container"><i class="fas fa-exclamation-triangle" style="font-size:48px;"></i><div>Failed to load articles</div></div>`;
                 }
                 isLoading = false;
             }
         }
 
-        // ── Render ──
+        // ── Render ────────────────────────────────────────────────
         function renderArticles(isInitial = true) {
             const wrapper = document.getElementById('postsWrapper');
 
@@ -1314,7 +1331,7 @@
             }
         }
 
-        // ── Intersection / view tracking ──
+        // ── Intersection / view tracking ──────────────────────────
         function setupIntersectionObserver() {
             const obs = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
@@ -1360,7 +1377,7 @@
             } catch(e) { viewedArticles.delete(id); }
         }
 
-        // ── Comments ──
+        // ── Comments ──────────────────────────────────────────────
         async function loadCommentCounts() {
             try {
                 const { data: comments } = await supabase.from('comments').select('article_id');
@@ -1436,15 +1453,15 @@
             if (c.scrollTop + c.clientHeight >= c.scrollHeight * 0.8 && hasMore && !isLoading) loadArticles(false);
         }
 
-        // Init: show library picker first
+        // Kick off with picker — feed starts hidden
         initLibraryPicker();
     </script>
 
     <script>
         window.toggleAudio = function(btn, audioId) {
             const player = btn.closest('.custom-audio-player');
-            const audio = document.getElementById(audioId);
-            const icon = btn.querySelector('i');
+            const audio  = document.getElementById(audioId);
+            const icon   = btn.querySelector('i');
             if (audio.paused) {
                 audio.play();
                 icon.className = 'fas fa-pause';
