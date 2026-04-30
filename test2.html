@@ -1,1 +1,2307 @@
-:)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Article Scroller - Patholytica</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-color: #1f1f1f;
+            --text-primary: #fff;
+            --text-secondary: #aaa;
+            --card-bg: #1f1f1f;
+            --hover-bg: #2a2a2a;
+            --border-color: #303030;
+            --accent: #f1d19e;
+            --accent-hover: #d9b87a;
+        }
+
+        body.light-theme {
+            --bg-color: #f9f9f9;
+            --text-primary: #0f0f0f;
+            --text-secondary: #606060;
+            --card-bg: #f9f9f9;
+            --hover-bg: #f0f0f0;
+            --border-color: #e5e5e5;
+            --accent: #c49a3c;
+            --accent-hover: #a07c28;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            overflow: hidden;
+            transition: background 0.2s ease, color 0.2s ease;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        .app-container {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            background: var(--bg-color);
+        }
+
+        .scroller-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            background: var(--bg-color);
+            overflow: hidden;
+        }
+
+        .posts-wrapper {
+            height: 100%;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+        }
+
+        .posts-wrapper::-webkit-scrollbar { display: none; }
+
+        .article-card {
+            position: relative;
+            height: 100vh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            background: var(--bg-color);
+            padding: 8px 20px 100px;
+            padding-top: calc(16px + env(safe-area-inset-top));
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-top-line {
+            width: calc(100% + 40px);
+            margin-left: -20px;
+            height: 1px;
+            background: var(--border-color);
+            flex-shrink: 0;
+            margin-bottom: 14px;
+        }
+
+        .article-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 50;
+        }
+
+        .author-avatar {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; font-weight: bold;
+            color: #1f1f1f;
+            overflow: hidden; flex-shrink: 0;
+        }
+        .author-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .author-info { flex: 1; }
+        .author-name { color: var(--text-primary); font-weight: 600; font-size: 17px; margin-bottom: 2px; }
+        .article-date { color: var(--text-secondary); font-size: 12px; }
+
+        .header-bottom-line {
+            width: calc(100% + 40px);
+            margin-left: -20px;
+            height: 1px;
+            background: var(--border-color);
+            flex-shrink: 0;
+            margin-top: 14px;
+            margin-bottom: 14px;
+        }
+
+        .article-title {
+            font-size: 22px; font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 10px; line-height: 1.25;
+            flex-shrink: 0;
+        }
+
+        .article-stats {
+            display: flex; align-items: center;
+            gap: 14px; margin-bottom: 12px; flex-shrink: 0;
+        }
+        .stat-item { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text-secondary); }
+        .stat-item.views i { color: var(--accent); }
+        .stat-item.likes i { color: #ef4444; }
+
+        .article-content {
+            color: var(--text-primary);
+            font-size: 16px; line-height: 1.6;
+            flex: 1; overflow-y: auto;
+            padding-right: 60px;
+        }
+        .article-content::-webkit-scrollbar { width: 4px; }
+        .article-content::-webkit-scrollbar-track { background: var(--border-color); }
+        .article-content::-webkit-scrollbar-thumb { background: var(--text-secondary); border-radius: 2px; }
+        .content-paragraph { margin-bottom: 14px; }
+
+        /* ── MCQ ── */
+        .mcq-card {
+            position: relative;
+            height: 100vh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            background: var(--bg-color);
+            padding: 8px 20px 100px;
+            padding-top: calc(16px + env(safe-area-inset-top));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .mcq-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 3px 10px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            flex-shrink: 0;
+            align-self: flex-start;
+        }
+
+        .mcq-question {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.35;
+            margin-bottom: 14px;
+            flex-shrink: 0;
+            padding-right: 50px;
+        }
+
+        .mcq-media {
+            padding-right: 60px;
+            flex-shrink: 0;
+            margin-bottom: 14px;
+        }
+
+        .mcq-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 60px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+        .mcq-scroll-area::-webkit-scrollbar { width: 3px; }
+        .mcq-scroll-area::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+
+        .mcq-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .mcq-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: var(--hover-bg);
+            cursor: pointer;
+            transition: border-color 0.15s ease, background 0.15s ease;
+            text-align: left;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.4;
+            -webkit-tap-highlight-color: transparent;
+            width: 100%;
+        }
+
+        .mcq-option:hover:not(:disabled) { border-color: var(--accent); }
+
+        .mcq-option .opt-letter {
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            border: 1.5px solid var(--border-color);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 800;
+            flex-shrink: 0;
+            color: var(--text-secondary);
+            transition: all 0.15s ease;
+        }
+
+        .mcq-option .opt-text { flex: 1; }
+        .mcq-option:disabled { cursor: default; }
+
+        .mcq-option.selected-correct { border-color: #4ade80; background: rgba(74,222,128,0.08); }
+        .mcq-option.selected-correct .opt-letter { background: #4ade80; border-color: #4ade80; color: #1a1a1a; }
+        .mcq-option.selected-wrong { border-color: #ef4444; background: rgba(239,68,68,0.07); }
+        .mcq-option.selected-wrong .opt-letter { background: #ef4444; border-color: #ef4444; color: #fff; }
+        .mcq-option.reveal-correct { border-color: rgba(74,222,128,0.5); }
+        .mcq-option.reveal-correct .opt-letter { border-color: #4ade80; color: #4ade80; }
+
+        .mcq-result-msg {
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 14px;
+            min-height: 20px;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+        .mcq-result-msg.correct { color: #4ade80; }
+        .mcq-result-msg.wrong   { color: #ef4444; }
+
+        /* ── Action buttons ── */
+        .action-buttons {
+            position: absolute;
+            right: 16px;
+            bottom: 143px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
+        }
+        .action-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+            background: none; border: none; cursor: pointer; transition: transform 0.1s;
+        }
+        .action-btn:active { transform: scale(0.9); }
+        .action-btn svg { width: 28px; height: 28px; stroke: var(--text-primary); fill: none; stroke-width: 2; }
+        .action-btn.liked svg { fill: #ef4444; stroke: #ef4444; }
+        .action-btn span { color: var(--text-primary); font-size: 11px; font-weight: 600; }
+
+        /* ── Media ── */
+        .media-embed { margin: 16px 0; max-width: 100%; }
+        .media-embed img { width: 100%; max-width: 100%; height: auto; border-radius: 8px; display: block; }
+        .media-caption { font-size: 13px; color: var(--text-secondary); margin-top: 6px; font-style: italic; }
+
+        .custom-audio-player {
+            background: var(--card-bg); border-radius: 12px; padding: 16px;
+            display: flex; align-items: center; gap: 12px; max-width: 100%;
+            border: 1px solid var(--border-color);
+        }
+        .play-btn {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: var(--accent); border: none; color: #1f1f1f;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 16px; transition: background 0.2s ease; flex-shrink: 0;
+        }
+        .play-btn:hover { background: var(--accent-hover); }
+        .audio-info { flex: 1; min-width: 0; overflow: hidden; }
+        .audio-title { font-size: 13px; font-weight: 500; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
+        .waveform-container { position: relative; height: 32px; background: var(--hover-bg); border-radius: 4px; margin-bottom: 6px; cursor: pointer; overflow: hidden; }
+        .waveform-progress { position: absolute; top: 0; left: 0; height: 100%; background: var(--accent); opacity: 0.3; transition: width 0.1s linear; }
+        .waveform-bars { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: space-around; padding: 0 4px; }
+        .waveform-bar { width: 2px; background: var(--text-secondary); border-radius: 2px; opacity: 0.6; }
+        .audio-time { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); }
+
+        /* ── Comments ── */
+        .comments-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 199; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .comments-overlay.active { opacity: 1; pointer-events: all; }
+        .comments-popup {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: calc(100% - 40px); max-width: 500px;
+            height: 70vh; max-height: 600px;
+            background: var(--card-bg); border-radius: 16px; z-index: 200;
+            opacity: 0; pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .comments-popup.active { opacity: 1; pointer-events: all; transform: translate(-50%, -50%) scale(1); }
+        .comments-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border-color); }
+        .comments-header h3 { font-size: 16px; font-weight: 600; }
+        .close-comments { background: none; border: none; color: var(--text-primary); font-size: 24px; cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s ease; }
+        .close-comments:hover { background: var(--hover-bg); }
+        .comments-list { flex: 1; overflow-y: auto; padding: 16px 20px; }
+        .comments-list::-webkit-scrollbar { width: 6px; }
+        .comments-list::-webkit-scrollbar-track { background: transparent; }
+        .comments-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        .comment-item { display: flex; gap: 12px; margin-bottom: 20px; }
+        .comment-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: #1f1f1f; flex-shrink: 0; overflow: hidden; }
+        .comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .comment-content { flex: 1; }
+        .comment-author { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+        .comment-text { font-size: 14px; line-height: 1.4; margin-bottom: 6px; }
+        .comment-time { font-size: 11px; color: var(--text-secondary); }
+        .comment-input-wrapper { padding: 12px 20px; border-top: 1px solid var(--border-color); background: var(--bg-color); border-radius: 0 0 16px 16px; }
+        .comment-input-container { display: flex; gap: 8px; align-items: center; }
+        .comment-input { flex: 1; background: var(--hover-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 10px 16px; color: var(--text-primary); font-size: 14px; outline: none; }
+        .comment-input:focus { border-color: var(--accent); }
+        .send-comment-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); border: none; color: #1f1f1f; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: background 0.2s ease; }
+        .send-comment-btn:hover { background: var(--accent-hover); }
+        .send-comment-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .no-comments { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary); gap: 12px; }
+        .no-comments i { font-size: 48px; opacity: 0.5; }
+        .loading-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-primary); gap: 16px; }
+        .spinner { width: 48px; height: 48px; border: 3px solid var(--border-color); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Skeleton ── */
+        @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+        .skeleton-base {
+            background: linear-gradient(90deg, var(--hover-bg) 25%, var(--border-color) 50%, var(--hover-bg) 75%);
+            background-size: 800px 100%; animation: shimmer 1.4s infinite linear; border-radius: 6px;
+        }
+        .skeleton-card { position: relative; height: 100vh; scroll-snap-align: start; scroll-snap-stop: always; background: var(--bg-color); padding: 8px 20px 100px; padding-top: calc(16px + env(safe-area-inset-top)); display: flex; flex-direction: column; }
+        .skeleton-card .card-top-line { width: calc(100% + 40px); margin-left: -20px; height: 1px; background: var(--border-color); flex-shrink: 0; margin-bottom: 14px; }
+        .skeleton-header { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+        .skeleton-avatar { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
+        .skeleton-author-block { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+        .skeleton-name { height: 14px; width: 120px; }
+        .skeleton-date { height: 10px; width: 70px; }
+        .skeleton-divider { width: calc(100% + 40px); margin-left: -20px; height: 1px; background: var(--border-color); flex-shrink: 0; margin-top: 14px; margin-bottom: 14px; }
+        .skeleton-title { height: 22px; width: 85%; margin-bottom: 8px; }
+        .skeleton-title-short { height: 22px; width: 60%; margin-bottom: 10px; }
+        .skeleton-stats { display: flex; gap: 12px; margin-bottom: 14px; flex-shrink: 0; }
+        .skeleton-stat { height: 13px; width: 52px; }
+        .skeleton-line { height: 13px; margin-bottom: 10px; width: 100%; }
+        .skeleton-line.w90 { width: 90%; } .skeleton-line.w75 { width: 75%; }
+        .skeleton-line.w80 { width: 80%; } .skeleton-line.w65 { width: 65%; }
+        .skeleton-line.w95 { width: 95%; }
+
+        /* ── Footer ── */
+        .footer-bar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 450px; background: var(--card-bg); border-top: 1px solid var(--border-color); padding: 8px 24px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+        .footer-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: none; color: var(--text-secondary); cursor: pointer; transition: color 0.2s ease; padding: 6px 12px; }
+        .footer-btn:hover { color: var(--text-primary); }
+        .footer-btn.active { color: var(--accent); }
+        .footer-btn i { font-size: 20px; }
+        .footer-btn span { font-size: 10px; font-weight: 500; }
+        @media (max-width: 768px) {
+            .footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+            .footer-btn { padding: 6px 8px; }
+            .footer-btn i { font-size: 18px; }
+            .footer-btn span { font-size: 9px; }
+        }
+
+        /* ── Library Picker Card ── */
+        .library-picker-card {
+            position: relative;
+            height: 100vh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            background: var(--bg-color);
+            padding: 8px 20px calc(130px + env(safe-area-inset-bottom));
+            padding-top: calc(16px + env(safe-area-inset-top));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .lp-card-logo { display: flex; align-items: center; gap: 10px; flex-shrink: 0; margin-bottom: 14px; }
+        .lp-card-logo img { height: 28px; width: auto; object-fit: contain; }
+        .lp-card-title { font-size: 22px; font-weight: 800; color: var(--text-primary); line-height: 1.2; margin-bottom: 4px; flex-shrink: 0; }
+        .lp-card-sub { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px; flex-shrink: 0; }
+        .lp-card-id-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; flex-shrink: 0; }
+        .lp-card-id-input { flex: 1; background: var(--hover-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 13px; color: var(--text-primary); font-size: 14px; outline: none; transition: border-color 0.15s ease; }
+        .lp-card-id-input:focus { border-color: var(--accent); }
+        .lp-card-id-input::placeholder { color: var(--text-secondary); }
+        .lp-card-id-go-btn { padding: 10px 16px; border-radius: 10px; background: var(--accent); color: #1a1a1a; font-size: 13px; font-weight: 700; border: none; cursor: pointer; transition: background 0.15s ease; white-space: nowrap; flex-shrink: 0; }
+        .lp-card-id-go-btn:hover { background: var(--accent-hover); }
+        .lp-card-id-go-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .lp-card-id-error { font-size: 12px; color: #ef4444; min-height: 16px; margin-bottom: 10px; flex-shrink: 0; }
+        .lp-card-divider { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-shrink: 0; }
+        .lp-card-divider-line { flex: 1; height: 1px; background: var(--border-color); }
+        .lp-card-divider-text { font-size: 10px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+        .lp-card-hint { font-size: 11px; color: var(--text-secondary); font-weight: 600; margin-bottom: 10px; flex-shrink: 0; }
+        .lp-card-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; padding-right: 2px; }
+        .lp-card-scroll::-webkit-scrollbar { width: 3px; }
+        .lp-card-scroll::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+        .lp-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--border-color); background: var(--hover-bg); cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease; -webkit-tap-highlight-color: transparent; flex-shrink: 0; }
+        .lp-item.selected { border-color: var(--accent); background: rgba(241,209,158,0.06); }
+        .lp-item .lp-check { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border-color); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s ease; font-size: 11px; color: transparent; }
+        .lp-item.selected .lp-check { background: var(--accent); border-color: var(--accent); color: #1a1a1a; }
+        .lp-item .lp-info { flex: 1; min-width: 0; }
+        .lp-item .lp-name { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lp-item .lp-meta { font-size: 11px; color: var(--text-secondary); }
+        .lp-item .lp-article-count { font-size: 11px; font-weight: 700; color: var(--accent); background: rgba(241,209,158,0.1); border: 1px solid rgba(241,209,158,0.2); border-radius: 20px; padding: 2px 8px; flex-shrink: 0; white-space: nowrap; }
+        .lp-card-loading { display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-secondary); font-size: 13px; padding: 24px 0; flex-shrink: 0; }
+        .lp-card-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+        .lp-card-start-btn { width: 100%; padding: 14px; border-radius: 12px; background: var(--accent); color: #1a1a1a; font-size: 15px; font-weight: 700; border: none; cursor: pointer; transition: background 0.15s ease, opacity 0.15s ease, transform 0.1s ease; }
+        .lp-card-start-btn:hover:not(:disabled) { background: var(--accent-hover); }
+        .lp-card-start-btn:active:not(:disabled) { transform: scale(0.98); }
+        .lp-card-start-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .lp-card-scroll-hint { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--text-secondary); padding: 4px 0 0; flex-shrink: 0; }
+        .lp-card-scroll-hint i { font-size: 11px; opacity: 0.6; }
+
+        @keyframes lp-btn-launch {
+            0%   { transform: scale(1);    opacity: 1; }
+            30%  { transform: scale(1.03); opacity: 1; }
+            60%  { transform: scale(0.97); opacity: 0.85; }
+            100% { transform: scale(1);    opacity: 1; }
+        }
+        .lp-card-start-btn.launching { animation: lp-btn-launch 0.45s ease forwards; background: var(--accent-hover); }
+
+        @keyframes lp-card-exit {
+            0%   { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-24px) scale(0.97); }
+        }
+        .library-picker-card.exiting { animation: lp-card-exit 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards; pointer-events: none; }
+
+        /* ── Confetti canvas ── */
+        #confettiCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9998; }
+
+        /* ════════════════════════════════════════
+           EMOJI STYLER EFFECTS
+        ════════════════════════════════════════ */
+        .emo-magnify { font-weight: 700; font-size: 1.25em; letter-spacing: -0.02em; text-shadow: 0 2px 12px rgba(255,255,255,0.2); }
+        .emo-urgent { font-weight: 700; color: #fff; background: linear-gradient(135deg, #ff3c00, #ff6b00); padding: 0.1em 0.35em; border-radius: 4px; animation: urgentPulse 1.4s ease-in-out infinite; display: inline-block; }
+        @keyframes urgentPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,80,0,0.5); } 50% { box-shadow: 0 0 0 6px rgba(255,80,0,0); } }
+        .emo-pinned { font-weight: 700; border-left: 3px solid #c8a96e; padding-left: 0.5em; padding-right: 0.3em; background: rgba(200,169,110,0.1); border-radius: 0 4px 4px 0; }
+        .emo-fire { font-weight: 700; background: linear-gradient(90deg, #ff4500, #ff8c00, #ffb700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: flicker 2s ease-in-out infinite; filter: drop-shadow(0 0 8px rgba(255,100,0,0.5)); }
+        @keyframes flicker { 0%, 100% { filter: drop-shadow(0 0 8px rgba(255,100,0,0.5)); } 30% { filter: drop-shadow(0 0 14px rgba(255,60,0,0.9)); } 60% { filter: drop-shadow(0 0 6px rgba(255,140,0,0.4)); } }
+        .emo-diamond { font-weight: 700; background: linear-gradient(135deg, #a8edfc, #3dd6f5, #7b9fff, #c9f0ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: crystalShine 3s ease-in-out infinite; filter: drop-shadow(0 0 6px rgba(100,200,255,0.4)); }
+        @keyframes crystalShine { 0%, 100% { filter: drop-shadow(0 0 6px rgba(100,200,255,0.4)); } 50% { filter: drop-shadow(0 0 14px rgba(100,220,255,0.8)); } }
+        .emo-yellow { color: #ffe566; text-shadow: 0 0 10px rgba(255,220,0,0.8), 0 0 20px rgba(255,200,0,0.3); background: rgba(255,230,0,0.07); padding: 0.05em 0.2em; border-radius: 3px; }
+        .emo-blue { color: #60b4ff; text-shadow: 0 0 10px rgba(60,140,255,0.8), 0 0 20px rgba(60,140,255,0.3); }
+        .emo-green { color: #4dff91; text-shadow: 0 0 10px rgba(0,200,80,0.8), 0 0 20px rgba(0,200,80,0.3); }
+        .emo-purple { color: #d580ff; text-shadow: 0 0 10px rgba(180,60,255,0.9), 0 0 28px rgba(180,60,255,0.4); animation: neonPulse 2s ease-in-out infinite; }
+        @keyframes neonPulse { 0%, 100% { text-shadow: 0 0 10px rgba(180,60,255,0.9), 0 0 24px rgba(180,60,255,0.4); } 50% { text-shadow: 0 0 18px rgba(200,80,255,1), 0 0 36px rgba(180,60,255,0.6); } }
+        .emo-red { color: #ff4d4d; text-shadow: 0 0 10px rgba(255,40,40,0.9), 0 0 24px rgba(255,40,40,0.4); }
+        .emo-dark { color: #fff; background: rgba(0,0,0,0.72); padding: 0.1em 0.4em; border-radius: 4px; box-shadow: 0 0 28px rgba(0,0,0,0.8); }
+        .emo-brain { font-style: italic; color: #80c4ff; border-bottom: 2px solid #4080ff; padding-bottom: 0.05em; }
+        .emo-book { font-family: Georgia, 'Times New Roman', serif; background: rgba(30,26,20,0.8); color: #d4c8a0; padding: 0.1em 0.4em; border-radius: 4px; border: 1px solid #3a3020; }
+        .emo-idea { background: rgba(255,200,0,0.1); color: #ffd700; padding: 0.1em 0.35em; border-radius: 4px; animation: ideaGlow 2.5s ease-in-out infinite; }
+        @keyframes ideaGlow { 0%, 100% { text-shadow: 0 0 14px rgba(255,210,0,0.6); } 50% { text-shadow: 0 0 24px rgba(255,220,0,1); } }
+        .emo-target { font-weight: 700; outline: 2px solid rgba(255,80,80,0.6); outline-offset: 3px; padding: 0.1em 0.3em; animation: targetRing 2s ease-in-out infinite; display: inline-block; }
+        @keyframes targetRing { 0%, 100% { outline-color: rgba(255,80,80,0.6); outline-offset: 3px; } 50% { outline-color: rgba(255,80,80,0.15); outline-offset: 6px; } }
+        .emo-puzzle { border: 1px dashed rgba(160,120,255,0.6); padding: 0.1em 0.4em; border-radius: 6px; color: #c0a0ff; }
+        .emo-tag { background: rgba(100,160,255,0.1); border: 1px solid rgba(100,160,255,0.3); color: #90bfff; padding: 0.1em 0.6em; border-radius: 20px; font-size: 0.9em; }
+        .emo-micro { font-family: 'Courier New', Courier, monospace; color: #40e0d0; font-size: 0.9em; border-bottom: 1px solid rgba(64,224,208,0.4); }
+        .emo-warning { background: repeating-linear-gradient(-45deg, rgba(255,180,0,0.12), rgba(255,180,0,0.12) 4px, rgba(255,180,0,0.04) 4px, rgba(255,180,0,0.04) 8px); border: 1px solid rgba(255,180,0,0.4); color: #ffc84a; padding: 0.1em 0.4em; border-radius: 4px; font-weight: 700; }
+        .emo-check { color: #40e080; background: rgba(40,200,80,0.1); padding: 0.1em 0.35em; border-radius: 4px; font-weight: 700; }
+        .emo-cross { color: #ff4d4d; background: rgba(255,60,60,0.08); padding: 0.1em 0.35em; border-radius: 4px; text-decoration: line-through; text-decoration-color: rgba(255,80,80,0.7); }
+        .emo-hourglass { color: #d4a840; background: linear-gradient(90deg, rgba(212,168,64,0.03), rgba(212,168,64,0.15), rgba(212,168,64,0.03)); background-size: 200% 100%; padding: 0.1em 0.35em; border-radius: 4px; animation: sweep 2s linear infinite; }
+        @keyframes sweep { 0% { background-position: -100% 0; } 100% { background-position: 200% 0; } }
+        .emo-lock { color: #a0a0b0; background: linear-gradient(135deg, #2a2a3a, #3a3a4a); padding: 0.1em 0.4em; border-radius: 4px; border: 1px solid #4a4a5a; font-weight: 600; letter-spacing: 0.05em; }
+        .emo-unlock { color: #c0e0ff; background: linear-gradient(135deg, #1a2a3a, #2a3a5a); padding: 0.1em 0.4em; border-radius: 4px; border: 1px solid rgba(100,160,255,0.4); box-shadow: 0 0 10px rgba(100,160,255,0.2); }
+        .emo-lightning { font-weight: 700; background: linear-gradient(90deg, #ffe500, #00cfff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: electricPulse 0.8s ease-in-out infinite; filter: drop-shadow(0 0 5px rgba(0,200,255,0.5)); }
+        @keyframes electricPulse { 0%, 100% { filter: drop-shadow(0 0 5px rgba(0,200,255,0.5)); } 50% { filter: drop-shadow(0 0 12px rgba(255,220,0,0.9)); } }
+        .emo-wave { display: inline-block; animation: waveText 1.5s ease-in-out infinite; color: #40bfff; }
+        @keyframes waveText { 0%, 100% { transform: translateY(0); } 25% { transform: translateY(-4px); } 75% { transform: translateY(4px); } }
+        .emo-spin { display: inline-block; animation: expandLetters 4s ease-in-out infinite; color: #a080ff; }
+        @keyframes expandLetters { 0%, 100% { letter-spacing: 0em; } 50% { letter-spacing: 0.1em; } }
+        .emo-float { display: inline-block; animation: floatText 2.2s ease-in-out infinite; color: #ffd080; }
+        @keyframes floatText { 0%, 100% { transform: translateY(0) rotate(-0.8deg); } 50% { transform: translateY(-6px) rotate(0.8deg); } }
+        .emo-rocket { font-weight: 700; display: inline-block; animation: rocketEntry 0.6s cubic-bezier(0.16,1,0.3,1) both; color: #fff; text-shadow: -4px 0 10px rgba(200,160,255,0.4); }
+        @keyframes rocketEntry { 0% { transform: translateX(-20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+        .emo-cinematic { animation: cinematicReveal 1.2s cubic-bezier(0.16,1,0.3,1) both; color: #f0f0f0; }
+        @keyframes cinematicReveal { 0% { opacity: 0; filter: blur(6px); letter-spacing: 0.2em; } 100% { opacity: 1; filter: blur(0); letter-spacing: 0; } }
+        .emo-star { color: #fff; animation: starSparkle 1.8s ease-in-out infinite; }
+        @keyframes starSparkle { 0%, 100% { text-shadow: -1px -1px 6px rgba(255,255,180,0.9), 1px 1px 6px rgba(255,255,180,0.9); } 50% { text-shadow: -2px -2px 14px rgba(255,255,140,1), 2px 2px 14px rgba(255,240,100,1); } }
+        .emo-sparkle { background: linear-gradient(90deg, #fff 0%, #ffd700 25%, #fff 50%, #c0f0ff 75%, #fff 100%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: sparkleMove 1.8s linear infinite; }
+        @keyframes sparkleMove { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+        .emo-rainbow { background: linear-gradient(90deg, #ff0000, #ff7700, #ffff00, #00ff00, #0077ff, #8800ff, #ff00ff); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: rainbowMove 2.5s linear infinite; font-weight: 700; }
+        @keyframes rainbowMove { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+        .emo-crown { font-weight: 800; background: linear-gradient(135deg, #ffd700, #ffaa00, #ffe066, #d4920a); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; filter: drop-shadow(0 2px 6px rgba(200,140,0,0.4)); font-size: 1.08em; }
+        .emo-magic { display: inline-block; background: linear-gradient(90deg, #ff80ff, #80ffff, #ffff80, #ff80ff); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: magicShift 1.8s linear infinite; }
+        @keyframes magicShift { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+        .emo-heart { color: #ff80a0; text-shadow: 0 0 14px rgba(255,80,120,0.6); display: inline-block; animation: heartbeat 1.4s ease-in-out infinite; }
+        @keyframes heartbeat { 0%, 100% { transform: scale(1); } 14% { transform: scale(1.06); } 28% { transform: scale(1); } 42% { transform: scale(1.04); } }
+        .emo-happy { color: #ffe050; display: inline-block; animation: happyBounce 0.7s ease-in-out infinite; }
+        @keyframes happyBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+        .emo-calm { color: #c0d4e8; text-shadow: 0 0 10px rgba(140,180,220,0.3); animation: calmPulse 3s ease-in-out infinite; }
+        @keyframes calmPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+        .emo-surprised { display: inline-block; animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both; color: #ffcc44; font-size: 1.12em; }
+        @keyframes popIn { 0% { transform: scale(0.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .emo-cool { background: linear-gradient(135deg, rgba(26,26,46,0.9), rgba(42,42,78,0.9)); color: #a0d0ff; padding: 0.1em 0.4em; border-radius: 4px; border: 1px solid rgba(80,140,255,0.3); box-shadow: 0 0 10px rgba(80,140,255,0.1); letter-spacing: 0.03em; }
+        .emo-robot { font-family: 'Courier New', Courier, monospace; color: #00ffcc; text-shadow: 0 0 8px rgba(0,255,200,0.6); border: 1px solid rgba(0,255,200,0.25); padding: 0.05em 0.35em; border-radius: 3px; letter-spacing: 0.05em; font-size: 0.9em; }
+        .emo-science { color: #40ffcc; font-family: 'Courier New', Courier, monospace; text-shadow: 0 0 8px rgba(40,200,160,0.6); border-bottom: 1px solid rgba(40,200,160,0.4); font-size: 0.9em; }
+        .emo-temple { font-family: Georgia, 'Times New Roman', serif; color: #c8b89a; letter-spacing: 0.06em; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+        .emo-earth { background: linear-gradient(90deg, #1a6040, #1a4080, #2a8050, #1a5070, #1a6040); background-size: 300% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: earthRotate 4s linear infinite; font-weight: 700; }
+        @keyframes earthRotate { 0% { background-position: 0% center; } 100% { background-position: 300% center; } }
+        .emo-money { font-weight: 700; background: linear-gradient(135deg, #ffd700, #40c060, #80e0a0, #ffd700); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; filter: drop-shadow(0 1px 5px rgba(100,180,100,0.3)); }
+        .emo-balance { color: var(--text-primary); border-left: 2px solid #ff4040; border-right: 2px solid #4040ff; padding: 0.05em 0.4em; background: linear-gradient(90deg, rgba(255,40,40,0.07), transparent, rgba(40,40,255,0.07)); }
+        .emo-signal { color: #60c0ff; display: inline-block; animation: signalWave 1.5s ease-in-out infinite; }
+        @keyframes signalWave { 0%, 100% { text-shadow: 0 0 4px rgba(60,160,255,0.4); letter-spacing: 0; } 50% { text-shadow: 0 0 14px rgba(60,160,255,0.9); letter-spacing: 0.04em; } }
+        .emo-music { color: #ff80c0; display: inline-block; animation: musicBeat 0.55s ease-in-out infinite alternate; }
+        @keyframes musicBeat { 0% { transform: scaleY(0.96); } 100% { transform: scaleY(1.04); } }
+        .emo-ice { color: #c0e8ff; background: rgba(160,220,255,0.07); border: 1px solid rgba(160,220,255,0.2); padding: 0.1em 0.35em; border-radius: 4px; text-shadow: 0 0 8px rgba(180,230,255,0.4); letter-spacing: 0.04em; }
+        .emo-sound { font-weight: 800; font-size: 1.1em; color: #fff; display: inline-block; animation: soundPulse 0.8s ease-in-out infinite; }
+        @keyframes soundPulse { 0%, 100% { transform: scale(1); text-shadow: 0 0 8px rgba(255,255,255,0.3); } 50% { transform: scale(1.04); text-shadow: 0 0 18px rgba(255,255,255,0.8); } }
+
+        /* ── Space Card ── */
+        .space-card {
+            position: relative;
+            height: 100vh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            background: var(--bg-color);
+            padding: 8px 20px 100px;
+            padding-top: calc(16px + env(safe-area-inset-top));
+            display: flex;
+            flex-direction: column;
+        }
+
+        .space-card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+            margin-bottom: 12px;
+        }
+
+        .space-card-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(241,209,158,0.1);
+            border: 1px solid rgba(241,209,158,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 15px;
+            color: var(--accent);
+        }
+
+        .space-card-meta { flex: 1; min-width: 0; }
+
+        .space-card-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .space-card-sub {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .space-card-open {
+            padding: 7px 14px;
+            border-radius: 20px;
+            background: var(--accent);
+            color: #1a1a1a;
+            font-size: 12px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: background 0.15s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .space-card-open:hover { background: var(--accent-hover); }
+
+        .space-card-divider {
+            width: calc(100% + 40px);
+            margin-left: -20px;
+            height: 1px;
+            background: var(--border-color);
+            flex-shrink: 0;
+            margin-bottom: 14px;
+        }
+
+        .space-thumb-wrap {
+            flex: 1;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            position: relative;
+            background: #0a0a0a;
+            cursor: pointer;
+            min-height: 0;
+        }
+
+        .space-preview-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 14px;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .space-preview-canvas.ready { opacity: 1; }
+
+        .space-thumb-shimmer {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, var(--hover-bg) 25%, var(--border-color) 50%, var(--hover-bg) 75%);
+            background-size: 400px 100%;
+            animation: shimmer 1.4s infinite linear;
+            border-radius: 14px;
+            transition: opacity 0.3s ease;
+            z-index: 1;
+        }
+        .space-thumb-shimmer.hidden { opacity: 0; pointer-events: none; }
+
+        .space-thumb-empty {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            text-align: center;
+            padding: 24px;
+        }
+        .space-thumb-empty i { font-size: 40px; opacity: 0.35; color: var(--accent); }
+        .space-thumb-empty p { opacity: 0.6; line-height: 1.6; max-width: 240px; }
+        .space-thumb-empty a { color: var(--accent); font-weight: 600; text-decoration: none; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; margin-top: 2px; }
+
+        /* Author overlay inside the canvas preview */
+        .space-author-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 3;
+            padding: 40px 14px 14px;
+            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 50%, transparent 100%);
+            border-radius: 0 0 14px 14px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            pointer-events: none;
+        }
+
+        .space-author-overlay-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: #1a1a1a;
+            overflow: hidden;
+            flex-shrink: 0;
+            border: 2px solid rgba(255,255,255,0.25);
+        }
+        .space-author-overlay-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+        .space-author-overlay-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+        }
+
+        .space-author-overlay-label {
+            margin-left: auto;
+            font-size: 10px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.55);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="confettiCanvas"></canvas>
+
+<div class="app-container" id="appContainer">
+    <div class="scroller-container">
+        <div class="posts-wrapper" id="postsWrapper"></div>
+    </div>
+</div>
+
+<div class="comments-overlay" id="commentsOverlay" onclick="closeComments()"></div>
+<div class="comments-popup" id="commentsPopup">
+    <div class="comments-header">
+        <h3>Comments</h3>
+        <button class="close-comments" onclick="closeComments()">×</button>
+    </div>
+    <div class="comments-list" id="commentsList">
+        <div class="no-comments">
+            <i class="fas fa-comments"></i>
+            <div>No comments yet</div>
+            <div style="font-size: 12px;">Be the first to comment!</div>
+        </div>
+    </div>
+    <div class="comment-input-wrapper">
+        <div class="comment-input-container">
+            <input type="text" class="comment-input" id="commentInput" placeholder="Add a comment...">
+            <button class="send-comment-btn" id="sendCommentBtn" onclick="sendComment()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="footer-bar">
+    <button class="footer-btn" onclick="window.location.href='index.html'">
+        <i class="fas fa-home"></i><span>Home</span>
+    </button>
+    <button class="footer-btn active" onclick="window.location.href='https://patholytica.com/dailyfeed'">
+        <i class="fas fa-scroll"></i><span>Feed</span>
+    </button>
+    <button class="footer-btn" onclick="window.location.href='explore.html'">
+        <i class="fas fa-search"></i><span>Explore</span>
+    </button>
+    <button class="footer-btn" onclick="window.location.href='https://patholytica.com/space'">
+        <i class="fas fa-th-large"></i><span>Space</span>
+    </button>
+</div>
+
+<script>
+    if (localStorage.getItem("theme") === "light") document.body.classList.add("light-theme");
+</script>
+
+<!-- ── Confetti ── -->
+<script>
+(function() {
+    const canvas = document.getElementById('confettiCanvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let animFrame = null;
+
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const COLORS = ['#f1d19e','#4ade80','#60a5fa','#f472b6','#facc15','#a78bfa'];
+
+    function spawnParticles(x, y) {
+        for (let i = 0; i < 80; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 6 + 2;
+            particles.push({
+                x: x ?? canvas.width / 2, y: y ?? canvas.height * 0.4,
+                vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 3,
+                size: Math.random() * 7 + 3,
+                color: COLORS[Math.floor(Math.random() * COLORS.length)],
+                alpha: 1, rotation: Math.random() * Math.PI * 2,
+                rotSpeed: (Math.random() - 0.5) * 0.2,
+                shape: Math.random() > 0.5 ? 'rect' : 'circle'
+            });
+        }
+        if (!animFrame) animate();
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles = particles.filter(p => p.alpha > 0.01);
+        particles.forEach(p => {
+            p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.vx *= 0.99;
+            p.alpha -= 0.018; p.rotation += p.rotSpeed;
+            ctx.save(); ctx.globalAlpha = Math.max(0, p.alpha);
+            ctx.translate(p.x, p.y); ctx.rotate(p.rotation); ctx.fillStyle = p.color;
+            if (p.shape === 'rect') { ctx.fillRect(-p.size/2, -p.size/4, p.size, p.size/2); }
+            else { ctx.beginPath(); ctx.arc(0,0,p.size/2,0,Math.PI*2); ctx.fill(); }
+            ctx.restore();
+        });
+        if (particles.length > 0) { animFrame = requestAnimationFrame(animate); }
+        else { animFrame = null; ctx.clearRect(0,0,canvas.width,canvas.height); }
+    }
+
+    window.launchConfetti = function(targetEl) {
+        if (targetEl) { const r = targetEl.getBoundingClientRect(); spawnParticles(r.left + r.width/2, r.top + r.height/2); }
+        else { spawnParticles(); }
+    };
+})();
+</script>
+
+<!-- ── EmojiType Renderer ── -->
+<script>
+const EMOJI_MAP = {
+    '🔍': 'emo-magnify',   '❗': 'emo-urgent',    '📌': 'emo-pinned',
+    '🔥': 'emo-fire',      '💎': 'emo-diamond',   '🟡': 'emo-yellow',
+    '🔵': 'emo-blue',      '🟢': 'emo-green',     '🟣': 'emo-purple',
+    '🔴': 'emo-red',       '⚫': 'emo-dark',      '🧠': 'emo-brain',
+    '📖': 'emo-book',      '💡': 'emo-idea',      '🎯': 'emo-target',
+    '🧩': 'emo-puzzle',    '🏷️': 'emo-tag',      '🔬': 'emo-micro',
+    '⚠️': 'emo-warning',  '✅': 'emo-check',     '❌': 'emo-cross',
+    '⏳': 'emo-hourglass', '🔒': 'emo-lock',      '🔓': 'emo-unlock',
+    '⚡': 'emo-lightning', '🌊': 'emo-wave',      '🌀': 'emo-spin',
+    '💫': 'emo-float',     '🚀': 'emo-rocket',    '🎬': 'emo-cinematic',
+    '🌟': 'emo-star',      '✨': 'emo-sparkle',   '🌈': 'emo-rainbow',
+    '👑': 'emo-crown',     '🪄': 'emo-magic',     '❤️': 'emo-heart',
+    '😄': 'emo-happy',     '😌': 'emo-calm',      '😮': 'emo-surprised',
+    '😎': 'emo-cool',      '🤖': 'emo-robot',     '🧪': 'emo-science',
+    '🏛️': 'emo-temple',   '🌍': 'emo-earth',     '💰': 'emo-money',
+    '⚖️': 'emo-balance',  '📡': 'emo-signal',    '🎵': 'emo-music',
+    '🧊': 'emo-ice',       '🔊': 'emo-sound',
+};
+
+function buildEmojiPattern() {
+    const keys = Object.keys(EMOJI_MAP).sort((a,b) => b.length - a.length);
+    const escaped = keys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|');
+    return new RegExp(`(${escaped})([\\s\\S]*?)\\1`, 'gu');
+}
+
+function escHtmlET(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderEmojiText(text) {
+    const re = buildEmojiPattern();
+    let result = '';
+    let lastIndex = 0;
+    let match;
+    while ((match = re.exec(text)) !== null) {
+        result += escHtmlET(text.slice(lastIndex, match.index));
+        const cls = EMOJI_MAP[match[1]];
+        result += `<span class="${cls}">${renderEmojiText(match[2])}</span>`;
+        lastIndex = re.lastIndex;
+    }
+    result += escHtmlET(text.slice(lastIndex));
+    return result;
+}
+
+// ════════════════════════════════════════════════════════════
+// SPACE CARD — canvas-based layout preview
+// ════════════════════════════════════════════════════════════
+
+function buildSpaceCard(layoutJson, username, pfp) {
+    const card = document.createElement('div');
+    card.className = 'space-card';
+    card.id = 'spaceCard';
+
+    const avatarContent = pfp
+        ? `<img src="${pfp}" alt="${username}">`
+        : (username ? username.charAt(0).toUpperCase() : 'U');
+
+    card.innerHTML = `
+        <div class="card-top-line"></div>
+        <div class="space-card-header">
+            <div class="space-card-icon"><i class="fas fa-th-large"></i></div>
+            <div class="space-card-meta">
+                <div class="space-card-title">My Space</div>
+                <div class="space-card-sub">Your personal canvas</div>
+            </div>
+            <a class="space-card-open" href="https://patholytica.com/space" target="_blank">
+                <i class="fas fa-expand-alt"></i> Open
+            </a>
+        </div>
+        <div class="space-card-divider"></div>
+        <div class="space-thumb-wrap" id="spaceThumbWrap">
+            <div class="space-thumb-shimmer" id="spaceThumbShimmer"></div>
+            <canvas class="space-preview-canvas" id="spacePreviewCanvas"></canvas>
+            <div class="space-author-overlay">
+                <div class="space-author-overlay-avatar">${avatarContent}</div>
+                <div class="space-author-overlay-name">@${username || 'you'}</div>
+                <div class="space-author-overlay-label">My Space</div>
+            </div>
+        </div>
+    `;
+
+    card.querySelector('#spaceThumbWrap').addEventListener('click', () => {
+        window.open('https://patholytica.com/space', '_blank');
+    });
+
+    requestAnimationFrame(() => {
+        const wrap    = card.querySelector('#spaceThumbWrap');
+        const canvas  = card.querySelector('#spacePreviewCanvas');
+        const shimmer = card.querySelector('#spaceThumbShimmer');
+
+        if (!layoutJson || !layoutJson.spaces || !layoutJson.spaces.length) {
+            shimmer.classList.add('hidden');
+            canvas.remove();
+            const empty = document.createElement('div');
+            empty.className = 'space-thumb-empty';
+            empty.innerHTML = `
+                <i class="fas fa-th-large"></i>
+                <p>No canvas data yet. Open your Space and tap <strong>Publish</strong> to preview it here.</p>
+                <a href="https://patholytica.com/space" target="_blank">
+                    <i class="fas fa-external-link-alt"></i> Open Space
+                </a>`;
+            wrap.insertBefore(empty, wrap.querySelector('.space-author-overlay'));
+            return;
+        }
+
+        renderSpaceToCanvas(canvas, layoutJson, () => {
+            canvas.classList.add('ready');
+            shimmer.classList.add('hidden');
+        });
+    });
+
+    return card;
+}
+
+// ── Core canvas renderer ─────────────────────────────────────────────────
+function renderSpaceToCanvas(canvas, layoutJson, onDone) {
+    const spaceData = layoutJson.spaces[layoutJson.cur || 0] || layoutJson.spaces[0];
+    if (!spaceData) { onDone(); return; }
+
+    const widgets = spaceData.widgets || [];
+    const bg      = spaceData.bg || {};
+    const FULL    = 4000;
+
+    // Compute bounding box of all widget positions
+    let minX = FULL, minY = FULL, maxX = 0, maxY = 0;
+    widgets.forEach(w => {
+        minX = Math.min(minX, w.x || 0);
+        minY = Math.min(minY, w.y || 0);
+        maxX = Math.max(maxX, (w.x || 0) + (w.width  || 200));
+        maxY = Math.max(maxY, (w.y || 0) + (w.height || 200));
+    });
+    if (widgets.length === 0) { minX = 0; minY = 0; maxX = 900; maxY = 700; }
+
+    const PAD   = 60;
+    const cropX = Math.max(0, minX - PAD);
+    const cropY = Math.max(0, minY - PAD);
+    const cropW = Math.min(FULL, maxX + PAD) - cropX;
+    const cropH = Math.min(FULL, maxY + PAD) - cropY;
+
+    const wrapEl = canvas.parentElement;
+    const dispW  = wrapEl.clientWidth  || 340;
+    const dispH  = wrapEl.clientHeight || 480;
+    const scale  = Math.min(dispW / cropW, dispH / cropH);
+
+    canvas.width  = Math.round(cropW * scale);
+    canvas.height = Math.round(cropH * scale);
+
+    const ctx = canvas.getContext('2d');
+
+    function proceed() {
+        applyBgOverlay(ctx, canvas.width, canvas.height, bg);
+        drawWidgets(ctx, widgets, cropX, cropY, scale, onDone);
+    }
+
+    if (bg.type === 'image' && bg.value && bg.value.startsWith('data:')) {
+        const bgImg = new Image();
+        bgImg.onload = () => {
+            ctx.save();
+            ctx.filter = `blur(${bg.blur || 0}px) brightness(${bg.brightness || 100}%)`;
+            ctx.drawImage(bgImg, cropX * scale, cropY * scale, cropW * scale, cropH * scale,
+                          0, 0, canvas.width, canvas.height);
+            ctx.filter = 'none';
+            ctx.restore();
+            proceed();
+        };
+        bgImg.onerror = () => {
+            drawBgGradient(ctx, canvas.width, canvas.height, '#0a0a0a');
+            proceed();
+        };
+        bgImg.src = bg.value;
+    } else {
+        drawBgGradient(ctx, canvas.width, canvas.height, bg.value || 'linear-gradient(135deg,#0a0a0a,#111)');
+        proceed();
+    }
+}
+
+function drawBgGradient(ctx, w, h, value) {
+    ctx.save();
+    const stops = parseGradientStops(value);
+    if (stops && stops.length >= 2) {
+        const grad = ctx.createLinearGradient(0, 0, w, h);
+        stops.forEach((stop, i) => grad.addColorStop(i / (stops.length - 1), stop));
+        ctx.fillStyle = grad;
+    } else {
+        const hex = value.match(/#[0-9a-fA-F]{3,8}/);
+        ctx.fillStyle = hex ? hex[0] : '#0a0a0a';
+    }
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+}
+
+function parseGradientStops(css) {
+    return css.match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)/g) || null;
+}
+
+function applyBgOverlay(ctx, w, h, bg) {
+    const dim = (bg.dim || 0) / 100;
+    if (dim > 0) {
+        ctx.save();
+        ctx.fillStyle = `rgba(0,0,0,${dim})`;
+        ctx.fillRect(0, 0, w, h);
+        ctx.restore();
+    }
+}
+
+function drawWidgets(ctx, widgets, cropX, cropY, scale, onDone) {
+    const sorted       = [...widgets].sort((a, b) => (a.z || 0) - (b.z || 0));
+    const imageWidgets = sorted.filter(w => w.type === 'image' && w.url);
+    const total        = imageWidgets.length;
+    let loaded         = 0;
+
+    function finish() {
+        drawNonImageWidgets(ctx, sorted, cropX, cropY, scale);
+        onDone();
+    }
+
+    if (total === 0) { finish(); return; }
+
+    imageWidgets.forEach(w => {
+        const img = new Image();
+        img.onload = img.onerror = () => {
+            const sx = (w.x - cropX) * scale;
+            const sy = (w.y - cropY) * scale;
+            const sw = w.width  * scale;
+            const sh = w.height * scale;
+            ctx.save();
+            roundRectClip(ctx, sx, sy, sw, sh, 10 * scale);
+            if (img.naturalWidth > 0) ctx.drawImage(img, sx, sy, sw, sh);
+            ctx.restore();
+            loaded++;
+            if (loaded === total) finish();
+        };
+        img.src = w.url;
+    });
+}
+
+function drawNonImageWidgets(ctx, sorted, cropX, cropY, scale) {
+    sorted.forEach(w => {
+        if (w.type === 'image') return;
+
+        const sx = (w.x - cropX) * scale;
+        const sy = (w.y - cropY) * scale;
+        const sw = w.width  * scale;
+        const sh = w.height * scale;
+        const r  = 10 * scale;
+
+        ctx.save();
+
+        // Background
+        ctx.fillStyle = widgetBgColor(w);
+        roundRectFill(ctx, sx, sy, sw, sh, r);
+
+        // Border
+        ctx.strokeStyle = widgetBorderColor(w);
+        ctx.lineWidth   = Math.max(1, scale * 0.8);
+        roundRectStroke(ctx, sx, sy, sw, sh, r);
+
+        // Header bar
+        const HEADER_TYPES = ['note','todo','clock','quote','habit','calendar','pomodoro','reminder','audio','pdf','ambient','music','youtube'];
+        const headerH = 26 * scale;
+        if (HEADER_TYPES.includes(w.type)) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(255,255,255,0.03)';
+            roundRectFillTop(ctx, sx, sy, sw, headerH, r);
+            ctx.restore();
+
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
+            ctx.font = `600 ${Math.round(8.5 * scale)}px -apple-system, sans-serif`;
+            ctx.textBaseline = 'middle';
+            ctx.textAlign    = 'left';
+            ctx.fillText(widgetIconLabel(w).toUpperCase(), sx + 9 * scale, sy + headerH / 2);
+        }
+
+        // Content
+        drawWidgetContent(ctx, w, sx, sy, sw, sh, scale, headerH);
+
+        ctx.restore();
+    });
+}
+
+function drawWidgetContent(ctx, w, sx, sy, sw, sh, scale, headerH) {
+    const pad      = 10 * scale;
+    const contentY = sy + headerH + pad;
+    const contentH = sh - headerH - pad * 1.5;
+
+    // Clip to widget body (below header)
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(sx + 1, sy + headerH, sw - 2, sh - headerH - 1);
+    ctx.clip();
+
+    ctx.textBaseline = 'top';
+    ctx.textAlign    = 'left';
+
+    // ── Note ──────────────────────────────────────────────────
+    if (w.type === 'note') {
+        ctx.fillStyle = 'rgba(232,230,225,0.82)';
+        ctx.font      = `${Math.round(10.5 * scale)}px -apple-system, sans-serif`;
+        const lineH   = 15.5 * scale;
+        const lines   = wrapText(ctx, w.content || '', sw - pad * 2);
+        const maxLines = Math.floor(contentH / lineH);
+        lines.slice(0, maxLines).forEach((line, i) => {
+            ctx.fillText(line, sx + pad, contentY + i * lineH);
+        });
+
+    // ── Clock ─────────────────────────────────────────────────
+    } else if (w.type === 'clock') {
+        const now     = new Date();
+        const use12   = w.clkStyle === 'style-ampm';
+        let timeStr;
+        try {
+            timeStr = now.toLocaleTimeString('en-US', {
+                hour: '2-digit', minute: '2-digit',
+                hour12: use12,
+                timeZone: (w.clkTz && w.clkTz !== 'local') ? w.clkTz : undefined
+            });
+        } catch(_) {
+            timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+        const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+        const midX    = sx + sw / 2;
+        const midY    = sy + sh / 2;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle    = 'rgba(232,230,225,0.92)';
+        ctx.font         = `500 ${Math.round(20 * scale)}px 'Courier New', monospace`;
+        ctx.fillText(timeStr, midX, midY - 7 * scale);
+        ctx.fillStyle = 'rgba(110,108,104,0.85)';
+        ctx.font      = `${Math.round(8 * scale)}px -apple-system, sans-serif`;
+        ctx.fillText(dateStr, midX, midY + 10 * scale);
+        if (w.clkLabel) {
+            ctx.fillStyle = 'rgba(110,108,104,0.6)';
+            ctx.font      = `${Math.round(7 * scale)}px -apple-system, sans-serif`;
+            ctx.fillText(w.clkLabel, midX, midY + 20 * scale);
+        }
+
+    // ── To-Do ─────────────────────────────────────────────────
+    } else if (w.type === 'todo') {
+        const items  = (w.items || []).slice(0, 7);
+        const itemH  = 17 * scale;
+        items.forEach((item, i) => {
+            const iy = contentY + i * itemH;
+            // Checkbox square
+            ctx.strokeStyle = item.done ? '#3dba72' : 'rgba(110,108,104,0.6)';
+            ctx.lineWidth   = Math.max(1, scale * 0.7);
+            const cbS = 11 * scale;
+            ctx.strokeRect(sx + pad, iy + 1 * scale, cbS, cbS);
+            if (item.done) {
+                ctx.fillStyle = '#3dba72';
+                ctx.fillRect(sx + pad, iy + 1 * scale, cbS, cbS);
+                ctx.fillStyle    = '#fff';
+                ctx.font         = `700 ${Math.round(8 * scale)}px sans-serif`;
+                ctx.textAlign    = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('✓', sx + pad + cbS / 2, iy + 1 * scale + cbS / 2);
+                ctx.textAlign    = 'left';
+                ctx.textBaseline = 'top';
+            }
+            ctx.fillStyle    = item.done ? 'rgba(110,108,104,0.5)' : 'rgba(232,230,225,0.85)';
+            ctx.font         = `${Math.round(10 * scale)}px -apple-system, sans-serif`;
+            ctx.textBaseline = 'top';
+            const tx = sx + pad + 16 * scale;
+            const maxTw = sw - pad - 16 * scale - pad;
+            let txt = item.text || '';
+            while (txt.length > 2 && ctx.measureText(txt).width > maxTw) txt = txt.slice(0, -1);
+            if ((item.text || '').length > txt.length) txt += '…';
+            ctx.fillText(txt, tx, iy + 1.5 * scale);
+        });
+
+    // ── Quote ─────────────────────────────────────────────────
+    } else if (w.type === 'quote') {
+        ctx.fillStyle = 'rgba(232,230,225,0.88)';
+        ctx.font      = `italic ${Math.round(10.5 * scale)}px Georgia, serif`;
+        const lineH   = 15 * scale;
+        const lines   = wrapText(ctx, w.content || '', sw - pad * 2);
+        const maxLines = Math.floor((contentH - 20 * scale) / lineH);
+        lines.slice(0, maxLines).forEach((line, i) => {
+            ctx.fillText(line, sx + pad, contentY + i * lineH);
+        });
+        if (w.author) {
+            ctx.fillStyle = 'rgba(110,108,104,0.75)';
+            ctx.font      = `${Math.round(9 * scale)}px -apple-system, sans-serif`;
+            ctx.fillText(w.author, sx + pad, sy + sh - 16 * scale);
+        }
+
+    // ── Pomodoro ──────────────────────────────────────────────
+    } else if (w.type === 'pomodoro') {
+        const cx  = sx + sw / 2;
+        const cy  = sy + sh / 2 - 4 * scale;
+        const rr  = Math.min(sw, sh) * 0.28;
+        const tot = ((w.pomSess === 'break' ? w.pomBreak : w.pomWork) || 25) * 60;
+        const left = w.pomLeft || tot;
+        // Track
+        ctx.strokeStyle = 'rgba(42,42,42,0.95)';
+        ctx.lineWidth   = 4 * scale;
+        ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.stroke();
+        // Progress
+        const endAngle = -Math.PI / 2 + (Math.PI * 2) * (1 - left / tot);
+        ctx.strokeStyle = w.pomSess === 'break' ? '#3dba72' : '#ef4444';
+        ctx.lineWidth   = 4 * scale;
+        ctx.lineCap     = 'round';
+        ctx.beginPath(); ctx.arc(cx, cy, rr, -Math.PI / 2, endAngle); ctx.stroke();
+        // Time text
+        const m = Math.floor(left / 60), s = left % 60;
+        ctx.fillStyle    = 'rgba(232,230,225,0.92)';
+        ctx.font         = `500 ${Math.round(13 * scale)}px 'Courier New', monospace`;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`, cx, cy);
+        ctx.fillStyle = 'rgba(110,108,104,0.7)';
+        ctx.font      = `${Math.round(7.5 * scale)}px -apple-system, sans-serif`;
+        ctx.fillText((w.pomSess || 'work').toUpperCase(), cx, cy + 14 * scale);
+
+    // ── Habits ────────────────────────────────────────────────
+    } else if (w.type === 'habit') {
+        const habits = (w.habits || []).slice(0, 6);
+        const itemH  = 19 * scale;
+        habits.forEach((h, i) => {
+            const hy = contentY + i * itemH;
+            ctx.fillStyle    = 'rgba(232,230,225,0.78)';
+            ctx.font         = `${Math.round(10 * scale)}px -apple-system, sans-serif`;
+            ctx.textBaseline = 'middle';
+            ctx.textAlign    = 'left';
+            // Truncate name
+            let name = h.name || '';
+            const maxNameW = sw * 0.52;
+            while (name.length > 1 && ctx.measureText(name).width > maxNameW) name = name.slice(0, -1);
+            ctx.fillText(name, sx + pad, hy + 7 * scale);
+            // Day dots
+            const dotR  = 4 * scale;
+            const dotGap = 11 * scale;
+            for (let di = 0; di < 7; di++) {
+                const done = (h.done || [])[di];
+                const dx   = sx + sw - pad - (6 - di) * dotGap;
+                ctx.fillStyle = done ? '#3dba72' : 'rgba(58,56,53,0.9)';
+                ctx.beginPath(); ctx.arc(dx, hy + 7 * scale, dotR, 0, Math.PI * 2); ctx.fill();
+            }
+        });
+
+    // ── Calendar ──────────────────────────────────────────────
+    } else if (w.type === 'calendar') {
+        const now   = new Date();
+        const y     = w.calY || now.getFullYear();
+        const m     = w.calM != null ? w.calM : now.getMonth();
+        const MS    = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        // Month label
+        ctx.fillStyle    = 'rgba(232,230,225,0.88)';
+        ctx.font         = `700 ${Math.round(10 * scale)}px -apple-system, sans-serif`;
+        ctx.textBaseline = 'top';
+        ctx.textAlign    = 'left';
+        ctx.fillText(`${MS[m]} ${y}`, sx + pad, contentY);
+        // Day headers
+        const DAYS = ['S','M','T','W','T','F','S'];
+        const cellW = (sw - pad * 2) / 7;
+        const cellH = 13 * scale;
+        DAYS.forEach((d, di) => {
+            ctx.fillStyle = 'rgba(110,108,104,0.6)';
+            ctx.font      = `600 ${Math.round(7.5 * scale)}px -apple-system, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText(d, sx + pad + di * cellW + cellW / 2, contentY + 13 * scale);
+        });
+        // Dates
+        const first = new Date(y, m, 1).getDay();
+        const dim   = new Date(y, m + 1, 0).getDate();
+        for (let d = 1; d <= dim; d++) {
+            const col = (first + d - 1) % 7;
+            const row = Math.floor((first + d - 1) / 7);
+            const dx  = sx + pad + col * cellW + cellW / 2;
+            const dy  = contentY + 27 * scale + row * cellH;
+            const isToday = d === now.getDate() && m === now.getMonth() && y === now.getFullYear();
+            if (isToday) {
+                ctx.fillStyle = '#f1d19e';
+                ctx.beginPath(); ctx.arc(dx, dy + 4 * scale, 6.5 * scale, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#1a1a1a';
+            } else {
+                ctx.fillStyle = 'rgba(110,108,104,0.7)';
+            }
+            ctx.font         = `${Math.round(8 * scale)}px -apple-system, sans-serif`;
+            ctx.textAlign    = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(String(d), dx, dy + 4 * scale);
+        }
+
+    // ── Ambient ───────────────────────────────────────────────
+    } else if (w.type === 'ambient') {
+        ctx.fillStyle    = 'rgba(110,108,104,0.55)';
+        ctx.font         = `${Math.round(9 * scale)}px -apple-system, sans-serif`;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(w.playing ? `▶ ${w.playing}` : 'No sound playing', sx + sw / 2, sy + sh / 2);
+
+    // ── YouTube ───────────────────────────────────────────────
+    } else if (w.type === 'youtube') {
+        const pillW = 40 * scale, pillH = 16 * scale;
+        const px    = sx + pad, py = contentY;
+        ctx.fillStyle = '#ff0000';
+        roundRectFill(ctx, px, py, pillW, pillH, 4 * scale);
+        ctx.fillStyle    = '#fff';
+        ctx.font         = `700 ${Math.round(7.5 * scale)}px -apple-system, sans-serif`;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('▶ YT', px + pillW / 2, py + pillH / 2);
+
+    // ── Music ─────────────────────────────────────────────────
+    } else if (w.type === 'music') {
+        const pillW = 52 * scale, pillH = 16 * scale;
+        const px    = sx + pad, py = contentY;
+        ctx.fillStyle = '#1DB954';
+        roundRectFill(ctx, px, py, pillW, pillH, 4 * scale);
+        ctx.fillStyle    = '#fff';
+        ctx.font         = `700 ${Math.round(7.5 * scale)}px -apple-system, sans-serif`;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('SPOTIFY', px + pillW / 2, py + pillH / 2);
+
+    // ── Reminder ──────────────────────────────────────────────
+    } else if (w.type === 'reminder') {
+        const items = (w.reminders || []).slice(0, 5);
+        const itemH = 18 * scale;
+        items.forEach((r, i) => {
+            const iy  = contentY + i * itemH;
+            const dt  = new Date(r.time);
+            const lbl = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            ctx.fillStyle    = 'rgba(232,230,225,0.82)';
+            ctx.font         = `${Math.round(10 * scale)}px -apple-system, sans-serif`;
+            ctx.textBaseline = 'top';
+            ctx.textAlign    = 'left';
+            ctx.fillText(r.title || '', sx + pad + 14 * scale, iy);
+            ctx.fillStyle = 'rgba(110,108,104,0.6)';
+            ctx.font      = `${Math.round(8.5 * scale)}px -apple-system, sans-serif`;
+            ctx.fillText(lbl, sx + pad + 14 * scale, iy + 11 * scale);
+            // Bell dot
+            ctx.fillStyle = '#f1d19e';
+            ctx.beginPath(); ctx.arc(sx + pad + 4 * scale, iy + 6 * scale, 3.5 * scale, 0, Math.PI * 2); ctx.fill();
+        });
+
+    // ── Audio ─────────────────────────────────────────────────
+    } else if (w.type === 'audio') {
+        ctx.fillStyle    = 'rgba(232,230,225,0.6)';
+        ctx.font         = `${Math.round(9.5 * scale)}px -apple-system, sans-serif`;
+        ctx.textBaseline = 'middle';
+        ctx.textAlign    = 'left';
+        ctx.fillText(w.audioName || 'Audio file', sx + pad, sy + sh / 2);
+
+    // ── PDF ───────────────────────────────────────────────────
+    } else if (w.type === 'pdf') {
+        ctx.fillStyle    = 'rgba(239,68,68,0.7)';
+        ctx.font         = `700 ${Math.round(18 * scale)}px -apple-system, sans-serif`;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('PDF', sx + sw / 2, sy + sh / 2 - 4 * scale);
+        ctx.fillStyle = 'rgba(110,108,104,0.55)';
+        ctx.font      = `${Math.round(8.5 * scale)}px -apple-system, sans-serif`;
+        ctx.fillText(w.pdfName || '', sx + sw / 2, sy + sh / 2 + 12 * scale);
+    }
+
+    ctx.restore();
+}
+
+// ── Canvas drawing utilities ─────────────────────────────────────────────
+function roundRectFill(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); }
+    else { fallbackRRect(ctx, x, y, w, h, r); }
+    ctx.closePath();
+    ctx.fill();
+}
+
+function roundRectFillTop(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(x, y + h);
+    ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+    ctx.fill();
+}
+
+function roundRectStroke(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); }
+    else { fallbackRRect(ctx, x, y, w, h, r); }
+    ctx.closePath();
+    ctx.stroke();
+}
+
+function roundRectClip(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); }
+    else { fallbackRRect(ctx, x, y, w, h, r); }
+    ctx.closePath();
+    ctx.clip();
+}
+
+function fallbackRRect(ctx, x, y, w, h, r) {
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);   ctx.arcTo(x + w, y,     x + w, y + r,     r);
+    ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);   ctx.arcTo(x,     y + h, x,     y + h - r, r);
+    ctx.lineTo(x, y + r);       ctx.arcTo(x, y,          x + r, y,         r);
+}
+
+function wrapText(ctx, text, maxW) {
+    const words = (text || '').split(' ');
+    const lines = [];
+    let line = '';
+    words.forEach(word => {
+        const test = line ? line + ' ' + word : word;
+        if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = word; }
+        else line = test;
+    });
+    if (line) lines.push(line);
+    return lines;
+}
+
+function widgetBgColor(w) {
+    const NOTE_MAP = {
+        yellow: 'rgba(251,191,36,0.08)',  green:  'rgba(61,186,114,0.07)',
+        blue:   'rgba(241,209,158,0.07)', purple: 'rgba(165,111,212,0.07)',
+        red:    'rgba(239,68,68,0.07)'
+    };
+    if (w.type === 'note' && w.color && NOTE_MAP[w.color]) return NOTE_MAP[w.color];
+    return 'rgba(10,10,10,0.85)';
+}
+
+function widgetBorderColor(w) {
+    const NOTE_MAP = {
+        yellow: 'rgba(251,191,36,0.22)',  green:  'rgba(61,186,114,0.22)',
+        blue:   'rgba(241,209,158,0.22)', purple: 'rgba(165,111,212,0.22)',
+        red:    'rgba(239,68,68,0.22)'
+    };
+    if (w.type === 'note' && w.color && NOTE_MAP[w.color]) return NOTE_MAP[w.color];
+    return 'rgba(255,255,255,0.055)';
+}
+
+function widgetIconLabel(w) {
+    const MAP = {
+        note: 'Note', clock: 'Clock', todo: 'To-Do', quote: 'Quote',
+        music: 'Music', youtube: 'YouTube', pdf: 'PDF', audio: 'Audio',
+        pomodoro: 'Pomodoro', habit: 'Habits', calendar: 'Calendar',
+        ambient: 'Ambient', reminder: 'Reminders'
+    };
+    return MAP[w.type] || w.type;
+}
+</script>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+        authDomain: "patholytica.firebaseapp.com",
+        databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "patholytica",
+        storageBucket: "patholytica.firebasestorage.app",
+        messagingSenderId: "738430635282",
+        appId: "1:738430635282:web:8451ef380447c7611137cb"
+    };
+
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const supabase = window.supabase.createClient(
+        "https://vduqewqyvszfquntmark.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
+    );
+
+    let articles = [];
+    let userLikes = new Set();
+    let currentArticleId = null;
+    let isLoading = false;
+    let hasMore = true;
+    let offset = 0;
+    const LIMIT = 5;
+    let currentUser = null;
+    let viewTimers = {};
+    let viewedArticles = new Set();
+    let filteredArticleIds = null;
+    let anchorArticleId = null;
+
+    // ── Skeleton ──────────────────────────────────────────────
+    function skeletonCardHTML() {
+        return `
+            <div class="card-top-line"></div>
+            <div class="skeleton-header">
+                <div class="skeleton-avatar skeleton-base"></div>
+                <div class="skeleton-author-block">
+                    <div class="skeleton-name skeleton-base"></div>
+                    <div class="skeleton-date skeleton-base"></div>
+                </div>
+            </div>
+            <div class="skeleton-divider"></div>
+            <div class="skeleton-title skeleton-base"></div>
+            <div class="skeleton-title-short skeleton-base"></div>
+            <div class="skeleton-stats">
+                <div class="skeleton-stat skeleton-base"></div>
+                <div class="skeleton-stat skeleton-base"></div>
+            </div>
+            <div class="skeleton-line skeleton-base"></div>
+            <div class="skeleton-line w90 skeleton-base"></div>
+            <div class="skeleton-line w95 skeleton-base"></div>
+            <div class="skeleton-line w80 skeleton-base"></div>
+            <div class="skeleton-line skeleton-base"></div>
+            <div class="skeleton-line w75 skeleton-base"></div>
+            <div class="skeleton-line w90 skeleton-base"></div>
+            <div class="skeleton-line w65 skeleton-base"></div>
+        `;
+    }
+
+    function injectInitialSkeletons(count = 3) {
+        const wrapper = document.getElementById('postsWrapper');
+        for (let i = 0; i < count; i++) {
+            const sk = document.createElement('div');
+            sk.className = 'skeleton-card';
+            sk.innerHTML = skeletonCardHTML();
+            wrapper.appendChild(sk);
+        }
+    }
+
+    function animatePickerOut(callback) {
+        const pickerCard = document.getElementById('libraryPickerCard');
+        if (!pickerCard) { callback(); return; }
+        const btn = pickerCard.querySelector('.lp-card-start-btn');
+        if (btn) btn.classList.add('launching');
+        setTimeout(() => {
+            pickerCard.classList.add('exiting');
+            pickerCard.addEventListener('animationend', () => {
+                const skDiv = document.createElement('div');
+                skDiv.className = 'skeleton-card';
+                skDiv.innerHTML = skeletonCardHTML();
+                pickerCard.replaceWith(skDiv);
+                callback();
+            }, { once: true });
+        }, 200);
+    }
+
+    function swapPickerForSkeleton() {
+        const pickerCard = document.getElementById('libraryPickerCard');
+        if (pickerCard) {
+            const skDiv = document.createElement('div');
+            skDiv.className = 'skeleton-card';
+            skDiv.innerHTML = skeletonCardHTML();
+            pickerCard.replaceWith(skDiv);
+        }
+    }
+
+    // ── Library picker ────────────────────────────────────────
+    function buildPickerCard() {
+        const card = document.createElement('div');
+        card.className = 'library-picker-card';
+        card.id = 'libraryPickerCard';
+        card.innerHTML = `
+            <div class="card-top-line"></div>
+            <div class="lp-card-logo"><img src="IMG_3220.png" alt="Patholytica"></div>
+            <div class="lp-card-title">What do you want to study?</div>
+            <div class="lp-card-sub">Pick up to 5 libraries — or scroll down to browse everything.</div>
+            <div class="lp-card-id-row">
+                <input type="number" class="lp-card-id-input" id="lpIdInput" placeholder="Jump to article ID…" min="1">
+                <button class="lp-card-id-go-btn" id="lpIdGoBtn">Go</button>
+            </div>
+            <div class="lp-card-id-error" id="lpIdError"></div>
+            <div class="lp-card-divider">
+                <div class="lp-card-divider-line"></div>
+                <div class="lp-card-divider-text">Or pick a library</div>
+                <div class="lp-card-divider-line"></div>
+            </div>
+            <div class="lp-card-hint" id="lpCountHint">0 / 5 selected</div>
+            <div class="lp-card-scroll" id="lpGrid">
+                <div class="lp-card-loading">
+                    <div class="spinner" style="width:28px;height:28px;border-width:3px;"></div>
+                    <div>Loading libraries…</div>
+                </div>
+            </div>
+            <div class="lp-card-actions">
+                <button class="lp-card-start-btn" id="lpStartBtn" disabled>Start Feed with Selection</button>
+                <div class="lp-card-scroll-hint">
+                    <i class="fas fa-arrow-down"></i>
+                    <span>Scroll down to browse everything</span>
+                </div>
+            </div>
+        `;
+        return card;
+    }
+
+    async function initLibraryPicker() {
+        const wrapper    = document.getElementById('postsWrapper');
+        const pickerCard = buildPickerCard();
+        wrapper.insertBefore(pickerCard, wrapper.firstChild);
+
+        const grid     = document.getElementById('lpGrid');
+        const startBtn = document.getElementById('lpStartBtn');
+        const hint     = document.getElementById('lpCountHint');
+        const idInput  = document.getElementById('lpIdInput');
+        const idGoBtn  = document.getElementById('lpIdGoBtn');
+        const idError  = document.getElementById('lpIdError');
+        const selected = new Set();
+
+        async function handleIdSearch() {
+            const val = idInput.value.trim();
+            if (!val) { idError.textContent = 'Please enter an article ID.'; return; }
+            const id = parseInt(val);
+            if (isNaN(id) || id < 1) { idError.textContent = 'Please enter a valid positive ID.'; return; }
+            idGoBtn.disabled = true; idGoBtn.textContent = '…'; idError.textContent = '';
+            swapPickerForSkeleton();
+            try {
+                const { data: art, error } = await supabase.from('articles').select('id').eq('id', id).single();
+                if (error || !art) {
+                    anchorArticleId = null; articles = []; offset = 0; hasMore = true; isLoading = false;
+                    document.getElementById('postsWrapper').querySelectorAll('.article-card, .mcq-card').forEach(c => c.remove());
+                    const errToast = document.createElement('div');
+                    errToast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#ef4444;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;';
+                    errToast.textContent = `No article found with ID ${id}.`;
+                    document.body.appendChild(errToast);
+                    setTimeout(() => errToast.remove(), 3000);
+                    loadArticles(true); return;
+                }
+                anchorArticleId = id; filteredArticleIds = null;
+                articles = []; offset = 0; hasMore = true; isLoading = false;
+                document.getElementById('postsWrapper').querySelectorAll('.article-card, .mcq-card').forEach(c => c.remove());
+                loadArticles(true);
+            } catch(e) { articles = []; offset = 0; hasMore = true; isLoading = false; loadArticles(true); }
+        }
+        idGoBtn.addEventListener('click', handleIdSearch);
+        idInput.addEventListener('keypress', e => { if (e.key === 'Enter') handleIdSearch(); });
+
+        try {
+            const { data: libs, error } = await supabase.from('playlists').select('id, name, description').order('name', { ascending: true });
+            if (error || !libs || libs.length === 0) { grid.innerHTML = ''; return; }
+            const { data: countRows } = await supabase.from('playlist_items').select('playlist_id');
+            const countMap = {};
+            (countRows || []).forEach(r => { countMap[r.playlist_id] = (countMap[r.playlist_id] || 0) + 1; });
+            const filteredLibs = libs.filter(lib => (countMap[lib.id] || 0) > 0).sort((a,b) => (countMap[b.id]||0) - (countMap[a.id]||0));
+            if (filteredLibs.length === 0) { grid.innerHTML = ''; return; }
+            grid.innerHTML = '';
+            filteredLibs.forEach(lib => {
+                const articleCount = countMap[lib.id] || 0;
+                const item = document.createElement('div');
+                item.className = 'lp-item'; item.dataset.id = lib.id;
+                item.innerHTML = `
+                    <div class="lp-check">✓</div>
+                    <div class="lp-info">
+                        <div class="lp-name">${lib.name || 'Untitled Library'}</div>
+                        <div class="lp-meta">${lib.description || ''}</div>
+                    </div>
+                    <div class="lp-article-count">${articleCount} article${articleCount !== 1 ? 's' : ''}</div>`;
+                item.addEventListener('click', () => {
+                    const id = String(lib.id);
+                    if (selected.has(id)) { selected.delete(id); item.classList.remove('selected'); }
+                    else { if (selected.size >= 5) return; selected.add(id); item.classList.add('selected'); }
+                    const n = selected.size;
+                    hint.textContent = `${n} / 5 selected`;
+                    startBtn.disabled = n === 0;
+                    grid.querySelectorAll('.lp-item').forEach(el => {
+                        if (!el.classList.contains('selected')) { el.style.opacity = n >= 5 ? '0.4' : '1'; el.style.pointerEvents = n >= 5 ? 'none' : ''; }
+                        else { el.style.opacity = '1'; el.style.pointerEvents = ''; }
+                    });
+                });
+                grid.appendChild(item);
+            });
+
+            startBtn.addEventListener('click', async () => {
+                startBtn.disabled = true; startBtn.textContent = 'Loading…';
+                animatePickerOut(async () => {
+                    const playlistIds = [...selected].map(Number);
+                    const { data: items } = await supabase.from('playlist_items').select('article_id').in('playlist_id', playlistIds);
+                    const articleIds = [...new Set((items || []).map(r => r.article_id))];
+                    filteredArticleIds = articleIds.length > 0 ? articleIds : null;
+                    articles = []; offset = 0; hasMore = true; isLoading = false;
+                    const wrapper = document.getElementById('postsWrapper');
+                    wrapper.querySelectorAll('.article-card, .mcq-card').forEach(c => c.remove());
+                    loadArticles(true);
+                });
+            });
+        } catch(e) { console.error('Library picker error:', e); grid.innerHTML = ''; }
+    }
+
+    // ── MCQ helpers ───────────────────────────────────────────
+    function isMCQ(content) { return typeof content === 'string' && content.trimStart().startsWith('❔'); }
+
+    function parseMCQ(content) {
+        const lines = content.trim().split('\n').map(l => l.trim()).filter(Boolean);
+        const questionLine = lines[0].replace(/^❔/, '').trim();
+        const options = lines.slice(1).map(line => {
+            const correct = line.startsWith('✅');
+            const label   = line.replace(/^✅/, '').trim();
+            return { label, correct };
+        });
+        for (let i = options.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [options[i], options[j]] = [options[j], options[i]];
+        }
+        return { question: questionLine, options };
+    }
+
+    // ── Media renderer ────────────────────────────────────────
+    function createMediaElement(m) {
+        const d = document.createElement('div');
+        d.className = 'media-embed';
+        if (m.type === 'image') {
+            d.innerHTML = `<img src="${m.url}" alt="${m.caption || ''}">${m.caption ? `<div class="media-caption">${m.caption}</div>` : ''}`;
+        } else if (m.type === 'audio') {
+            const aid = 'audio-' + Math.random().toString(36).substr(2,9);
+            const bars = Array(15).fill(0).map(() => `<div class="waveform-bar" style="height:${Math.random()*60+20}%"></div>`).join('');
+            d.innerHTML = `
+                <div class="custom-audio-player">
+                    <button class="play-btn" onclick="toggleAudio(this,'${aid}')"><i class="fas fa-play"></i></button>
+                    <div class="audio-info">
+                        <div class="audio-title">${m.caption || 'Audio'}</div>
+                        <div class="waveform-container" onclick="seekAudio(event,this,'${aid}')">
+                            <div class="waveform-progress"></div>
+                            <div class="waveform-bars">${bars}</div>
+                        </div>
+                        <div class="audio-time"><span class="current-time">0:00</span><span class="duration">0:00</span></div>
+                    </div>
+                    <audio id="${aid}" src="${m.url}" style="display:none;"></audio>
+                </div>`;
+            setTimeout(() => {
+                const audio = document.getElementById(aid);
+                if (audio) audio.addEventListener('loadedmetadata', () => {
+                    const dur = Math.floor(audio.duration);
+                    const dEl = audio.closest('.custom-audio-player')?.querySelector('.duration');
+                    if (dEl) dEl.textContent = `${Math.floor(dur/60)}:${(dur%60).toString().padStart(2,'0')}`;
+                });
+            }, 100);
+        } else if (m.type === 'pdf') {
+            d.innerHTML = `<div style="background:var(--hover-bg);border:1px solid var(--border-color);border-radius:12px;overflow:hidden;margin:4px 0;">
+                <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border-color);">
+                    <i class="fas fa-file-pdf" style="color:#e74c3c;font-size:18px;flex-shrink:0;"></i>
+                    <span style="font-size:13px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-primary);">${m.caption || 'Document'}</span>
+                    <a href="${m.url}" target="_blank" rel="noopener" style="font-size:11px;font-weight:700;color:var(--accent);background:rgba(241,209,158,0.1);border:1px solid rgba(241,209,158,0.2);border-radius:8px;padding:4px 10px;text-decoration:none;white-space:nowrap;flex-shrink:0;">Open PDF</a>
+                </div>
+                <iframe src="${m.url}" style="width:100%;height:220px;border:none;display:block;"></iframe>
+            </div>`;
+        } else if (m.type === 'youtube') {
+            const ytMatch = m.url.match(/embed\/([A-Za-z0-9_-]{11})/);
+            const videoId = ytMatch ? ytMatch[1] : '';
+            const label = m.caption || (videoId ? `youtube.com/watch?v=${videoId}` : 'YouTube Video');
+            d.innerHTML = `<div style="background:var(--hover-bg);border:1px solid var(--border-color);border-radius:12px;overflow:hidden;margin:4px 0;">
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border-color);">
+                    <i class="fab fa-youtube" style="color:#ff0000;font-size:16px;flex-shrink:0;"></i>
+                    <span style="font-size:13px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-primary);">${label}</span>
+                    ${videoId ? `<a href="https://www.youtube.com/watch?v=${videoId}" target="_blank" rel="noopener" style="font-size:11px;font-weight:700;color:#ff0000;background:rgba(255,0,0,0.1);border:1px solid rgba(255,0,0,0.2);border-radius:8px;padding:4px 10px;text-decoration:none;white-space:nowrap;flex-shrink:0;">Watch</a>` : ''}
+                </div>
+                <iframe src="${m.url}" title="${label}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width:100%;aspect-ratio:16/9;border:none;display:block;"></iframe>
+            </div>`;
+        }
+        return d;
+    }
+
+    // ── MCQ card builder ──────────────────────────────────────
+    function buildMCQCard(article, index) {
+        const { question, options } = parseMCQ(article.content);
+        const isLiked = userLikes.has(String(article.id));
+        const avatarContent = getAvatarContent(article);
+        const letters = ['A','B','C','D','E','F'];
+
+        const card = document.createElement('div');
+        card.className = 'mcq-card';
+        card.dataset.index = index;
+        card.dataset.articleId = article.id;
+
+        card.innerHTML = `
+            <div class="card-top-line"></div>
+            <div class="article-header">
+                <div class="author-avatar">${avatarContent}</div>
+                <div class="author-info">
+                    <div class="author-name">${article.author}</div>
+                    <div class="article-date">${formatDate(new Date(article.created_at))}</div>
+                </div>
+            </div>
+            <div class="header-bottom-line"></div>
+            <div class="mcq-badge">❔ Quick Question</div>
+            <div class="mcq-question">${renderEmojiText(question)}</div>
+            <div class="mcq-media" id="mcq-media-${article.id}"></div>
+            <div class="mcq-scroll-area">
+                <div class="mcq-options" id="mcq-opts-${article.id}"></div>
+                <div class="mcq-result-msg" id="mcq-msg-${article.id}"></div>
+            </div>
+            <div class="action-buttons">
+                <button class="action-btn like-btn ${isLiked ? 'liked' : ''}" data-id="${article.id}">
+                    <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    <span class="like-count">${formatNumber(article.likes || 0)}</span>
+                </button>
+                <button class="action-btn comment-btn" data-id="${article.id}">
+                    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    <span class="comment-count">0</span>
+                </button>
+                <button class="action-btn expand-btn" data-id="${article.id}">
+                    <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                    <span>Open</span>
+                </button>
+            </div>
+        `;
+
+        if (article.media && article.media.length > 0) {
+            const mediaContainer = card.querySelector(`#mcq-media-${article.id}`);
+            article.media.forEach(m => mediaContainer.appendChild(createMediaElement(m)));
+        }
+
+        const optsContainer = card.querySelector(`#mcq-opts-${article.id}`);
+        const msgEl         = card.querySelector(`#mcq-msg-${article.id}`);
+        let answered = false;
+
+        options.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'mcq-option';
+            btn.innerHTML = `<span class="opt-letter">${letters[i] || i+1}</span><span class="opt-text">${renderEmojiText(opt.label)}</span>`;
+            btn.addEventListener('click', () => {
+                if (answered) return;
+                answered = true;
+                optsContainer.querySelectorAll('.mcq-option').forEach(b => b.disabled = true);
+                if (opt.correct) {
+                    btn.classList.add('selected-correct');
+                    msgEl.textContent = '✓ Correct!';
+                    msgEl.className = 'mcq-result-msg correct';
+                    window.launchConfetti(btn);
+                } else {
+                    btn.classList.add('selected-wrong');
+                    msgEl.className = 'mcq-result-msg wrong';
+                    const correctIdx = options.findIndex(o => o.correct);
+                    if (correctIdx !== -1) {
+                        optsContainer.querySelectorAll('.mcq-option')[correctIdx].classList.add('reveal-correct');
+                        msgEl.textContent = `✗ The answer was: ${options[correctIdx].label}`;
+                    } else {
+                        msgEl.textContent = '✗ Incorrect';
+                    }
+                }
+            });
+            optsContainer.appendChild(btn);
+        });
+
+        return card;
+    }
+
+    // ── Helpers ───────────────────────────────────────────────
+    function formatNumber(num) {
+        if (num >= 1000000) return (num/1000000).toFixed(1)+'M';
+        if (num >= 1000)    return (num/1000).toFixed(1)+'K';
+        return (num || 0).toString();
+    }
+
+    function formatDate(date) {
+        const now = new Date(), ms = now - date;
+        const mins = Math.floor(ms/60000), hrs = Math.floor(ms/3600000), days = Math.floor(ms/86400000);
+        if (mins < 60) return `${mins}m ago`;
+        if (hrs < 24)  return `${hrs}h ago`;
+        if (days < 7)  return `${days}d ago`;
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function getAvatarContent(article) {
+        if (article.authorPfp) return `<img src="${article.authorPfp}" alt="${article.author}">`;
+        let letter = 'A';
+        if (article.authorUsername) { letter = article.authorUsername.charAt(0).toUpperCase(); }
+        else if (article.author) {
+            const atIdx = article.author.indexOf('@');
+            letter = atIdx !== -1 && article.author.length > atIdx + 1
+                ? article.author.charAt(atIdx+1).toUpperCase()
+                : article.author.charAt(0).toUpperCase();
+        }
+        return letter;
+    }
+
+    // ── Auth ──────────────────────────────────────────────────
+    async function getCurrentUser() {
+        try {
+            const firebaseUser = auth.currentUser;
+            if (!firebaseUser) return null;
+            const { data, error } = await supabase.from('users').select('user_id, firebase_uid, username').eq('firebase_uid', firebaseUser.uid).single();
+            if (error) return null;
+            return data;
+        } catch(e) { return null; }
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            currentUser = await getCurrentUser();
+            if (currentUser) {
+                await loadUserLikes();
+
+                if (!document.getElementById('spaceCard')) {
+                    const [spaceRes, userRes] = await Promise.all([
+                        supabase
+                            .from('spaces')
+                            .select('layout_json')
+                            .eq('user_id', currentUser.user_id)
+                            .eq('name', 'My Space')
+                            .single(),
+                        supabase
+                            .from('users')
+                            .select('username, pfp')
+                            .eq('user_id', currentUser.user_id)
+                            .single()
+                    ]);
+
+                    const layoutJson = spaceRes.data?.layout_json || null;
+                    const username   = userRes.data?.username || null;
+                    const pfp        = userRes.data?.pfp || null;
+
+                    const wrapper  = document.getElementById('postsWrapper');
+                    const spaceEl  = buildSpaceCard(layoutJson, username, pfp);
+                    const second   = wrapper.children[1];
+                    second
+                        ? wrapper.insertBefore(spaceEl, second)
+                        : wrapper.appendChild(spaceEl);
+                }
+            }
+        } else {
+            currentUser = null;
+            userLikes.clear();
+        }
+    });
+
+    // ── Likes ─────────────────────────────────────────────────
+    async function loadUserLikes() {
+        if (!currentUser) return;
+        try {
+            const { data: likes } = await supabase.from('likes').select('article_id').eq('user_id', currentUser.user_id);
+            userLikes.clear();
+            (likes || []).forEach(l => userLikes.add(String(l.article_id)));
+            updateLikeButtons();
+        } catch(e) {}
+    }
+
+    function updateLikeButtons() {
+        document.querySelectorAll('.like-btn').forEach(btn => {
+            btn.classList.toggle('liked', userLikes.has(String(btn.dataset.id)));
+        });
+    }
+
+    async function handleLike(e) {
+        const btn = e.currentTarget;
+        const id  = String(btn.dataset.id);
+        const countSpan = btn.querySelector('.like-count');
+        if (!currentUser) { alert('Please log in to like articles'); window.location.href = 'https://patholytica.com/login'; return; }
+        if (btn.dataset.processing === 'true') return;
+        btn.dataset.processing = 'true';
+        const wasLiked = userLikes.has(id);
+        const artIdx   = articles.findIndex(a => String(a.id) === id);
+        const prevRealCount = artIdx !== -1 ? (articles[artIdx].likes || 0) : 0;
+        const newCount = wasLiked ? Math.max(0, prevRealCount - 1) : prevRealCount + 1;
+        if (wasLiked) { userLikes.delete(id); btn.classList.remove('liked'); }
+        else          { userLikes.add(id);    btn.classList.add('liked'); }
+        countSpan.textContent = formatNumber(newCount);
+        const card = btn.closest('.article-card, .mcq-card');
+        if (card) { const s = card.querySelector('.stat-item.likes span'); if (s) s.textContent = formatNumber(newCount); }
+        if (artIdx !== -1) articles[artIdx].likes = newCount;
+        try {
+            if (wasLiked) {
+                await supabase.from('likes').delete().eq('article_id', parseInt(id)).eq('user_id', currentUser.user_id);
+                const { error: rpcErr } = await supabase.rpc('decrement_likes', { article_id: parseInt(id) });
+                if (rpcErr) { const { data: fresh } = await supabase.from('articles').select('likes').eq('id', id).single(); await supabase.from('articles').update({ likes: Math.max(0,(fresh?.likes||1)-1) }).eq('id', id); }
+            } else {
+                const { error: insErr } = await supabase.from('likes').insert([{ article_id: parseInt(id), user_id: currentUser.user_id }]);
+                if (insErr && insErr.code !== '23505') throw insErr;
+                const { error: rpcErr } = await supabase.rpc('increment_likes', { article_id: parseInt(id) });
+                if (rpcErr) { const { data: fresh } = await supabase.from('articles').select('likes').eq('id', id).single(); await supabase.from('articles').update({ likes: (fresh?.likes||0)+1 }).eq('id', id); }
+            }
+        } catch(err) {
+            console.error(err);
+            if (wasLiked) { userLikes.add(id); btn.classList.add('liked'); }
+            else          { userLikes.delete(id); btn.classList.remove('liked'); }
+            countSpan.textContent = formatNumber(prevRealCount);
+            if (card) { const s = card.querySelector('.stat-item.likes span'); if (s) s.textContent = formatNumber(prevRealCount); }
+            if (artIdx !== -1) articles[artIdx].likes = prevRealCount;
+        } finally { btn.dataset.processing = 'false'; }
+    }
+
+    // ── Load articles ─────────────────────────────────────────
+    async function loadArticles(isInitial = true) {
+        if (isLoading || (!isInitial && !hasMore)) return;
+        isLoading = true;
+        try {
+            if (isInitial && anchorArticleId !== null) {
+                const { data: anchorArt, error: anchorErr } = await supabase.from('articles').select('*').eq('id', anchorArticleId).single();
+                if (anchorErr || !anchorArt) { anchorArticleId = null; }
+                else {
+                    const { data: rest } = await supabase.from('articles').select('*').order('created_at', { ascending: false }).lt('created_at', anchorArt.created_at).limit(LIMIT - 1);
+                    const combined = [anchorArt, ...(rest || [])];
+                    await enrichAndRender(combined, isInitial);
+                    offset = LIMIT; isLoading = false; return;
+                }
+            }
+
+            let query = supabase.from('articles').select('*').order('created_at', { ascending: false }).range(offset, offset + LIMIT - 1);
+            if (filteredArticleIds !== null) {
+                if (filteredArticleIds.length === 0) {
+                    const wrapper = document.getElementById('postsWrapper');
+                    wrapper.querySelectorAll('.skeleton-card').forEach(s => s.remove());
+                    wrapper.innerHTML += `<div class="loading-container" style="height:100vh;scroll-snap-align:start;"><i class="fas fa-inbox" style="font-size:48px;"></i><div>No articles in selected libraries</div></div>`;
+                    isLoading = false; return;
+                }
+                query = query.in('id', filteredArticleIds);
+            }
+
+            const { data: articlesData, error } = await query;
+            if (error) throw error;
+            if (!articlesData || articlesData.length === 0) {
+                if (isInitial) {
+                    const wrapper = document.getElementById('postsWrapper');
+                    wrapper.querySelectorAll('.skeleton-card').forEach(s => s.remove());
+                    wrapper.innerHTML += `<div class="loading-container" style="height:100vh;scroll-snap-align:start;"><i class="fas fa-inbox" style="font-size:48px;"></i><div>No articles found</div></div>`;
+                }
+                hasMore = false; isLoading = false; return;
+            }
+            if (articlesData.length < LIMIT) hasMore = false;
+            offset += articlesData.length;
+            await enrichAndRender(articlesData, isInitial);
+            isLoading = false;
+        } catch(e) {
+            console.error('Error loading articles:', e);
+            if (isInitial) {
+                const wrapper = document.getElementById('postsWrapper');
+                wrapper.querySelectorAll('.skeleton-card').forEach(s => s.remove());
+                wrapper.innerHTML += `<div class="loading-container" style="height:100vh;scroll-snap-align:start;"><i class="fas fa-exclamation-triangle" style="font-size:48px;"></i><div>Failed to load articles</div></div>`;
+            }
+            isLoading = false;
+        }
+    }
+
+    async function enrichAndRender(articlesData, isInitial) {
+        const userIds = [...new Set(articlesData.map(a => a.firebase_user_id).filter(Boolean))];
+        let usersData = [];
+        if (userIds.length > 0) {
+            const { data: users } = await supabase.from('users').select('firebase_uid, username, full_name, pfp').in('firebase_uid', userIds);
+            usersData = users || [];
+        }
+        const articleIds = articlesData.map(a => a.id);
+        const { data: mediaData } = await supabase.from('media').select('*').in('article_id', articleIds).order('display_order', { ascending: true });
+        const newArticles = articlesData.map(article => {
+            const user = usersData.find(u => u.firebase_uid === article.firebase_user_id);
+            return { ...article, author: user?.username ? `@${user.username}` : (user?.full_name || 'Anonymous'), authorPfp: user?.pfp || null, authorUsername: user?.username || null, media: (mediaData || []).filter(m => m.article_id === article.id) };
+        });
+        articles = [...articles, ...newArticles];
+        renderArticles(isInitial);
+    }
+
+    // ── Render ────────────────────────────────────────────────
+    function renderArticles(isInitial = true) {
+        const wrapper = document.getElementById('postsWrapper');
+
+        if (isInitial) {
+            wrapper.querySelectorAll('.skeleton-card').forEach(s => s.remove());
+            wrapper.querySelectorAll('.article-card, .mcq-card').forEach(c => c.remove());
+        } else {
+            const last = wrapper.lastElementChild;
+            if (last && last.classList.contains('skeleton-card')) last.remove();
+        }
+
+        const startIndex = isInitial ? 0 : articles.length - LIMIT;
+
+        for (let index = startIndex; index < articles.length; index++) {
+            const article = articles[index];
+
+            if (isMCQ(article.content)) {
+                wrapper.appendChild(buildMCQCard(article, index));
+            } else {
+                const articleDiv = document.createElement('div');
+                articleDiv.className = 'article-card';
+                articleDiv.dataset.index = index;
+                articleDiv.dataset.articleId = article.id;
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'article-content';
+                const paragraphs = (article.content || 'No content available').split('\n\n');
+                paragraphs.forEach((paragraph, pIndex) => {
+                    if (paragraph.trim()) {
+                        const p = document.createElement('div');
+                        p.className = 'content-paragraph';
+                        p.innerHTML = renderEmojiText(paragraph.trim());
+                        contentDiv.appendChild(p);
+                        if (article.media?.length > 0) {
+                            article.media.filter(m => m.display_order === pIndex)
+                                .forEach(m => contentDiv.appendChild(createMediaElement(m)));
+                        }
+                    }
+                });
+                if (article.media) {
+                    article.media.filter(m => m.display_order >= paragraphs.length)
+                        .forEach(m => contentDiv.appendChild(createMediaElement(m)));
+                }
+
+                const isLiked = userLikes.has(String(article.id));
+                const avatarContent = getAvatarContent(article);
+
+                articleDiv.innerHTML = `
+                    <div class="card-top-line"></div>
+                    <div class="article-header">
+                        <div class="author-avatar">${avatarContent}</div>
+                        <div class="author-info">
+                            <div class="author-name">${article.author}</div>
+                            <div class="article-date">${formatDate(new Date(article.created_at))}</div>
+                        </div>
+                    </div>
+                    <div class="header-bottom-line"></div>
+                    <div class="article-title">${renderEmojiText(article.title || 'Untitled')}</div>
+                    <div class="article-stats">
+                        <div class="stat-item views"><i class="fas fa-eye"></i><span>${formatNumber(article.views || 0)}</span></div>
+                        <div class="stat-item likes"><i class="fas fa-heart"></i><span>${formatNumber(article.likes || 0)}</span></div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="action-btn like-btn ${isLiked ? 'liked' : ''}" data-id="${article.id}">
+                            <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                            <span class="like-count">${formatNumber(article.likes || 0)}</span>
+                        </button>
+                        <button class="action-btn comment-btn" data-id="${article.id}">
+                            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                            <span class="comment-count">0</span>
+                        </button>
+                        <button class="action-btn expand-btn" data-id="${article.id}">
+                            <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                            <span>Open</span>
+                        </button>
+                    </div>
+                `;
+                articleDiv.querySelector('.article-stats').insertAdjacentElement('afterend', contentDiv);
+                wrapper.appendChild(articleDiv);
+            }
+        }
+
+        if (hasMore) {
+            const skDiv = document.createElement('div');
+            skDiv.className = 'skeleton-card';
+            skDiv.innerHTML = skeletonCardHTML();
+            wrapper.appendChild(skDiv);
+        }
+
+        document.querySelectorAll('.like-btn').forEach(btn => btn.addEventListener('click', handleLike));
+        document.querySelectorAll('.comment-btn').forEach(btn => btn.addEventListener('click', handleComments));
+        document.querySelectorAll('.expand-btn').forEach(btn => btn.addEventListener('click', handleExpand));
+
+        if (isInitial) {
+            wrapper.addEventListener('scroll', handleScroll);
+            loadCommentCounts();
+            setupIntersectionObserver();
+        } else {
+            setupIntersectionObserverForNew(startIndex);
+            loadCommentCounts();
+        }
+    }
+
+    // ── Intersection / view tracking ──────────────────────────
+    function setupIntersectionObserver() {
+        const obs = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const id = entry.target.dataset.articleId; if (!id) return;
+                if (entry.isIntersecting && entry.intersectionRatio >= 0.75) startViewTimer(id);
+                else clearViewTimer(id);
+            });
+        }, { threshold: [0.75] });
+        document.querySelectorAll('.article-card, .mcq-card').forEach(c => { if (c.dataset.articleId) obs.observe(c); });
+    }
+
+    function setupIntersectionObserverForNew(startIndex) {
+        const obs = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const id = entry.target.dataset.articleId; if (!id) return;
+                if (entry.isIntersecting && entry.intersectionRatio >= 0.75) startViewTimer(id);
+                else clearViewTimer(id);
+            });
+        }, { threshold: [0.75] });
+        document.querySelectorAll('.article-card, .mcq-card').forEach(c => {
+            if (c.dataset.index >= startIndex && c.dataset.articleId) obs.observe(c);
+        });
+    }
+
+    function startViewTimer(id) {
+        if (viewedArticles.has(id) || viewTimers[id]) return;
+        viewTimers[id] = setTimeout(async () => { await incrementView(id); }, 5000);
+    }
+    function clearViewTimer(id) { if (viewTimers[id]) { clearTimeout(viewTimers[id]); delete viewTimers[id]; } }
+    async function incrementView(id) {
+        if (viewedArticles.has(id)) return;
+        try {
+            viewedArticles.add(id);
+            const { data: a } = await supabase.from('articles').select('views').eq('id', id).single();
+            const nv = (a.views || 0) + 1;
+            await supabase.from('articles').update({ views: nv }).eq('id', id);
+            const idx = articles.findIndex(a => a.id === id);
+            if (idx !== -1) articles[idx].views = nv;
+            const card = document.querySelector(`.article-card[data-article-id="${id}"], .mcq-card[data-article-id="${id}"]`);
+            if (card) { const s = card.querySelector('.stat-item.views span'); if (s) s.textContent = formatNumber(nv); }
+        } catch(e) { viewedArticles.delete(id); }
+    }
+
+    // ── Comments ──────────────────────────────────────────────
+    async function loadCommentCounts() {
+        try {
+            const { data: comments } = await supabase.from('comments').select('article_id');
+            const counts = {};
+            (comments || []).forEach(c => { counts[c.article_id] = (counts[c.article_id] || 0) + 1; });
+            document.querySelectorAll('.comment-btn').forEach(btn => {
+                btn.querySelector('.comment-count').textContent = counts[btn.dataset.id] || 0;
+            });
+        } catch(e) {}
+    }
+
+    async function handleComments(e) {
+        currentArticleId = e.currentTarget.dataset.id;
+        await loadComments(currentArticleId);
+        openComments();
+    }
+
+    async function loadComments(articleId) {
+        const list = document.getElementById('commentsList');
+        list.innerHTML = '<div class="loading-container"><div class="spinner" style="width:32px;height:32px;border-width:3px;"></div></div>';
+        try {
+            const { data: comments } = await supabase.from('comments').select('*').eq('article_id', articleId).order('created_at', { ascending: true });
+            if (!comments || !comments.length) { list.innerHTML = `<div class="no-comments"><i class="fas fa-comments"></i><div>No comments yet</div><div style="font-size:12px;">Be the first to comment!</div></div>`; return; }
+            const uids = [...new Set(comments.map(c => c.user_id).filter(Boolean))];
+            let usersMap = {};
+            if (uids.length > 0) { const { data: users } = await supabase.from('users').select('user_id, username, full_name, pfp').in('user_id', uids); if (users) users.forEach(u => { usersMap[u.user_id] = u; }); }
+            list.innerHTML = comments.map(c => {
+                const u = usersMap[c.user_id], author = u?.username ? `@${u.username}` : (u?.full_name || 'Anonymous');
+                const av = u?.pfp ? `<img src="${u.pfp}" alt="${author}">` : (u?.username || 'A')[0].toUpperCase();
+                return `<div class="comment-item"><div class="comment-avatar">${av}</div><div class="comment-content"><div class="comment-author">${author}</div><div class="comment-text">${renderEmojiText(c.comment_text)}</div><div class="comment-time">${formatDate(new Date(c.created_at))}</div></div></div>`;
+            }).join('');
+        } catch(e) { list.innerHTML = `<div class="no-comments"><i class="fas fa-exclamation-triangle"></i><div>Failed to load comments</div></div>`; }
+    }
+
+    window.openComments  = () => { document.getElementById('commentsPopup').classList.add('active'); document.getElementById('commentsOverlay').classList.add('active'); document.body.style.overflow = 'hidden'; };
+    window.closeComments = () => { document.getElementById('commentsPopup').classList.remove('active'); document.getElementById('commentsOverlay').classList.remove('active'); document.body.style.overflow = ''; };
+
+    window.sendComment = async function() {
+        const input = document.getElementById('commentInput'), text = input.value.trim();
+        if (!text || !currentArticleId) return;
+        const sendBtn = document.getElementById('sendCommentBtn'); sendBtn.disabled = true;
+        try {
+            if (!currentUser) currentUser = await getCurrentUser();
+            if (!currentUser) { window.location.href = 'https://patholytica.com/login'; return; }
+            await supabase.from('comments').insert([{ article_id: currentArticleId, user_id: currentUser.user_id, comment_text: text }]);
+            input.value = ''; await loadComments(currentArticleId);
+            const cb = document.querySelector(`.comment-btn[data-id="${currentArticleId}"]`);
+            if (cb) { const cs = cb.querySelector('.comment-count'); cs.textContent = parseInt(cs.textContent) + 1; }
+        } catch(e) { alert('Failed to post comment.'); } finally { sendBtn.disabled = false; }
+    };
+
+    document.getElementById('commentInput').addEventListener('keypress', e => { if (e.key === 'Enter') window.sendComment(); });
+    function handleExpand(e) { window.location.href = `article.html?id=${e.currentTarget.dataset.id}`; }
+    function handleScroll(e) { const c = e.target; if (c.scrollTop + c.clientHeight >= c.scrollHeight * 0.8 && hasMore && !isLoading) loadArticles(false); }
+
+    initLibraryPicker();
+    injectInitialSkeletons(3);
+    loadArticles(true);
+</script>
+
+<script>
+    window.toggleAudio = function(btn, audioId) {
+        const player = btn.closest('.custom-audio-player');
+        const audio  = document.getElementById(audioId);
+        const icon   = btn.querySelector('i');
+        if (audio.paused) {
+            audio.play(); icon.className = 'fas fa-pause';
+            audio.ontimeupdate = function() {
+                const progress = (audio.currentTime / audio.duration) * 100;
+                const prog = player.querySelector('.waveform-progress');
+                if (prog) prog.style.width = progress + '%';
+                const ct = player.querySelector('.current-time');
+                if (ct) { const m = Math.floor(audio.currentTime/60), s = Math.floor(audio.currentTime%60); ct.textContent = `${m}:${s.toString().padStart(2,'0')}`; }
+            };
+            audio.onended = function() {
+                icon.className = 'fas fa-play';
+                const prog = player.querySelector('.waveform-progress');
+                if (prog) prog.style.width = '0%';
+                const ct = player.querySelector('.current-time');
+                if (ct) ct.textContent = '0:00';
+            };
+        } else { audio.pause(); icon.className = 'fas fa-play'; }
+    };
+
+    window.seekAudio = function(event, container, audioId) {
+        const audio = document.getElementById(audioId);
+        if (!audio || !audio.duration) return;
+        const rect = container.getBoundingClientRect();
+        audio.currentTime = ((event.clientX - rect.left) / rect.width) * audio.duration;
+    };
+</script>
+
+</body>
+</html>
