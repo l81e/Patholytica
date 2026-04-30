@@ -1,1 +1,46 @@
-:)
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Purge Storage</title>
+</head>
+<body>
+  <h2>Empty Supabase Buckets</h2>
+  <input id="key" placeholder="Service Role Key" style="width:400px" />
+  <br><br>
+  <button onclick="purge()">Delete All Files</button>
+  <pre id="log"></pre>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+    const URL = 'https://vduqewqyvszfquntmark.supabase.co'
+    const BUCKETS = ['article-media', 'avatars'] // adjust as needed
+
+    function log(msg) {
+      document.getElementById('log').textContent += msg + '\n'
+    }
+
+    async function emptyBucket(supabase, bucket) {
+      let deleted = 0
+      while (true) {
+        const { data, error } = await supabase.storage.from(bucket).list('', { limit: 100 })
+        if (error) { log(`❌ ${bucket}: ${error.message}`); break }
+        if (!data || data.length === 0) break
+        const names = data.map(f => f.name)
+        await supabase.storage.from(bucket).remove(names)
+        deleted += names.length
+      }
+      log(`✅ ${bucket}: deleted ${deleted} files`)
+    }
+
+    window.purge = async function() {
+      const key = document.getElementById('key').value.trim()
+      if (!key) return alert('Enter your service role key first')
+      const supabase = createClient(URL, key)
+      log('Starting...')
+      for (const bucket of BUCKETS) await emptyBucket(supabase, bucket)
+      log('Done!')
+    }
+  </script>
+</body>
+</html>
