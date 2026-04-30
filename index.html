@@ -50,7 +50,7 @@ body { background: var(--bg-color); color: var(--text-primary); }
   transition: background 0.2s ease;
 }
 .btn-login:hover { background: var(--hover-bg); }
-.user-welcome { display: none; align-items: center; gap: 10px; font-size: 14px; }
+.user-welcome { display: none; align-items: center; gap: 10px; font-size: 14px; position: relative; }
 .user-welcome.show { display: flex; }
 .welcome-text { font-weight: 500; cursor: pointer; transition: color 0.2s ease; }
 .welcome-text:hover { color: var(--accent); }
@@ -67,6 +67,40 @@ body { background: var(--bg-color); color: var(--text-primary); }
 }
 .header-create-btn.show { display: flex; }
 .header-create-btn:hover { background: rgba(241,209,158,0.22); border-color: var(--accent); }
+
+/* ── Popups ── */
+.header-popup {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: #252525;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 6px;
+  min-width: 160px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+  z-index: 200;
+  flex-direction: column;
+  gap: 2px;
+}
+.header-popup.show { display: flex; }
+.popup-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 8px;
+  font-size: 14px; font-weight: 500; cursor: pointer;
+  color: var(--text-primary);
+  transition: background 0.2s ease;
+  white-space: nowrap;
+}
+.popup-item:hover { background: var(--hover-bg); }
+.popup-item i { font-size: 13px; width: 14px; text-align: center; color: var(--text-secondary); }
+.popup-danger { color: #ff6b6b; }
+.popup-danger i { color: #ff6b6b; }
+.popup-divider {
+  height: 1px; background: var(--border-color);
+  margin: 4px 0;
+}
 
 .list-container {
   max-width: 900px; width: 100%; margin: 0 auto;
@@ -340,9 +374,31 @@ body { background: var(--bg-color); color: var(--text-primary); }
       </div>
       <div class="user-welcome" id="userWelcome">
         <span class="welcome-text" id="welcomeText">Welcome</span>
-        <button class="header-create-btn" id="fabCreateBtn" onclick="window.location.href='https://patholytica.com/create'">
+
+        <!-- User popup -->
+        <div class="header-popup" id="userPopup">
+          <div class="popup-item" id="profileLinkItem">
+            <i class="fas fa-user"></i> Profile
+          </div>
+          <div class="popup-divider"></div>
+          <div class="popup-item popup-danger" onclick="window.logOut(); closeUserPopup()">
+            <i class="fas fa-sign-out-alt"></i> Log Out
+          </div>
+        </div>
+
+        <button class="header-create-btn" id="fabCreateBtn">
           <i class="fas fa-plus"></i>
         </button>
+
+        <!-- Create popup -->
+        <div class="header-popup" id="createPopup" style="min-width:140px;">
+          <div class="popup-item" onclick="window.location.href='https://patholytica.com/create'; closeCreatePopup()">
+            <i class="fas fa-pen"></i> Classic
+          </div>
+          <div class="popup-item" onclick="window.location.href='https://patholytica.com/Create'; closeCreatePopup()">
+            <i class="fas fa-layer-group"></i> Batches
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -423,6 +479,43 @@ body { background: var(--bg-color); color: var(--text-primary); }
 
 <script>
 window.escHtml = function(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; };
+
+// Strip emojis from a string
+window.stripEmojis = function(str) {
+  return str.replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+            .replace(/[\u{2600}-\u{27BF}]/gu, '')
+            .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+            .replace(/[\u{FE00}-\u{FE0F}]/gu, '')
+            .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')
+            .replace(/\uFE0F/g, '')
+            .replace(/\u200D/g, '')
+            .trim();
+};
+
+// ── Popup helpers ────────────────────────────────────────────
+function closeUserPopup()   { document.getElementById('userPopup').classList.remove('show'); }
+function closeCreatePopup() { document.getElementById('createPopup').classList.remove('show'); }
+
+document.getElementById('welcomeText').addEventListener('click', function(e) {
+  e.stopPropagation();
+  const up = document.getElementById('userPopup');
+  const cp = document.getElementById('createPopup');
+  cp.classList.remove('show');
+  up.classList.toggle('show');
+});
+
+document.getElementById('fabCreateBtn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  const cp = document.getElementById('createPopup');
+  const up = document.getElementById('userPopup');
+  up.classList.remove('show');
+  cp.classList.toggle('show');
+});
+
+document.addEventListener('click', function() {
+  closeUserPopup();
+  closeCreatePopup();
+});
 
 // ── Pong Easter Egg ──────────────────────────────────────────
 var pongRunning = false;
@@ -578,15 +671,35 @@ onAuthStateChanged(auth, async (user) => {
   const userWelcome  = document.getElementById('userWelcome');
   const welcomeText  = document.getElementById('welcomeText');
   const fabCreateBtn = document.getElementById('fabCreateBtn');
+  const profileLinkItem = document.getElementById('profileLinkItem');
+
   if (user) {
     authButtons.classList.remove('show');
     userWelcome.classList.add('show');
     fabCreateBtn?.classList.add('show');
-    welcomeText.onclick = window.logOut;
+
     try {
       const { data: ud } = await supabase.from('users').select('username').eq('firebase_uid', user.uid).single();
-      if (ud?.username) welcomeText.textContent = `@${ud.username}`;
-    } catch(e) {}
+      if (ud?.username) {
+        welcomeText.textContent = `@${ud.username}`;
+        // Wire up profile link using username
+        profileLinkItem.onclick = () => {
+          closeUserPopup();
+          window.location.href = `https://patholytica.com/profile?id=${encodeURIComponent(ud.username)}`;
+        };
+      } else {
+        // Fallback: use firebase uid
+        profileLinkItem.onclick = () => {
+          closeUserPopup();
+          window.location.href = `https://patholytica.com/profile?id=${encodeURIComponent(user.uid)}`;
+        };
+      }
+    } catch(e) {
+      profileLinkItem.onclick = () => {
+        closeUserPopup();
+        window.location.href = `https://patholytica.com/profile?id=${encodeURIComponent(user.uid)}`;
+      };
+    }
   } else {
     authButtons.classList.add('show');
     userWelcome.classList.remove('show');
@@ -616,8 +729,10 @@ function renderArticleItem(article, userMap) {
   const author = userMap[article.firebase_user_id];
   const name = author?.username ? `@${author.username}` : 'Unknown Author';
   const date = new Date(article.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  // Strip emojis from title
+  const cleanTitle = window.stripEmojis(article.title || 'Untitled');
   li.innerHTML = `
-    <h2 class="article-title">${window.escHtml(article.title || 'Untitled')}</h2>
+    <h2 class="article-title">${window.escHtml(cleanTitle)}</h2>
     <div class="article-meta">
       <span>${window.escHtml(name)}</span>
       <div class="meta-dot"></div>
