@@ -1,1 +1,1095 @@
-:)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Patholytica — Library</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg: #0f0f0f;
+  --surface: #161616;
+  --surface2: #1e1e1e;
+  --surface3: #252525;
+  --border: #2a2a2a;
+  --border2: #333;
+  --text: #f0ece4;
+  --text-2: #8a8680;
+  --text-3: #555;
+  --accent: #f1d19e;
+  --accent-dim: rgba(241,209,158,0.1);
+  --accent-dim2: rgba(241,209,158,0.18);
+  --green: #4ade80;
+  --green-dim: rgba(74,222,128,0.1);
+  --red: #f87171;
+  --blue: #60a5fa;
+  --blue-dim: rgba(96,165,250,0.1);
+  --purple: #c084fc;
+  --purple-dim: rgba(192,132,252,0.1);
+  --orange: #fb923c;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;font-family:'Syne',sans-serif;overflow-x:hidden;background:var(--bg);color:var(--text)}
+
+/* ─── NOISE OVERLAY ─── */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;opacity:0.35;
+}
+
+/* ─── HEADER ─── */
+.header-wrapper{
+  position:fixed;top:0;left:0;right:0;
+  background:rgba(15,15,15,0.88);
+  padding-top:env(safe-area-inset-top);
+  border-bottom:1px solid var(--border);
+  z-index:40;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+}
+.header{display:flex;align-items:center;justify-content:space-between;padding:11px 22px}
+.logo-img{height:26px;width:auto;cursor:pointer;opacity:0.9}
+.header-actions{display:flex;align-items:center;gap:14px}
+.auth-buttons{display:none;gap:10px}
+.auth-buttons.show{display:flex}
+.btn-login{
+  padding:7px 18px;border-radius:100px;font-size:13px;font-weight:600;
+  cursor:pointer;text-decoration:none;letter-spacing:0.3px;
+  border:1px solid var(--border2);background:transparent;color:var(--text);
+  transition:all 0.2s;font-family:'Syne',sans-serif;
+}
+.btn-login:hover{background:var(--surface3);border-color:var(--text-2)}
+.user-welcome{display:none;align-items:center;gap:10px;font-size:13px;position:relative}
+.user-welcome.show{display:flex}
+.welcome-text{font-weight:600;cursor:pointer;transition:color 0.2s;letter-spacing:0.2px}
+.welcome-text:hover{color:var(--accent)}
+.header-popup{
+  display:none;position:absolute;top:calc(100% + 10px);right:0;
+  background:var(--surface2);border:1px solid var(--border);border-radius:14px;
+  padding:6px;min-width:160px;box-shadow:0 20px 48px rgba(0,0,0,0.7);
+  z-index:200;flex-direction:column;gap:2px;
+}
+.header-popup.show{display:flex}
+.popup-item{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;
+  font-size:13px;font-weight:500;cursor:pointer;color:var(--text);
+  transition:background 0.2s;white-space:nowrap;
+}
+.popup-item:hover{background:var(--surface3)}
+.popup-item i{font-size:12px;width:14px;text-align:center;color:var(--text-2)}
+.popup-danger{color:#ff6b6b}.popup-danger i{color:#ff6b6b}
+.popup-divider{height:1px;background:var(--border);margin:4px 0}
+.header-create-btn{
+  display:none;align-items:center;justify-content:center;
+  width:30px;height:30px;border-radius:50%;
+  background:var(--accent-dim2);border:1px solid rgba(241,209,158,0.3);
+  color:var(--accent);font-size:13px;cursor:pointer;
+  transition:all 0.2s;flex-shrink:0;
+}
+.header-create-btn.show{display:flex}
+.header-create-btn:hover{background:rgba(241,209,158,0.28);border-color:var(--accent)}
+
+/* ─── NOTIF BELL ─── */
+.notif-bell-wrap{position:relative}
+.notif-bell{
+  width:30px;height:30px;border-radius:50%;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text-2);font-size:13px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s;
+}
+.notif-bell:hover{background:var(--surface3);color:var(--text)}
+.notif-badge{
+  position:absolute;top:-3px;right:-3px;
+  width:16px;height:16px;border-radius:50%;
+  background:var(--red);color:#fff;
+  font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--bg);
+}
+
+/* ─── MAIN LAYOUT ─── */
+.main{
+  max-width:900px;width:100%;margin:0 auto;
+  padding:16px 22px 120px;
+  padding-top:calc(60px + env(safe-area-inset-top) + 20px);
+  position:relative;z-index:1;
+}
+
+/* ─── SECTION LABELS ─── */
+.sec-label{
+  font-size:10px;letter-spacing:2.5px;text-transform:uppercase;
+  color:var(--text-3);font-weight:600;margin-bottom:12px;
+  font-family:'DM Mono',monospace;
+}
+
+/* ─── CURRICULUM HERO BAR ─── */
+.curriculum-hero{
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  padding:22px 24px;margin-bottom:14px;
+  position:relative;overflow:hidden;
+}
+.curriculum-hero::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(241,209,158,0.06) 0%,transparent 60%);
+  pointer-events:none;
+}
+.curriculum-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px}
+.curriculum-title{font-size:22px;font-weight:800;letter-spacing:-0.5px;line-height:1.2}
+.curriculum-subtitle{font-size:12px;color:var(--text-2);margin-top:4px;font-family:'DM Mono',monospace}
+.curriculum-pct{
+  font-size:36px;font-weight:800;color:var(--accent);letter-spacing:-2px;line-height:1;
+  font-family:'DM Mono',monospace;flex-shrink:0;
+}
+.curriculum-pct span{font-size:16px;opacity:0.6;font-weight:400}
+
+.mega-bar-wrap{margin-bottom:10px}
+.mega-bar-track{
+  height:10px;background:var(--surface3);border-radius:100px;overflow:hidden;position:relative;
+}
+.mega-bar-fill{
+  height:100%;border-radius:100px;position:relative;
+  background:linear-gradient(90deg,#c9a96e,#f1d19e,#fde8bb);
+  transition:width 1.2s cubic-bezier(0.16,1,0.3,1);
+  box-shadow:0 0 16px rgba(241,209,158,0.4);
+}
+.mega-bar-fill::after{
+  content:'';position:absolute;top:0;right:0;bottom:0;width:40px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4));
+  animation:sheen 2s infinite;
+}
+@keyframes sheen{0%{opacity:0}50%{opacity:1}100%{opacity:0}}
+
+.curriculum-stats{display:flex;gap:20px;flex-wrap:wrap}
+.c-stat{font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:5px;font-family:'DM Mono',monospace}
+.c-stat i{font-size:10px;color:var(--accent);opacity:0.7}
+
+.time-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);
+  border-radius:100px;padding:5px 12px;font-size:11px;color:var(--green);
+  font-family:'DM Mono',monospace;font-weight:500;margin-top:14px;
+}
+.time-pill i{font-size:10px}
+
+/* ─── STATS GRID ─── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:600px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:16px 18px;position:relative;overflow:hidden;transition:border-color 0.2s;
+}
+.stat-card:hover{border-color:var(--border2)}
+.stat-card-icon{font-size:12px;margin-bottom:8px;opacity:0.55}
+.stat-card-val{font-size:24px;font-weight:800;letter-spacing:-0.5px;font-family:'DM Mono',monospace;margin-bottom:2px}
+.stat-card-label{font-size:11px;color:var(--text-2);font-weight:500}
+.stat-card-delta{
+  position:absolute;top:14px;right:14px;
+  font-size:10px;font-family:'DM Mono',monospace;font-weight:500;
+  padding:3px 7px;border-radius:100px;
+}
+.delta-up{background:var(--green-dim);color:var(--green)}
+.delta-down{background:rgba(248,113,113,0.1);color:var(--red)}
+
+/* ─── LIBRARY PROGRESS SECTION ─── */
+.lib-progress-section{
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  padding:20px 22px;margin-bottom:14px;
+}
+.lib-progress-list{display:flex;flex-direction:column;gap:16px;margin-top:14px}
+.lib-prog-item{}
+.lib-prog-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.lib-prog-name{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.lib-prog-name i{font-size:11px;opacity:0.5}
+.lib-prog-right{display:flex;align-items:center;gap:8px}
+.lib-prog-pct{font-size:12px;color:var(--accent);font-family:'DM Mono',monospace;font-weight:600}
+.lib-prog-articles{font-size:11px;color:var(--text-3);font-family:'DM Mono',monospace}
+.lib-prog-track{height:6px;background:var(--surface3);border-radius:100px;overflow:hidden}
+.lib-prog-fill{height:100%;border-radius:100px;transition:width 1.4s cubic-bezier(0.16,1,0.3,1)}
+.fill-accent{background:linear-gradient(90deg,#c9a96e,#f1d19e)}
+.fill-blue{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
+.fill-purple{background:linear-gradient(90deg,#a855f7,#c084fc)}
+.fill-green{background:linear-gradient(90deg,#22c55e,#4ade80)}
+.fill-orange{background:linear-gradient(90deg,#ea580c,#fb923c)}
+.lib-prog-sub{font-size:11px;color:var(--text-3);margin-top:5px;font-family:'DM Mono',monospace}
+
+/* ─── NOTIFICATIONS ─── */
+.notif-section{
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  padding:20px 22px;margin-bottom:14px;
+}
+.notif-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.notif-mark-all{
+  font-size:11px;color:var(--accent);cursor:pointer;opacity:0.7;
+  font-family:'DM Mono',monospace;transition:opacity 0.2s;background:none;border:none;
+  font-family:'Syne',sans-serif;
+}
+.notif-mark-all:hover{opacity:1}
+.notif-list{display:flex;flex-direction:column;gap:2px}
+.notif-item{
+  display:flex;align-items:flex-start;gap:12px;padding:12px 10px;border-radius:12px;
+  transition:background 0.2s;cursor:pointer;position:relative;
+}
+.notif-item:hover{background:var(--surface2)}
+.notif-item.unread::before{
+  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:3px;height:60%;border-radius:2px;
+}
+.notif-item.unread.type-like::before{background:var(--accent)}
+.notif-item.unread.type-comment::before{background:var(--blue)}
+.notif-item.unread.type-fork::before{background:var(--purple)}
+.notif-item.unread.type-follow::before{background:var(--green)}
+.notif-item.unread.type-upload::before{background:var(--orange)}
+
+.notif-icon{
+  width:34px;height:34px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;flex-shrink:0;margin-top:1px;
+}
+.notif-icon.like{background:rgba(241,209,158,0.12);color:var(--accent)}
+.notif-icon.comment{background:var(--blue-dim);color:var(--blue)}
+.notif-icon.fork{background:var(--purple-dim);color:var(--purple)}
+.notif-icon.follow{background:var(--green-dim);color:var(--green)}
+.notif-icon.upload{background:rgba(251,146,60,0.1);color:var(--orange)}
+
+.notif-body{flex:1;min-width:0}
+.notif-text{font-size:13px;line-height:1.45;color:var(--text);font-weight:400}
+.notif-text strong{font-weight:700;color:var(--text)}
+.notif-text .notif-article{color:var(--accent);opacity:0.85}
+.notif-time{font-size:10px;color:var(--text-3);margin-top:3px;font-family:'DM Mono',monospace}
+
+.notif-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.notif-dot.unread{background:var(--accent)}
+.notif-dot.read{background:transparent}
+
+/* ─── LIBRARY INPUT ─── */
+.library-entry{
+  display:flex;align-items:center;gap:10px;margin-bottom:14px;
+}
+.library-id-input{
+  flex:1;background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;color:var(--text);font-size:14px;padding:11px 16px;outline:none;
+  transition:border-color 0.2s;font-family:'DM Mono',monospace;
+  -moz-appearance:textfield;
+}
+.library-id-input::-webkit-outer-spin-button,.library-id-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.library-id-input::placeholder{color:var(--text-3)}
+.library-id-input:focus{border-color:var(--accent)}
+.library-id-input.error{border-color:var(--red)}
+.btn-start{
+  padding:11px 20px;border-radius:12px;background:var(--accent);color:#0f0f0f;
+  border:none;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;
+  font-family:'Syne',sans-serif;letter-spacing:0.3px;
+  transition:opacity 0.2s,transform 0.15s;
+}
+.btn-start:hover{opacity:0.88;transform:translateY(-1px)}
+.btn-start:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+
+/* ─── LIBRARY BANNER ─── */
+.library-banner{
+  display:none;background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:14px 18px;margin-bottom:14px;gap:14px;align-items:flex-start;
+}
+.library-banner.show{display:flex}
+.library-banner-icon{
+  width:36px;height:36px;border-radius:10px;background:var(--accent-dim);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--accent);font-size:14px;flex-shrink:0;
+}
+.library-banner-info{flex:1;min-width:0}
+.library-banner-name{font-size:15px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.library-banner-meta{font-size:11px;color:var(--text-2);display:flex;flex-wrap:wrap;gap:6px 12px;font-family:'DM Mono',monospace}
+.library-banner-meta span{display:flex;align-items:center;gap:5px}
+.library-banner-clear{background:none;border:none;color:var(--text-3);cursor:pointer;font-size:13px;padding:4px;border-radius:50%;transition:all 0.2s;flex-shrink:0}
+.library-banner-clear:hover{color:var(--text);background:var(--surface3)}
+
+/* ─── CREATORS ─── */
+.creators-section{margin-bottom:14px}
+.creators-list{display:flex;flex-direction:column;gap:2px}
+.creator-row{
+  display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:12px;
+  cursor:pointer;transition:background 0.2s;
+}
+.creator-row:hover{background:var(--surface)}
+.creator-rank{font-size:11px;width:18px;text-align:center;flex-shrink:0;font-weight:700;color:var(--text-3);font-family:'DM Mono',monospace}
+.creator-rank.gold{color:#f1d19e}
+.creator-rank.silver{color:#b0b0b0}
+.creator-rank.bronze{color:#cd7f32}
+.creator-avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--accent-dim);border:1px solid rgba(241,209,158,0.2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;text-transform:uppercase;overflow:hidden;
+}
+.creator-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.creator-info{flex:1;min-width:0}
+.creator-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.creator-count{font-size:11px;color:var(--text-3);font-family:'DM Mono',monospace}
+.creator-badge{
+  font-size:11px;font-weight:700;color:var(--accent);
+  background:var(--accent-dim);border:1px solid rgba(241,209,158,0.2);
+  border-radius:100px;padding:2px 9px;white-space:nowrap;flex-shrink:0;
+  font-family:'DM Mono',monospace;
+}
+.creator-skeleton{display:flex;align-items:center;gap:12px;padding:9px 10px}
+.skel-circle{width:32px;height:32px;border-radius:50%;background:var(--surface3);flex-shrink:0;animation:shimmer 1.4s infinite}
+.skel-line{height:10px;border-radius:6px;background:var(--surface3);animation:shimmer 1.4s infinite}
+
+/* ─── ARTICLES ─── */
+.date-group-header{
+  font-size:10px;text-transform:uppercase;letter-spacing:2px;
+  color:var(--text-3);padding:14px 0 8px;
+  border-bottom:1px solid var(--border);
+  position:sticky;top:calc(60px + env(safe-area-inset-top));
+  background:var(--bg);z-index:10;font-weight:600;
+  font-family:'DM Mono',monospace;
+}
+.article-list{list-style:none;margin:0;padding:0}
+.article-item{
+  padding:16px 0;border-bottom:1px solid var(--border);cursor:pointer;
+  transition:background 0.2s;
+}
+.article-item:hover{background:var(--surface);margin:0 -12px;padding:16px 12px}
+.article-title{
+  font-family:'Merriweather',Georgia,serif;
+  font-size:26px;font-weight:700;margin:0 0 6px;
+  line-height:1.3;color:var(--text);word-wrap:break-word;
+}
+.article-item:hover .article-title{color:var(--accent)}
+.article-meta{font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:'DM Mono',monospace}
+.meta-dot{width:3px;height:3px;background:var(--text-3);border-radius:50%}
+
+/* ─── LOAD MORE ─── */
+.load-more-row{padding:10px 0;border-bottom:1px solid var(--border)}
+.btn-load-more{
+  background:none;border:none;color:var(--accent);
+  font-size:12px;font-weight:600;cursor:pointer;
+  padding:5px 0;display:flex;align-items:center;gap:6px;
+  opacity:0.75;transition:opacity 0.2s;font-family:'Syne',sans-serif;letter-spacing:0.3px;
+}
+.btn-load-more:hover{opacity:1}
+.btn-load-more i{font-size:10px;transition:transform 0.2s}
+.btn-load-more.open i{transform:rotate(180deg)}
+.btn-load-more.loading{opacity:0.4;pointer-events:none}
+
+/* ─── SKELETONS ─── */
+.skeleton-article{padding:16px 0;border-bottom:1px solid var(--border)}
+.skel-title-lg{height:26px;border-radius:6px;background:var(--surface3);margin-bottom:8px;width:75%;animation:shimmer 1.4s infinite}
+.skel-title-sm{height:18px;border-radius:6px;background:var(--surface3);margin-bottom:8px;width:45%;animation:shimmer 1.4s infinite}
+.skel-meta{height:10px;border-radius:6px;background:var(--surface3);width:28%;animation:shimmer 1.4s infinite}
+@keyframes shimmer{0%,100%{opacity:0.35}50%{opacity:0.7}}
+.loading-state{text-align:center;padding:32px;color:var(--text-2);font-size:14px}
+.error-state{text-align:center;padding:32px;color:var(--red);font-size:14px}
+
+/* ─── ANALYTICS STRIP ─── */
+.analytics-strip{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;
+}
+.analytics-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:16px 18px;position:relative;overflow:hidden;
+}
+.analytics-card-title{font-size:10px;color:var(--text-3);letter-spacing:1.5px;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:10px}
+.spark-bar-row{display:flex;align-items:flex-end;gap:3px;height:36px;margin-bottom:6px}
+.spark-bar{
+  flex:1;border-radius:3px 3px 0 0;
+  transition:height 0.8s cubic-bezier(0.16,1,0.3,1);min-height:3px;
+}
+.analytics-total{font-size:20px;font-weight:800;letter-spacing:-0.5px;font-family:'DM Mono',monospace}
+.analytics-sub{font-size:11px;color:var(--text-3);margin-top:2px}
+.streak-number{font-size:32px;font-weight:800;font-family:'DM Mono',monospace;color:var(--accent);letter-spacing:-1px}
+.streak-label{font-size:11px;color:var(--text-3);margin-top:2px}
+.streak-flame{font-size:22px;position:absolute;right:16px;bottom:14px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+
+/* ─── PONG ─── */
+.pong-overlay{
+  display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  align-items:center;justify-content:center;
+}
+.pong-overlay.show{display:flex}
+.pong-modal{
+  background:#0e0e0e;border:1px solid var(--border);border-radius:20px;
+  padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px;
+  box-shadow:0 24px 64px rgba(0,0,0,0.9);position:relative;max-width:calc(100vw - 48px);
+}
+.pong-modal-close{
+  position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:50%;
+  background:none;border:1px solid var(--border);color:var(--text-2);font-size:12px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;
+}
+.pong-modal-close:hover{background:var(--surface3);color:var(--text)}
+.pong-modal-title{font-size:10px;letter-spacing:2px;color:var(--text-3);font-weight:600;font-family:'DM Mono',monospace}
+.pong-score{font-size:12px;color:var(--text-2);letter-spacing:2px;font-family:'DM Mono',monospace}
+.pong-score span{color:var(--accent);font-weight:700}
+#pongCanvas{border:1px solid var(--border);border-radius:10px;display:block;background:#080808;max-width:100%}
+.pong-hint{font-size:10px;color:var(--text-3);text-align:center;font-family:'DM Mono',monospace}
+
+/* ─── FOOTER ─── */
+.footer{
+  background:var(--bg);border-top:1px solid var(--border);
+  padding:14px 22px 6px;text-align:center;color:var(--text-2);font-size:13px;
+}
+.article-count{
+  color:var(--accent);font-weight:700;cursor:pointer;
+  border-bottom:1px dashed rgba(241,209,158,0.3);transition:border-color 0.2s;
+  display:inline-block;font-family:'DM Mono',monospace;
+}
+.article-count:hover{border-color:var(--accent)}
+.footer-credit{
+  text-align:center;padding:4px 0;
+  padding-bottom:calc(64px + env(safe-area-inset-bottom) + 8px);
+  font-size:11px;color:var(--text-3);opacity:0.6;font-family:'DM Mono',monospace;
+}
+.footer-credit a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+
+/* ─── FOOTER BAR ─── */
+.footer-bar{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:450px;
+  background:rgba(15,15,15,0.92);border-top:1px solid var(--border);
+  padding:8px 24px;padding-bottom:calc(8px + env(safe-area-inset-bottom));
+  display:flex;justify-content:space-around;align-items:center;z-index:100;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+}
+.footer-btn{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:none;border:none;color:var(--text-3);cursor:pointer;
+  transition:color 0.2s;padding:6px 12px;font-family:'Syne',sans-serif;
+}
+.footer-btn:hover{color:var(--text-2)}
+.footer-btn.active{color:var(--accent)}
+.footer-btn i{font-size:19px}
+.footer-btn span{font-size:9px;font-weight:600;letter-spacing:0.5px}
+
+/* ─── NOTIF PANEL ─── */
+.notif-panel{
+  position:fixed;top:60px;right:16px;width:340px;max-width:calc(100vw - 32px);
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  box-shadow:0 24px 64px rgba(0,0,0,0.7);z-index:150;
+  padding:0;overflow:hidden;display:none;
+  max-height:calc(100vh - 100px);
+}
+.notif-panel.show{display:block}
+.notif-panel-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px 12px;border-bottom:1px solid var(--border);
+}
+.notif-panel-title{font-size:14px;font-weight:700}
+.notif-panel-close{background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px;transition:color 0.2s}
+.notif-panel-close:hover{color:var(--text)}
+.notif-panel-body{overflow-y:auto;max-height:calc(100vh - 180px);padding:8px}
+
+/* ─── DIVIDER ─── */
+.divider{height:1px;background:var(--border);margin:14px 0}
+
+@media(max-width:768px){
+  .main{padding:12px 16px 100px;padding-top:calc(60px + env(safe-area-inset-top) + 16px)}
+  .article-title{font-size:21px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .analytics-strip{grid-template-columns:1fr}
+  .curriculum-title{font-size:18px}
+  .curriculum-pct{font-size:28px}
+  .notif-panel{right:8px;left:8px;width:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header-wrapper">
+  <div class="header">
+    <img src="IMG_3220.png" class="logo-img" alt="Patholytica Logo">
+    <div class="header-actions">
+
+      <!-- Notification Bell -->
+      <div class="notif-bell-wrap">
+        <button class="notif-bell" id="notifBellBtn" onclick="toggleNotifPanel(event)">
+          <i class="fas fa-bell"></i>
+        </button>
+        <div class="notif-badge" id="notifBadge">5</div>
+      </div>
+
+      <div class="auth-buttons" id="authButtons">
+        <a href="login.html" class="btn-login">Log In</a>
+      </div>
+      <div class="user-welcome" id="userWelcome">
+        <span class="welcome-text" id="welcomeText">Welcome</span>
+        <div class="header-popup" id="userPopup">
+          <div class="popup-item" id="profileLinkItem"><i class="fas fa-user"></i> Profile</div>
+          <div class="popup-divider"></div>
+          <div class="popup-item popup-danger" onclick="window.logOut(); closeUserPopup()">
+            <i class="fas fa-sign-out-alt"></i> Log Out
+          </div>
+        </div>
+        <button class="header-create-btn" id="fabCreateBtn"><i class="fas fa-plus"></i></button>
+        <div class="header-popup" id="createPopup" style="min-width:140px">
+          <div class="popup-item" onclick="window.location.href='https://patholytica.com/create';closeCreatePopup()"><i class="fas fa-pen"></i> Classic</div>
+          <div class="popup-item" onclick="window.location.href='https://patholytica.com/Create';closeCreatePopup()"><i class="fas fa-layer-group"></i> Batches</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION PANEL -->
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-panel-header">
+    <div class="notif-panel-title">Notifications</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="notif-mark-all" onclick="markAllRead()">Mark all read</button>
+      <button class="notif-panel-close" onclick="closeNotifPanel()"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+  <div class="notif-panel-body" id="notifList"></div>
+</div>
+
+<div class="main">
+
+  <!-- CURRICULUM HERO -->
+  <div class="curriculum-hero" style="margin-bottom:14px">
+    <div class="curriculum-top">
+      <div>
+        <div class="curriculum-title">Curriculum Progress</div>
+        <div class="curriculum-subtitle" style="margin-top:5px;font-size:11px;color:var(--text-3)">All Libraries Combined</div>
+      </div>
+      <div class="curriculum-pct" id="curriculumPct">0<span>%</span></div>
+    </div>
+    <div class="mega-bar-wrap">
+      <div class="mega-bar-track">
+        <div class="mega-bar-fill" id="megaBarFill" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="curriculum-stats">
+      <div class="c-stat"><i class="fas fa-file-alt"></i> <span>184 / 312 articles read</span></div>
+      <div class="c-stat"><i class="fas fa-brain"></i> <span>47 MCQ sets done</span></div>
+      <div class="c-stat"><i class="fas fa-bookmark"></i> <span>6 libraries enrolled</span></div>
+    </div>
+    <div class="time-pill">
+      <i class="fas fa-clock"></i>
+      <span>At your current pace — ~<strong>14 days</strong> to complete remaining 128 articles</span>
+    </div>
+  </div>
+
+  <!-- STATS GRID -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-card-icon" style="color:var(--accent)"><i class="fas fa-fire"></i></div>
+      <div class="stat-card-val" style="color:var(--accent)">23</div>
+      <div class="stat-card-label">Day Streak</div>
+      <div class="stat-card-delta delta-up">+3</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon" style="color:var(--blue)"><i class="fas fa-eye"></i></div>
+      <div class="stat-card-val" style="color:var(--blue)">1.4k</div>
+      <div class="stat-card-label">Article Views</div>
+      <div class="stat-card-delta delta-up">↑12%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon" style="color:var(--green)"><i class="fas fa-heart"></i></div>
+      <div class="stat-card-val" style="color:var(--green)">348</div>
+      <div class="stat-card-label">Total Likes</div>
+      <div class="stat-card-delta delta-up">+28</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon" style="color:var(--purple)"><i class="fas fa-code-fork"></i></div>
+      <div class="stat-card-val" style="color:var(--purple)">19</div>
+      <div class="stat-card-label">Forks Made</div>
+      <div class="stat-card-delta delta-up">+4</div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS STRIP -->
+  <div class="analytics-strip">
+    <div class="analytics-card">
+      <div class="analytics-card-title">Weekly Reads</div>
+      <div class="spark-bar-row" id="weeklyBars"></div>
+      <div class="analytics-total" id="weeklyTotal">0</div>
+      <div class="analytics-sub">articles this week</div>
+    </div>
+    <div class="analytics-card">
+      <div class="analytics-card-title">Current Streak</div>
+      <div class="streak-number">23</div>
+      <div class="streak-label">days in a row</div>
+      <div class="streak-flame">🔥</div>
+    </div>
+  </div>
+
+  <!-- LIBRARY PROGRESS -->
+  <div class="lib-progress-section">
+    <div class="sec-label">Library Progress</div>
+    <div class="lib-progress-list" id="libProgressList"></div>
+  </div>
+
+  <!-- NOTIFICATIONS -->
+  <div class="notif-section" id="notifInlineSection">
+    <div class="notif-header">
+      <div class="sec-label" style="margin-bottom:0">Recent Activity</div>
+      <button class="notif-mark-all" onclick="markAllRead()">Mark all read</button>
+    </div>
+    <div class="notif-list" id="notifInlineList"></div>
+  </div>
+
+  <!-- LIBRARY LOOKUP -->
+  <div class="sec-label">Browse Library</div>
+  <div class="library-entry">
+    <input type="number" id="libraryIdInput" class="library-id-input"
+      placeholder="Enter Library ID" min="1" inputmode="numeric" pattern="[0-9]*"
+      onkeydown="if(event.key==='Enter') startLibrary()">
+    <button class="btn-start" id="startBtn" onclick="startLibrary()">Start</button>
+  </div>
+
+  <div class="library-banner" id="libraryBanner">
+    <div class="library-banner-icon"><i class="fas fa-book-open"></i></div>
+    <div class="library-banner-info">
+      <div class="library-banner-name" id="libraryBannerName">—</div>
+      <div class="library-banner-meta" id="libraryBannerMeta"></div>
+    </div>
+    <button class="library-banner-clear" onclick="clearLibraryFilter()"><i class="fas fa-times"></i></button>
+  </div>
+
+  <!-- CREATORS -->
+  <div class="creators-section">
+    <div class="sec-label">Active Creators</div>
+    <div class="creators-list" id="creatorsList">
+      <div class="creator-skeleton"><div class="skel-circle"></div><div style="flex:1"><div class="skel-line" style="width:42%;margin-bottom:5px"></div><div class="skel-line" style="width:24%"></div></div></div>
+      <div class="creator-skeleton"><div class="skel-circle"></div><div style="flex:1"><div class="skel-line" style="width:56%;margin-bottom:5px"></div><div class="skel-line" style="width:20%"></div></div></div>
+      <div class="creator-skeleton"><div class="skel-circle"></div><div style="flex:1"><div class="skel-line" style="width:34%;margin-bottom:5px"></div><div class="skel-line" style="width:28%"></div></div></div>
+    </div>
+  </div>
+
+  <!-- ARTICLES -->
+  <div class="sec-label" style="margin-top:8px">All Articles</div>
+  <ul class="article-list" id="articleList">
+    <li class="skeleton-article"><div class="skel-title-lg"></div><div class="skel-title-sm"></div><div class="skel-meta"></div></li>
+    <li class="skeleton-article"><div class="skel-title-lg" style="width:62%"></div><div class="skel-title-sm" style="width:40%"></div><div class="skel-meta" style="width:22%"></div></li>
+    <li class="skeleton-article"><div class="skel-title-lg" style="width:78%"></div><div class="skel-title-sm" style="width:52%"></div><div class="skel-meta" style="width:30%"></div></li>
+  </ul>
+
+</div>
+
+<!-- PONG -->
+<div class="pong-overlay" id="pongOverlay">
+  <div class="pong-modal">
+    <button class="pong-modal-close" onclick="closePong()"><i class="fas fa-times"></i></button>
+    <div class="pong-modal-title">EASTER EGG</div>
+    <div class="pong-score">YOU <span id="playerScore">0</span> — <span id="aiScore">0</span> AI</div>
+    <canvas id="pongCanvas" width="480" height="200"></canvas>
+    <div class="pong-hint" id="pongHint">Click or tap to start · Mouse/drag to move</div>
+  </div>
+</div>
+
+<footer class="footer">
+  <span class="article-count" id="articleCount" onclick="openPong()" title="🏓">0</span> articles accessible
+</footer>
+<div class="footer-credit">Prototype by <a href="https://www.instagram.com/eyadayms?" target="_blank">Eyad</a></div>
+
+<div class="footer-bar">
+  <button class="footer-btn active" onclick="window.location.href='index.html'">
+    <i class="fas fa-home"></i><span>Home</span>
+  </button>
+  <button class="footer-btn" onclick="window.location.href='https://patholytica.com/dailyfeed'">
+    <i class="fas fa-scroll"></i><span>Feed</span>
+  </button>
+  <button class="footer-btn" onclick="window.location.href='explore.html'">
+    <i class="fas fa-search"></i><span>Explore</span>
+  </button>
+  <button class="footer-btn" onclick="window.location.href='https://patholytica.com/space'">
+    <i class="fas fa-th-large"></i><span>Space</span>
+  </button>
+</div>
+
+<script>
+// ─── HELPERS ───
+window.escHtml = function(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; };
+window.stripEmojis = function(str) {
+  return str.replace(/[\u{1F000}-\u{1FFFF}]/gu,'').replace(/[\u{2600}-\u{27BF}]/gu,'')
+            .replace(/[\u{1F300}-\u{1F9FF}]/gu,'').replace(/[\u{FE00}-\u{FE0F}]/gu,'')
+            .replace(/[\u{1F1E0}-\u{1F1FF}]/gu,'').replace(/\uFE0F/g,'').replace(/\u200D/g,'').trim();
+};
+
+// ─── POPUP HELPERS ───
+function closeUserPopup(){ document.getElementById('userPopup').classList.remove('show') }
+function closeCreatePopup(){ document.getElementById('createPopup').classList.remove('show') }
+document.getElementById('welcomeText').addEventListener('click',function(e){
+  e.stopPropagation();
+  document.getElementById('createPopup').classList.remove('show');
+  document.getElementById('userPopup').classList.toggle('show');
+});
+document.getElementById('fabCreateBtn').addEventListener('click',function(e){
+  e.stopPropagation();
+  document.getElementById('userPopup').classList.remove('show');
+  document.getElementById('createPopup').classList.toggle('show');
+});
+document.addEventListener('click',function(){ closeUserPopup(); closeCreatePopup(); closeNotifPanel(); });
+
+// ─── NOTIFICATION PANEL ───
+var notifPanelOpen = false;
+function toggleNotifPanel(e){
+  e.stopPropagation();
+  notifPanelOpen=!notifPanelOpen;
+  document.getElementById('notifPanel').classList.toggle('show',notifPanelOpen);
+}
+function closeNotifPanel(){ notifPanelOpen=false; document.getElementById('notifPanel').classList.remove('show'); }
+document.getElementById('notifPanel').addEventListener('click',function(e){ e.stopPropagation(); });
+
+// ─── DEMO NOTIFICATIONS ───
+var notifs = [
+  { id:1, type:'comment', icon:'fa-comment', cls:'comment', unread:true,
+    text:'<strong>@sara_md</strong> commented on your article <span class="notif-article">"Acute Respiratory Distress"</span>', time:'2m ago' },
+  { id:2, type:'fork', icon:'fa-code-fork', cls:'fork', unread:true,
+    text:'<strong>@clinician_omar</strong> forked your article into <strong>24 MCQs</strong> for their library', time:'18m ago' },
+  { id:3, type:'like', icon:'fa-heart', cls:'like', unread:true,
+    text:'Your article <span class="notif-article">"ECG Interpretation Basics"</span> gained <strong>+47 likes</strong> today', time:'1h ago' },
+  { id:4, type:'upload', icon:'fa-upload', cls:'upload', unread:true,
+    text:'Your friend <strong>@nour.path</strong> uploaded a new library: <span class="notif-article">"Cardiology Crash Course"</span>', time:'3h ago' },
+  { id:5, type:'like', icon:'fa-heart', cls:'like', unread:true,
+    text:'<strong>@med.student.yusuf</strong> liked your article <span class="notif-article">"Sepsis Management"</span>', time:'5h ago' },
+  { id:6, type:'follow', icon:'fa-user-plus', cls:'follow', unread:false,
+    text:'<strong>@dr.hana</strong> started following you', time:'Yesterday' },
+  { id:7, type:'comment', icon:'fa-comment', cls:'comment', unread:false,
+    text:'<strong>@reema.r</strong> replied to your comment on <span class="notif-article">"Renal Pathology Overview"</span>', time:'Yesterday' },
+  { id:8, type:'fork', icon:'fa-code-fork', cls:'fork', unread:false,
+    text:'<strong>@atlas_med</strong> forked <span class="notif-article">"Neurology Essentials"</span> into <strong>18 MCQs</strong>', time:'2d ago' },
+];
+
+function renderNotif(n, container){
+  const div = document.createElement('div');
+  div.className = `notif-item type-${n.type} ${n.unread?'unread':''}`;
+  div.dataset.id = n.id;
+  div.innerHTML = `
+    <div class="notif-icon ${n.cls}"><i class="fas ${n.icon}"></i></div>
+    <div class="notif-body">
+      <div class="notif-text">${n.text}</div>
+      <div class="notif-time">${n.time}</div>
+    </div>
+    <div class="notif-dot ${n.unread?'unread':'read'}"></div>
+  `;
+  div.onclick = function(){ markOneRead(n.id); };
+  container.appendChild(div);
+}
+
+function buildNotifUI(){
+  const panel = document.getElementById('notifList');
+  const inline = document.getElementById('notifInlineList');
+  panel.innerHTML = ''; inline.innerHTML = '';
+  notifs.forEach(n=>{ renderNotif(n, panel); renderNotif(n, inline); });
+  updateBadge();
+}
+
+function markOneRead(id){
+  notifs = notifs.map(n=> n.id===id ? {...n,unread:false} : n);
+  buildNotifUI();
+}
+function markAllRead(){
+  notifs = notifs.map(n=>({...n,unread:false}));
+  buildNotifUI();
+}
+function updateBadge(){
+  const count = notifs.filter(n=>n.unread).length;
+  const badge = document.getElementById('notifBadge');
+  badge.textContent = count;
+  badge.style.display = count > 0 ? 'flex' : 'none';
+}
+buildNotifUI();
+
+// ─── CURRICULUM HERO ANIMATION ───
+setTimeout(function(){
+  const pct = 59;
+  document.getElementById('megaBarFill').style.width = pct+'%';
+  let cur = 0;
+  const el = document.getElementById('curriculumPct');
+  const step = pct / 40;
+  const iv = setInterval(function(){
+    cur = Math.min(cur + step, pct);
+    el.innerHTML = Math.round(cur)+'<span>%</span>';
+    if(cur >= pct) clearInterval(iv);
+  }, 25);
+}, 300);
+
+// ─── WEEKLY SPARK BARS ───
+(function(){
+  const vals = [4,7,3,9,6,11,8];
+  const days = ['M','T','W','T','F','S','S'];
+  const colors = ['#2a2a2a','#2a2a2a','#2a2a2a','#2a2a2a','#2a2a2a','var(--accent)','var(--accent)'];
+  const max = Math.max(...vals);
+  const container = document.getElementById('weeklyBars');
+  const total = vals.reduce((a,b)=>a+b,0);
+  vals.forEach(function(v,i){
+    const wrap = document.createElement('div');
+    wrap.style.cssText='flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%';
+    const bar = document.createElement('div');
+    bar.className='spark-bar';
+    bar.style.cssText=`width:100%;background:${i>=5?'var(--accent)':'var(--surface3)'};height:0;margin-top:auto;transition:height 0.8s cubic-bezier(0.16,1,0.3,1);border-radius:3px 3px 0 0`;
+    wrap.appendChild(bar);
+    container.appendChild(wrap);
+    setTimeout(function(){ bar.style.height=Math.round((v/max)*100)+'%'; },400+i*60);
+  });
+  document.getElementById('weeklyTotal').textContent = total;
+})();
+
+// ─── LIBRARY PROGRESS BARS ───
+var libraries = [
+  { name:'Cardiology Core', icon:'fa-heart-pulse', pct:82, done:41, total:50, fill:'fill-accent' },
+  { name:'Neurology Essentials', icon:'fa-brain', pct:55, done:22, total:40, fill:'fill-blue' },
+  { name:'Pathology Fundamentals', icon:'fa-microscope', pct:34, done:24, total:70, fill:'fill-purple' },
+  { name:'Renal & Fluid', icon:'fa-droplet', pct:70, done:35, total:50, fill:'fill-green' },
+  { name:'Emergency Medicine', icon:'fa-triangle-exclamation', pct:18, done:9, total:50, fill:'fill-orange' },
+];
+(function(){
+  const container = document.getElementById('libProgressList');
+  libraries.forEach(function(lib, idx){
+    const div = document.createElement('div');
+    div.className='lib-prog-item';
+    div.innerHTML=`
+      <div class="lib-prog-header">
+        <div class="lib-prog-name"><i class="fas ${lib.icon}"></i> ${lib.name}</div>
+        <div class="lib-prog-right">
+          <div class="lib-prog-pct" id="lp-pct-${idx}">0%</div>
+          <div class="lib-prog-articles">${lib.done}/${lib.total}</div>
+        </div>
+      </div>
+      <div class="lib-prog-track">
+        <div class="lib-prog-fill ${lib.fill}" id="lp-fill-${idx}" style="width:0%"></div>
+      </div>
+    `;
+    container.appendChild(div);
+    setTimeout(function(){
+      document.getElementById('lp-fill-'+idx).style.width=lib.pct+'%';
+      let cur=0; const el=document.getElementById('lp-pct-'+idx);
+      const step=lib.pct/30;
+      const iv=setInterval(function(){ cur=Math.min(cur+step,lib.pct); el.textContent=Math.round(cur)+'%'; if(cur>=lib.pct) clearInterval(iv); },20);
+    }, 500+idx*100);
+  });
+})();
+
+// ─── PONG ───
+var pongRunning=false, pongInitialized=false;
+function openPong(){ document.getElementById('pongOverlay').classList.add('show'); document.body.style.overflow='hidden'; if(!pongInitialized){ initPong(); pongInitialized=true; } }
+function closePong(){ document.getElementById('pongOverlay').classList.remove('show'); document.body.style.overflow=''; pongRunning=false; }
+document.getElementById('pongOverlay').addEventListener('click',function(e){ if(e.target===this) closePong(); });
+function initPong(){
+  const canvas=document.getElementById('pongCanvas'); const ctx=canvas.getContext('2d');
+  function resize(){ const maxW=Math.min(480,window.innerWidth-80); canvas.width=maxW; canvas.height=Math.round(maxW*(200/480)); }
+  resize(); window.addEventListener('resize',function(){ resize(); resetPos(); });
+  const ACCENT='#f1d19e',PAD_W=8,PAD_H_R=0.22,BALL_R=5,AI_S=0.035;
+  let W,H,padH,pY,aY,bX,bY,bVX,bVY,pScore=0,aScore=0,spd;
+  function dims(){ W=canvas.width; H=canvas.height; padH=Math.round(H*PAD_H_R); spd=W*0.012; }
+  function resetPos(){ dims(); pY=aY=(H-padH)/2; bX=W/2; bY=H/2; const ang=(Math.random()*0.6-0.3)+(Math.random()>0.5?0:Math.PI); bVX=Math.cos(ang)*spd; bVY=Math.sin(ang)*spd; if(Math.abs(bVX)<spd*0.5) bVX=bVX<0?-spd*0.7:spd*0.7; }
+  function draw(){ ctx.clearRect(0,0,W,H); ctx.setLineDash([6,8]); ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle=ACCENT; ctx.beginPath(); ctx.roundRect(4,pY,PAD_W,padH,4); ctx.fill(); ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.roundRect(W-4-PAD_W,aY,PAD_W,padH,4); ctx.fill(); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(bX,bY,BALL_R,0,Math.PI*2); ctx.fill(); }
+  function update(){ if(!pongRunning) return; bX+=bVX; bY+=bVY; if(bY-BALL_R<=0){bY=BALL_R;bVY=Math.abs(bVY);} if(bY+BALL_R>=H){bY=H-BALL_R;bVY=-Math.abs(bVY);} const am=H*AI_S,ac=aY+padH/2; if(ac<bY-4) aY=Math.min(H-padH,aY+am); else if(ac>bY+4) aY=Math.max(0,aY-am); if(bX-BALL_R<=4+PAD_W&&bX-BALL_R>=2&&bY>=pY&&bY<=pY+padH){bX=4+PAD_W+BALL_R;const h=(bY-(pY+padH/2))/(padH/2),s=Math.sqrt(bVX*bVX+bVY*bVY)*1.04;bVX=Math.abs(Math.cos(h*0.9)*s);bVY=Math.sin(h*0.9)*s;} if(bX+BALL_R>=W-4-PAD_W&&bX+BALL_R<=W-2&&bY>=aY&&bY<=aY+padH){bX=W-4-PAD_W-BALL_R;const h=(bY-(aY+padH/2))/(padH/2),s=Math.sqrt(bVX*bVX+bVY*bVY)*1.02;bVX=-Math.abs(Math.cos(h*0.9)*s);bVY=Math.sin(h*0.9)*s;} if(bX-BALL_R<=0){aScore++;document.getElementById('aiScore').textContent=aScore;if(aScore>=12){pongRunning=false;document.getElementById('pongHint').textContent='AI wins! Tap to play again.';pScore=0;aScore=0;document.getElementById('playerScore').textContent=0;document.getElementById('aiScore').textContent=0;resetPos();return;}resetPos();} if(bX+BALL_R>=W){pScore++;document.getElementById('playerScore').textContent=pScore;if(pScore>=12){pongRunning=false;document.getElementById('pongHint').textContent='You win! Tap to play again.';pScore=0;aScore=0;document.getElementById('playerScore').textContent=0;document.getElementById('aiScore').textContent=0;resetPos();return;}resetPos();} }
+  function loop(){ update(); draw(); requestAnimationFrame(loop); }
+  function start(){ if(pongRunning) return; pongRunning=true; document.getElementById('pongHint').textContent='Mouse/drag to move your paddle'; requestAnimationFrame(loop); }
+  canvas.addEventListener('mousemove',e=>{ const r=canvas.getBoundingClientRect(); pY=Math.max(0,Math.min(H-padH,e.clientY-r.top-padH/2)); });
+  canvas.addEventListener('touchmove',e=>{ e.preventDefault(); const r=canvas.getBoundingClientRect(); pY=Math.max(0,Math.min(H-padH,e.touches[0].clientY-r.top-padH/2)); },{passive:false});
+  canvas.addEventListener('click',start);
+  canvas.addEventListener('touchstart',e=>{ e.preventDefault(); start(); },{passive:false});
+  resetPos(); draw();
+}
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+  authDomain: "patholytica.firebaseapp.com",
+  databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "patholytica",
+  storageBucket: "patholytica.firebasestorage.app",
+  messagingSenderId: "738430635282",
+  appId: "1:738430635282:web:8451ef380447c7611137cb"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const supabase = window.supabase.createClient(
+  "https://vduqewqyvszfquntmark.supabase.co",
+  "sb_publishable_YseP73aoHam8YT6B0b9EQQ_iAUEWARI"
+);
+window._supabase = supabase;
+
+window.logOut = async function(){ try{ await signOut(auth); window.location.reload(); }catch(e){} };
+
+onAuthStateChanged(auth, async (user)=>{
+  const authButtons=document.getElementById('authButtons');
+  const userWelcome=document.getElementById('userWelcome');
+  const welcomeText=document.getElementById('welcomeText');
+  const fabCreateBtn=document.getElementById('fabCreateBtn');
+  const profileLinkItem=document.getElementById('profileLinkItem');
+  if(user){
+    authButtons.classList.remove('show');
+    userWelcome.classList.add('show');
+    fabCreateBtn?.classList.add('show');
+    try{
+      const { data:ud }=await supabase.from('users').select('username').eq('firebase_uid',user.uid).single();
+      if(ud?.username){
+        welcomeText.textContent=`@${ud.username}`;
+        profileLinkItem.onclick=()=>{ closeUserPopup(); window.location.href=`https://patholytica.com/profile?id=${encodeURIComponent(ud.username)}`; };
+      } else {
+        profileLinkItem.onclick=()=>{ closeUserPopup(); window.location.href=`https://patholytica.com/profile?id=${encodeURIComponent(user.uid)}`; };
+      }
+    }catch(e){
+      profileLinkItem.onclick=()=>{ closeUserPopup(); window.location.href=`https://patholytica.com/profile?id=${encodeURIComponent(user.uid)}`; };
+    }
+  } else {
+    authButtons.classList.add('show');
+    userWelcome.classList.remove('show');
+    fabCreateBtn?.classList.remove('show');
+  }
+});
+
+const PREVIEW=3;
+function monthRange(dateStr){ const d=new Date(dateStr); const y=d.getUTCFullYear(),m=d.getUTCMonth(); return { start:new Date(Date.UTC(y,m,1)).toISOString(), end:new Date(Date.UTC(y,m+1,1)).toISOString() }; }
+function monthLabel(dateStr){ return new Date(dateStr).toLocaleDateString('en-US',{year:'numeric',month:'long'}); }
+
+function renderArticleItem(article,userMap){
+  const li=document.createElement('li'); li.className='article-item';
+  li.onclick=()=>{ window.location.href=`article.html?id=${article.id}`; };
+  const author=userMap[article.firebase_user_id];
+  const name=author?.username?`@${author.username}`:'Unknown Author';
+  const date=new Date(article.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const cleanTitle=window.stripEmojis(article.title||'Untitled');
+  li.innerHTML=`<h2 class="article-title">${window.escHtml(cleanTitle)}</h2>
+    <div class="article-meta"><span>${window.escHtml(name)}</span><div class="meta-dot"></div><span>${date}</span></div>`;
+  return li;
+}
+
+async function loadCreators(){
+  const el=document.getElementById('creatorsList');
+  try{
+    const {data:articles,error}=await supabase.from('articles').select('firebase_user_id');
+    if(error||!articles){el.innerHTML='';return;}
+    const counts={};
+    articles.forEach(a=>{if(a.firebase_user_id) counts[a.firebase_user_id]=(counts[a.firebase_user_id]||0)+1;});
+    const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    if(!sorted.length){el.innerHTML='';return;}
+    const uids=sorted.map(([u])=>u);
+    const {data:users}=await supabase.from('users').select('firebase_uid, username, pfp').in('firebase_uid',uids);
+    const um={};
+    if(users) users.forEach(u=>{um[u.firebase_uid]=u;});
+    const rc=['gold','silver','bronze'],rl=['#1','#2','#3'];
+    el.innerHTML=sorted.map(([uid,count],i)=>{
+      const u=um[uid];
+      const name=u?.username?`@${u.username}`:'Unknown';
+      const init=(u?.username||'?').replace(/^@/,'')[0].toUpperCase();
+      const avatarHTML=u?.pfp?`<img src="${u.pfp}" alt="${init}">`:init;
+      const profileLink=u?.username?`profile.html?username=${window.escHtml(u.username)}`:'#';
+      return `<div class="creator-row" onclick="window.location.href='${profileLink}'">
+        <div class="creator-rank ${rc[i]}">${rl[i]}</div>
+        <div class="creator-avatar">${avatarHTML}</div>
+        <div class="creator-info"><div class="creator-name">${window.escHtml(name)}</div><div class="creator-count">${count} article${count!==1?'s':''}</div></div>
+        <div class="creator-badge">${count}</div>
+      </div>`;
+    }).join('');
+  }catch(e){ document.getElementById('creatorsList').innerHTML=''; }
+}
+
+async function loadArticles(libraryArticleIds=null){
+  const list=document.getElementById('articleList');
+  list.innerHTML=`<li class="skeleton-article"><div class="skel-title-lg"></div><div class="skel-title-sm"></div><div class="skel-meta"></div></li>
+    <li class="skeleton-article"><div class="skel-title-lg" style="width:62%"></div><div class="skel-title-sm" style="width:40%"></div><div class="skel-meta" style="width:22%"></div></li>
+    <li class="skeleton-article"><div class="skel-title-lg" style="width:78%"></div><div class="skel-title-sm" style="width:52%"></div><div class="skel-meta" style="width:30%"></div></li>`;
+  try{
+    let metaQuery=supabase.from('articles').select('id, created_at, firebase_user_id').order('created_at',{ascending:false});
+    if(libraryArticleIds) metaQuery=metaQuery.in('id',libraryArticleIds);
+    const {data:meta,error:metaErr}=await metaQuery;
+    if(metaErr){list.innerHTML=`<li class="error-state">Error: ${metaErr.message}</li>`;return;}
+    if(!meta||meta.length===0){list.innerHTML='<li class="loading-state">No articles found.</li>';document.getElementById('articleCount').textContent='0';return;}
+    document.getElementById('articleCount').textContent=meta.length;
+    const monthGroups={};
+    meta.forEach(a=>{const label=monthLabel(a.created_at);if(!monthGroups[label]) monthGroups[label]={count:0,firstDate:a.created_at};monthGroups[label].count++;});
+    list.innerHTML='';
+    const userMap={};
+    for(const [label,group] of Object.entries(monthGroups)){
+      const {start,end}=monthRange(group.firstDate);
+      let previewQuery=supabase.from('articles').select('*').gte('created_at',start).lt('created_at',end).order('created_at',{ascending:false}).limit(PREVIEW);
+      if(libraryArticleIds) previewQuery=previewQuery.in('id',libraryArticleIds);
+      const {data:preview}=await previewQuery;
+      if(!preview||preview.length===0) continue;
+      const newIds=[...new Set(preview.map(a=>a.firebase_user_id).filter(Boolean))].filter(id=>!userMap[id]);
+      if(newIds.length){ const {data:nu}=await supabase.from('users').select('firebase_uid, username').in('firebase_uid',newIds); if(nu) nu.forEach(u=>{userMap[u.firebase_uid]=u;}); }
+      const headerLi=document.createElement('li');
+      headerLi.innerHTML=`<div class="date-group-header">${label}</div>`;
+      list.appendChild(headerLi);
+      preview.forEach(a=>list.appendChild(renderArticleItem(a,userMap)));
+      const remaining=group.count-preview.length;
+      if(remaining>0){
+        const moreLi=document.createElement('li'); moreLi.className='load-more-row';
+        let expanded=false,expandedItems=[];
+        const btn=document.createElement('button'); btn.className='btn-load-more';
+        btn.innerHTML=`<i class="fas fa-chevron-down"></i> Show ${remaining} more from ${label}`;
+        btn.onclick=async()=>{
+          if(expanded){expandedItems.forEach(el=>el.remove());expandedItems=[];expanded=false;btn.classList.remove('open');btn.innerHTML=`<i class="fas fa-chevron-down"></i> Show ${remaining} more from ${label}`;return;}
+          btn.classList.add('loading'); btn.innerHTML=`<i class="fas fa-circle-notch fa-spin"></i> Loading…`;
+          try{
+            let mq=supabase.from('articles').select('*').gte('created_at',start).lt('created_at',end).order('created_at',{ascending:false}).range(PREVIEW,group.count-1);
+            if(libraryArticleIds) mq=mq.in('id',libraryArticleIds);
+            const {data:more,error:mErr}=await mq;
+            if(mErr||!more) throw new Error(mErr?.message||'fetch failed');
+            const nids=[...new Set(more.map(a=>a.firebase_user_id).filter(Boolean))].filter(id=>!userMap[id]);
+            if(nids.length){ const {data:nu}=await supabase.from('users').select('firebase_uid, username').in('firebase_uid',nids); if(nu) nu.forEach(u=>{userMap[u.firebase_uid]=u;}); }
+            more.forEach(a=>{ const el=renderArticleItem(a,userMap); list.insertBefore(el,moreLi); expandedItems.push(el); });
+            expanded=true; btn.classList.remove('loading'); btn.classList.add('open');
+            btn.innerHTML=`<i class="fas fa-chevron-down"></i> Collapse ${label}`;
+          }catch(e){ btn.classList.remove('loading'); btn.innerHTML=`<i class="fas fa-chevron-down"></i> Show ${remaining} more from ${label}`; }
+        };
+        moreLi.appendChild(btn); list.appendChild(moreLi);
+      }
+    }
+  }catch(err){ list.innerHTML=`<li class="error-state">Unexpected error: ${err.message}</li>`; }
+}
+
+window._loadArticles=async function(libraryId=null){
+  let ids=null;
+  if(libraryId!==null){
+    const {data:items,error}=await supabase.from('playlist_items').select('article_id').eq('playlist_id',libraryId);
+    if(error){document.getElementById('articleList').innerHTML=`<li class="error-state">Error: ${error.message}</li>`;return;}
+    if(!items||items.length===0){document.getElementById('articleList').innerHTML='<li class="loading-state">No articles in this library.</li>';document.getElementById('articleCount').textContent='0';return;}
+    ids=items.map(i=>i.article_id);
+  }
+  await loadArticles(ids);
+};
+
+loadCreators();
+window._loadArticles(null);
+</script>
+
+<script>
+async function startLibrary(){
+  const input=document.getElementById('libraryIdInput');
+  const btn=document.getElementById('startBtn');
+  const banner=document.getElementById('libraryBanner');
+  const bName=document.getElementById('libraryBannerName');
+  const bMeta=document.getElementById('libraryBannerMeta');
+  const val=input.value.trim();
+  if(!val||isNaN(val)||parseInt(val)<=0){ input.classList.add('error'); setTimeout(()=>input.classList.remove('error'),1200); input.focus(); return; }
+  const libraryId=parseInt(val);
+  btn.disabled=true; btn.textContent='…';
+  bName.textContent='Loading…'; bMeta.innerHTML=''; banner.classList.add('show');
+  try{
+    const {data:lib,error:libErr}=await window._supabase.from('playlists').select('*').eq('id',libraryId).single();
+    if(libErr||!lib){ bName.textContent=`Library #${libraryId}`; bMeta.innerHTML=`<span><i class="fas fa-exclamation-circle"></i> Library not found</span>`; }
+    else{
+      bName.textContent=lib.name||`Library #${libraryId}`;
+      const parts=[];
+      if(lib.description) parts.push(`<span><i class="fas fa-align-left"></i> ${lib.description}</span>`);
+      if(lib.created_at){ const d=new Date(lib.created_at).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}); parts.push(`<span><i class="fas fa-calendar-alt"></i> ${d}</span>`); }
+      parts.push(`<span><i class="fas fa-hashtag"></i> ID ${libraryId}</span>`);
+      bMeta.innerHTML=parts.join('');
+    }
+  }catch(e){ bName.textContent=`Library #${libraryId}`; bMeta.innerHTML=`<span><i class="fas fa-hashtag"></i> ID ${libraryId}</span>`; }
+  finally{ btn.disabled=false; btn.textContent='Start'; }
+  window._loadArticles(libraryId);
+}
+
+function clearLibraryFilter(){
+  document.getElementById('libraryIdInput').value='';
+  document.getElementById('libraryBanner').classList.remove('show');
+  window._loadArticles(null);
+}
+</script>
+</body>
+</html>
