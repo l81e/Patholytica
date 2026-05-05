@@ -1,1 +1,970 @@
-:)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Patholytica — Home</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg-color: #1f1f1f;
+  --text-primary: #fff;
+  --text-secondary: #aaa;
+  --card-bg: #252525;
+  --hover-bg: #2a2a2a;
+  --border-color: #303030;
+  --accent: #f1d19e;
+  --accent-green: #2ecc71;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  min-height: 100%;
+  font-family: "DM Sans", "Roboto", Arial, sans-serif;
+  overflow-x: hidden; max-width: 100vw;
+}
+body { background: var(--bg-color); color: var(--text-primary); }
+
+/* ── Header ── */
+.header-wrapper {
+  position: fixed; top: 0; left: 0; right: 0;
+  background: var(--bg-color);
+  padding-top: env(safe-area-inset-top);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 40;
+}
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 24px;
+}
+.logo-img { height: 28px; width: auto; cursor: pointer; }
+.header-actions { display: flex; align-items: center; gap: 16px; }
+.auth-buttons { display: none; gap: 12px; }
+.auth-buttons.show { display: flex; }
+.btn-login {
+  padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: 500;
+  cursor: pointer; text-decoration: none;
+  border: 1px solid var(--border-color); background: transparent; color: var(--text-primary);
+  transition: background 0.2s ease;
+}
+.btn-login:hover { background: var(--hover-bg); }
+.user-welcome { display: none; align-items: center; gap: 10px; font-size: 14px; position: relative; }
+.user-welcome.show { display: flex; }
+.welcome-text { font-weight: 500; cursor: pointer; transition: color 0.2s ease; }
+.welcome-text:hover { color: var(--accent); }
+.header-create-btn {
+  display: none;
+  align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(241,209,158,0.12);
+  border: 1px solid rgba(241,209,158,0.3);
+  color: var(--accent); font-size: 14px;
+  cursor: pointer; transition: background 0.2s ease, border-color 0.2s ease;
+  flex-shrink: 0;
+}
+.header-create-btn.show { display: flex; }
+.header-create-btn:hover { background: rgba(241,209,158,0.22); border-color: var(--accent); }
+
+/* ── Popups ── */
+.header-popup {
+  display: none;
+  position: absolute; top: calc(100% + 10px); right: 0;
+  background: #252525; border: 1px solid var(--border-color);
+  border-radius: 12px; padding: 6px; min-width: 160px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+  z-index: 200; flex-direction: column; gap: 2px;
+}
+.header-popup.show { display: flex; }
+.popup-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 8px;
+  font-size: 14px; font-weight: 500; cursor: pointer;
+  color: var(--text-primary); transition: background 0.2s ease; white-space: nowrap;
+}
+.popup-item:hover { background: var(--hover-bg); }
+.popup-item i { font-size: 13px; width: 14px; text-align: center; color: var(--text-secondary); }
+.popup-danger { color: #ff6b6b; }
+.popup-danger i { color: #ff6b6b; }
+.popup-divider { height: 1px; background: var(--border-color); margin: 4px 0; }
+
+/* ── Main container ── */
+.list-container {
+  max-width: 900px; width: 100%; margin: 0 auto;
+  padding: 16px 24px 32px;
+  padding-top: calc(65px + env(safe-area-inset-top) + 16px);
+}
+
+/* ── Library ID entry ── */
+.library-entry {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+}
+.library-id-input {
+  flex: 1; min-width: 120px; max-width: 100%;
+  background: #2a2a2a; border: 1px solid var(--border-color);
+  border-radius: 10px; color: var(--text-primary);
+  font-size: 15px; padding: 10px 14px; outline: none;
+  transition: border-color 0.2s ease; -moz-appearance: textfield;
+  font-family: "DM Sans", sans-serif;
+}
+.library-id-input::-webkit-outer-spin-button,
+.library-id-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.library-id-input::placeholder { color: var(--text-secondary); opacity: 0.6; }
+.library-id-input:focus { border-color: var(--accent); }
+.library-id-input.error { border-color: #ff6b6b; }
+.btn-start {
+  padding: 10px 22px; border-radius: 10px;
+  background: var(--accent); color: #1f1f1f;
+  border: none; font-size: 14px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+  font-family: "DM Sans", sans-serif;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+.btn-start:hover { opacity: 0.88; transform: translateY(-1px); }
+.btn-start:active { transform: scale(0.97); }
+.btn-start:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ── Library banner (jump-to result) ── */
+.library-banner {
+  display: none; background: #252525;
+  border: 1px solid var(--border-color); border-radius: 12px;
+  padding: 14px 18px; margin-bottom: 14px;
+  gap: 14px; align-items: flex-start;
+}
+.library-banner.show { display: flex; }
+.library-banner-thumb {
+  width: 48px; height: 48px; border-radius: 10px;
+  overflow: hidden; flex-shrink: 0;
+  background: rgba(241,209,158,0.08);
+  border: 1px solid rgba(241,209,158,0.15);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent); font-size: 18px;
+}
+.library-banner-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.library-banner-info { flex: 1; min-width: 0; }
+.library-banner-name {
+  font-size: 15px; font-weight: 600; margin-bottom: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.library-banner-meta {
+  font-size: 12px; color: var(--text-secondary);
+  display: flex; flex-wrap: wrap; gap: 6px 12px;
+}
+.library-banner-meta span { display: flex; align-items: center; gap: 5px; }
+.library-banner-meta i { font-size: 11px; opacity: 0.7; }
+.library-banner-clear {
+  background: none; border: none; color: var(--text-secondary);
+  cursor: pointer; font-size: 14px; padding: 4px; border-radius: 50%;
+  transition: color 0.2s ease, background 0.2s ease; flex-shrink: 0;
+}
+.library-banner-clear:hover { color: var(--text-primary); background: var(--hover-bg); }
+.banner-open-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 8px; padding: 5px 12px; border-radius: 20px;
+  background: rgba(241,209,158,0.1); border: 1px solid rgba(241,209,158,0.25);
+  color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: background 0.2s ease;
+}
+.banner-open-btn:hover { background: rgba(241,209,158,0.18); }
+
+/* ── Active creators ── */
+.creators-section { margin-bottom: 20px; }
+.section-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--text-secondary); margin-bottom: 8px; opacity: 0.6; font-weight: 600;
+}
+.creators-list { display: flex; flex-direction: column; gap: 2px; }
+.creator-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 10px; border-radius: 10px;
+  cursor: pointer; transition: background 0.2s ease;
+}
+.creator-row:hover { background: var(--hover-bg); }
+.creator-rank { font-size: 12px; width: 18px; text-align: center; flex-shrink: 0; font-weight: 600; color: var(--text-secondary); }
+.creator-rank.gold   { color: #f1d19e; }
+.creator-rank.silver { color: #b0b0b0; }
+.creator-rank.bronze { color: #cd7f32; }
+.creator-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(241,209,158,0.12); border: 1px solid rgba(241,209,158,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: var(--accent);
+  flex-shrink: 0; text-transform: uppercase; overflow: hidden;
+}
+.creator-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.creator-info { flex: 1; min-width: 0; }
+.creator-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.creator-count { font-size: 11px; color: var(--text-secondary); }
+.creator-badge {
+  font-size: 11px; font-weight: 600; color: var(--accent);
+  background: rgba(241,209,158,0.1); border: 1px solid rgba(241,209,158,0.2);
+  border-radius: 20px; padding: 2px 9px; white-space: nowrap; flex-shrink: 0;
+}
+.creator-skeleton { display: flex; align-items: center; gap: 12px; padding: 8px 10px; }
+.skel-circle { width: 32px; height: 32px; border-radius: 50%; background: #2a2a2a; flex-shrink: 0; animation: shimmer 1.4s infinite; }
+.skel-line   { height: 11px; border-radius: 6px; background: #2a2a2a; animation: shimmer 1.4s infinite; }
+
+/* ── Libraries section label ── */
+.libraries-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.libraries-header .section-label { margin-bottom: 0; }
+.library-count-badge {
+  font-size: 11px; font-weight: 600; color: var(--accent);
+  background: rgba(241,209,158,0.1); border: 1px solid rgba(241,209,158,0.2);
+  border-radius: 20px; padding: 2px 10px;
+}
+
+/* ── Library cards ── */
+.libraries-grid {
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+.library-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+.library-card:hover {
+  border-color: rgba(241,209,158,0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+.library-card:active { transform: scale(0.99); }
+
+/* Thumbnail */
+.library-card-thumb {
+  width: 100%; height: 160px;
+  overflow: hidden; position: relative;
+  background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+  flex-shrink: 0;
+}
+.library-card-thumb img {
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform 0.3s ease;
+}
+.library-card:hover .library-card-thumb img { transform: scale(1.03); }
+.library-card-thumb-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 8px;
+  color: rgba(241,209,158,0.3); font-size: 36px;
+}
+.library-card-thumb-placeholder span {
+  font-size: 11px; color: var(--text-secondary); opacity: 0.4;
+  font-weight: 500; letter-spacing: 0.5px;
+}
+.library-card-thumb-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 60px;
+  background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%);
+}
+
+/* Body */
+.library-card-body {
+  padding: 14px 16px 16px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.library-card-name {
+  font-size: 17px; font-weight: 700; line-height: 1.3;
+  color: var(--text-primary);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.library-card:hover .library-card-name { color: var(--accent); }
+.library-card-desc {
+  font-size: 13px; color: var(--text-secondary); line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.library-card-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 6px; flex-wrap: wrap; gap: 6px;
+}
+.library-card-meta {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.library-card-meta-item {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--text-secondary);
+}
+.library-card-meta-item i { font-size: 11px; opacity: 0.65; }
+.library-card-creator {
+  display: flex; align-items: center; gap: 6px;
+}
+.creator-mini-avatar {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(241,209,158,0.12); border: 1px solid rgba(241,209,158,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: var(--accent);
+  flex-shrink: 0; text-transform: uppercase; overflow: hidden;
+}
+.creator-mini-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.creator-mini-name { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+
+/* Library card skeleton */
+.library-card-skeleton {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 14px; overflow: hidden;
+}
+.skel-thumb { height: 160px; background: #2a2a2a; animation: shimmer 1.4s infinite; }
+.skel-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+.skel-title { height: 18px; border-radius: 6px; background: #2a2a2a; width: 70%; animation: shimmer 1.4s infinite; }
+.skel-subtitle { height: 13px; border-radius: 6px; background: #2a2a2a; width: 90%; animation: shimmer 1.4s infinite; }
+.skel-meta-row { height: 11px; border-radius: 6px; background: #2a2a2a; width: 45%; animation: shimmer 1.4s infinite; }
+
+@keyframes shimmer { 0%,100%{opacity:0.45} 50%{opacity:0.9} }
+
+.empty-state {
+  text-align: center; padding: 48px 24px; color: var(--text-secondary);
+}
+.empty-state i { font-size: 40px; opacity: 0.25; margin-bottom: 12px; display: block; }
+.empty-state p { font-size: 14px; opacity: 0.6; }
+.error-state { text-align: center; padding: 32px; color: #ff4444; font-size: 15px; }
+
+/* ── Load more ── */
+.load-more-wrap { text-align: center; margin-top: 16px; }
+.btn-load-more-libs {
+  background: none; border: 1px solid var(--border-color);
+  color: var(--text-secondary); font-size: 13px; font-weight: 500;
+  cursor: pointer; padding: 9px 22px; border-radius: 20px;
+  font-family: "DM Sans", sans-serif;
+  transition: border-color 0.2s ease, color 0.2s ease;
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.btn-load-more-libs:hover { border-color: var(--accent); color: var(--accent); }
+.btn-load-more-libs:disabled { opacity: 0.4; pointer-events: none; }
+
+/* ── Pong ── */
+.pong-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.82); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  align-items: center; justify-content: center;
+}
+.pong-overlay.show { display: flex; }
+.pong-modal {
+  background: #141414; border: 1px solid var(--border-color);
+  border-radius: 20px; padding: 20px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.88); position: relative; max-width: calc(100vw - 48px);
+}
+.pong-modal-close {
+  position: absolute; top: 12px; right: 12px;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: none; border: 1px solid var(--border-color);
+  color: var(--text-secondary); font-size: 13px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.pong-modal-close:hover { background: var(--hover-bg); color: var(--text-primary); }
+.pong-modal-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--text-secondary); opacity: 0.5; font-weight: 600; margin-bottom: 2px;
+}
+.pong-score { font-size: 13px; color: var(--text-secondary); letter-spacing: 2px; }
+.pong-score span { color: var(--accent); font-weight: 600; }
+#pongCanvas {
+  border: 1px solid var(--border-color); border-radius: 10px;
+  display: block; background: #0e0e0e; max-width: 100%;
+}
+.pong-hint { font-size: 11px; color: var(--text-secondary); opacity: 0.45; text-align: center; }
+
+/* ── Footer ── */
+.footer {
+  background: var(--bg-color); border-top: 1px solid var(--border-color);
+  padding: 14px 24px 6px; text-align: center;
+  color: var(--text-secondary); font-size: 14px;
+}
+.library-count-link {
+  color: var(--accent); font-weight: 600; cursor: pointer;
+  border-bottom: 1px dashed rgba(241,209,158,0.35);
+  transition: border-color 0.2s ease; display: inline-block;
+}
+.library-count-link:hover { border-color: var(--accent); }
+.footer-credit {
+  text-align: center; padding: 4px 0;
+  padding-bottom: calc(64px + env(safe-area-inset-bottom) + 8px);
+  font-size: 12px; color: var(--text-secondary); opacity: 0.45;
+}
+.footer-credit a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+
+/* ── Footer bar ── */
+.footer-bar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 450px;
+  background: var(--card-bg); border-top: 1px solid var(--border-color);
+  padding: 8px 24px; padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  display: flex; justify-content: space-around; align-items: center; z-index: 100;
+}
+.footer-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: none; border: none; color: var(--text-secondary);
+  cursor: pointer; transition: color 0.2s ease; padding: 6px 12px;
+}
+.footer-btn:hover { color: var(--text-primary); }
+.footer-btn.active { color: var(--accent); }
+.footer-btn i { font-size: 20px; }
+.footer-btn span { font-size: 10px; font-weight: 500; }
+
+@media (max-width: 768px) {
+  .list-container { padding: 12px 16px 24px; padding-top: calc(65px + env(safe-area-inset-top) + 12px); }
+  .footer { padding: 12px 16px 6px; font-size: 13px; }
+  .footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+  .footer-btn { padding: 6px 8px; }
+  .footer-btn i { font-size: 18px; }
+  .footer-btn span { font-size: 9px; }
+  .library-id-input { max-width: 100%; font-size: 14px; }
+  .btn-start { font-size: 13px; padding: 9px 14px; }
+  .library-card-thumb { height: 140px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header-wrapper">
+  <div class="header">
+    <img src="IMG_3220.png" class="logo-img" alt="Patholytica Logo">
+    <div class="header-actions">
+      <div class="auth-buttons" id="authButtons">
+        <a href="login.html" class="btn-login">Log In</a>
+      </div>
+      <div class="user-welcome" id="userWelcome">
+        <span class="welcome-text" id="welcomeText">Welcome</span>
+
+        <div class="header-popup" id="userPopup">
+          <div class="popup-item" id="profileLinkItem">
+            <i class="fas fa-user"></i> Profile
+          </div>
+          <div class="popup-divider"></div>
+          <div class="popup-item popup-danger" onclick="window.logOut(); closeUserPopup()">
+            <i class="fas fa-sign-out-alt"></i> Log Out
+          </div>
+        </div>
+
+        <button class="header-create-btn" id="fabCreateBtn">
+          <i class="fas fa-plus"></i>
+        </button>
+
+        <div class="header-popup" id="createPopup" style="min-width:140px;">
+          <div class="popup-item" onclick="window.location.href='https://patholytica.com/create'; closeCreatePopup()">
+            <i class="fas fa-pen"></i> Classic
+          </div>
+          <div class="popup-item" onclick="window.location.href='https://patholytica.com/Create'; closeCreatePopup()">
+            <i class="fas fa-layer-group"></i> Batches
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="list-container">
+
+  <!-- Library jump-to input -->
+  <div class="library-entry">
+    <input type="number" id="libraryIdInput" class="library-id-input"
+      placeholder="Jump to Library ID" min="1" inputmode="numeric" pattern="[0-9]*"
+      onkeydown="if(event.key==='Enter') jumpToLibrary()">
+    <button class="btn-start" id="startBtn" onclick="jumpToLibrary()">Go</button>
+  </div>
+
+  <!-- Jump-to result banner -->
+  <div class="library-banner" id="libraryBanner">
+    <div class="library-banner-thumb" id="libraryBannerThumb">
+      <i class="fas fa-book-open"></i>
+    </div>
+    <div class="library-banner-info">
+      <div class="library-banner-name" id="libraryBannerName">—</div>
+      <div class="library-banner-meta" id="libraryBannerMeta"></div>
+      <div class="banner-open-btn" id="bannerOpenBtn">
+        <i class="fas fa-arrow-right"></i> Open Library
+      </div>
+    </div>
+    <button class="library-banner-clear" onclick="clearJump()"><i class="fas fa-times"></i></button>
+  </div>
+
+  <!-- Active creators -->
+  <div class="creators-section">
+    <div class="section-label">Active Creators</div>
+    <div class="creators-list" id="creatorsList">
+      <div class="creator-skeleton"><div class="skel-circle"></div><div style="flex:1"><div class="skel-line" style="width:42%;margin-bottom:5px"></div><div class="skel-line" style="width:24%"></div></div></div>
+      <div class="creator-skeleton"><div class="skel-circle"></div><div style="flex:1"><div class="skel-line" style="width:56%;margin-bottom:5px"></div><div class="skel-line" style="width:20%"></div></div></div>
+      <div class="creator-skeleton"><div class="skel-circle"></div><div style="flex:1"><div class="skel-line" style="width:34%;margin-bottom:5px"></div><div class="skel-line" style="width:28%"></div></div></div>
+    </div>
+  </div>
+
+  <!-- Libraries -->
+  <div class="libraries-header">
+    <div class="section-label">Libraries</div>
+    <div class="library-count-badge" id="libCountBadge">—</div>
+  </div>
+
+  <div class="libraries-grid" id="librariesGrid">
+    <div class="library-card-skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-title"></div><div class="skel-subtitle"></div><div class="skel-meta-row"></div></div></div>
+    <div class="library-card-skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-title" style="width:55%"></div><div class="skel-subtitle" style="width:80%"></div><div class="skel-meta-row" style="width:35%"></div></div></div>
+    <div class="library-card-skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-title" style="width:65%"></div><div class="skel-subtitle"></div><div class="skel-meta-row" style="width:40%"></div></div></div>
+  </div>
+
+  <div class="load-more-wrap" id="loadMoreWrap" style="display:none;">
+    <button class="btn-load-more-libs" id="loadMoreBtn" onclick="loadMoreLibraries()">
+      <i class="fas fa-chevron-down"></i> Load more
+    </button>
+  </div>
+
+</div>
+
+<!-- Pong Easter Egg -->
+<div class="pong-overlay" id="pongOverlay">
+  <div class="pong-modal">
+    <button class="pong-modal-close" onclick="closePong()"><i class="fas fa-times"></i></button>
+    <div class="pong-modal-title">🦦 Easter Egg</div>
+    <div class="pong-score">YOU <span id="playerScore">0</span> &nbsp;—&nbsp; <span id="aiScore">0</span> AI</div>
+    <canvas id="pongCanvas" width="480" height="200"></canvas>
+    <div class="pong-hint" id="pongHint">Click or tap to start &nbsp;·&nbsp; Mouse / drag to move paddle</div>
+  </div>
+</div>
+
+<footer class="footer">
+  <span class="library-count-link" id="footerLibCount" onclick="openPong()" title="🏓">0</span> libraries available
+</footer>
+
+<div class="footer-credit">
+  Prototype by <a href="https://www.instagram.com/eyadayms?" target="_blank">Eyad</a>
+</div>
+
+<div class="footer-bar">
+  <button class="footer-btn active" onclick="window.location.href='index.html'">
+    <i class="fas fa-home"></i>
+    <span>Home</span>
+  </button>
+  <button class="footer-btn" onclick="window.location.href='https://patholytica.com/dailyfeed'">
+    <i class="fas fa-scroll"></i>
+    <span>Feed</span>
+  </button>
+  <button class="footer-btn" onclick="window.location.href='explore.html'">
+    <i class="fas fa-search"></i>
+    <span>Explore</span>
+  </button>
+  <button class="footer-btn" onclick="window.location.href='https://patholytica.com/space'">
+    <i class="fas fa-th-large"></i>
+    <span>Space</span>
+  </button>
+</div>
+
+<script>
+window.escHtml = function(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; };
+
+function closeUserPopup()   { document.getElementById('userPopup').classList.remove('show'); }
+function closeCreatePopup() { document.getElementById('createPopup').classList.remove('show'); }
+
+document.getElementById('welcomeText').addEventListener('click', function(e) {
+  e.stopPropagation();
+  const up=document.getElementById('userPopup'), cp=document.getElementById('createPopup');
+  cp.classList.remove('show'); up.classList.toggle('show');
+});
+
+document.getElementById('fabCreateBtn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  const cp=document.getElementById('createPopup'), up=document.getElementById('userPopup');
+  up.classList.remove('show'); cp.classList.toggle('show');
+});
+
+document.addEventListener('click', function() { closeUserPopup(); closeCreatePopup(); });
+
+/* ── Pong ── */
+var pongRunning=false, pongInitialized=false;
+function openPong() {
+  document.getElementById('pongOverlay').classList.add('show');
+  document.body.style.overflow='hidden';
+  if (!pongInitialized) { initPong(); pongInitialized=true; }
+}
+function closePong() {
+  document.getElementById('pongOverlay').classList.remove('show');
+  document.body.style.overflow=''; pongRunning=false;
+}
+document.getElementById('pongOverlay').addEventListener('click', function(e){ if(e.target===this) closePong(); });
+
+function initPong() {
+  const canvas=document.getElementById('pongCanvas'), ctx=canvas.getContext('2d');
+  function resize(){ const mw=Math.min(480,window.innerWidth-80); canvas.width=mw; canvas.height=Math.round(mw*(200/480)); }
+  resize(); window.addEventListener('resize',()=>{ resize(); resetPos(); });
+  const ACCENT='#f1d19e',PAD_W=8,PAD_H_R=0.22,BALL_R=5,AI_S=0.035;
+  let W,H,padH,pY,aY,bX,bY,bVX,bVY,pScore=0,aScore=0,spd;
+  function dims(){ W=canvas.width; H=canvas.height; padH=Math.round(H*PAD_H_R); spd=W*0.012; }
+  function resetPos(){
+    dims(); pY=aY=(H-padH)/2; bX=W/2; bY=H/2;
+    const ang=(Math.random()*0.6-0.3)+(Math.random()>0.5?0:Math.PI);
+    bVX=Math.cos(ang)*spd; bVY=Math.sin(ang)*spd;
+    if(Math.abs(bVX)<spd*0.5) bVX=bVX<0?-spd*0.7:spd*0.7;
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.setLineDash([6,8]); ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=ACCENT; ctx.beginPath(); ctx.roundRect(4,pY,PAD_W,padH,4); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.roundRect(W-4-PAD_W,aY,PAD_W,padH,4); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(bX,bY,BALL_R,0,Math.PI*2); ctx.fill();
+  }
+  function update(){
+    if(!pongRunning) return;
+    bX+=bVX; bY+=bVY;
+    if(bY-BALL_R<=0){bY=BALL_R;bVY=Math.abs(bVY);}
+    if(bY+BALL_R>=H){bY=H-BALL_R;bVY=-Math.abs(bVY);}
+    const am=H*AI_S,ac=aY+padH/2;
+    if(ac<bY-4) aY=Math.min(H-padH,aY+am);
+    else if(ac>bY+4) aY=Math.max(0,aY-am);
+    if(bX-BALL_R<=4+PAD_W&&bX-BALL_R>=2&&bY>=pY&&bY<=pY+padH){
+      bX=4+PAD_W+BALL_R;
+      const h=(bY-(pY+padH/2))/(padH/2),s=Math.sqrt(bVX*bVX+bVY*bVY)*1.04;
+      bVX=Math.abs(Math.cos(h*0.9)*s); bVY=Math.sin(h*0.9)*s;
+    }
+    if(bX+BALL_R>=W-4-PAD_W&&bX+BALL_R<=W-2&&bY>=aY&&bY<=aY+padH){
+      bX=W-4-PAD_W-BALL_R;
+      const h=(bY-(aY+padH/2))/(padH/2),s=Math.sqrt(bVX*bVX+bVY*bVY)*1.02;
+      bVX=-Math.abs(Math.cos(h*0.9)*s); bVY=Math.sin(h*0.9)*s;
+    }
+    if(bX-BALL_R<=0){
+      aScore++; document.getElementById('aiScore').textContent=aScore;
+      if(aScore>=12){ pongRunning=false; document.getElementById('pongHint').textContent='AI wins! Click or tap to play again.'; pScore=0;aScore=0; document.getElementById('playerScore').textContent=0; document.getElementById('aiScore').textContent=0; resetPos(); return; }
+      resetPos();
+    }
+    if(bX+BALL_R>=W){
+      pScore++; document.getElementById('playerScore').textContent=pScore;
+      if(pScore>=12){ pongRunning=false; document.getElementById('pongHint').textContent='You win! Click or tap to play again.'; pScore=0;aScore=0; document.getElementById('playerScore').textContent=0; document.getElementById('aiScore').textContent=0; resetPos(); return; }
+      resetPos();
+    }
+  }
+  function loop(){ update(); draw(); requestAnimationFrame(loop); }
+  function start(){ if(pongRunning) return; pongRunning=true; document.getElementById('pongHint').textContent='Mouse / drag to move your paddle'; requestAnimationFrame(loop); }
+  canvas.addEventListener('mousemove',e=>{ const r=canvas.getBoundingClientRect(); pY=Math.max(0,Math.min(H-padH,e.clientY-r.top-padH/2)); });
+  canvas.addEventListener('touchmove',e=>{ e.preventDefault(); const r=canvas.getBoundingClientRect(); pY=Math.max(0,Math.min(H-padH,e.touches[0].clientY-r.top-padH/2)); },{passive:false});
+  canvas.addEventListener('click',start);
+  canvas.addEventListener('touchstart',e=>{ e.preventDefault(); start(); },{passive:false});
+  resetPos(); draw();
+}
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+  authDomain: "patholytica.firebaseapp.com",
+  databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "patholytica",
+  storageBucket: "patholytica.firebasestorage.app",
+  messagingSenderId: "738430635282",
+  appId: "1:738430635282:web:8451ef380447c7611137cb"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const supabase = window.supabase.createClient(
+  "https://vduqewqyvszfquntmark.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
+);
+window._supabase = supabase;
+
+window.logOut = async function() {
+  try { await signOut(auth); window.location.reload(); } catch(e) {}
+};
+
+/* ── Auth ── */
+onAuthStateChanged(auth, async (user) => {
+  const authButtons=document.getElementById('authButtons');
+  const userWelcome=document.getElementById('userWelcome');
+  const welcomeText=document.getElementById('welcomeText');
+  const fabCreateBtn=document.getElementById('fabCreateBtn');
+  const profileLinkItem=document.getElementById('profileLinkItem');
+
+  if (user) {
+    authButtons.classList.remove('show');
+    userWelcome.classList.add('show');
+    fabCreateBtn?.classList.add('show');
+    try {
+      const { data: ud } = await supabase.from('users').select('username').eq('firebase_uid', user.uid).single();
+      if (ud?.username) {
+        welcomeText.textContent=`@${ud.username}`;
+        profileLinkItem.onclick=()=>{ closeUserPopup(); window.location.href=`profile.html?username=${encodeURIComponent(ud.username)}`; };
+      } else {
+        profileLinkItem.onclick=()=>{ closeUserPopup(); window.location.href=`profile.html?id=${encodeURIComponent(user.uid)}`; };
+      }
+    } catch(e) {
+      profileLinkItem.onclick=()=>{ closeUserPopup(); window.location.href=`profile.html?id=${encodeURIComponent(user.uid)}`; };
+    }
+  } else {
+    authButtons.classList.add('show');
+    userWelcome.classList.remove('show');
+    fabCreateBtn?.classList.remove('show');
+  }
+});
+
+/* ── Creators ── */
+async function loadCreators() {
+  const el=document.getElementById('creatorsList');
+  try {
+    const { data: articles } = await supabase.from('articles').select('firebase_user_id');
+    if (!articles) { el.innerHTML=''; return; }
+    const counts={};
+    articles.forEach(a=>{ if(a.firebase_user_id) counts[a.firebase_user_id]=(counts[a.firebase_user_id]||0)+1; });
+    const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    if (!sorted.length) { el.innerHTML=''; return; }
+    const { data: users } = await supabase.from('users').select('firebase_uid, username, pfp').in('firebase_uid', sorted.map(([u])=>u));
+    const um={};
+    if (users) users.forEach(u=>{um[u.firebase_uid]=u;});
+    const rc=['gold','silver','bronze'], rl=['#1','#2','#3'];
+    el.innerHTML=sorted.map(([uid,count],i)=>{
+      const u=um[uid];
+      const name=u?.username?`@${u.username}`:'Unknown';
+      const init=(u?.username||'?').replace(/^@/,'')[0].toUpperCase();
+      const avatarHTML=u?.pfp?`<img src="${u.pfp}" alt="${init}">`:init;
+      const profileLink=u?.username?`profile.html?username=${window.escHtml(u.username)}`:'#';
+      return `<div class="creator-row" onclick="window.location.href='${profileLink}'">
+        <div class="creator-rank ${rc[i]}">${rl[i]}</div>
+        <div class="creator-avatar">${avatarHTML}</div>
+        <div class="creator-info">
+          <div class="creator-name">${window.escHtml(name)}</div>
+          <div class="creator-count">${count} article${count!==1?'s':''}</div>
+        </div>
+        <div class="creator-badge">${count}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML=''; }
+}
+
+/* ── Libraries ── */
+const PAGE_SIZE = 10;
+let currentOffset = 0;
+let totalLibraries = 0;
+let articleCountCache = {}; // playlist_id → count
+
+function buildLibraryCard(lib, articleCount, creator) {
+  const card = document.createElement('div');
+  card.className = 'library-card';
+  card.onclick = () => { window.location.href = `playlist.html?id=${lib.id}`; };
+
+  // Thumbnail
+  const thumbHTML = lib.thumbnail_url
+    ? `<img src="${window.escHtml(lib.thumbnail_url)}" alt="${window.escHtml(lib.name)}" loading="lazy">
+       <div class="library-card-thumb-overlay"></div>`
+    : `<div class="library-card-thumb-placeholder">
+         <i class="fas fa-book-open"></i>
+         <span>No cover</span>
+       </div>`;
+
+  // Creator
+  const creatorInit = (creator?.username || '?').replace(/^@/, '')[0].toUpperCase();
+  const creatorAvatarHTML = creator?.pfp
+    ? `<img src="${window.escHtml(creator.pfp)}" alt="${creatorInit}">`
+    : creatorInit;
+  const creatorName = creator?.username ? `@${creator.username}` : 'Unknown';
+
+  // Date
+  const date = new Date(lib.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  card.innerHTML = `
+    <div class="library-card-thumb">${thumbHTML}</div>
+    <div class="library-card-body">
+      <div class="library-card-name">${window.escHtml(lib.name || 'Untitled Library')}</div>
+      ${lib.description ? `<div class="library-card-desc">${window.escHtml(lib.description)}</div>` : ''}
+      <div class="library-card-footer">
+        <div class="library-card-meta">
+          <div class="library-card-meta-item">
+            <i class="fas fa-layer-group"></i>
+            <span>${articleCount} article${articleCount !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="library-card-meta-item">
+            <i class="fas fa-calendar-alt"></i>
+            <span>${date}</span>
+          </div>
+        </div>
+        <div class="library-card-creator">
+          <div class="creator-mini-avatar">${creatorAvatarHTML}</div>
+          <span class="creator-mini-name">${window.escHtml(creatorName)}</span>
+        </div>
+      </div>
+    </div>`;
+
+  return card;
+}
+
+async function loadLibraries(append = false) {
+  const grid = document.getElementById('librariesGrid');
+  const loadMoreWrap = document.getElementById('loadMoreWrap');
+  const loadMoreBtn = document.getElementById('loadMoreBtn');
+
+  if (!append) {
+    grid.innerHTML = `
+      <div class="library-card-skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-title"></div><div class="skel-subtitle"></div><div class="skel-meta-row"></div></div></div>
+      <div class="library-card-skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-title" style="width:55%"></div><div class="skel-subtitle" style="width:80%"></div><div class="skel-meta-row" style="width:35%"></div></div></div>
+      <div class="library-card-skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-title" style="width:65%"></div><div class="skel-subtitle"></div><div class="skel-meta-row" style="width:40%"></div></div></div>`;
+    currentOffset = 0;
+    loadMoreWrap.style.display = 'none';
+  }
+
+  try {
+    // Get total count once
+    if (!append) {
+      const { count } = await supabase.from('playlists').select('*', { count: 'exact', head: true });
+      totalLibraries = count || 0;
+      document.getElementById('libCountBadge').textContent = totalLibraries;
+      document.getElementById('footerLibCount').textContent = totalLibraries;
+    }
+
+    // Fetch page of libraries
+    const { data: libs, error } = await supabase
+      .from('playlists')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(currentOffset, currentOffset + PAGE_SIZE - 1);
+
+    if (error) throw error;
+    if (!append) grid.innerHTML = '';
+
+    if (!libs || libs.length === 0) {
+      if (!append) {
+        grid.innerHTML = `<div class="empty-state"><i class="fas fa-book-open"></i><p>No libraries yet</p></div>`;
+      }
+      loadMoreWrap.style.display = 'none';
+      return;
+    }
+
+    // Fetch article counts for these libraries
+    const libIds = libs.map(l => l.id);
+    const { data: itemCounts } = await supabase
+      .from('playlist_items')
+      .select('playlist_id')
+      .in('playlist_id', libIds);
+
+    const countMap = {};
+    if (itemCounts) {
+      itemCounts.forEach(i => { countMap[i.playlist_id] = (countMap[i.playlist_id] || 0) + 1; });
+    }
+
+    // Fetch creators
+    const userIds = [...new Set(libs.map(l => l.user_id).filter(Boolean))];
+    const creatorMap = {};
+    if (userIds.length) {
+      const { data: creators } = await supabase
+        .from('users')
+        .select('user_id, username, pfp')
+        .in('user_id', userIds);
+      if (creators) creators.forEach(c => { creatorMap[c.user_id] = c; });
+    }
+
+    libs.forEach(lib => {
+      const count = countMap[lib.id] || 0;
+      const creator = creatorMap[lib.user_id] || null;
+      grid.appendChild(buildLibraryCard(lib, count, creator));
+    });
+
+    currentOffset += libs.length;
+
+    // Show/hide load more
+    if (currentOffset < totalLibraries) {
+      loadMoreWrap.style.display = 'block';
+      loadMoreBtn.disabled = false;
+      loadMoreBtn.innerHTML = '<i class="fas fa-chevron-down"></i> Load more';
+    } else {
+      loadMoreWrap.style.display = 'none';
+    }
+
+  } catch(err) {
+    grid.innerHTML = `<div class="error-state">Error loading libraries: ${err.message}</div>`;
+  }
+}
+
+window.loadMoreLibraries = async function() {
+  const btn = document.getElementById('loadMoreBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Loading…';
+  await loadLibraries(true);
+};
+
+/* ── Jump to Library ── */
+window.jumpToLibrary = async function() {
+  const input = document.getElementById('libraryIdInput');
+  const btn = document.getElementById('startBtn');
+  const banner = document.getElementById('libraryBanner');
+  const bName = document.getElementById('libraryBannerName');
+  const bMeta = document.getElementById('libraryBannerMeta');
+  const bThumb = document.getElementById('libraryBannerThumb');
+  const bOpenBtn = document.getElementById('bannerOpenBtn');
+  const val = input.value.trim();
+
+  if (!val || isNaN(val) || parseInt(val) <= 0) {
+    input.classList.add('error');
+    setTimeout(() => input.classList.remove('error'), 1200);
+    input.focus(); return;
+  }
+
+  const libraryId = parseInt(val);
+  btn.disabled = true; btn.textContent = '…';
+  bName.textContent = 'Loading…'; bMeta.innerHTML = '';
+  bThumb.innerHTML = '<i class="fas fa-book-open"></i>';
+  banner.classList.add('show');
+
+  try {
+    const { data: lib, error } = await supabase
+      .from('playlists').select('*').eq('id', libraryId).single();
+
+    if (error || !lib) {
+      bName.textContent = `Library #${libraryId}`;
+      bMeta.innerHTML = `<span><i class="fas fa-exclamation-circle"></i> Library not found</span>`;
+      bOpenBtn.style.display = 'none';
+    } else {
+      // Thumbnail in banner
+      if (lib.thumbnail_url) {
+        bThumb.innerHTML = `<img src="${window.escHtml(lib.thumbnail_url)}" alt="${window.escHtml(lib.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:9px;">`;
+      }
+
+      bName.textContent = lib.name || `Library #${libraryId}`;
+
+      // Article count
+      const { count: artCount } = await supabase
+        .from('playlist_items')
+        .select('*', { count: 'exact', head: true })
+        .eq('playlist_id', libraryId);
+
+      const parts = [];
+      parts.push(`<span><i class="fas fa-layer-group"></i> ${artCount || 0} articles</span>`);
+      if (lib.description) parts.push(`<span><i class="fas fa-align-left"></i> ${window.escHtml(lib.description)}</span>`);
+      if (lib.created_at) {
+        const d = new Date(lib.created_at).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+        parts.push(`<span><i class="fas fa-calendar-alt"></i> ${d}</span>`);
+      }
+      bMeta.innerHTML = parts.join('');
+
+      bOpenBtn.style.display = 'inline-flex';
+      bOpenBtn.onclick = () => { window.location.href = `playlist.html?id=${libraryId}`; };
+    }
+  } catch(e) {
+    bName.textContent = `Library #${libraryId}`;
+    bMeta.innerHTML = `<span><i class="fas fa-hashtag"></i> ID ${libraryId}</span>`;
+    bOpenBtn.style.display = 'none';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Go';
+  }
+};
+
+window.clearJump = function() {
+  document.getElementById('libraryIdInput').value = '';
+  document.getElementById('libraryBanner').classList.remove('show');
+};
+
+/* ── Init ── */
+loadCreators();
+loadLibraries(false);
+</script>
+
+</body>
+</html>
