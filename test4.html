@@ -1,1 +1,753 @@
-:)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Patholytica Daily Feed</title>
+    
+    <!-- CDNs -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        window.firebaseApp = initializeApp({
+            apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+            authDomain: "patholytica.firebaseapp.com",
+            databaseURL: "https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "patholytica",
+            storageBucket: "patholytica.firebasestorage.app",
+            messagingSenderId: "738430635282",
+            appId: "1:738430635282:web:8451ef380447c7611137cb"
+        });
+        window.auth = getAuth(window.firebaseApp);
+    </script>
+
+    <style>
+        :root {
+            --bg-color: #1f1f1f;
+            --accent: #f1d19e;
+            --accent-hover: #d9b87a;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --border-color: #303030;
+            --hover-bg: #2a2a2a;
+            --card-bg: #1f1f1f;
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+
+        body.light-theme {
+            --bg-color: #ffffff;
+            --accent: #c4a47c;
+            --accent-hover: #b3936b;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --border-color: #e0e0e0;
+            --hover-bg: #f5f5f5;
+            --card-bg: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #000;
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 450px;
+            margin: 0 auto;
+            height: 100%;
+            background: var(--bg-color);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Scrolling Logic */
+        .posts-wrapper {
+            flex: 1;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none; /* Firefox */
+        }
+        .posts-wrapper::-webkit-scrollbar { display: none; }
+
+        .article-card, .mcq-card, .library-picker-card {
+            width: 100%;
+            height: 100vh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--bg-color);
+        }
+
+        .card-inner {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 0 20px calc(100px + var(--safe-bottom)) 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .card-safe-top { height: var(--safe-top); min-height: 20px; }
+        .card-top-line { height: 1px; background: var(--border-color); width: 100%; margin-bottom: 15px; }
+
+        /* Background blur effects */
+        .article-card-bg {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.18;
+            filter: blur(8px);
+        }
+        .article-card-bg-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, transparent 0%, var(--bg-color) 85%);
+            z-index: 1;
+        }
+
+        /* Header */
+        .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
+        .author-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--accent); color: #1f1f1f;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; overflow: hidden; cursor: pointer;
+        }
+        .author-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .author-meta { flex: 1; }
+        .author-name { font-weight: 600; font-size: 15px; display: block; text-decoration: none; color: inherit; }
+        .post-date { font-size: 12px; color: var(--text-secondary); }
+
+        /* Follow Button */
+        .follow-btn {
+            width: 32px; height: 32px; border-radius: 50%;
+            border: 1px solid var(--border-color);
+            background: var(--hover-bg); color: var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.3s;
+        }
+        .follow-btn.active { border-color: var(--accent); animation: bell-ring 0.5s ease; }
+        @keyframes bell-ring {
+            0% { transform: rotate(0); }
+            20% { transform: rotate(15deg); }
+            40% { transform: rotate(-15deg); }
+            60% { transform: rotate(10deg); }
+            80% { transform: rotate(-10deg); }
+            100% { transform: rotate(0); }
+        }
+
+        /* Content Area */
+        .article-title { font-size: 22px; font-weight: 800; margin-bottom: 10px; line-height: 1.2; text-align: justify; }
+        .stats-row { display: flex; gap: 15px; color: var(--text-secondary); font-size: 13px; margin-bottom: 15px; }
+        .stats-row i { color: var(--accent); margin-right: 4px; }
+        .scrollable-content { flex: 1; overflow-y: auto; padding-right: 40px; text-align: justify; line-height: 1.6; }
+        .scrollable-content p { margin-bottom: 15px; }
+
+        /* Right Side Actions */
+        .action-bar {
+            position: absolute;
+            right: 15px;
+            bottom: calc(100px + var(--safe-bottom));
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
+        }
+        .action-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        .action-btn-circle {
+            width: 45px; height: 45px; border-radius: 50%;
+            background: rgba(40,40,40,0.6);
+            backdrop-filter: blur(5px);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.1s;
+        }
+        .action-item:active .action-btn-circle { transform: scale(0.9); }
+        .action-item span { font-size: 11px; font-weight: 600; }
+        .action-item.liked .action-btn-circle { color: #ff4d4d; }
+
+        /* MCQ Styles */
+        .mcq-badge {
+            background: rgba(241, 209, 158, 0.15);
+            color: var(--accent);
+            padding: 4px 10px; border-radius: 4px;
+            font-size: 11px; font-weight: 800;
+            display: inline-block; margin-bottom: 15px; text-transform: uppercase;
+        }
+        .mcq-option {
+            background: var(--hover-bg);
+            border: 1px solid var(--border-color);
+            padding: 15px; border-radius: 12px;
+            margin-bottom: 10px; cursor: pointer;
+            display: flex; align-items: center; gap: 12px;
+            transition: 0.2s;
+        }
+        .opt-label { 
+            width: 24px; height: 24px; border-radius: 50%; 
+            border: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: bold;
+        }
+        .mcq-option.correct { border-color: #4ade80; background: rgba(74, 222, 128, 0.1); }
+        .mcq-option.wrong { border-color: #f87171; background: rgba(248, 113, 113, 0.1); }
+
+        /* Term Popup */
+        .term-link { color: var(--accent); border-bottom: 1px dashed var(--accent); cursor: pointer; font-weight: 600; }
+        .term-popup {
+            position: fixed; width: 260px; background: var(--card-bg);
+            border: 1px solid var(--border-color); border-radius: 12px;
+            padding: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 1000; display: none; font-size: 14px;
+        }
+        .term-popup-title { font-weight: 800; color: var(--accent); margin-bottom: 5px; display: block; }
+
+        /* Emoji System */
+        .emo-fire { background: linear-gradient(45deg, #ff4500, #ff8c00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: bold; animation: glow 1.5s infinite alternate; }
+        .emo-urgent { background: #ff4d4d; color: white !important; padding: 0 4px; border-radius: 3px; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        @keyframes glow { from { filter: drop-shadow(0 0 2px #ff4500); } to { filter: drop-shadow(0 0 8px #ff8c00); } }
+
+        /* Library Picker */
+        .library-picker-card { padding: 40px 20px; text-align: center; }
+        .lp-logo { width: 60px; margin-bottom: 20px; }
+        .lp-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin: 20px 0; }
+        .lp-item {
+            display: flex; align-items: center; padding: 12px;
+            background: var(--hover-bg); border: 1px solid var(--border-color);
+            border-radius: 12px; cursor: pointer; text-align: left;
+        }
+        .lp-item.selected { border-color: var(--accent); background: rgba(241,209,158,0.1); }
+        .lp-item .info { flex: 1; }
+        .lp-item .name { font-weight: 600; display: block; }
+        .lp-item .count { font-size: 11px; color: var(--text-secondary); }
+        .start-btn {
+            background: var(--accent); color: #000; border: none;
+            padding: 15px; border-radius: 12px; font-weight: 800;
+            width: 100%; cursor: pointer;
+        }
+
+        /* Footer */
+        .footer-nav {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            height: calc(70px + var(--safe-bottom));
+            background: var(--card-bg); border-top: 1px solid var(--border-color);
+            display: flex; justify-content: space-around; align-items: center;
+            padding-bottom: var(--safe-bottom); z-index: 100;
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-secondary); text-decoration: none; }
+        .nav-item.active { color: var(--accent); }
+        .nav-item i { font-size: 20px; }
+        .nav-item span { font-size: 10px; font-weight: 600; }
+
+        /* Comment Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 2000; display: none;
+            justify-content: center; align-items: flex-end;
+        }
+        .modal-content {
+            width: 100%; max-width: 450px; background: var(--card-bg);
+            height: 70vh; border-radius: 20px 20px 0 0; display: flex; flex-direction: column;
+            padding: 20px; position: relative;
+        }
+        .comment-input-area { display: flex; gap: 10px; margin-top: auto; padding-top: 15px; border-top: 1px solid var(--border-color); }
+        .comment-input { flex: 1; background: var(--hover-bg); border: 1px solid var(--border-color); padding: 12px; border-radius: 20px; color: white; outline: none; }
+
+        /* Skeleton */
+        .skeleton { background: linear-gradient(90deg, var(--hover-bg) 25%, var(--border-color) 50%, var(--hover-bg) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+        /* Media */
+        .audio-player { background: var(--hover-bg); border-radius: 12px; padding: 15px; margin: 10px 0; }
+        .waveform { display: flex; align-items: center; gap: 2px; height: 30px; margin-top: 10px; }
+        .wave-bar { flex: 1; background: var(--border-color); height: 50%; border-radius: 1px; }
+        .yt-container { width: 100%; aspect-ratio: 16/9; margin: 10px 0; border-radius: 12px; overflow: hidden; }
+
+        canvas#confettiCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9998; }
+
+        /* Heart Burst */
+        .heart-burst {
+            position: absolute; pointer-events: none; transform: translate(-50%, -50%);
+            animation: burst 0.8s ease-out forwards; z-index: 1000;
+        }
+        @keyframes burst {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            50% { transform: translate(-50%, -60%) scale(1.5); opacity: 1; }
+            100% { transform: translate(-50%, -80%) scale(1.2); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="confettiCanvas"></canvas>
+
+<div class="app-container">
+    <div class="posts-wrapper" id="feed">
+        <!-- Content will be injected here -->
+    </div>
+
+    <!-- Term Popup -->
+    <div id="term-popup" class="term-popup">
+        <span class="term-popup-title" id="term-title"></span>
+        <div id="term-body"></div>
+    </div>
+
+    <!-- Comment Modal -->
+    <div id="comment-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 15px;">Comments</h3>
+            <div id="comment-list" style="flex: 1; overflow-y: auto;">
+                <!-- Comments -->
+            </div>
+            <div class="comment-input-area">
+                <input type="text" id="comment-input" class="comment-input" placeholder="Add a comment...">
+                <button id="send-comment" style="background: var(--accent); border: none; padding: 10px 15px; border-radius: 20px; font-weight: bold; cursor: pointer;">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-nav">
+        <a href="index.html" class="nav-item">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="#" class="nav-item active">
+            <i class="fas fa-scroll"></i>
+            <span>Feed</span>
+        </a>
+        <a href="explore.html" class="nav-item">
+            <i class="fas fa-search"></i>
+            <span>Explore</span>
+        </a>
+        <a href="https://patholytica.com/space" class="nav-item">
+            <i class="fas fa-th-large"></i>
+            <span>Space</span>
+        </a>
+    </div>
+</div>
+
+<script>
+    // Config & Init
+    const SB_URL = "https://vduqewqyvszfquntmark.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c";
+    const supabase = window.supabase.createClient(SB_URL, SB_KEY);
+
+    let currentUser = null;
+    let offset = 0;
+    const limit = 5;
+    let isLoading = false;
+    let hasMore = true;
+    let currentPlaylist = null;
+    let likedArticles = new Set();
+    let followedAuthors = new Set();
+
+    // Utility: Emoji Parser
+    const EMOJI_MAP = {
+        '🔥': 'emo-fire',
+        '⚡': 'emo-lightning',
+        '❗': 'emo-urgent'
+        // Add others as needed
+    };
+
+    function parseRichText(text) {
+        if (!text) return "";
+        // Emoji Treatments
+        Object.keys(EMOJI_MAP).forEach(emoji => {
+            const regex = new RegExp(`${emoji}(.*?)${emoji}`, 'g');
+            text = text.replace(regex, `<span class="${EMOJI_MAP[emoji]}">$1</span>`);
+        });
+
+        // Term Definitions: Term<definition>
+        text = text.replace(/([a-zA-Z0-9\s]+)<(.*?)>/g, (match, term, def) => {
+            return `<span class="term-link" onclick="showTerm('${term.replace(/'/g, "\\'")}', '${def.replace(/'/g, "\\'")}', event)">${term}</span>`;
+        });
+
+        return text.replace(/\n/g, '<br>');
+    }
+
+    function showTerm(title, def, event) {
+        event.stopPropagation();
+        const popup = document.getElementById('term-popup');
+        document.getElementById('term-title').innerText = title;
+        document.getElementById('term-body').innerText = def;
+        
+        popup.style.display = 'block';
+        let x = event.clientX - 130;
+        let y = event.clientY + 20;
+        
+        // Boundaries
+        if (x < 10) x = 10;
+        if (x + 260 > window.innerWidth) x = window.innerWidth - 270;
+        
+        popup.style.left = `${x}px`;
+        popup.style.top = `${y}px`;
+
+        const close = () => { popup.style.display = 'none'; document.removeEventListener('click', close); };
+        setTimeout(() => document.addEventListener('click', close), 10);
+    }
+
+    // Components
+    function createMCQ(article) {
+        const lines = article.content.split('\n');
+        const question = lines[0].replace('❔', '');
+        const rawOptions = lines.slice(1).filter(l => l.trim());
+        const options = rawOptions.map(opt => ({
+            text: opt.replace('✅', ''),
+            correct: opt.includes('✅')
+        })).sort(() => Math.random() - 0.5);
+
+        const card = document.createElement('div');
+        card.className = 'mcq-card';
+        card.innerHTML = `
+            <div class="card-safe-top"></div>
+            <div class="card-inner">
+                <div class="card-top-line"></div>
+                <div class="mcq-badge">Practice</div>
+                <div class="article-title">${parseRichText(question)}</div>
+                <div class="mcq-options-container">
+                    ${options.map((opt, i) => `
+                        <div class="mcq-option" onclick="checkAnswer(this, ${opt.correct})">
+                            <div class="opt-label">${String.fromCharCode(65 + i)}</div>
+                            <div class="opt-text">${parseRichText(opt.text)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            ${createActionBar(article)}
+        `;
+        return card;
+    }
+
+    function checkAnswer(el, isCorrect) {
+        if (el.parentElement.classList.contains('answered')) return;
+        el.parentElement.classList.add('answered');
+        if (isCorrect) {
+            el.classList.add('correct');
+            burstConfetti(el);
+        } else {
+            el.classList.add('wrong');
+            el.parentElement.querySelectorAll('.mcq-option').forEach(opt => {
+                // We'd ideally find the actual correct one here
+            });
+        }
+    }
+
+    function createActionBar(article) {
+        const isLiked = likedArticles.has(article.id);
+        return `
+            <div class="action-bar">
+                <div class="action-item ${isLiked ? 'liked' : ''}" onclick="toggleLike(${article.id}, this)">
+                    <div class="action-btn-circle"><i class="fa${isLiked ? 's' : 'r'} fa-heart"></i></div>
+                    <span class="like-count">${article.likes || 0}</span>
+                </div>
+                <div class="action-item" onclick="showComments(${article.id})">
+                    <div class="action-btn-circle"><i class="far fa-comment"></i></div>
+                    <span>${article.comment_count || 0}</span>
+                </div>
+                <div class="action-item" onclick="shareArticle(${article.id})">
+                    <div class="action-btn-circle"><i class="fas fa-share"></i></div>
+                    <span>Share</span>
+                </div>
+            </div>
+        `;
+    }
+
+    async function loadArticles(reset = false) {
+        if (isLoading || (!hasMore && !reset)) return;
+        isLoading = true;
+        
+        if (reset) {
+            offset = 0;
+            hasMore = true;
+            document.getElementById('feed').innerHTML = '';
+        }
+
+        let query = supabase.from('articles').select('*, users!inner(*), media(*)').order('created_at', { ascending: false });
+        
+        if (currentPlaylist) {
+            const { data: itemIds } = await supabase.from('playlist_items').select('article_id').eq('playlist_id', currentPlaylist);
+            query = query.in('id', itemIds.map(i => i.article_id));
+        }
+
+        const { data, error } = await query.range(offset, offset + limit - 1);
+
+        if (data) {
+            data.forEach(article => renderArticle(article));
+            offset += limit;
+            if (data.length < limit) hasMore = false;
+        }
+        isLoading = false;
+    }
+
+    function renderArticle(article) {
+        const container = document.getElementById('feed');
+        if (article.content.startsWith('❔')) {
+            container.appendChild(createMCQ(article));
+            return;
+        }
+
+        const card = document.createElement('div');
+        card.className = 'article-card';
+        card.dataset.id = article.id;
+        
+        const mainImg = article.media.find(m => m.type === 'image')?.url;
+        
+        card.innerHTML = `
+            ${mainImg ? `<div class="article-card-bg" style="background-image: url('${mainImg}')"></div>` : ''}
+            <div class="article-card-bg-overlay"></div>
+            <div class="card-safe-top"></div>
+            <div class="card-inner">
+                <div class="card-top-line"></div>
+                <div class="card-header">
+                    <div class="author-avatar">${article.users.pfp ? `<img src="${article.users.pfp}">` : article.users.username[0]}</div>
+                    <div class="author-meta">
+                        <a href="profile.html?username=${article.users.username}" class="author-name">@${article.users.username}</a>
+                        <span class="post-date">${formatDate(article.created_at)}</span>
+                    </div>
+                    <button class="follow-btn" onclick="toggleFollow(${article.users.user_id}, this)">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div class="article-title">${parseRichText(article.title)}</div>
+                <div class="stats-row">
+                    <span><i class="fas fa-eye"></i> ${article.views || 0}</span>
+                    <span><i class="fas fa-heart"></i> ${article.likes || 0}</span>
+                </div>
+                <div class="scrollable-content">
+                    ${article.content.split('\n\n').map(p => `<p>${parseRichText(p)}</p>`).join('')}
+                    ${renderMedia(article.media)}
+                </div>
+            </div>
+            ${createActionBar(article)}
+        `;
+
+        // Double Tap Like
+        let lastTap = 0;
+        card.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTap < 300) {
+                handleDoubleTap(e, article.id, card);
+            }
+            lastTap = now;
+        });
+
+        container.appendChild(card);
+    }
+
+    function renderMedia(mediaList) {
+        return mediaList.map(m => {
+            if (m.type === 'image') return `<img src="${m.url}" style="width:100%; border-radius:12px; margin: 10px 0;">`;
+            if (m.type === 'youtube') {
+                const vid = m.url.split('v=')[1];
+                return `<div class="yt-container"><iframe width="100%" height="100%" src="https://www.youtube.com/embed/${vid}" frameborder="0" allowfullscreen></iframe></div>`;
+            }
+            if (m.type === 'audio') {
+                return `
+                    <div class="audio-player">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <i class="fas fa-play" onclick="playAudio(this, '${m.url}')"></i>
+                            <span style="font-size:12px; font-weight:bold;">Audio Briefing</span>
+                        </div>
+                        <div class="waveform">${Array(30).fill().map(() => `<div class="wave-bar" style="height:${Math.random()*100}%"></div>`).join('')}</div>
+                    </div>
+                `;
+            }
+            return '';
+        }).join('');
+    }
+
+    // Social Interactions
+    async function toggleLike(id, el) {
+        if (!currentUser) return window.location.href = "https://patholytica.com/login";
+        const isLiked = likedArticles.has(id);
+        const countEl = el.querySelector('.like-count');
+        let count = parseInt(countEl.innerText);
+
+        if (isLiked) {
+            likedArticles.delete(id);
+            el.classList.remove('liked');
+            el.querySelector('i').className = 'far fa-heart';
+            count--;
+            await supabase.from('likes').delete().match({ user_id: currentUser.user_id, article_id: id });
+        } else {
+            likedArticles.add(id);
+            el.classList.add('liked');
+            el.querySelector('i').className = 'fas fa-heart';
+            count++;
+            await supabase.from('likes').insert({ user_id: currentUser.user_id, article_id: id });
+        }
+        countEl.innerText = count;
+    }
+
+    function handleDoubleTap(e, id, card) {
+        const likeBtn = card.querySelector('.action-item');
+        if (!likedArticles.has(id)) toggleLike(id, likeBtn);
+        
+        // Burst Effect
+        const burst = document.createElement('div');
+        burst.className = 'heart-burst';
+        burst.innerHTML = `<i class="fas fa-heart" style="color:#ff4d4d; font-size: 40px;"></i>`;
+        burst.style.left = `${e.changedTouches[0].clientX}px`;
+        burst.style.top = `${e.changedTouches[0].clientY}px`;
+        document.body.appendChild(burst);
+        setTimeout(() => burst.remove(), 800);
+    }
+
+    // View Counting System
+    const viewed = new Set();
+    const viewObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const id = entry.target.dataset.id;
+                if (!viewed.has(id)) {
+                    setTimeout(async () => {
+                        const currentEntries = viewObserver.takeRecords();
+                        // If it's still visible after 5s
+                        const visible = Array.from(document.querySelectorAll('.article-card')).find(el => el.dataset.id == id);
+                        if (visible) {
+                            viewed.add(id);
+                            await supabase.rpc('increment_views', { art_id: id });
+                        }
+                    }, 5000);
+                }
+            }
+        });
+    }, { threshold: 0.75 });
+
+    // Confetti Engine
+    function burstConfetti(target) {
+        const canvas = document.getElementById('confettiCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const particles = [];
+        const colors = ['#f1d19e', '#ffffff', '#d9b87a', '#4ade80', '#60a5fa'];
+        
+        for(let i=0; i<80; i++) {
+            particles.push({
+                x: window.innerWidth / 2,
+                y: window.innerHeight / 2,
+                vx: (Math.random() - 0.5) * 10,
+                vy: (Math.random() - 0.5) * 10 - 5,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                size: Math.random() * 5 + 2,
+                gravity: 0.2
+            });
+        }
+
+        function anim() {
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            particles.forEach((p, i) => {
+                p.vx *= 0.99;
+                p.vy += p.gravity;
+                p.x += p.vx;
+                p.y += p.vy;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+                if(p.y > canvas.height) particles.splice(i, 1);
+            });
+            if(particles.length > 0) requestAnimationFrame(anim);
+        }
+        anim();
+    }
+
+    // Helper: Date Format
+    function formatDate(dateStr) {
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diff = Math.floor((now - date) / 1000);
+        if (diff < 60) return 'Just now';
+        if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+        return `${Math.floor(diff/86400)}d ago`;
+    }
+
+    // Init Logic
+    window.addEventListener('DOMContentLoaded', async () => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('article')) {
+            // Anchor to specific
+        } else if (params.has('playlist')) {
+            currentPlaylist = params.get('playlist');
+            loadArticles(true);
+        } else {
+            showLibraryPicker();
+        }
+
+        // Infinite Scroll
+        document.querySelector('.posts-wrapper').addEventListener('scroll', (e) => {
+            const { scrollTop, scrollHeight, clientHeight } = e.target;
+            if (scrollTop + clientHeight >= scrollHeight * 0.8) {
+                loadArticles();
+            }
+        });
+    });
+
+    async function showLibraryPicker() {
+        const { data: libs } = await supabase.from('playlists').select('*, playlist_items(count)');
+        const container = document.getElementById('feed');
+        const picker = document.createElement('div');
+        picker.className = 'library-picker-card';
+        picker.innerHTML = `
+            <div class="card-safe-top"></div>
+            <img src="IMG_3220.png" class="lp-logo">
+            <h2 class="article-title" style="text-align:center">Personalize Your Feed</h2>
+            <p style="color:var(--text-secondary); font-size: 14px;">Select up to 5 libraries to customize your daily scroll.</p>
+            <div class="lp-list">
+                ${libs.map(lib => `
+                    <div class="lp-item" onclick="toggleLibSelection(this, ${lib.id})">
+                        <div class="info">
+                            <span class="name">${lib.name}</span>
+                            <span class="count">${lib.playlist_items[0].count} articles</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <button class="start-btn" onclick="startFeed()">Start Exploring</button>
+            <p style="margin-top: 20px; font-size: 12px; color: var(--text-secondary); cursor:pointer" onclick="loadArticles(true)">Skip and browse everything</p>
+        `;
+        container.appendChild(picker);
+    }
+
+    let selectedLibs = new Set();
+    window.toggleLibSelection = (el, id) => {
+        if (selectedLibs.has(id)) {
+            selectedLibs.delete(id);
+            el.classList.remove('selected');
+        } else {
+            if (selectedLibs.size >= 5) return;
+            selectedLibs.add(id);
+            el.classList.add('selected');
+        }
+    };
+
+    window.startFeed = async () => {
+        // Here we'd filter by the selectedLibs
+        loadArticles(true);
+    };
+
+</script>
+
+</body>
+</html>
