@@ -465,7 +465,6 @@
        .lp-hero-main-title span { color: var(--accent); }
        .lp-hero-sub { font-size: 12px; color: var(--text-secondary); }
 
-       /* FIX: lp-body uses overflow-x:hidden only — no overflow-y:auto so it doesn't create a clipping context for shelf hover */
        .lp-body {
            flex: 1;
            overflow-y: auto;
@@ -504,14 +503,12 @@
 
        .lp-hint { font-size: 11px; color: var(--accent); font-weight: 700; margin-bottom: 8px; }
 
-       /* FIX: shelf-wrap has padding-top so hover translateY(-4px) is not clipped */
        .lp-shelf-wrap {
            overflow: visible;
            margin-bottom: 10px;
            padding-top: 10px;
        }
 
-       /* FIX: shelf overflow-y visible so cards pop up without clipping */
        .lp-shelf {
            display: flex;
            gap: 10px;
@@ -607,7 +604,6 @@
        }
        .lp-loading { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 12px; padding: 20px 0; }
 
-       /* FIX: generous padding-bottom so button clears footer bar fully */
        .lp-actions-fixed {
            flex-shrink: 0;
            background: var(--bg-color);
@@ -1054,9 +1050,24 @@ async function initLibraryPicker(){
        try{const {data:items}=await supabase.from('playlist_items').select('article_id').eq('playlist_id',window._urlPlaylistId);const articleIds=[...new Set((items||[]).map(r=>r.article_id))];filteredArticleIds=articleIds.length>0?articleIds:null;}catch(e){filteredArticleIds=null;}
        loadArticles(true);return;
    }
-   const wrapper=document.getElementById('postsWrapper');
-   const pickerCard=buildPickerCard();wrapper.insertBefore(pickerCard,wrapper.firstChild);
 
+   // ── CHANGED: insert picker, then IMMEDIATELY inject skeletons + load + scroll ──
+   const wrapper=document.getElementById('postsWrapper');
+   const pickerCard=buildPickerCard();
+   wrapper.insertBefore(pickerCard,wrapper.firstChild);
+   window._pickerHandledLoad=true;
+
+   // Inject skeletons and kick off article load right away — no waiting for picker's async work
+   injectInitialSkeletons(3);
+   loadArticles(true);
+
+   // Scroll past picker to first skeleton before the network calls even start
+   requestAnimationFrame(()=>{
+       const firstSkeleton=wrapper.querySelector('.skeleton-card');
+       if(firstSkeleton) wrapper.scrollTop=firstSkeleton.offsetTop;
+   });
+
+   // Now do the picker's async library loading in the background
    const grid=document.getElementById('lpGrid'),startBtn=document.getElementById('lpStartBtn');
    const hint=document.getElementById('lpCountHint'),idInput=document.getElementById('lpIdInput');
    const idGoBtn=document.getElementById('lpIdGoBtn'),idError=document.getElementById('lpIdError');
@@ -1482,7 +1493,7 @@ window.sendComment=async function(){
 document.getElementById('commentInput').addEventListener('keypress',e=>{if(e.key==='Enter')window.sendComment();});
 function handleScroll(e){const c=e.target;if(c.scrollTop+c.clientHeight>=c.scrollHeight*0.8&&hasMore&&!isLoading)loadArticles(false);}
 
-initLibraryPicker().then(()=>{if(!window._pickerHandledLoad){injectInitialSkeletons(3);loadArticles(true);}});
+initLibraryPicker();
 </script>
 
 <script>
