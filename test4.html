@@ -1,1 +1,1330 @@
-:)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Create — Patholytica</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg: #0f0e0b;
+  --text: #f5f0e8;
+  --sub: #8a8070;
+  --hover: #1a1810;
+  --border: #2a2518;
+  --accent: #c8a96e;
+  --accent-h: #b8935a;
+  --accent-glow: rgba(200,169,110,0.25);
+  --accent-soft: rgba(200,169,110,0.12);
+  --green: #6abf85;
+}
+body.light-theme {
+  --bg: #faf6ee; --text: #1a1710; --sub: #706050;
+  --hover: #f0ebe0; --border: #e0d8c8;
+  --accent: #a07840; --accent-h: #8a6430;
+  --accent-glow: rgba(160,120,64,0.2);
+  --accent-soft: rgba(160,120,64,0.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; }
+body {
+  font-family:"DM Sans",sans-serif;
+  background:var(--bg); color:var(--text);
+  position:fixed; width:100%; height:100%;
+  transition:background .2s,color .2s;
+  overflow:hidden;
+}
+.app {
+  position:fixed; top:0; left:50%; transform:translateX(-50%);
+  width:100%; max-width:450px; height:100%;
+  background:var(--bg); display:flex; flex-direction:column;
+}
+
+/* ── Header ── */
+.hdr {
+  flex-shrink:0; display:flex; align-items:center; gap:10px;
+  padding:10px 16px;
+  padding-top:calc(10px + env(safe-area-inset-top));
+  border-bottom:1px solid var(--border);
+  background:rgba(15,14,11,0.97);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  z-index:50;
+}
+body.light-theme .hdr { background:rgba(250,246,238,0.97); }
+.hdr-back {
+  width:34px; height:34px; border-radius:50%;
+  background:var(--hover); border:1px solid var(--border);
+  color:var(--text); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; transition:border-color .2s,color .2s; flex-shrink:0;
+}
+.hdr-back:hover { border-color:var(--accent); color:var(--accent); }
+.hdr-title { flex:1; font-size:14px; font-weight:700; font-family:'Merriweather',serif; }
+.hdr-actions { display:flex; gap:7px; align-items:center; }
+.hdr-btn {
+  padding:7px 13px; border-radius:20px;
+  font-size:12px; font-weight:700; cursor:pointer;
+  transition:all .15s; font-family:"DM Sans",sans-serif;
+  display:flex; align-items:center; gap:5px; white-space:nowrap;
+}
+.hdr-ghost { background:var(--hover); border:1px solid var(--border); color:var(--sub); }
+.hdr-ghost:hover { border-color:var(--accent); color:var(--accent); }
+.hdr-primary { background:var(--accent); color:#0f0e0b; border:none; box-shadow:0 2px 10px var(--accent-glow); }
+.hdr-primary:hover { background:var(--accent-h); }
+.hdr-primary:disabled { opacity:.35; cursor:not-allowed; }
+
+/* ── Mode Switcher (pill) ── */
+.mode-switcher {
+  flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  padding:10px 18px; border-bottom:1px solid var(--border);
+  background:var(--bg);
+}
+.mode-pill {
+  display:flex; background:var(--hover); border:1px solid var(--border);
+  border-radius:24px; padding:3px; gap:2px;
+}
+.mode-pill-btn {
+  padding:7px 18px; border-radius:20px; border:none; cursor:pointer;
+  font-size:12px; font-weight:700; font-family:"DM Sans",sans-serif;
+  transition:all .2s; color:var(--sub); background:transparent;
+  display:flex; align-items:center; gap:6px;
+}
+.mode-pill-btn i { font-size:11px; }
+.mode-pill-btn.active {
+  background:var(--accent); color:#0f0e0b;
+  box-shadow:0 2px 8px var(--accent-glow);
+}
+
+/* ── Editor scroll body ── */
+.editor-body {
+  flex:1; overflow-y:auto; overflow-x:hidden;
+  padding-bottom:120px;
+  -webkit-overflow-scrolling:touch;
+}
+.editor-body::-webkit-scrollbar { width:2px; }
+.editor-body::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+/* ── Author preview bar ── */
+.preview-author-bar {
+  display:flex; align-items:center; gap:10px;
+  padding:14px 18px 10px;
+}
+.preview-avatar {
+  width:38px; height:38px; border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),#8a6430);
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; font-weight:700; color:#0f0e0b;
+  flex-shrink:0; overflow:hidden;
+}
+.preview-avatar img { width:100%; height:100%; object-fit:cover; }
+.preview-author-name { font-size:13px; font-weight:700; }
+.preview-author-date { font-size:10px; color:var(--sub); }
+
+/* ── Title ── */
+.title-area { padding:0 18px 8px; }
+.title-input {
+  font-size:20px; font-weight:800; color:var(--text);
+  line-height:1.2; letter-spacing:-0.02em;
+  font-family:'Merriweather',serif;
+  border:none; outline:none; background:transparent;
+  width:100%; resize:none; overflow:hidden; padding:0;
+  min-height:1.2em;
+}
+.title-input::placeholder { color:var(--sub); opacity:.5; }
+
+/* ── Stats row ── */
+.stats-bar {
+  display:flex; gap:14px; padding:4px 18px 10px;
+  border-bottom:1px solid var(--border);
+}
+.stat-chip { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--sub); }
+.stat-chip i { font-size:9px; }
+
+/* ── Content blocks ── */
+.blocks-wrap { padding:10px 0 0; }
+
+.block-row {
+  display:flex; align-items:flex-start; gap:0;
+  position:relative; margin-bottom:2px;
+}
+.block-drag-handle {
+  width:32px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  padding-top:10px; cursor:grab; color:var(--border);
+  font-size:13px; opacity:0; transition:opacity .15s;
+  touch-action:none;
+}
+.block-row:hover .block-drag-handle { opacity:1; }
+.block-drag-handle:active { cursor:grabbing; }
+
+.block-content { flex:1; min-width:0; }
+
+.block-actions {
+  width:32px; flex-shrink:0; display:flex; flex-direction:column;
+  align-items:center; gap:4px; padding-top:8px;
+  opacity:0; transition:opacity .15s;
+}
+.block-row:hover .block-actions { opacity:1; }
+.block-act-btn {
+  width:24px; height:24px; border-radius:6px; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:9px; transition:all .15s; background:transparent; color:var(--sub);
+}
+.block-act-btn:hover { background:var(--hover); color:var(--accent); }
+.block-act-btn.del:hover { color:#f87171; }
+
+/* Text block */
+.text-block {
+  font-size:14px; line-height:1.7; color:var(--text);
+  border:none; outline:none; background:transparent;
+  width:100%; resize:none; min-height:1.7em; padding:6px 18px 6px 0;
+  font-family:"DM Sans",sans-serif; letter-spacing:.01em;
+}
+.text-block::placeholder { color:var(--sub); opacity:.45; }
+
+/* Image block (full width like feed) */
+.image-block-wrap {
+  width:calc(100% + 32px); margin-left:0; margin-right:-32px;
+  margin-bottom:4px; margin-top:4px; overflow:hidden; position:relative;
+}
+.image-block-wrap img {
+  width:100%; height:auto; display:block; max-height:340px; object-fit:cover;
+}
+.image-caption-input {
+  width:100%; background:transparent; border:none; outline:none;
+  font-size:12px; color:var(--sub); font-family:"DM Sans",sans-serif;
+  padding:5px 18px 5px 0; font-style:italic;
+}
+.image-caption-input::placeholder { color:var(--sub); opacity:.5; }
+
+/* YouTube block (full width like feed) */
+.yt-block-wrap {
+  width:calc(100% + 32px); margin-left:0; margin-right:-32px;
+  margin-bottom:4px; margin-top:4px; overflow:hidden;
+}
+.yt-block-label {
+  display:flex; align-items:center; gap:8px; padding:8px 18px;
+  background:rgba(0,0,0,.4); border-bottom:1px solid rgba(255,255,255,.06);
+}
+.yt-block-label i { color:#c97a5a; font-size:13px; }
+.yt-block-label span { font-size:12px; font-weight:600; color:var(--text); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.yt-block-label a { font-size:10px; font-weight:700; color:#c97a5a; background:rgba(201,122,90,.1); border:1px solid rgba(201,122,90,.2); border-radius:7px; padding:3px 9px; text-decoration:none; white-space:nowrap; flex-shrink:0; }
+.yt-block-wrap iframe { width:100%; aspect-ratio:16/9; border:none; display:block; }
+.yt-caption-input {
+  width:100%; background:transparent; border:none; outline:none;
+  font-size:12px; color:var(--sub); font-family:"DM Sans",sans-serif;
+  padding:5px 18px 5px 0; font-style:italic;
+}
+.yt-caption-input::placeholder { color:var(--sub); opacity:.5; }
+
+/* Audio block (custom player like feed) */
+.audio-block-wrap { padding:6px 18px 6px 0; }
+.custom-audio-player {
+  background:var(--hover); border-radius:12px; padding:14px;
+  display:flex; align-items:center; gap:12px;
+  border:1px solid var(--border);
+}
+.play-btn {
+  width:40px; height:40px; border-radius:50%;
+  background:var(--accent); border:none; color:#0f0e0b;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  font-size:14px; transition:background .2s; flex-shrink:0;
+  box-shadow:0 0 14px var(--accent-glow);
+}
+.play-btn:hover { background:var(--accent-h); }
+.audio-info { flex:1; min-width:0; overflow:hidden; }
+.audio-title { font-size:12px; font-weight:600; margin-bottom:7px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text); }
+.waveform-container { position:relative; height:28px; background:var(--bg); border-radius:6px; margin-bottom:5px; cursor:pointer; overflow:hidden; }
+.waveform-progress { position:absolute; top:0; left:0; height:100%; background:var(--accent); opacity:.35; transition:width .1s linear; }
+.waveform-bars { position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:space-around; padding:0 4px; }
+.waveform-bar { width:2px; background:var(--sub); border-radius:2px; opacity:.5; }
+.audio-time { display:flex; justify-content:space-between; font-size:10px; color:var(--sub); }
+.audio-caption-input {
+  width:100%; background:transparent; border:none; outline:none;
+  font-size:12px; color:var(--sub); font-family:"DM Sans",sans-serif;
+  margin-top:6px; padding:0; font-style:italic;
+}
+.audio-caption-input::placeholder { color:var(--sub); opacity:.5; }
+
+/* ── Library selector ── */
+.library-row {
+  margin:10px 18px 0; padding:11px 14px;
+  background:var(--hover); border:1px solid var(--border);
+  border-radius:12px; display:flex; align-items:center; gap:10px; cursor:pointer;
+  transition:border-color .15s;
+}
+.library-row:hover { border-color:var(--accent); }
+.library-row i { font-size:13px; color:var(--accent); }
+.library-row-label { font-size:12px; font-weight:700; flex:1; }
+.library-row-val { font-size:11px; color:var(--sub); max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.library-row .chevron { font-size:10px; color:var(--sub); transition:transform .2s; }
+
+/* ── MCQ editor ── */
+.mcq-wrap { padding:10px 18px 0; }
+.mcq-badge-edit {
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--accent-soft); border:1px solid rgba(200,169,110,0.3);
+  border-radius:20px; padding:4px 12px; margin-bottom:12px;
+  font-size:10px; font-weight:800; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--accent);
+}
+.mcq-question-input {
+  font-size:18px; font-weight:800; color:var(--text);
+  line-height:1.3; letter-spacing:-0.02em;
+  font-family:'Merriweather',serif;
+  border:none; outline:none; background:transparent;
+  width:100%; resize:none; overflow:hidden; padding:0;
+  margin-bottom:14px; min-height:1.3em;
+}
+.mcq-question-input::placeholder { color:var(--sub); opacity:.45; }
+.mcq-options-wrap { display:flex; flex-direction:column; gap:8px; }
+.mcq-opt-row {
+  display:flex; align-items:center; gap:10px;
+  border:1px solid var(--border); border-radius:12px;
+  padding:11px 13px; background:var(--hover); transition:border-color .15s;
+}
+.mcq-opt-row.correct-opt { border-color:rgba(106,191,133,0.6); background:rgba(106,191,133,0.06); }
+.mcq-opt-letter {
+  width:24px; height:24px; border-radius:50%;
+  border:1.5px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  font-size:9px; font-weight:800; color:var(--sub); flex-shrink:0;
+  transition:all .15s;
+}
+.mcq-opt-row.correct-opt .mcq-opt-letter { background:var(--green); border-color:var(--green); color:#0f0e0b; }
+.mcq-opt-input {
+  flex:1; background:transparent; border:none; outline:none;
+  font-size:13px; font-weight:500; color:var(--text);
+  font-family:"DM Sans",sans-serif;
+}
+.mcq-opt-input::placeholder { color:var(--sub); opacity:.45; }
+.mcq-mark-correct {
+  width:22px; height:22px; border-radius:50%; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:9px; flex-shrink:0; transition:all .15s;
+  background:var(--bg); color:var(--sub);
+}
+.mcq-opt-row.correct-opt .mcq-mark-correct { background:var(--green); color:#0f0e0b; }
+.mcq-opt-del {
+  width:20px; height:20px; border-radius:50%; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:9px; background:transparent; color:var(--sub); flex-shrink:0;
+}
+.mcq-opt-del:hover { color:#f87171; }
+.mcq-add-opt {
+  margin-top:8px; padding:10px; border-radius:10px;
+  border:1px dashed var(--border); background:transparent;
+  color:var(--sub); font-size:12px; font-weight:600; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  font-family:"DM Sans",sans-serif; transition:border-color .15s,color .15s;
+  width:100%;
+}
+.mcq-add-opt:hover { border-color:var(--accent); color:var(--accent); }
+
+/* ── Bottom toolbar ── */
+.bottom-toolbar {
+  position:fixed;
+  bottom:0;
+  left:50%;
+  transform:translateX(-50%);
+  width:100%;
+  max-width:450px;
+  background:rgba(15,14,11,0.97);
+  border-top:1px solid var(--border);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  padding:10px 14px;
+  padding-bottom:calc(10px + env(safe-area-inset-bottom));
+  display:flex; gap:6px; z-index:200;
+}
+body.light-theme .bottom-toolbar { background:rgba(250,246,238,0.97); }
+.tool-btn {
+  flex:1; display:flex; align-items:center; justify-content:center; gap:5px;
+  padding:9px 4px; border-radius:10px;
+  border:1px solid var(--border); background:var(--hover);
+  color:var(--sub); font-size:11px; font-weight:700;
+  cursor:pointer; transition:all .15s; font-family:"DM Sans",sans-serif;
+  white-space:nowrap;
+}
+.tool-btn:hover { border-color:var(--accent); color:var(--accent); }
+.tool-btn i { font-size:13px; }
+.tool-btn label { cursor:pointer; display:flex; align-items:center; gap:5px; }
+
+/* ── YT input row ── */
+.yt-input-bar {
+  display:none; align-items:center; gap:6px;
+  margin:8px 18px 0;
+}
+.yt-input-bar.show { display:flex; }
+.yt-url-in {
+  flex:1; padding:8px 12px; background:var(--hover);
+  border:1px solid var(--border); border-radius:8px; outline:none;
+  font-size:12px; color:var(--text); font-family:"DM Sans",sans-serif;
+  transition:border-color .15s;
+}
+.yt-url-in:focus { border-color:#f87171; }
+.yt-url-in::placeholder { color:var(--sub); opacity:.5; }
+.yt-add-btn { padding:8px 12px; background:rgba(239,68,68,.15); border:1px solid rgba(239,68,68,.3); border-radius:8px; color:#f87171; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; }
+.yt-cancel-btn { padding:8px 10px; background:transparent; border:1px solid var(--border); border-radius:8px; color:var(--sub); font-size:11px; cursor:pointer; }
+
+/* ── Emoji highlight toolbar ── */
+.highlight-toolbar {
+  position:fixed; z-index:1000;
+  background:#141210; border:1px solid var(--border);
+  border-radius:12px; padding:6px 4px;
+  box-shadow:0 8px 32px rgba(0,0,0,.7);
+  display:none; flex-direction:column; gap:2px;
+  min-width:170px; max-height:280px; overflow-y:auto;
+}
+.highlight-toolbar.show { display:flex; }
+.highlight-toolbar::-webkit-scrollbar { width:2px; }
+.highlight-toolbar::-webkit-scrollbar-thumb { background:var(--border); }
+.hl-toolbar-title {
+  font-size:9px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--sub); padding:2px 10px 4px;
+}
+.hl-group-label {
+  font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--sub); opacity:.5; padding:4px 10px 2px;
+}
+.hl-btn {
+  display:flex; align-items:center; gap:8px; padding:6px 10px;
+  cursor:pointer; border:none; background:transparent;
+  color:var(--text); font-size:12px; font-weight:600;
+  font-family:"DM Sans",sans-serif; width:100%; text-align:left;
+  border-radius:6px; transition:background .1s;
+}
+.hl-btn:hover { background:var(--hover); }
+.hl-btn .hl-swatch {
+  width:10px; height:10px; border-radius:2px; flex-shrink:0;
+}
+
+/* ── Sheet ── */
+.sheet-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.85);
+  z-index:300; display:none; align-items:flex-end; justify-content:center;
+  backdrop-filter:blur(4px);
+}
+.sheet-overlay.show { display:flex; }
+.sheet {
+  background:#141210; border-radius:20px 20px 0 0;
+  border:1px solid var(--border); border-bottom:none;
+  width:100%; max-width:450px; max-height:88vh;
+  display:flex; flex-direction:column;
+  animation:slideUp .3s cubic-bezier(.4,0,.2,1);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;flex-shrink:0;}
+.sheet-header{padding:12px 18px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0;}
+.sheet-title{font-size:14px;font-weight:700;font-family:'Merriweather',serif;}
+.sheet-close{width:28px;height:28px;border-radius:50%;background:var(--hover);border:1px solid var(--border);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;}
+.sheet-body{flex:1;overflow-y:auto;padding:14px 18px;}
+.sheet-body::-webkit-scrollbar{width:2px;}
+.sheet-body::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* Library sheet */
+.lib-option {
+  display:flex; align-items:center; gap:10px; padding:11px 14px;
+  cursor:pointer; border-bottom:1px solid var(--border); transition:background .12s;
+}
+.lib-option:hover { background:var(--hover); }
+.lib-option.selected { background:var(--accent-soft); }
+.lib-option-thumb {
+  width:32px; height:32px; border-radius:7px; overflow:hidden; flex-shrink:0;
+  background:var(--bg); border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; color:var(--sub);
+}
+.lib-option-thumb img { width:100%; height:100%; object-fit:cover; }
+.lib-option-name { font-size:12px; font-weight:600; flex:1; }
+.lib-option-check { font-size:12px; color:var(--accent); display:none; }
+.lib-option.selected .lib-option-check { display:block; }
+
+/* Edit existing */
+.edit-art-item {
+  display:flex; align-items:flex-start; gap:10px; padding:12px;
+  background:var(--hover); border:1px solid var(--border);
+  border-radius:10px; margin-bottom:8px; cursor:pointer; transition:border-color .15s;
+}
+.edit-art-item:hover { border-color:var(--accent); }
+.edit-art-title { font-size:13px; font-weight:700; margin-bottom:3px; line-height:1.3; font-family:'Merriweather',serif; }
+.edit-art-meta { font-size:10px; color:var(--sub); }
+.edit-art-mcq { font-size:9px; font-weight:700; padding:2px 6px; border-radius:4px; background:rgba(74,222,128,.12); color:#4ade80; }
+
+/* Toast */
+.toast {
+  position:fixed; top:calc(60px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%);
+  background:#141210; border:1px solid var(--border); border-radius:10px;
+  padding:10px 16px; font-size:12px; font-weight:600; color:var(--text);
+  z-index:9999; opacity:0; pointer-events:none; white-space:nowrap;
+  transition:opacity .2s; box-shadow:0 8px 32px rgba(0,0,0,.5);
+}
+.toast.success { border-left:3px solid var(--green); }
+.toast.error   { border-left:3px solid #c46a4e; }
+.toast.show    { opacity:1; }
+
+/* Spinner */
+.spinner { width:16px; height:16px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; display:inline-block; }
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Drag ghost */
+.block-row.dragging { opacity:.4; }
+.block-row.drag-over { border-top:2px solid var(--accent); }
+</style>
+</head>
+<body>
+<script>if(localStorage.getItem('theme')==='light')document.body.classList.add('light-theme');</script>
+
+<div class="app">
+
+  <!-- Header -->
+  <div class="hdr">
+    <button class="hdr-back" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
+    <div class="hdr-title" id="hdrTitle">New Article</div>
+    <div class="hdr-actions">
+      <button class="hdr-btn hdr-ghost" onclick="openEditSheet()"><i class="fas fa-folder-open"></i> Edit</button>
+      <button class="hdr-btn hdr-primary" id="publishBtn" onclick="publishContent()">Publish</button>
+    </div>
+  </div>
+
+  <!-- Mode switcher (pill) -->
+  <div class="mode-switcher">
+    <div class="mode-pill">
+      <button class="mode-pill-btn active" id="btnModeArticle" onclick="switchMode('article')">
+        <i class="fas fa-file-alt"></i> Article
+      </button>
+      <button class="mode-pill-btn" id="btnModeMCQ" onclick="switchMode('mcq')">
+        <i class="fas fa-question-circle"></i> MCQ
+      </button>
+    </div>
+  </div>
+
+  <!-- Editor body -->
+  <div class="editor-body" id="editorBody">
+
+    <!-- Article mode -->
+    <div id="articleMode">
+      <div class="preview-author-bar">
+        <div class="preview-avatar" id="previewAvatar">?</div>
+        <div>
+          <div class="preview-author-name" id="previewAuthorName">@username</div>
+          <div class="preview-author-date">Just now</div>
+        </div>
+      </div>
+      <div class="title-area">
+        <textarea class="title-input" id="titleInput" placeholder="Article Title" rows="1" oninput="autoResize(this)"></textarea>
+      </div>
+      <div class="stats-bar">
+        <div class="stat-chip"><i class="fas fa-eye"></i> 0 views</div>
+        <div class="stat-chip"><i class="fas fa-heart"></i> 0 likes</div>
+      </div>
+      <!-- blocks rendered here -->
+      <div class="blocks-wrap" id="blocksWrap"></div>
+
+      <!-- YT input bar -->
+      <div class="yt-input-bar" id="ytInputBar">
+        <input class="yt-url-in" id="ytUrlInput" placeholder="Paste YouTube URL…">
+        <button class="yt-add-btn" onclick="addYouTubeBlock()">Add</button>
+        <button class="yt-cancel-btn" onclick="hideYtBar()"><i class="fas fa-times"></i></button>
+      </div>
+
+      <!-- Library selector -->
+      <div class="library-row" onclick="openLibSheet()">
+        <i class="fas fa-book-open"></i>
+        <span class="library-row-label">Add to Library</span>
+        <span class="library-row-val" id="libRowVal">None</span>
+        <i class="fas fa-chevron-right chevron"></i>
+      </div>
+      <div style="height:8px;"></div>
+    </div>
+
+    <!-- MCQ mode -->
+    <div id="mcqMode" style="display:none;">
+      <div class="preview-author-bar">
+        <div class="preview-avatar" id="previewAvatarMCQ">?</div>
+        <div>
+          <div class="preview-author-name" id="previewAuthorNameMCQ">@username</div>
+          <div class="preview-author-date">Just now</div>
+        </div>
+      </div>
+      <div class="mcq-wrap">
+        <div class="mcq-badge-edit"><i class="fas fa-question-circle"></i> Quick Question</div>
+        <textarea class="mcq-question-input" id="mcqQuestion" placeholder="Type your question here…" rows="2" oninput="autoResize(this)"></textarea>
+        <div class="mcq-options-wrap" id="mcqOptionsWrap"></div>
+        <button class="mcq-add-opt" onclick="addMCQOption()"><i class="fas fa-plus"></i> Add Option</button>
+      </div>
+      <div class="library-row" style="margin-top:14px;" onclick="openLibSheet()">
+        <i class="fas fa-book-open"></i>
+        <span class="library-row-label">Add to Library</span>
+        <span class="library-row-val" id="libRowValMCQ">None</span>
+        <i class="fas fa-chevron-right chevron"></i>
+      </div>
+      <div style="height:8px;"></div>
+    </div>
+
+  </div><!-- /editor-body -->
+
+  <!-- Bottom toolbar -->
+  <div class="bottom-toolbar" id="bottomToolbar">
+    <button class="tool-btn" onclick="toggleTheme()" style="flex:0 0 40px; padding:9px 0;">
+      <i class="fas fa-circle-half-stroke"></i>
+    </button>
+    <button class="tool-btn" onclick="addTextBlock()"><i class="fas fa-plus"></i> Text</button>
+    <label class="tool-btn">
+      <i class="fas fa-image"></i> Image
+      <input type="file" accept="image/*" style="display:none;" onchange="handleImage(event)">
+    </label>
+    <label class="tool-btn">
+      <i class="fas fa-music"></i> Audio
+      <input type="file" accept="audio/mpeg,audio/mp3,.mp3" style="display:none;" onchange="handleAudio(event)">
+    </label>
+    <button class="tool-btn" onclick="showYtBar()"><i class="fab fa-youtube"></i> YT</button>
+  </div>
+
+</div><!-- /app -->
+
+<!-- Emoji highlight toolbar -->
+<div class="highlight-toolbar" id="highlightToolbar">
+  <div class="hl-toolbar-title">Highlight Style</div>
+</div>
+
+<!-- Library sheet -->
+<div class="sheet-overlay" id="libSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title">Add to Library</span>
+      <button class="sheet-close" onclick="closeLibSheet()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="sheet-body" id="libSheetBody">
+      <div class="lib-option" onclick="selectLibrary(null,'None')">
+        <div class="lib-option-thumb"><i class="fas fa-ban"></i></div>
+        <span class="lib-option-name">None (standalone)</span>
+        <i class="fas fa-check lib-option-check"></i>
+      </div>
+      <div id="libOptions"><div style="padding:16px;font-size:12px;color:var(--sub);">Loading…</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Existing sheet -->
+<div class="sheet-overlay" id="editSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title">Edit Existing</span>
+      <button class="sheet-close" onclick="closeEditSheet()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="sheet-body" id="editSheetBody">
+      <div style="display:flex;align-items:center;gap:10px;padding:20px;color:var(--sub);font-size:12px;">
+        <div class="spinner"></div> Loading…
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════════════
+   GLOBALS & HELPERS
+══════════════════════════════════════════════════ */
+let mode = 'article';
+let blocks = []; // array of block objects
+let selectedLibraryId = null;
+let dragSrcIdx = null;
+
+const letters = ['A','B','C','D','E','F'];
+
+function goBack(){
+  if(document.referrer&&document.referrer.includes(location.host))history.back();
+  else location.href='index.html';
+}
+function toggleTheme(){
+  const l=document.body.classList.toggle('light-theme');
+  localStorage.setItem('theme',l?'light':'dark');
+}
+function autoResize(el){
+  el.style.height='auto';
+  el.style.height=el.scrollHeight+'px';
+}
+function escHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast '+type+' show';
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),3200);
+}
+function showYtBar(){
+  document.getElementById('ytInputBar').classList.add('show');
+  document.getElementById('ytUrlInput').focus();
+}
+function hideYtBar(){
+  document.getElementById('ytInputBar').classList.remove('show');
+  document.getElementById('ytUrlInput').value='';
+}
+function extractYtId(url){
+  const m=url.match(/(?:youtu\.be\/|v=|\/v\/|embed\/|shorts\/)([A-Za-z0-9_\-]{11})/);
+  return m?m[1]:null;
+}
+
+/* ══════════════════════════════════════════════════
+   MODE SWITCHER
+══════════════════════════════════════════════════ */
+function switchMode(m){
+  mode=m;
+  document.getElementById('articleMode').style.display=m==='article'?'block':'none';
+  document.getElementById('mcqMode').style.display=m==='mcq'?'block':'none';
+  document.getElementById('btnModeArticle').classList.toggle('active',m==='article');
+  document.getElementById('btnModeMCQ').classList.toggle('active',m==='mcq');
+  document.getElementById('hdrTitle').textContent=m==='article'?'New Article':'New MCQ';
+  // toolbar only useful for article
+  document.getElementById('bottomToolbar').style.display=m==='article'?'flex':'none';
+  if(m==='mcq'&&document.querySelectorAll('.mcq-opt-row').length===0){
+    addMCQOption();addMCQOption();addMCQOption();addMCQOption();
+    document.querySelectorAll('.mcq-opt-row')[0].classList.add('correct-opt');
+  }
+  syncLibRowVal();
+}
+
+/* ══════════════════════════════════════════════════
+   BLOCK SYSTEM
+══════════════════════════════════════════════════ */
+function addTextBlock(text=''){
+  const id='blk_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+  blocks.push({id,type:'text',text});
+  renderBlocks();
+  // focus the new block
+  requestAnimationFrame(()=>{
+    const el=document.querySelector(`[data-blk="${id}"] .text-block`);
+    if(el){el.focus();moveCursorToEnd(el);}
+  });
+}
+function addImageBlock(dataUrl,name){
+  const id='blk_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+  blocks.push({id,type:'image',dataUrl,name,caption:''});
+  renderBlocks();
+}
+function addAudioBlock(dataUrl,name){
+  const id='blk_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+  blocks.push({id,type:'audio',dataUrl,name,caption:''});
+  renderBlocks();
+}
+function addYouTubeBlockData(ytId){
+  const id='blk_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+  blocks.push({id,type:'youtube',ytId,url:`https://www.youtube.com/embed/${ytId}`,caption:''});
+  renderBlocks();
+}
+function removeBlock(id){
+  blocks=blocks.filter(b=>b.id!==id);
+  renderBlocks();
+}
+function moveCursorToEnd(el){
+  const r=document.createRange(),s=window.getSelection();
+  r.selectNodeContents(el);r.collapse(false);s.removeAllRanges();s.addRange(r);
+}
+
+function renderBlocks(){
+  const wrap=document.getElementById('blocksWrap');
+  wrap.innerHTML='';
+  blocks.forEach((blk,idx)=>{
+    const row=document.createElement('div');
+    row.className='block-row';
+    row.dataset.idx=idx;
+    row.draggable=true;
+
+    // drag handle
+    const handle=document.createElement('div');
+    handle.className='block-drag-handle';
+    handle.innerHTML='<i class="fas fa-grip-vertical"></i>';
+
+    // block content
+    const content=document.createElement('div');
+    content.className='block-content';
+    content.setAttribute('data-blk',blk.id);
+
+    if(blk.type==='text'){
+      const ta=document.createElement('textarea');
+      ta.className='text-block';
+      ta.placeholder='Write here…';
+      ta.value=blk.text||'';
+      ta.rows=1;
+      ta.oninput=function(){
+        blk.text=this.value;
+        autoResize(this);
+      };
+      ta.addEventListener('mouseup',onTextSelection);
+      ta.addEventListener('touchend',onTextSelection);
+      content.appendChild(ta);
+      requestAnimationFrame(()=>autoResize(ta));
+    } else if(blk.type==='image'){
+      const wrap2=document.createElement('div');
+      wrap2.className='image-block-wrap';
+      const img=document.createElement('img');
+      img.src=blk.dataUrl||blk.url||'';
+      img.alt=blk.name||'';
+      img.crossOrigin='anonymous';
+      wrap2.appendChild(img);
+      const capIn=document.createElement('input');
+      capIn.className='image-caption-input';
+      capIn.placeholder='Add a caption…';
+      capIn.value=blk.caption||'';
+      capIn.oninput=function(){blk.caption=this.value;};
+      wrap2.appendChild(capIn);
+      content.appendChild(wrap2);
+    } else if(blk.type==='youtube'){
+      const ytWrap=document.createElement('div');
+      ytWrap.className='yt-block-wrap';
+      const label=document.createElement('div');
+      label.className='yt-block-label';
+      const ytId=blk.ytId;
+      const ytLabel=blk.caption||`youtube.com/watch?v=${ytId}`;
+      label.innerHTML=`<i class="fab fa-youtube"></i><span>${escHtml(ytLabel)}</span>${ytId?`<a href="https://www.youtube.com/watch?v=${ytId}" target="_blank" rel="noopener">Watch</a>`:''}`;
+      ytWrap.appendChild(label);
+      const iframe=document.createElement('iframe');
+      iframe.src=blk.url;
+      iframe.title='YouTube';
+      iframe.allow='accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture';
+      iframe.allowFullscreen=true;
+      ytWrap.appendChild(iframe);
+      const capIn=document.createElement('input');
+      capIn.className='yt-caption-input';
+      capIn.placeholder='Add a caption…';
+      capIn.value=blk.caption||'';
+      capIn.oninput=function(){blk.caption=this.value;};
+      ytWrap.appendChild(capIn);
+      content.appendChild(ytWrap);
+    } else if(blk.type==='audio'){
+      const audioWrap=document.createElement('div');
+      audioWrap.className='audio-block-wrap';
+      const audioId='aud_'+blk.id;
+      const bars=Array(15).fill(0).map(()=>`<div class="waveform-bar" style="height:${Math.random()*60+20}%"></div>`).join('');
+      audioWrap.innerHTML=`
+        <div class="custom-audio-player">
+          <button class="play-btn" onclick="toggleAudio(this,'${audioId}')"><i class="fas fa-play"></i></button>
+          <div class="audio-info">
+            <div class="audio-title">${escHtml(blk.name||'Audio')}</div>
+            <div class="waveform-container" onclick="seekAudio(event,this,'${audioId}')">
+              <div class="waveform-progress"></div>
+              <div class="waveform-bars">${bars}</div>
+            </div>
+            <div class="audio-time"><span class="current-time">0:00</span><span class="duration">0:00</span></div>
+          </div>
+          <audio id="${audioId}" src="${blk.dataUrl||blk.url||''}" style="display:none;"></audio>
+        </div>
+        <input class="audio-caption-input" placeholder="Add a caption…" value="${escHtml(blk.caption||'')}" oninput="updateAudioCaption('${blk.id}',this.value)">`;
+      setTimeout(()=>{
+        const audio=document.getElementById(audioId);
+        if(audio){audio.addEventListener('loadedmetadata',()=>{
+          const dur=Math.floor(audio.duration);
+          const d=audio.closest('.custom-audio-player')?.querySelector('.duration');
+          if(d)d.textContent=`${Math.floor(dur/60)}:${(dur%60).toString().padStart(2,'0')}`;
+        });}
+      },100);
+      content.appendChild(audioWrap);
+    }
+
+    // actions
+    const actions=document.createElement('div');
+    actions.className='block-actions';
+    actions.innerHTML=`
+      <button class="block-act-btn del" title="Delete" onclick="removeBlock('${blk.id}')"><i class="fas fa-trash"></i></button>`;
+    if(blk.type==='text'){
+      actions.innerHTML+=`<button class="block-act-btn" title="Highlight" onclick="openHighlightMenuForBlock('${blk.id}',this)"><i class="fas fa-highlighter"></i></button>`;
+    }
+
+    row.appendChild(handle);
+    row.appendChild(content);
+    row.appendChild(actions);
+    wrap.appendChild(row);
+
+    // drag events
+    row.addEventListener('dragstart',e=>{dragSrcIdx=idx;row.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
+    row.addEventListener('dragend',()=>{row.classList.remove('dragging');document.querySelectorAll('.block-row').forEach(r=>r.classList.remove('drag-over'));});
+    row.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';document.querySelectorAll('.block-row').forEach(r=>r.classList.remove('drag-over'));if(dragSrcIdx!==idx)row.classList.add('drag-over');});
+    row.addEventListener('drop',e=>{e.preventDefault();if(dragSrcIdx===null||dragSrcIdx===idx)return;const moved=blocks.splice(dragSrcIdx,1)[0];blocks.splice(idx,0,moved);dragSrcIdx=null;renderBlocks();});
+  });
+
+  // if no blocks, add a placeholder text block
+  if(blocks.length===0){
+    addTextBlock('');
+  }
+}
+
+function updateAudioCaption(id,val){
+  const b=blocks.find(x=>x.id===id);
+  if(b)b.caption=val;
+}
+
+/* ══════════════════════════════════════════════════
+   MEDIA HANDLERS
+══════════════════════════════════════════════════ */
+function handleImage(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>addImageBlock(ev.target.result,f.name);
+  r.readAsDataURL(f); e.target.value='';
+}
+function handleAudio(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>addAudioBlock(ev.target.result,f.name);
+  r.readAsDataURL(f); e.target.value='';
+}
+function addYouTubeBlock(){
+  const url=document.getElementById('ytUrlInput').value.trim();
+  if(!url)return;
+  const id=extractYtId(url);
+  if(!id){showToast('Invalid YouTube URL','error');return;}
+  addYouTubeBlockData(id);
+  hideYtBar();
+}
+
+/* ══════════════════════════════════════════════════
+   AUDIO PLAYER
+══════════════════════════════════════════════════ */
+window.toggleAudio=function(btn,audioId){
+  const player=btn.closest('.custom-audio-player');
+  const audio=document.getElementById(audioId);
+  const icon=btn.querySelector('i');
+  if(!audio)return;
+  if(audio.paused){
+    audio.play();icon.className='fas fa-pause';
+    audio.ontimeupdate=function(){
+      const pct=(audio.currentTime/audio.duration)*100;
+      const p=player.querySelector('.waveform-progress');if(p)p.style.width=pct+'%';
+      const ct=player.querySelector('.current-time');
+      if(ct){const m=Math.floor(audio.currentTime/60),s=Math.floor(audio.currentTime%60);ct.textContent=`${m}:${s.toString().padStart(2,'0')}`;}
+    };
+    audio.onended=function(){icon.className='fas fa-play';const p=player.querySelector('.waveform-progress');if(p)p.style.width='0%';const ct=player.querySelector('.current-time');if(ct)ct.textContent='0:00';};
+  } else {
+    audio.pause();icon.className='fas fa-play';
+  }
+};
+window.seekAudio=function(event,container,audioId){
+  const audio=document.getElementById(audioId);if(!audio||!audio.duration)return;
+  const rect=container.getBoundingClientRect();
+  audio.currentTime=((event.clientX-rect.left)/rect.width)*audio.duration;
+};
+
+/* ══════════════════════════════════════════════════
+   MCQ
+══════════════════════════════════════════════════ */
+function addMCQOption(label='',correct=false){
+  const wrap=document.getElementById('mcqOptionsWrap');
+  const i=wrap.children.length;if(i>=6)return;
+  const row=document.createElement('div');row.className='mcq-opt-row'+(correct?' correct-opt':'');
+  row.innerHTML=`
+    <div class="mcq-opt-letter">${letters[i]||i+1}</div>
+    <input class="mcq-opt-input" placeholder="Option ${letters[i]||i+1}…" value="${escHtml(label)}">
+    <button class="mcq-mark-correct" title="Mark correct" onclick="markCorrect(this)"><i class="fas fa-check"></i></button>
+    <button class="mcq-opt-del" title="Remove" onclick="removeMCQOpt(this)"><i class="fas fa-times"></i></button>`;
+  wrap.appendChild(row);
+}
+function markCorrect(btn){
+  document.querySelectorAll('.mcq-opt-row').forEach(r=>r.classList.remove('correct-opt'));
+  btn.closest('.mcq-opt-row').classList.add('correct-opt');
+}
+function removeMCQOpt(btn){
+  const wrap=document.getElementById('mcqOptionsWrap');
+  if(wrap.children.length<=2)return;
+  btn.closest('.mcq-opt-row').remove();
+  [...wrap.children].forEach((r,i)=>{
+    r.querySelector('.mcq-opt-letter').textContent=letters[i]||i+1;
+    r.querySelector('.mcq-opt-input').placeholder=`Option ${letters[i]||i+1}…`;
+  });
+}
+
+/* ══════════════════════════════════════════════════
+   EMOJI HIGHLIGHT SYSTEM
+══════════════════════════════════════════════════ */
+const HIGHLIGHT_EFFECTS=[
+  {group:'Color'},
+  {label:'Yellow',emoji:'🟡',swatch:'#e8c86a'},
+  {label:'Red',emoji:'🔴',swatch:'#c97a5a'},
+  {label:'Green',emoji:'🟢',swatch:'#7ab88a'},
+  {label:'Blue',emoji:'🔵',swatch:'#8aa0c0'},
+  {label:'Purple',emoji:'🟣',swatch:'#c8a96e'},
+  {label:'Dark',emoji:'⚫',swatch:'#2a2518'},
+  {group:'Emphasis'},
+  {label:'Magnify',emoji:'🔍',swatch:'#f5f0e8'},
+  {label:'Urgent',emoji:'❗',swatch:'#e8c86a'},
+  {label:'Pinned',emoji:'📌',swatch:'#c8a96e'},
+  {label:'Fire',emoji:'🔥',swatch:'#c87040'},
+  {label:'Diamond',emoji:'💎',swatch:'#8aa0c0'},
+  {label:'Lightning',emoji:'⚡',swatch:'#e8c86a'},
+  {group:'Academic'},
+  {label:'Brain',emoji:'🧠',swatch:'#8aa0c0'},
+  {label:'Book',emoji:'📖',swatch:'#d4b88a'},
+  {label:'Microscope',emoji:'🔬',swatch:'#c8a96e'},
+  {label:'Science',emoji:'🧪',swatch:'#7ab88a'},
+  {label:'Idea',emoji:'💡',swatch:'#e8c86a'},
+  {label:'Target',emoji:'🎯',swatch:'#c97a5a'},
+  {group:'Status'},
+  {label:'Check',emoji:'✅',swatch:'#7ab88a'},
+  {label:'Cross',emoji:'❌',swatch:'#c97a5a'},
+  {label:'Warning',emoji:'⚠️',swatch:'#e8c86a'},
+  {label:'Hourglass',emoji:'⏳',swatch:'#c8a96e'},
+  {label:'Lock',emoji:'🔒',swatch:'#8a8070'},
+  {label:'Unlock',emoji:'🔓',swatch:'#c8a96e'},
+  {group:'Animated'},
+  {label:'Sparkle',emoji:'✨',swatch:'#f0e8d8'},
+  {label:'Star',emoji:'🌟',swatch:'#f0e0b0'},
+  {label:'Crown',emoji:'👑',swatch:'#c8a96e'},
+  {label:'Rocket',emoji:'🚀',swatch:'#e8d8a0'},
+  {label:'Wave',emoji:'🌊',swatch:'#8aa0c0'},
+  {label:'Float',emoji:'💫',swatch:'#c8a96e'},
+  {label:'Rainbow',emoji:'🌈',swatch:'#c8a96e'},
+];
+
+// Build highlight toolbar HTML once
+(function buildHLToolbar(){
+  const tb=document.getElementById('highlightToolbar');
+  HIGHLIGHT_EFFECTS.forEach(ef=>{
+    if(ef.group){
+      const lbl=document.createElement('div');
+      lbl.className='hl-group-label';lbl.textContent=ef.group;
+      tb.appendChild(lbl);
+    } else {
+      const btn=document.createElement('button');
+      btn.className='hl-btn';
+      btn.dataset.emoji=ef.emoji;
+      btn.innerHTML=`<div class="hl-swatch" style="background:${ef.swatch};"></div>${ef.label}`;
+      btn.addEventListener('mousedown',e=>{e.preventDefault();applyHighlight(ef.emoji);});
+      btn.addEventListener('touchstart',e=>{e.preventDefault();applyHighlight(ef.emoji);},{passive:false});
+      tb.appendChild(btn);
+    }
+  });
+})();
+
+let _hlSavedRange=null;
+let _hlTargetTextarea=null;
+
+function onTextSelection(e){
+  const ta=e.currentTarget;
+  const start=ta.selectionStart,end=ta.selectionEnd;
+  if(start===end){closeHighlightToolbar();return;}
+  _hlTargetTextarea=ta;
+  _hlSavedRange={start,end};
+  // position toolbar above selection
+  const rect=ta.getBoundingClientRect();
+  const tb=document.getElementById('highlightToolbar');
+  tb.style.left=Math.min(rect.left+8, window.innerWidth-185)+'px';
+  tb.style.top=Math.max(8,rect.top-290)+'px';
+  tb.classList.add('show');
+}
+
+function applyHighlight(emoji){
+  if(!_hlTargetTextarea||!_hlSavedRange)return;
+  const ta=_hlTargetTextarea;
+  const {start,end}=_hlSavedRange;
+  const val=ta.value;
+  const selected=val.slice(start,end);
+  const wrapped=`${emoji}${selected}${emoji}`;
+  ta.value=val.slice(0,start)+wrapped+val.slice(end);
+  ta.selectionStart=ta.selectionEnd=start+wrapped.length;
+  ta.dispatchEvent(new Event('input'));
+  autoResize(ta);
+  // sync to block
+  const row=ta.closest('[data-blk]');
+  if(row){const blkId=row.getAttribute('data-blk');const blk=blocks.find(b=>b.id===blkId);if(blk)blk.text=ta.value;}
+  closeHighlightToolbar();
+}
+
+function closeHighlightToolbar(){
+  document.getElementById('highlightToolbar').classList.remove('show');
+  _hlSavedRange=null;
+}
+
+document.addEventListener('mousedown',e=>{
+  if(!e.target.closest('#highlightToolbar')&&!e.target.classList.contains('text-block'))closeHighlightToolbar();
+});
+document.addEventListener('touchstart',e=>{
+  if(!e.target.closest('#highlightToolbar')&&!e.target.classList.contains('text-block'))closeHighlightToolbar();
+},{passive:true});
+
+function openHighlightMenuForBlock(blkId,btn){
+  const ta=document.querySelector(`[data-blk="${blkId}"] .text-block`);
+  if(!ta)return;
+  const s=ta.selectionStart,en=ta.selectionEnd;
+  if(s===en){showToast('Select text first','error');return;}
+  _hlTargetTextarea=ta;
+  _hlSavedRange={start:s,end:en};
+  const tb=document.getElementById('highlightToolbar');
+  const rect=btn.getBoundingClientRect();
+  tb.style.left=Math.min(rect.left, window.innerWidth-185)+'px';
+  tb.style.top=Math.max(8,rect.top-290)+'px';
+  tb.classList.add('show');
+}
+
+/* ══════════════════════════════════════════════════
+   LIBRARY SHEET
+══════════════════════════════════════════════════ */
+function openLibSheet(){document.getElementById('libSheet').classList.add('show');}
+function closeLibSheet(){document.getElementById('libSheet').classList.remove('show');}
+document.getElementById('libSheet').addEventListener('click',e=>{if(e.target===e.currentTarget)closeLibSheet();});
+
+function selectLibrary(id,name){
+  selectedLibraryId=id;
+  syncLibRowVal();
+  document.querySelectorAll('#libSheetBody .lib-option').forEach(o=>o.classList.remove('selected'));
+  const match=[...document.querySelectorAll('#libSheetBody .lib-option')].find(o=>o.dataset.libId==id);
+  if(match)match.classList.add('selected');
+  else document.querySelector('#libSheetBody .lib-option')?.classList.add('selected');
+  closeLibSheet();
+}
+function syncLibRowVal(){
+  const name=selectedLibraryId?document.querySelector(`#libSheetBody .lib-option[data-lib-id="${selectedLibraryId}"] .lib-option-name`)?.textContent||'Selected':'None';
+  document.getElementById('libRowVal').textContent=name;
+  document.getElementById('libRowValMCQ').textContent=name;
+}
+
+/* ══════════════════════════════════════════════════
+   EDIT EXISTING SHEET
+══════════════════════════════════════════════════ */
+window._editingArticleId=null;
+function openEditSheet(){
+  document.getElementById('editSheet').classList.add('show');
+  loadUserArticlesForEdit();
+}
+function closeEditSheet(){document.getElementById('editSheet').classList.remove('show');}
+document.getElementById('editSheet').addEventListener('click',e=>{if(e.target===e.currentTarget)closeEditSheet();});
+
+async function loadUserArticlesForEdit(){
+  if(!window._supabase||!window._currentUser)return;
+  const body=document.getElementById('editSheetBody');
+  body.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:20px;color:var(--sub);font-size:12px;"><div class="spinner"></div> Loading…</div>`;
+  const{data,error}=await window._supabase.from('articles').select('*').eq('firebase_user_id',window._currentUser.uid).order('created_at',{ascending:false});
+  if(error||!data||!data.length){body.innerHTML=`<div style="text-align:center;padding:30px;color:var(--sub);font-size:12px;">No articles found</div>`;return;}
+  body.innerHTML='';
+  data.forEach(a=>{
+    const isMcq=a.content&&a.content.trimStart().startsWith('❔');
+    const item=document.createElement('div');item.className='edit-art-item';
+    item.innerHTML=`
+      ${isMcq?'<span class="edit-art-mcq">MCQ</span>':''}
+      <div style="flex:1;min-width:0;">
+        <div class="edit-art-title">${escHtml(a.title||'Untitled')}</div>
+        <div class="edit-art-meta">${new Date(a.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+      </div>
+      <i class="fas fa-chevron-right" style="color:var(--sub);font-size:11px;flex-shrink:0;"></i>`;
+    item.onclick=()=>loadForEdit(a);
+    body.appendChild(item);
+  });
+}
+
+async function loadForEdit(a){
+  closeEditSheet();
+  window._editingArticleId=a.id;
+  document.getElementById('hdrTitle').textContent='Edit';
+  document.getElementById('publishBtn').textContent='Save';
+
+  const isMcq=a.content&&a.content.trimStart().startsWith('❔');
+
+  if(isMcq){
+    switchMode('mcq');
+    const lines=a.content.trim().split('\n').map(l=>l.trim()).filter(Boolean);
+    document.getElementById('mcqQuestion').value=lines[0].replace(/^❔/,'').trim();
+    autoResize(document.getElementById('mcqQuestion'));
+    document.getElementById('mcqOptionsWrap').innerHTML='';
+    lines.slice(1).forEach(line=>{
+      const correct=line.startsWith('✅');
+      addMCQOption(line.replace(/^✅/,'').trim(),correct);
+    });
+  } else {
+    switchMode('article');
+    document.getElementById('titleInput').value=a.title||'';
+    autoResize(document.getElementById('titleInput'));
+
+    // Load text content into first text block
+    blocks=[];
+    if(a.content){
+      const paragraphs=a.content.split('\n\n').filter(p=>p.trim());
+      // Load media for this article
+      let mediaRows=[];
+      if(window._supabase){
+        const{data:med}=await window._supabase.from('media').select('*').eq('article_id',a.id).order('display_order',{ascending:true});
+        mediaRows=med||[];
+      }
+      // Interleave paragraphs and media by display_order
+      // Media with display_order i goes after paragraph i
+      paragraphs.forEach((p,i)=>{
+        blocks.push({id:'blk_'+Date.now()+'_'+i+'_txt',type:'text',text:p.trim()});
+        const afterThis=mediaRows.filter(m=>m.display_order===i);
+        afterThis.forEach(m=>{
+          const bid='blk_'+Date.now()+'_'+i+'_med_'+m.id;
+          if(m.type==='image'){blocks.push({id:bid,type:'image',dataUrl:m.url,url:m.url,name:m.caption||'Image',caption:m.caption||''});}
+          else if(m.type==='youtube'){const ytId=m.url.match(/embed\/([A-Za-z0-9_\-]{11})/)?.[1]||'';blocks.push({id:bid,type:'youtube',ytId,url:m.url,caption:m.caption||''});}
+          else if(m.type==='audio'){blocks.push({id:bid,type:'audio',dataUrl:m.url,url:m.url,name:m.caption||'Audio',caption:m.caption||''});}
+        });
+      });
+      // Media with display_order >= paragraphs.length
+      mediaRows.filter(m=>m.display_order>=paragraphs.length).forEach(m=>{
+        const bid='blk_'+Date.now()+'_tail_'+m.id;
+        if(m.type==='image'){blocks.push({id:bid,type:'image',dataUrl:m.url,url:m.url,name:m.caption||'Image',caption:m.caption||''});}
+        else if(m.type==='youtube'){const ytId=m.url.match(/embed\/([A-Za-z0-9_\-]{11})/)?.[1]||'';blocks.push({id:bid,type:'youtube',ytId,url:m.url,caption:m.caption||''});}
+        else if(m.type==='audio'){blocks.push({id:bid,type:'audio',dataUrl:m.url,url:m.url,name:m.caption||'Audio',caption:m.caption||''});}
+      });
+    }
+    renderBlocks();
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   PUBLISH
+══════════════════════════════════════════════════ */
+window.publishContent=async function(){
+  if(!window._currentUser){showToast('Not logged in','error');return;}
+  const btn=document.getElementById('publishBtn');
+  const isEditing=!!window._editingArticleId;
+
+  if(mode==='article'){
+    const title=document.getElementById('titleInput').value.trim();
+    if(!title){showToast('Title required','error');return;}
+    // Build content from text blocks only
+    const textBlocks=blocks.filter(b=>b.type==='text');
+    const content=textBlocks.map(b=>(b.text||'').trim()).filter(Boolean).join('\n\n');
+    if(!content){showToast('Add some content','error');return;}
+
+    btn.disabled=true;btn.innerHTML='<div class="spinner"></div>';
+    try{
+      let artId;
+      if(isEditing){
+        const{error}=await window._supabase.from('articles').update({title,content}).eq('id',window._editingArticleId);
+        if(error)throw error;
+        artId=window._editingArticleId;
+        // Delete old media and reinsert
+        await window._supabase.from('media').delete().eq('article_id',artId);
+      } else {
+        const{data:art,error}=await window._supabase.from('articles').insert([{title,content,firebase_user_id:window._currentUser.uid,views:0,likes:0}]).select().single();
+        if(error)throw error;
+        artId=art.id;
+      }
+      // Insert media blocks (non-text)
+      const mediaBlocks=blocks.filter(b=>b.type!=='text');
+      if(mediaBlocks.length>0){
+        // display_order: find which text paragraph each media follows
+        const textIdxMap={};
+        let textCount=0;
+        blocks.forEach(b=>{
+          if(b.type==='text'){textCount++;textIdxMap[b.id]=textCount-1;}
+        });
+        // For each media block, find the preceding text block count
+        let lastTextIdx=0;
+        const mediaInserts=[];
+        let mediaOrder=0;
+        blocks.forEach(b=>{
+          if(b.type==='text'){
+            lastTextIdx=textIdxMap[b.id]??lastTextIdx;
+          } else {
+            mediaInserts.push({
+              article_id:artId,
+              type:b.type,
+              url:b.dataUrl||b.url||'',
+              caption:b.caption||null,
+              display_order:lastTextIdx
+            });
+          }
+        });
+        await window._supabase.from('media').insert(mediaInserts);
+      }
+      if(!isEditing&&selectedLibraryId){
+        await window._supabase.from('playlist_items').insert([{playlist_id:selectedLibraryId,article_id:artId}]);
+      }
+      showToast(isEditing?'Saved!':'Published!','success');
+      setTimeout(()=>location.href=`https://patholytica.com/dailyfeed.html?article=${artId}`,1000);
+    }catch(e){showToast('Error: '+e.message,'error');btn.disabled=false;btn.innerHTML=isEditing?'Save':'Publish';}
+  } else {
+    // MCQ
+    const question=document.getElementById('mcqQuestion').value.trim();
+    if(!question){showToast('Question required','error');return;}
+    const rows=[...document.querySelectorAll('.mcq-opt-row')];
+    if(rows.length<2){showToast('Need at least 2 options','error');return;}
+    if(!rows.some(r=>r.classList.contains('correct-opt'))){showToast('Mark one correct answer','error');return;}
+    const contentLines=['❔'+question,...rows.map(r=>{
+      const inp=r.querySelector('.mcq-opt-input').value.trim();
+      return r.classList.contains('correct-opt')?'✅'+inp:inp;
+    })];
+    const content=contentLines.join('\n');
+    btn.disabled=true;btn.innerHTML='<div class="spinner"></div>';
+    try{
+      let artId;
+      if(isEditing){
+        const{error}=await window._supabase.from('articles').update({title:question,content}).eq('id',window._editingArticleId);
+        if(error)throw error;
+        artId=window._editingArticleId;
+      } else {
+        const{data:art,error}=await window._supabase.from('articles').insert([{title:question,content,firebase_user_id:window._currentUser.uid,views:0,likes:0}]).select().single();
+        if(error)throw error;
+        artId=art.id;
+        if(selectedLibraryId)await window._supabase.from('playlist_items').insert([{playlist_id:selectedLibraryId,article_id:artId}]);
+      }
+      showToast(isEditing?'Saved!':'Published!','success');
+      setTimeout(()=>location.href=`https://patholytica.com/dailyfeed.html?article=${artId}`,1000);
+    }catch(e){showToast('Error: '+e.message,'error');btn.disabled=false;btn.innerHTML=isEditing?'Save':'Publish';}
+  }
+};
+
+/* init first text block */
+renderBlocks();
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig={apiKey:"AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",authDomain:"patholytica.firebaseapp.com",databaseURL:"https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",projectId:"patholytica",storageBucket:"patholytica.firebasestorage.app",messagingSenderId:"738430635282",appId:"1:738430635282:web:8451ef380447c7611137cb"};
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const supabase=window.supabase.createClient(
+  "https://vduqewqyvszfquntmark.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
+);
+window._supabase=supabase;
+
+let currentUserData=null;
+
+function setAvatarUI(ud){
+  ['previewAvatar','previewAvatarMCQ'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    if(ud.pfp)el.innerHTML=`<img src="${ud.pfp}" alt="">`;
+    else el.textContent=(ud.username||'U')[0].toUpperCase();
+  });
+  ['previewAuthorName','previewAuthorNameMCQ'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.textContent=ud.username?`@${ud.username}`:(ud.full_name||'You');
+  });
+}
+
+onAuthStateChanged(auth,async user=>{
+  if(!user){location.href='login.html';return;}
+  window._currentUser=user;
+  const{data:ud}=await supabase.from('users').select('*').eq('firebase_uid',user.uid).single();
+  if(ud){currentUserData=ud;setAvatarUI(ud);}
+  loadLibraries(ud);
+});
+
+async function loadLibraries(ud){
+  if(!ud)return;
+  const{data:libs}=await supabase.from('playlists').select('id,name,thumbnail_url').eq('user_id',ud.user_id).order('name',{ascending:true});
+  const wrap=document.getElementById('libOptions');
+  if(!libs||!libs.length){wrap.innerHTML=`<div style="padding:12px 14px;font-size:11px;color:var(--sub);">No libraries yet</div>`;return;}
+  wrap.innerHTML='';
+  libs.forEach(lib=>{
+    const opt=document.createElement('div');
+    opt.className='lib-option';opt.dataset.libId=lib.id;
+    const thumbHtml=lib.thumbnail_url?`<img src="${lib.thumbnail_url}">`:`<i class="fas fa-book-open"></i>`;
+    opt.innerHTML=`<div class="lib-option-thumb">${thumbHtml}</div><span class="lib-option-name">${lib.name}</span><i class="fas fa-check lib-option-check"></i>`;
+    opt.onclick=()=>{
+      document.querySelectorAll('#libSheetBody .lib-option').forEach(o=>o.classList.remove('selected'));
+      opt.classList.add('selected');
+      selectLibrary(lib.id,lib.name);
+    };
+    wrap.appendChild(opt);
+  });
+}
+</script>
+</body>
+</html>
