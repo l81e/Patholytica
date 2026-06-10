@@ -371,6 +371,14 @@ const supabase = window.supabase.createClient(
   "sb_publishable_YseP73aoHam8YT6B0b9EQQ_iAUEWARI"
 );
 
+async function setSupabaseUser(firebaseUser) {
+  try {
+    await supabase.rpc('set_current_user', { uid: firebaseUser.uid });
+  } catch (e) {
+    console.warn('set_current_user failed:', e);
+  }
+}
+
 async function createUserInSupabase(firebaseUser, fullName, username) {
   try {
     const { data: existingByUid } = await supabase
@@ -452,11 +460,13 @@ document.getElementById('login-btn').addEventListener('click', async function() 
   try {
     if (isSignUp) {
       const result = await createUserWithEmailAndPassword(auth, email, pw);
+      await setSupabaseUser(result.user);
       await createUserInSupabase(result.user, name, username);
       showToast('Account created!', 'ok');
       setTimeout(function() { window.location.href = 'index.html'; }, 1100);
     } else {
       const result = await signInWithEmailAndPassword(auth, email, pw);
+      await setSupabaseUser(result.user);
       await updateUserInSupabase(result.user.uid);
       showToast('Welcome back!', 'ok');
       setTimeout(function() { window.location.href = 'index.html'; }, 1100);
@@ -479,6 +489,7 @@ document.getElementById('login-btn').addEventListener('click', async function() 
 document.getElementById('google-btn').addEventListener('click', async function() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
+    await setSupabaseUser(result.user);
     await createUserInSupabase(result.user);
     showToast('Signed in with Google!', 'ok');
     setTimeout(function() { window.location.href = 'index.html'; }, 1100);
