@@ -560,6 +560,7 @@ let MAX_DEPTH = 18;
    GAME STATE
    ═══════════════════════════════════════════ */
 let board, turn, selPiece, availMoves, gameOver;
+let isAnimating = false; // true while a slide animation is in progress
 // Snapshot history for rewind: array of { board, turn, moveLabel }
 let snapshots = [];   // snapshots[0] = initial position
 let snapIdx   = -1;   // which snapshot is currently displayed (-1 = live)
@@ -1154,49 +1155,51 @@ function executeBotMultiJump(mv, onDone) {
    ═══════════════════════════════════════════ */
 function animateMove(b, mv, player, onDone) {
   const boardEl = document.getElementById('board');
-  const boardRect = boardEl.getBoundingClientRect();
-  const sqW = boardRect.width  / 8;
-  const sqH = boardRect.height / 8;
+  // Use offsetWidth/offsetHeight — reliable on mobile even with overflow:hidden
+  const sqW = boardEl.offsetWidth  / 8;
+  const sqH = boardEl.offsetHeight / 8;
 
   const pc = b[mv.fr][mv.fc];
   const isKing = pc && pc.isKing;
 
-  // Create the sliding element
   const slider = document.createElement('div');
   slider.className = 'sliding-piece ' + (player === PLAYER ? 'player' : 'bot');
   if (isKing) slider.classList.add('king');
 
   const pieceW = sqW * 0.76;
   const pieceH = sqH * 0.76;
-  slider.style.width   = pieceW + 'px';
-  slider.style.height  = pieceH + 'px';
+  slider.style.width  = pieceW + 'px';
+  slider.style.height = pieceH + 'px';
   slider.style.setProperty('--slide-ms', SLIDE_MS + 'ms');
 
-  // Start position (relative to board)
   const startL = mv.fc * sqW + (sqW - pieceW) / 2;
   const startT = mv.fr * sqH + (sqH - pieceH) / 2;
   const endL   = mv.tc * sqW + (sqW - pieceW) / 2;
   const endT   = mv.tr * sqH + (sqH - pieceH) / 2;
 
-  slider.style.left = startL + 'px';
-  slider.style.top  = startT + 'px';
+  slider.style.left       = startL + 'px';
+  slider.style.top        = startT + 'px';
   slider.style.transition = 'none';
-
   boardEl.appendChild(slider);
 
-  // Force a reflow so the starting position is painted before we set the end
-  slider.getBoundingClientRect();
+  // Hide source piece during animation
+  const srcSqEl    = boardEl.children[mv.fr * 8 + mv.fc];
+  const srcPieceEl = srcSqEl && srcSqEl.querySelector('.piece');
+  if (srcPieceEl) srcPieceEl.style.opacity = '0';
+
+  // Force reflow before starting transition
+  void slider.offsetWidth;
   slider.style.transition = `left ${SLIDE_MS}ms cubic-bezier(.4,.0,.2,1), top ${SLIDE_MS}ms cubic-bezier(.4,.0,.2,1)`;
   slider.style.left = endL + 'px';
   slider.style.top  = endT + 'px';
 
-  // Hide the source square piece during animation
-  const srcSqEl = boardEl.children[mv.fr * 8 + mv.fc];
-  const srcPieceEl = srcSqEl && srcSqEl.querySelector('.piece');
-  if (srcPieceEl) srcPieceEl.style.opacity = '0';
-
+  isAnimating = true;
+  // Safety fallback: if transitionend never fires (e.g. 0-size board), resolve anyway
+  const fallback = setTimeout(() => { slider.remove(); isAnimating = false; onDone(); }, SLIDE_MS + 100);
   slider.addEventListener('transitionend', () => {
+    clearTimeout(fallback);
     slider.remove();
+    isAnimating = false;
     onDone();
   }, { once: true });
 }
@@ -1337,7 +1340,7 @@ function updateScores(b) {
    PLAYER CLICK HANDLER
    ═══════════════════════════════════════════ */
 function onClick(r, c, jumpsExist) {
-  if (turn !== PLAYER || gameOver || isReplaying) return;
+  if (turn !== PLAYER || gameOver || isReplaying || isAnimating) return;
   const pc = board[r][c];
 
   // Clicked on own piece: select it
@@ -1353,6 +1356,12 @@ function onClick(r, c, jumpsExist) {
   // Clicked on a destination
   const mv = availMoves.find(m => m.tr === r && m.tc === c);
   if (!mv) return;
+
+  // Clear selection state and render BEFORE starting animation,
+  // so the board shows correctly during the slide (no stale dots/highlight).
+  // We keep the source piece visible — animateMove hides it internally.
+  selPiece = null; availMoves = [];
+  render();
 
   animateMove(board, mv, PLAYER, () => {
     applyMove(board, mv);
@@ -1374,10 +1383,6 @@ function onClick(r, c, jumpsExist) {
     render();
     setTimeout(doBotTurn, 80);
   });
-
-  // Hide the piece on source square immediately
-  selPiece = null; availMoves = [];
-  render();
 }
 
 /* ═══════════════════════════════════════════
@@ -1474,7 +1479,7 @@ function showSpinner(v) {
 
 function resetGame() {
   turn = PLAYER; selPiece = null; availMoves = []; gameOver = false;
-  isReplaying = false;
+  isAnimating = false; isReplaying = false;
   document.getElementById('replay-banner').classList.remove('active');
   document.getElementById('inf-depth').textContent = '—';
   document.getElementById('inf-nodes').textContent = '—';
