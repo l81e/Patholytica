@@ -1,153 +1,472 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Checkers Mobile AI</title>
-<style>
-body{margin:0;background:#222;color:#eee;text-align:center;font-family:Arial}
-#wrap{max-width:520px;margin:auto}
-canvas{width:100%;height:auto;touch-action:manipulation}
-button{padding:12px 18px;margin:10px;font-size:16px}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Checkers AI</title>
+    <style>
+        :root {
+            --dark-square: #769656;
+            --light-square: #eeeed2;
+            --player-color: #ba1313;
+            --player-king: #7a0b0b;
+            --bot-color: #2b2b2b;
+            --bot-king: #111111;
+            --highlight: rgba(247, 247, 105, 0.6);
+            --selected: rgba(105, 247, 105, 0.6);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e24;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            font-weight: 400;
+        }
+
+        #status {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            height: 25px;
+            color: #ddd;
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 90vw;
+            height: 90vw;
+            max-width: 500px;
+            max-height: 500px;
+            border: 5px solid #333;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .square {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .light { background-color: var(--light-square); }
+        .dark { background-color: var(--dark-square); }
+
+        .piece {
+            width: 80%;
+            height: 80%;
+            border-radius: 50%;
+            box-shadow: inset 0 3px 6px rgba(255,255,255,0.3), 0 4px 8px rgba(0,0,0,0.4);
+            position: relative;
+            transition: transform 0.2s ease;
+            z-index: 2;
+        }
+
+        .piece.player { background-color: var(--player-color); }
+        .piece.bot { background-color: var(--bot-color); }
+
+        .piece.king::after {
+            content: '♔';
+            font-size: 1.8rem;
+            color: #ffd700;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .selected {
+            background-color: var(--selected) !important;
+        }
+
+        .highlight::before {
+            content: '';
+            width: 30%;
+            height: 30%;
+            background-color: var(--highlight);
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        #controls {
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover { background-color: #45a049; }
+    </style>
 </head>
 <body>
-<div id="wrap">
-<h3>Checkers AI</h3>
-<button onclick="reset()">Restart</button>
-<canvas id="c" width="480" height="480"></canvas>
-</div>
+
+    <h1>Checkers AI</h1>
+    <div id="status">Your turn (Red)</div>
+    <div id="board"></div>
+    <div id="controls">
+        <button onclick="resetGame()">Restart Game</button>
+    </div>
 
 <script>
-const c=document.getElementById("c"),ctx=c.getContext("2d");
-let SIZE,board,turn="human",sel=null;
+    /* GAME CONFIGURATION & CONSTANTS */
+    const PLAYER = 1;  // Red (Moves up, rows 7 -> 0)
+    const BOT = -1;    // Black (Moves down, rows 0 -> 7)
+    const EMPTY = 0;
+    
+    // Evaluation weights for the AI
+    const PIECE_VAL = 100;
+    const KING_VAL = 175;
+    // Positional matrix to encourage the bot to control center and protect backlines
+    const BOT_POSITION_BONUS = [
+        [0,  4,  0,  4,  0,  4,  0,  4],
+        [3,  0,  3,  0,  3,  0,  3,  0],
+        [0,  2,  0,  2,  0,  2,  0,  2],
+        [1,  0,  2,  0,  2,  0,  1,  0],
+        [1,  0,  2,  0,  2,  0,  1,  0],
+        [1,  0,  1,  0,  1,  0,  1,  0],
+        [0,  1,  0,  1,  0,  1,  0,  1],
+        [4,  0,  4,  0,  4,  0,  4,  0]
+    ];
 
-function resize(){
-  SIZE=c.clientWidth/8;
-  draw();
-}
-window.onresize=resize;
+    let board = [];
+    let turn = PLAYER;
+    let selectedPiece = null;
+    let availableMoves = [];
+    let isGameOver = false;
 
-function reset(){
-  board=[];
-  for(let r=0;r<8;r++){
-    board[r]=[];
-    for(let c=0;c<8;c++){
-      if((r+c)%2){
-        if(r<3) board[r][c]="b";
-        else if(r>4) board[r][c]="r";
-        else board[r][c]=null;
-      } else board[r][c]=null;
+    /* INITIALIZATION */
+    function initBoard() {
+        board = Array(8).fill(null).map(() => Array(8).fill(EMPTY));
+        // Setup Black (BOT) at top
+        for (let r = 0; r < 3; r++) {
+            for (let c = 0; c < 8; c++) {
+                if ((r + c) % 2 === 1) board[r][c] = { player: BOT, isKing: false };
+            }
+        }
+        // Setup Red (PLAYER) at bottom
+        for (let r = 5; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                if ((r + c) % 2 === 1) board[r][c] = { player: PLAYER, isKing: false };
+            }
+        }
     }
-  }
-  turn="human";
-  draw();
-}
-reset(); resize();
 
-function draw(){
-  ctx.clearRect(0,0,c.width,c.height);
-  for(let r=0;r<8;r++)for(let col=0;col<8;col++){
-    ctx.fillStyle=(r+col)%2?"#333":"#ccc";
-    ctx.fillRect(col*SIZE,r*SIZE,SIZE,SIZE);
-    let p=board[r][col];
-    if(p){
-      ctx.beginPath();
-      ctx.arc(col*SIZE+SIZE/2,r*SIZE+SIZE/2,SIZE*0.35,0,7);
-      ctx.fillStyle=p.toLowerCase()=="r"?"red":"black";
-      ctx.fill();
+    function renderBoard() {
+        const boardEl = document.getElementById('board');
+        boardEl.innerHTML = '';
+        
+        // Find all forcing moves if any exist (Mandatory Jump rule)
+        const jumpsAvailable = getValidMoves(turn).some(m => m.isJump);
+
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const square = document.createElement('div');
+                square.classList.add('square', (r + c) % 2 === 0 ? 'light' : 'dark');
+                square.dataset.row = r;
+                square.dataset.col = c;
+
+                const pieceData = board[r][c];
+                if (pieceData !== EMPTY) {
+                    const piece = document.createElement('div');
+                    piece.classList.add('piece', pieceData.player === PLAYER ? 'player' : 'bot');
+                    if (pieceData.isKing) piece.classList.add('king');
+                    square.appendChild(piece);
+                }
+
+                // UI Highlights
+                if (selectedPiece && selectedPiece.r === r && selectedPiece.c === c) {
+                    square.classList.add('selected');
+                }
+                if (availableMoves.some(m => m.toR === r && m.toC === c)) {
+                    square.classList.add('highlight');
+                }
+
+                square.addEventListener('click', () => handleSquareClick(r, c, jumpsAvailable));
+                boardEl.appendChild(square);
+            }
+        }
     }
-  }
-}
 
-function inB(r,c){return r>=0&&c>=0&&r<8&&c<8;}
-function clone(b){return b.map(x=>x.slice());}
+    /* TURN & LOGIC HANDLING */
+    function handleSquareClick(r, c, jumpsAvailable) {
+        if (turn !== PLAYER || isGameOver) return;
 
-function moves(b,pl){
-  let M=[],C=[];
-  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
-    let p=b[r][c]; if(!p||p.toLowerCase()!=pl)continue;
-    let d=(p=="r")?[[-1,-1],[-1,1]]:(p=="b")?[[1,-1],[1,1]]:
-    [[1,1],[1,-1],[-1,1],[-1,-1]];
-    for(let [dr,dc] of d){
-      let nr=r+dr,nc=c+dc;
-      if(inB(nr,nc)&&!b[nr][nc]) M.push({f:[r,c],t:[nr,nc]});
-      let jr=r+2*dr,jc=c+2*dc;
-      if(inB(jr,jc)&&b[nr][nc]&&b[nr][nc].toLowerCase()!=pl&&!b[jr][jc])
-        C.push({f:[r,c],t:[jr,jc],j:[nr,nc]});
+        const clickedPiece = board[r][c];
+
+        // Clicked own piece -> select it
+        if (clickedPiece !== EMPTY && clickedPiece.player === PLAYER) {
+            const allMoves = getValidMoves(PLAYER);
+            // If jumps exist, filter out simple slides
+            const playerMoves = jumpsAvailable ? allMoves.filter(m => m.isJump) : allMoves;
+            
+            availableMoves = playerMoves.filter(m => m.fromR === r && m.fromC === c);
+            if (availableMoves.length > 0) {
+                selectedPiece = { r, c };
+            } else {
+                selectedPiece = null;
+                availableMoves = [];
+            }
+            renderBoard();
+            return;
+        }
+
+        // Clicked a highlighted valid destination -> execute move
+        const matchedMove = availableMoves.find(m => m.toR === r && m.toC === c);
+        if (matchedMove) {
+            executeMove(board, matchedMove);
+            
+            // Handle Multi-jump sequences
+            if (matchedMove.isJump) {
+                const consecutiveJumps = getValidMoves(PLAYER)
+                    .filter(m => m.isJump && m.fromR === r && m.fromC === c);
+                
+                if (consecutiveJumps.length > 0) {
+                    selectedPiece = { r, c };
+                    availableMoves = consecutiveJumps;
+                    renderBoard();
+                    return;
+                }
+            }
+
+            // Hand over turn to Bot
+            selectedPiece = null;
+            availableMoves = [];
+            turn = BOT;
+            document.getElementById('status').innerText = "Bot is thinking...";
+            renderBoard();
+            
+            setTimeout(triggerBot, 400); // Slight delay for natural visual flow
+        }
     }
-  }
-  return C.length?C:M;
-}
 
-function move(b,m){
-  let p=b[m.f[0]][m.f[1]];
-  b[m.f[0]][m.f[1]]=null;
-  b[m.t[0]][m.t[1]]=p;
-  if(m.j) b[m.j[0]][m.j[1]]=null;
-  if(p=="r"&&m.t[0]==0)b[m.t[0]][m.t[1]]="R";
-  if(p=="b"&&m.t[0]==7)b[m.t[0]][m.t[1]]="B";
-}
+    function triggerBot() {
+        if (isGameOver) return;
+        
+        let bestMove = getBestBotMove();
+        
+        if (bestMove) {
+            executeMove(board, bestMove);
+            
+            // Bot multi-jump validation loop
+            while (bestMove.isJump) {
+                const nextJumps = getValidMoves(BOT)
+                    .filter(m => m.isJump && m.fromR === bestMove.toR && m.fromC === bestMove.toC);
+                if (nextJumps.length === 0) break;
+                // For simplicity/speed, bot immediately consumes sequential jumps
+                bestMove = nextJumps[0]; 
+                executeMove(board, bestMove);
+            }
 
-function evalB(b){
-  let s=0;
-  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
-    let p=b[r][c]; if(!p)continue;
-    let v=(p=="r")?-1:(p=="b")?1:(p=="R")?-2:2;
-    s+=v;
-  }
-  return s;
-}
+            turn = PLAYER;
+            document.getElementById('status').innerText = "Your turn (Red)";
+        }
+        
+        renderBoard();
+        checkGameStatus();
+    }
 
-function minimax(b,d,max){
-  let pl=max?"b":"r",ms=moves(b,pl);
-  if(d==0||!ms.length) return {score:evalB(b)};
-  let best={score:max?-1e9:1e9};
-  for(let m of ms){
-    let nb=clone(b); move(nb,m);
-    let v=minimax(nb,d-1,!max).score;
-    if(max && v>best.score){best={score:v,move:m};}
-    if(!max && v<best.score){best={score:v,move:m};}
-  }
-  return best;
-}
+    function executeMove(targetBoard, move) {
+        const piece = targetBoard[move.fromR][move.fromC];
+        targetBoard[move.toR][move.toC] = piece;
+        targetBoard[move.fromR][move.fromC] = EMPTY;
 
-function ai(){
-  let best=minimax(board,4,true);
-  if(best.move) move(board,best.move);
-  draw();
-  turn="human";
-}
+        // Handle elimination jump
+        if (move.isJump) {
+            targetBoard[move.jumpR][move.jumpC] = EMPTY;
+        }
 
-function getPos(e){
-  let rect=c.getBoundingClientRect();
-  let x=(e.touches?e.touches[0].clientX:e.clientX)-rect.left;
-  let y=(e.touches?e.touches[0].clientY:e.clientY)-rect.top;
-  return [Math.floor(y/SIZE),Math.floor(x/SIZE)];
-}
+        // King coronation
+        if (piece.player === PLAYER && move.toR === 0) piece.isKing = true;
+        if (piece.player === BOT && move.toR === 7) piece.isKing = true;
+    }
 
-function handle(e){
-  if(turn!="human")return;
-  let [r,c2]=getPos(e);
+    /* MOVE GENERATION ENGINE */
+    function getValidMoves(player, customBoard = board) {
+        let moves = [];
+        let jumps = [];
 
-  if(sel){
-    let ms=moves(board,"r");
-    let m=ms.find(x=>x.f[0]==sel[0]&&x.f[1]==sel[1]&&x.t[0]==r&&x.t[1]==c2);
-    if(m){
-      move(board,m);
-      sel=null;
-      draw();
-      turn="ai";
-      setTimeout(ai,50);
-    } else sel=null;
-  } else if(board[r][c2]?.toLowerCase()=="r"){
-    sel=[r,c2];
-  }
-}
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const piece = customBoard[r][c];
+                if (piece === EMPTY || piece.player !== player) continue;
 
-c.addEventListener("click",handle);
-c.addEventListener("touchstart",handle);
+                // Determine row directional constraints
+                let dirs = [];
+                if (piece.isKing) dirs = [-1, 1];
+                else dirs = (player === PLAYER) ? [-1] : [1];
 
-resize();
+                for (let dRow of dirs) {
+                    for (let dCol of [-1, 1]) {
+                        let nextR = r + dRow;
+                        let nextC = c + dCol;
+
+                        if (nextR >= 0 && nextR < 8 && nextC >= 0 && nextC < 8) {
+                            const target = customBoard[nextR][nextC];
+                            if (target === EMPTY) {
+                                moves.push({ fromR: r, fromC: c, toR: nextR, toC: nextC, isJump: false });
+                            } else if (target.player !== player) {
+                                // Test leap coordinates for jump mechanics
+                                let jumpR = nextR + dRow;
+                                let jumpC = nextC + dCol;
+                                if (jumpR >= 0 && jumpR < 8 && jumpC >= 0 && jumpC < 8) {
+                                    if (customBoard[jumpR][jumpC] === EMPTY) {
+                                        jumps.push({ 
+                                            fromR: r, fromC: c, 
+                                            toR: jumpR, toC: jumpC, 
+                                            isJump: true, 
+                                            jumpR: nextR, jumpC: nextC 
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // Force priority: If rules dictate jumps are open, non-jumps become illegal.
+        return jumps.length > 0 ? jumps : moves;
+    }
+
+    /* ADVANCED BOT CORE: MINIMAX + ALPHA-BETA PRUNING */
+    function getBestBotMove() {
+        const depth = 5; // Search ply horizon depth
+        let bestScore = -Infinity;
+        let moves = getValidMoves(BOT, board);
+        if (moves.length === 0) return null;
+        
+        let preferredMoves = [];
+
+        for (let move of moves) {
+            let tempBoard = JSON.parse(JSON.stringify(board));
+            executeMove(tempBoard, move);
+            
+            // Handle sequential hops inside evaluation simulation
+            let currentMove = move;
+            while (currentMove.isJump) {
+                let nextJumps = getValidMoves(BOT, tempBoard)
+                    .filter(m => m.isJump && m.fromR === currentMove.toR && m.fromC === currentMove.toC);
+                if (nextJumps.length === 0) break;
+                currentMove = nextJumps[0];
+                executeMove(tempBoard, currentMove);
+            }
+
+            let score = minimax(tempBoard, depth - 1, -Infinity, Infinity, false);
+            if (score > bestScore) {
+                bestScore = score;
+                preferredMoves = [move];
+            } else if (score === bestScore) {
+                preferredMoves.push(move);
+            }
+        }
+        // Random selection out of equivalent absolute evaluations to introduce dynamism
+        return preferredMoves[Math.floor(Math.random() * preferredMoves.length)];
+    }
+
+    function minimax(virtualBoard, depth, alpha, beta, isMaximizing) {
+        if (depth === 0) return evaluateState(virtualBoard);
+
+        if (isMaximizing) {
+            let maxEval = -Infinity;
+            let moves = getValidMoves(BOT, virtualBoard);
+            if (moves.length === 0) return -10000 + (5 - depth); // Penalize structural loss loops
+
+            for (let move of moves) {
+                let nextBoard = JSON.parse(JSON.stringify(virtualBoard));
+                executeMove(nextBoard, move);
+                let evalScore = minimax(nextBoard, depth - 1, alpha, beta, false);
+                maxEval = Math.max(maxEval, evalScore);
+                alpha = Math.max(alpha, evalScore);
+                if (beta <= alpha) break; // Prune branch
+            }
+            return maxEval;
+        } else {
+            let minEval = Infinity;
+            let moves = getValidMoves(PLAYER, virtualBoard);
+            if (moves.length === 0) return 10000 - (5 - depth); // Opponent trapped
+
+            for (let move of moves) {
+                let nextBoard = JSON.parse(JSON.stringify(virtualBoard));
+                executeMove(nextBoard, move);
+                let evalScore = minimax(nextBoard, depth - 1, alpha, beta, true);
+                minEval = Math.min(minEval, evalScore);
+                beta = Math.min(beta, evalScore);
+                if (beta <= alpha) break; // Prune branch
+            }
+            return minEval;
+        }
+    }
+
+    /* STATIC EVALUATION FUNCTION */
+    function evaluateState(vBoard) {
+        let score = 0;
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const piece = vBoard[r][c];
+                if (piece !== EMPTY) {
+                    let weight = piece.isKing ? KING_VAL : PIECE_VAL;
+                    
+                    if (piece.player === BOT) {
+                        score += weight;
+                        score += BOT_POSITION_BONUS[r][c];
+                    } else {
+                        score -= weight;
+                        score -= BOT_POSITION_BONUS[7 - r][c]; // Inverted positioning values for player side
+                    }
+                }
+            }
+        }
+        return score;
+    }
+
+    /* ENDGAME CHECKS */
+    function checkGameStatus() {
+        const playerMoves = getValidMoves(PLAYER);
+        const botMoves = getValidMoves(BOT);
+
+        if (playerMoves.length === 0 && turn === PLAYER) {
+            document.getElementById('status').innerText = "Game Over! Bot Wins.";
+            isGameOver = true;
+        } else if (botMoves.length === 0 && turn === BOT) {
+            document.getElementById('status').innerText = "Congratulations! You Win.";
+            isGameOver = true;
+        }
+    }
+
+    function resetGame() {
+        turn = PLAYER;
+        selectedPiece = null;
+        availableMoves = [];
+        isGameOver = false;
+        document.getElementById('status').innerText = "Your turn (Red)";
+        initBoard();
+        renderBoard();
+    }
+
+    // Launch game instance immediately upon initialization
+    initBoard();
+    renderBoard();
 </script>
 </body>
 </html>
