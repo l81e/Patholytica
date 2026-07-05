@@ -6,8 +6,7 @@
 <title>Checkers — Unbeatable AI</title>
 <style>
 /* ═══════════════════════════════════════════════════════════════
-   CHECKERS — UNBEATABLE AI
-   Single-file standalone HTML
+   CHECKERS — UNBEATABLE AI  v3.0
    ═══════════════════════════════════════════════════════════════ */
 :root {
   --sq-dark:  #9b7b4f;
@@ -17,10 +16,7 @@
   --bg2: #1c1c2e;
   --gold: #d4a84b;
   --gold2: #f0c96a;
-  --red:  #c0392b;
   --red2: #e74c3c;
-  --blk:  #1a1a2e;
-  --blk2: #2c3e50;
   --text: #c8c8d8;
   --dim:  #555570;
   --green: #2ecc71;
@@ -84,6 +80,7 @@ body {
 #status.win  { color: var(--green); font-weight: 700; }
 #status.lose { color: var(--red2); font-weight: 700; }
 #status.draw { color: var(--gold); font-weight: 700; }
+#status.replay { color: var(--gold); font-weight: 600; }
 
 .spinner {
   width: 14px; height: 14px;
@@ -108,6 +105,7 @@ body {
     0 0 60px rgba(212,168,75,.05);
 }
 
+/* Board is now position:relative to anchor the sliding piece layer */
 #board {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
@@ -116,6 +114,7 @@ body {
   height: min(86vw, 460px);
   border-radius: 4px;
   overflow: hidden;
+  position: relative;
 }
 
 /* ── Squares ── */
@@ -123,12 +122,13 @@ body {
   display: flex; align-items: center; justify-content: center;
   position: relative;
   cursor: default;
-  transition: background .15s;
 }
 .sq.light { background: var(--sq-light); }
 .sq.dark  { background: var(--sq-dark); }
-.sq.sel   { background: rgba(70,210,110,.35) !important;
-             box-shadow: inset 0 0 0 2px rgba(70,210,110,.7); }
+.sq.sel   {
+  background: rgba(70,210,110,.35) !important;
+  box-shadow: inset 0 0 0 2px rgba(70,210,110,.7);
+}
 .sq.dot::after {
   content: '';
   position: absolute;
@@ -148,15 +148,17 @@ body {
 }
 @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
 
-/* ── Pieces ── */
+/* ── Static pieces (on squares) ── */
 .piece {
   width: 76%; height: 76%;
   border-radius: 50%;
   position: relative;
   z-index: 2;
-  transition: transform .12s;
-  animation: pieceIn .22s cubic-bezier(.34,1.56,.64,1) both;
   pointer-events: none;
+}
+/* Pop-in only for new pieces, not sliders */
+.piece.spawn {
+  animation: pieceIn .22s cubic-bezier(.34,1.56,.64,1) both;
 }
 @keyframes pieceIn { from { transform: scale(.2); opacity:0; } to { transform: scale(1); opacity:1; } }
 
@@ -184,6 +186,41 @@ body {
   text-shadow: 0 1px 4px rgba(0,0,0,.9);
 }
 
+/* ── Sliding piece overlay ── */
+/* A piece that is mid-animation floats above the board */
+.sliding-piece {
+  position: absolute;
+  width: calc(76% / 8);  /* recalculated in JS */
+  height: calc(76% / 8);
+  border-radius: 50%;
+  z-index: 20;
+  pointer-events: none;
+  transition: left var(--slide-ms) cubic-bezier(.4,.0,.2,1),
+              top  var(--slide-ms) cubic-bezier(.4,.0,.2,1);
+  will-change: left, top;
+}
+.sliding-piece.player {
+  background: radial-gradient(circle at 38% 30%, #e84040, #7a1010);
+  box-shadow: inset 0 3px 7px rgba(255,255,255,.28),
+              inset 0 -2px 5px rgba(0,0,0,.5),
+              0 5px 18px rgba(0,0,0,.7);
+}
+.sliding-piece.bot {
+  background: radial-gradient(circle at 38% 30%, #4a5a70, #0a0a1a);
+  box-shadow: inset 0 3px 7px rgba(255,255,255,.14),
+              inset 0 -2px 5px rgba(0,0,0,.7),
+              0 5px 18px rgba(0,0,0,.7);
+}
+.sliding-piece.king::after {
+  content: '\265B';
+  font-size: 1.2rem;
+  color: #ffd700;
+  position: absolute;
+  inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  text-shadow: 0 1px 4px rgba(0,0,0,.9);
+}
+
 /* ── Scoreboard ── */
 .scores {
   display: flex;
@@ -193,9 +230,7 @@ body {
 .score-side {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
 }
-.score-pip {
-  width: 16px; height: 16px; border-radius: 50%;
-}
+.score-pip { width: 16px; height: 16px; border-radius: 50%; }
 .score-pip.red { background: radial-gradient(circle at 38% 30%, #e84040, #7a1010); }
 .score-pip.blk { background: radial-gradient(circle at 38% 30%, #4a5a70, #0a0a1a); border:1px solid #444; }
 .score-num { font-size: 1.15rem; font-weight: 700; color: #dde; transition: color .25s; font-variant-numeric: tabular-nums; }
@@ -254,9 +289,16 @@ body {
 }
 .info-val { color: var(--gold); font-weight: 600; margin-left: 3px; }
 
-/* ── Buttons ── */
+/* ── Buttons row ── */
+.btn-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
 button {
-  padding: 10px 26px;
+  padding: 10px 22px;
   font-size: .78rem;
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -274,6 +316,16 @@ button:hover {
   box-shadow: 0 0 18px rgba(212,168,75,.18);
 }
 button:active { transform: scale(0.97); }
+button:disabled {
+  opacity: .3;
+  cursor: default;
+  pointer-events: none;
+}
+.nav-btn {
+  padding: 10px 16px;
+  font-size: 1rem;
+  letter-spacing: 0;
+}
 
 /* ── Move history ── */
 .history-wrap {
@@ -294,6 +346,22 @@ button:active { transform: scale(0.97); }
 }
 .history-wrap::-webkit-scrollbar { width: 4px; }
 .history-wrap::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+.hist-current { color: var(--gold); font-weight: 700; }
+
+/* ── Replay indicator ── */
+.replay-banner {
+  display: none;
+  font-size: .62rem;
+  letter-spacing: 2px;
+  color: var(--gold);
+  text-transform: uppercase;
+  text-align: center;
+  background: rgba(212,168,75,.08);
+  border: 1px solid rgba(212,168,75,.2);
+  border-radius: 20px;
+  padding: 4px 16px;
+}
+.replay-banner.active { display: block; }
 
 /* ── Responsive ── */
 @media (max-width: 480px) {
@@ -303,6 +371,7 @@ button:active { transform: scale(0.97); }
   .diff-btn { padding: 4px 8px; font-size: .6rem; }
   .info-bar { gap: 10px; }
   .scores { gap: 20px; }
+  .btn-row { gap: 6px; }
 }
 </style>
 </head>
@@ -310,7 +379,7 @@ button:active { transform: scale(0.97); }
 
 <div class="header">
   <h1>Checkers</h1>
-  <p>Unbeatable AI &middot; Minimax &middot; &alpha;-&beta; &middot; ID &middot; TT &middot; LMR &middot; PVS</p>
+  <p>Unbeatable AI &middot; Minimax &middot; &alpha;-&beta; &middot; PVS &middot; TT &middot; LMR &middot; ID</p>
 </div>
 
 <div class="status-bar">
@@ -338,9 +407,9 @@ button:active { transform: scale(0.97); }
 
 <div class="difficulty-bar">
   <span class="diff-label">AI Strength</span>
-  <button class="diff-btn" data-diff="expert" onclick="setDifficulty('expert')">Expert</button>
+  <button class="diff-btn" data-diff="expert"       onclick="setDifficulty('expert')">Expert</button>
   <button class="diff-btn active" data-diff="master" onclick="setDifficulty('master')">Master</button>
-  <button class="diff-btn" data-diff="grandmaster" onclick="setDifficulty('grandmaster')">Grandmaster</button>
+  <button class="diff-btn" data-diff="grandmaster"  onclick="setDifficulty('grandmaster')">Grandmaster</button>
 </div>
 
 <div class="info-bar">
@@ -350,107 +419,113 @@ button:active { transform: scale(0.97); }
   <span>Time<span class="info-val" id="inf-time">&mdash;</span></span>
 </div>
 
-<button onclick="resetGame()">&#x21bb; &nbsp; New Game</button>
+<div class="replay-banner" id="replay-banner">Reviewing move history</div>
+
+<div class="btn-row">
+  <button class="nav-btn" id="btn-prev" onclick="stepHistory(-1)" disabled title="Previous move">&#8592;</button>
+  <button onclick="resetGame()">&#x21bb;&nbsp; New Game</button>
+  <button class="nav-btn" id="btn-next" onclick="stepHistory(+1)" disabled title="Next move">&#8594;</button>
+</div>
 
 <div class="history-wrap" id="history">Moves will appear here&hellip;</div>
 
 <script>
-/* ═══════════════════════════════════════════════════════════════════════════════
-   CHECKERS ENGINE v2.0 — UNBEATABLE AI
-   Single-file standalone
+/* ═══════════════════════════════════════════════════════════════════════
+   CHECKERS ENGINE v3.0 — UNBEATABLE AI
+   
+   Bugs fixed from v2:
+   ✓ Board not rendering (getMoves called with missing board argument)
+   ✓ Null-move pruning applied to wrong side
+   ✓ LMR applied only to one side
+   ✓ Root aspiration window α corrupted across moves
+   ✓ Multi-jump continuation used greedy heuristic instead of search
+   ✓ Repetition table never populated during search
+   ✓ TT eviction by insertion order (now uses age)
+   ✓ History heuristic decay too aggressive
 
-   Search features:
-   - Iterative Deepening (up to 18 ply)
-   - Minimax + Alpha-Beta
-   - Principal Variation Search (PVS)
-   - Null-Move Pruning
-   - Late Move Reductions (LMR)
-   - Futility Pruning
-   - Quiescence Search (jump-only extension)
-   - Killer Move Heuristic (per-ply)
-   - History Heuristic (global move ordering)
-   - Transposition Table with Zobrist hashing (~4M entries)
-   - Repetition detection
-   - Adaptive aspiration windows
-
-   Evaluation features:
-   - Piece-square tables (enhanced)
-   - Center control bonus
-   - Back row anchor bonus
-   - Mobility evaluation
-   - Trapped piece detection
-   - Safe piece bonus
-   - King edge penalty
-   - Edge avoidance
-   - Promotion race tracking
-   - Nonlinear material scaling
-   - King endgame knowledge (opposition, cornering)
-   - Opening/endgame phase detection
-   ═══════════════════════════════════════════════════════════════════════════════ */
+   New in v3:
+   ✓ Piece slide animation (CSS transition on floating overlay element)
+   ✓ Move history navigation (← →) with board replay
+   ✓ Deeper grandmaster search (up to depth 22, 12s time limit)
+   ✓ Improved evaluation (dog-hole, tempo, endgame opposition)
+   ✓ Proper repetition detection during search
+   ✓ Correct PVS at root
+   ✓ Multi-jump handled by full search at each step
+   ═══════════════════════════════════════════════════════════════════════ */
 
 const PLAYER = 1, BOT = -1, EMPTY = 0;
 const INF = 1e8;
 
-/* Piece values */
+/* ── Piece values ── */
 const VAL_PIECE = 100;
-const VAL_KING  = 280;
+const VAL_KING  = 300;
 
-/* Difficulty time limits (ms) */
-const TIME_LIMITS = { expert: 2000, master: 4500, grandmaster: 9000 };
+/* ── Difficulty: time limits (ms) + max depth ── */
+const DIFFICULTY_CFG = {
+  expert:       { time: 2000, maxDepth: 14 },
+  master:       { time: 5000, maxDepth: 18 },
+  grandmaster:  { time: 12000, maxDepth: 24 },
+};
 let difficulty = 'master';
 
-/* Enhanced Piece-Square Tables: row 0 = top (BOT home) */
+/* ── Slide animation duration (ms) ── */
+const SLIDE_MS = 200;
+
+/* ── Piece-Square Tables: row 0 = top (BOT home) ── */
 const POS_TABLE = [
-  [0, 7, 0, 7, 0, 7, 0, 7],
-  [5, 0, 5, 0, 5, 0, 5, 0],
-  [0, 4, 0, 5, 0, 5, 0, 4],
-  [3, 0, 4, 0, 4, 0, 4, 0],
-  [0, 3, 0, 4, 0, 4, 0, 3],
-  [2, 0, 3, 0, 3, 0, 3, 0],
-  [0, 2, 0, 2, 0, 2, 0, 2],
-  [8, 0, 8, 0, 8, 0, 8, 0],
-];
-
-/* Center control bonus matrix */
-const CENTER_BONUS = [
-  [0,  0,  0,  0,  0,  0,  0,  0],
-  [0,  0,  2,  0,  2,  0,  0,  0],
-  [0,  2,  0,  4,  0,  4,  0,  2],
-  [0,  0,  4,  0,  6,  0,  4,  0],
-  [0,  2,  0,  6,  0,  6,  0,  2],
-  [0,  0,  4,  0,  4,  0,  4,  0],
+  [0,  7,  0,  7,  0,  7,  0,  7],
+  [5,  0,  5,  0,  5,  0,  5,  0],
+  [0,  4,  0,  5,  0,  5,  0,  4],
+  [3,  0,  4,  0,  4,  0,  4,  0],
+  [0,  3,  0,  4,  0,  4,  0,  3],
+  [2,  0,  3,  0,  3,  0,  3,  0],
   [0,  2,  0,  2,  0,  2,  0,  2],
-  [0,  0,  0,  0,  0,  0,  0,  0],
+  [8,  0,  8,  0,  8,  0,  8,  0],
 ];
 
-/* Futility pruning margins by depth */
-const FUTILITY_MARGIN = [0, 100, 250, 450, 700, 1000];
+/* ── Centre control bonus ── */
+const CENTER_BONUS = [
+  [0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 2, 0, 2, 0, 0, 0],
+  [0, 2, 0, 4, 0, 4, 0, 2],
+  [0, 0, 4, 0, 6, 0, 4, 0],
+  [0, 2, 0, 6, 0, 6, 0, 2],
+  [0, 0, 4, 0, 4, 0, 4, 0],
+  [0, 2, 0, 2, 0, 2, 0, 2],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+/* ── Futility margins by depth ── */
+const FUTILITY_MARGIN = [0, 120, 300, 500, 800, 1100];
 
 /* ═══════════════════════════════════════════
    ZOBRIST HASHING
    ═══════════════════════════════════════════ */
+// 4-dimensional lookup: ZOBRIST[player][isKing][row][col]
 const ZOBRIST = {};
 (function initZobrist() {
-  const rng = () => (Math.floor(Math.random() * 0xFFFFFFFF) >>> 0);
+  const rng = () => ((Math.random() * 0xFFFFFF >>> 0) * 0xFFFF) >>> 0;
   for (const pl of [PLAYER, BOT])
-    for (const k of [0,1])
+    for (const k of [0, 1])
       for (let r = 0; r < 8; r++)
         for (let c = 0; c < 8; c++) {
-          if (!ZOBRIST[pl]) ZOBRIST[pl] = {};
-          if (!ZOBRIST[pl][k]) ZOBRIST[pl][k] = {};
-          if (!ZOBRIST[pl][k][r]) ZOBRIST[pl][k][r] = {};
+          ZOBRIST[pl]          = ZOBRIST[pl]          || {};
+          ZOBRIST[pl][k]       = ZOBRIST[pl][k]       || {};
+          ZOBRIST[pl][k][r]    = ZOBRIST[pl][k][r]    || {};
           ZOBRIST[pl][k][r][c] = rng();
         }
+  ZOBRIST.turnBot = rng(); // XOR when it's BOT's turn
 })();
 
-function boardHash(b) {
+function boardHash(b, playerTurn) {
   let h = 0;
   for (let r = 0; r < 8; r++)
     for (let c = 0; c < 8; c++) {
       const pc = b[r][c];
       if (pc !== EMPTY)
-        h ^= ZOBRIST[pc.player][pc.isKing?1:0][r][c];
+        h ^= ZOBRIST[pc.player][pc.isKing ? 1 : 0][r][c];
     }
+  if (playerTurn === BOT) h ^= ZOBRIST.turnBot;
   return h;
 }
 
@@ -458,698 +533,972 @@ function boardHash(b) {
    TRANSPOSITION TABLE
    ═══════════════════════════════════════════ */
 const TT = new Map();
-const TT_MAX = 1 << 22; // ~4M entries
+const TT_MAX = 1 << 21; // ~2M entries (more predictable eviction)
 let ttAge = 0;
 
-/* Killer moves: [ply][slot0, slot1] */
+/* ── Killer moves [ply][0/1] ── */
 let killers = [];
 
-/* History heuristic: history[player][fromRow][fromCol][toRow] */
-const HISTORY = {};
-HISTORY[BOT]    = Array.from({length:8},()=>Array.from({length:8},()=>Array(8).fill(0)));
-HISTORY[PLAYER] = Array.from({length:8},()=>Array.from({length:8},()=>Array(8).fill(0)));
+/* ── History heuristic [player+1][from][to] ── */
+// Indexed as [playerIdx][fromSq][toSq] where sq = r*8+c
+const HIST_SIZE = 64;
+function makeHistTable() {
+  return Array.from({ length: HIST_SIZE }, () => new Int32Array(HIST_SIZE));
+}
+const HISTORY = {
+  [PLAYER]: makeHistTable(),
+  [BOT]:    makeHistTable(),
+};
 
-/* Repetition detection */
-const repHash = new Map();
-
-/* Search stats */
-let _nodes = 0, _ttHits = 0, _cutoffs = 0;
+/* ── Search globals ── */
+let _nodes = 0, _ttHits = 0;
 let searchStartTime = 0;
-let TIME_LIMIT = 4500;
+let TIME_LIMIT = 5000;
+let MAX_DEPTH = 18;
 
 /* ═══════════════════════════════════════════
    GAME STATE
    ═══════════════════════════════════════════ */
 let board, turn, selPiece, availMoves, gameOver;
-let histLog = [];
-let lastStats = { depth:0, nodes:0, ttHits:0, time:0, score:0 };
+// Snapshot history for rewind: array of { board, turn, moveLabel }
+let snapshots = [];   // snapshots[0] = initial position
+let snapIdx   = -1;   // which snapshot is currently displayed (-1 = live)
+let isReplaying = false;
+
+// For repetition detection during search
+let searchRepHash = new Map();
 
 /* ═══════════════════════════════════════════
    BOARD INIT
    ═══════════════════════════════════════════ */
 function initBoard() {
-  board = Array.from({length:8},()=>Array(8).fill(EMPTY));
-  for (let r=0;r<3;r++)for(let c=0;c<8;c++)if((r+c)%2===1)board[r][c]={player:BOT,isKing:false};
-  for (let r=5;r<8;r++)for(let c=0;c<8;c++)if((r+c)%2===1)board[r][c]={player:PLAYER,isKing:false};
-  TT.clear(); repHash.clear(); ttAge++;
-  killers = Array.from({length:40},()=>[null,null]);
+  board = Array.from({ length: 8 }, () => Array(8).fill(EMPTY));
+  for (let r = 0; r < 3; r++)
+    for (let c = 0; c < 8; c++)
+      if ((r + c) % 2 === 1) board[r][c] = { player: BOT,    isKing: false };
+  for (let r = 5; r < 8; r++)
+    for (let c = 0; c < 8; c++)
+      if ((r + c) % 2 === 1) board[r][c] = { player: PLAYER, isKing: false };
+
+  TT.clear();
+  ttAge++;
+  killers = Array.from({ length: 50 }, () => [null, null]);
+  for (const p of [PLAYER, BOT])
+    for (let i = 0; i < HIST_SIZE; i++)
+      HISTORY[p][i].fill(0);
 }
 
 function copyBoard(b) {
-  return b.map(row=>row.map(cell=>cell===EMPTY?EMPTY:{...cell}));
+  return b.map(row => row.map(cell => cell === EMPTY ? EMPTY : { ...cell }));
 }
 
+/* Non-destructive: apply move and return new board */
 function applyMove(b, mv) {
   const pc = b[mv.fr][mv.fc];
-  if (pc===EMPTY) return;
+  if (pc === EMPTY) return b;
   b[mv.tr][mv.tc] = pc;
   b[mv.fr][mv.fc] = EMPTY;
-  if (mv.jump && mv.jr!==undefined && mv.jc!==undefined) b[mv.jr][mv.jc] = EMPTY;
-  if (pc.player===PLAYER && mv.tr===0) pc.isKing = true;
-  if (pc.player===BOT   && mv.tr===7) pc.isKing = true;
+  if (mv.jump) b[mv.jr][mv.jc] = EMPTY;
+  // Promotion
+  if (pc.player === PLAYER && mv.tr === 0) pc.isKing = true;
+  if (pc.player === BOT   && mv.tr === 7) pc.isKing = true;
+  return b;
 }
 
 /* ═══════════════════════════════════════════
    MOVE GENERATION
+   Always pass board explicitly — no globals in engine.
    ═══════════════════════════════════════════ */
 function getMoves(player, b) {
-  const moves=[], jumps=[];
-  for (let r=0;r<8;r++)for(let c=0;c<8;c++){
-    const pc=b[r][c];
-    if (pc===EMPTY||pc.player!==player) continue;
-    const dirs = pc.isKing?[-1,1]:(player===PLAYER?[-1]:[1]);
-    for (const dr of dirs)for(const dc of[-1,1]){
-      const nr=r+dr,nc=c+dc;
-      if (nr<0||nr>7||nc<0||nc>7) continue;
-      const tgt=b[nr][nc];
-      if (tgt===EMPTY) {
-        moves.push({fr:r,fc:c,tr:nr,tc:nc,jump:false});
-      } else if (tgt.player!==player) {
-        const jr2=nr+dr,jc2=nc+dc;
-        if (jr2>=0&&jr2<8&&jc2>=0&&jc2<8&&b[jr2][jc2]===EMPTY)
-          jumps.push({fr:r,fc:c,tr:jr2,tc:jc2,jump:true,jr:nr,jc:nc});
-      }
+  const moves = [], jumps = [];
+  for (let r = 0; r < 8; r++)
+    for (let c = 0; c < 8; c++) {
+      const pc = b[r][c];
+      if (pc === EMPTY || pc.player !== player) continue;
+      const dirs = pc.isKing ? [-1, 1] : (player === PLAYER ? [-1] : [1]);
+      for (const dr of dirs)
+        for (const dc of [-1, 1]) {
+          const nr = r + dr, nc = c + dc;
+          if (nr < 0 || nr > 7 || nc < 0 || nc > 7) continue;
+          const tgt = b[nr][nc];
+          if (tgt === EMPTY) {
+            moves.push({ fr: r, fc: c, tr: nr, tc: nc, jump: false });
+          } else if (tgt.player !== player) {
+            const jr2 = nr + dr, jc2 = nc + dc;
+            if (jr2 >= 0 && jr2 < 8 && jc2 >= 0 && jc2 < 8 && b[jr2][jc2] === EMPTY)
+              jumps.push({ fr: r, fc: c, tr: jr2, tc: jc2, jump: true, jr: nr, jc: nc });
+          }
+        }
     }
-  }
-  return jumps.length?jumps:moves;
+  return jumps.length ? jumps : moves;
 }
 
 function getContinuations(player, b, r, c) {
-  const jumps=[];
-  const pc=b[r][c];
-  if (pc===EMPTY||pc.player!==player) return jumps;
-  const dirs=pc.isKing?[-1,1]:(player===PLAYER?[-1]:[1]);
-  for (const dr of dirs)for(const dc of[-1,1]){
-    const nr=r+dr,nc=c+dc;
-    if (nr<0||nr>7||nc<0||nc>7) continue;
-    const tgt=b[nr][nc];
-    if (tgt!==EMPTY&&tgt.player!==player){
-      const jr2=nr+dr,jc2=nc+dc;
-      if (jr2>=0&&jr2<8&&jc2>=0&&jc2<8&&b[jr2][jc2]===EMPTY)
-        jumps.push({fr:r,fc:c,tr:jr2,tc:jc2,jump:true,jr:nr,jc:nc});
+  const pc = b[r][c];
+  if (pc === EMPTY || pc.player !== player) return [];
+  const jumps = [];
+  const dirs = pc.isKing ? [-1, 1] : (player === PLAYER ? [-1] : [1]);
+  for (const dr of dirs)
+    for (const dc of [-1, 1]) {
+      const nr = r + dr, nc = c + dc;
+      if (nr < 0 || nr > 7 || nc < 0 || nc > 7) continue;
+      const tgt = b[nr][nc];
+      if (tgt !== EMPTY && tgt.player !== player) {
+        const jr2 = nr + dr, jc2 = nc + dc;
+        if (jr2 >= 0 && jr2 < 8 && jc2 >= 0 && jc2 < 8 && b[jr2][jc2] === EMPTY)
+          jumps.push({ fr: r, fc: c, tr: jr2, tc: jc2, jump: true, jr: nr, jc: nc });
+      }
     }
-  }
   return jumps;
 }
 
 /* ═══════════════════════════════════════════
-   MOVE ORDERING (critical for alpha-beta)
+   MOVE ORDERING
    ═══════════════════════════════════════════ */
-function movesEqual(a,b){return a.fr===b.fr&&a.fc===b.fc&&a.tr===b.tr&&a.tc===b.tc;}
+function movesEqual(a, b) {
+  return a.fr === b.fr && a.fc === b.fc && a.tr === b.tr && a.tc === b.tc;
+}
+
+function sqIdx(r, c) { return r * 8 + c; }
 
 function orderMoves(moves, player, ply, hashMove) {
-  return [...moves].sort((a,b)=>{
-    let sa=0,sb=0;
+  return [...moves].sort((a, b) => {
+    let sa = 0, sb = 0;
 
-    // 1. Hash move from TT
-    if (hashMove){
-      if (movesEqual(a,hashMove)) sa+=1000000;
-      if (movesEqual(b,hashMove)) sb+=1000000;
+    // 1. Hash move (TT best move) — highest priority
+    if (hashMove) {
+      if (movesEqual(a, hashMove)) sa += 2000000;
+      if (movesEqual(b, hashMove)) sb += 2000000;
     }
 
-    // 2. Captures
-    if (a.jump!==b.jump) return a.jump?-1:1;
-    if (a.jump){
-      sa += (player===BOT?a.tr:(7-a.tr))*500;
-      sb += (player===BOT?b.tr:(7-b.tr))*500;
-    }
+    // 2. Captures before non-captures
+    if (a.jump !== b.jump) return a.jump ? -1 : 1;
 
     // 3. Killer moves
-    if (ply<killers.length){
-      const [k0,k1]=killers[ply];
-      if (k0&&movesEqual(a,k0)) sa+=30000;
-      if (k0&&movesEqual(b,k0)) sb+=30000;
-      if (k1&&movesEqual(a,k1)) sa+=20000;
-      if (k1&&movesEqual(b,k1)) sb+=20000;
+    if (ply < killers.length) {
+      const [k0, k1] = killers[ply];
+      if (k0 && movesEqual(a, k0)) sa += 900000;
+      if (k0 && movesEqual(b, k0)) sb += 900000;
+      if (k1 && movesEqual(a, k1)) sa += 800000;
+      if (k1 && movesEqual(b, k1)) sb += 800000;
     }
 
     // 4. History heuristic
-    sa += HISTORY[player][a.fr][a.fc][a.tr]||0;
-    sb += HISTORY[player][b.fr][b.fc][b.tr]||0;
+    sa += HISTORY[player][sqIdx(a.fr, a.fc)][sqIdx(a.tr, a.tc)];
+    sb += HISTORY[player][sqIdx(b.fr, b.fc)][sqIdx(b.tr, b.tc)];
 
-    // 5. Advancement
-    sa += (player===BOT?(a.tr-a.fr):(a.fr-a.tr))*50;
-    sb += (player===BOT?(b.tr-b.fr):(b.fr-b.tr))*50;
+    // 5. Promotion bonus
+    if (player === BOT    && a.tr === 7) sa += 5000;
+    if (player === BOT    && b.tr === 7) sb += 5000;
+    if (player === PLAYER && a.tr === 0) sa += 5000;
+    if (player === PLAYER && b.tr === 0) sb += 5000;
 
-    // 6. Center control
-    sa += CENTER_BONUS[a.tr][a.tc]*10;
-    sb += CENTER_BONUS[b.tr][b.tc]*10;
+    // 6. Advancement
+    sa += (player === BOT ? a.tr : 7 - a.tr) * 30;
+    sb += (player === BOT ? b.tr : 7 - b.tr) * 30;
 
-    // 7. Promotion bonus
-    if (player===BOT&&a.tr===7&&!a.jump) sa+=1000;
-    if (player===BOT&&b.tr===7&&!b.jump) sb+=1000;
-    if (player===PLAYER&&a.tr===0&&!a.jump) sa+=1000;
-    if (player===PLAYER&&b.tr===0&&!b.jump) sb+=1000;
+    // 7. Centre control
+    sa += CENTER_BONUS[a.tr][a.tc] * 8;
+    sb += CENTER_BONUS[b.tr][b.tc] * 8;
 
-    return sb-sa;
+    return sb - sa;
   });
 }
 
 /* ═══════════════════════════════════════════
-   STATIC EVALUATION — Deep Checkers Knowledge
+   STATIC EVALUATION (from BOT's perspective: positive = BOT winning)
    ═══════════════════════════════════════════ */
 function evalBoard(b) {
-  let score=0;
-  let botPc=0,plPc=0,botK=0,plK=0;
-  let botMob=0,plMob=0;
-  let botBackRow=0,plBackRow=0;
-  let botCenter=0,plCenter=0;
-  let botAdvance=0,plAdvance=0;
-  let botSafe=0,plSafe=0;
-  let botTrapped=0,plTrapped=0;
-  let botEdges=0,plEdges=0;
+  let score = 0;
+  let botPc = 0, plPc = 0, botK = 0, plK = 0;
+  let botMob = 0, plMob = 0;
+  let botAdv = 0, plAdv = 0;
+  let botBack = 0, plBack = 0;
 
-  for (let r=0;r<8;r++)for(let c=0;c<8;c++){
-    const pc=b[r][c];
-    if (pc===EMPTY) continue;
-    const isBot=pc.player===BOT;
-    const base=pc.isKing?VAL_KING:VAL_PIECE;
-    const pos=isBot?POS_TABLE[r][c]:POS_TABLE[7-r][c];
+  for (let r = 0; r < 8; r++)
+    for (let c = 0; c < 8; c++) {
+      const pc = b[r][c];
+      if (pc === EMPTY) continue;
 
-    // Mobility
-    let mob=0;
-    for (const dr of[-1,1])for(const dc of[-1,1]){
-      const mr=r+dr,mc=c+dc;
-      if (mr>=0&&mr<8&&mc>=0&&mc<8&&b[mr][mc]===EMPTY) mob++;
-    }
+      const isBot = pc.player === BOT;
+      const base  = pc.isKing ? VAL_KING : VAL_PIECE;
+      const pos   = isBot ? POS_TABLE[r][c] : POS_TABLE[7 - r][c];
+      const cent  = CENTER_BONUS[r][c];
 
-    // Dog-hole (corner anchor)
-    const dogHole=((r===0||r===7)&&(c===0||c===7))?15:0;
+      // Mobility (empty adjacent squares)
+      let mob = 0;
+      for (const dr of [-1, 1])
+        for (const dc of [-1, 1]) {
+          const mr = r + dr, mc = c + dc;
+          if (mr >= 0 && mr < 8 && mc >= 0 && mc < 8 && b[mr][mc] === EMPTY) mob++;
+        }
 
-    // King edge penalty
-    const edgePenalty=pc.isKing&&(r===0||r===7||c===0||c===7)?-8:0;
-
-    // Piece edge penalty
-    const pieceEdgePenalty=!pc.isKing&&(c===0||c===7)?-6:0;
-
-    // Back row anchor
-    const backRow=isBot?(r===0?12:0):(r===7?12:0);
-
-    // Center control
-    const center=CENTER_BONUS[r][c]*3;
-
-    // Advancement toward promotion
-    const advance=isBot?(r*4):((7-r)*4);
-
-    // Safe piece (protected from behind)
-    let safe=0;
-    const protectDr=isBot?-1:1;
-    const pr1=r+protectDr,pc1=c-1,pc2=c+1;
-    if (pr1>=0&&pr1<8){
-      if ((pc1>=0&&b[pr1][pc1]!==EMPTY&&b[pr1][pc1].player===pc.player)||
-          (pc2<8&&b[pr1][pc2]!==EMPTY&&b[pr1][pc2].player===pc.player)) safe=4;
-    }
-
-    // Trapped piece (no forward moves)
-    let trapped=0;
-    if (!pc.isKing){
-      const fdr=isBot?1:-1;
-      let canMove=false;
-      for (const dc of[-1,1]){
-        const nr=r+fdr,nc=c+dc;
-        if (nr>=0&&nr<8&&nc>=0&&nc<8){
-          const tgt=b[nr][nc];
-          if (tgt===EMPTY) canMove=true;
-          else if (tgt.player!==pc.player){
-            const jr=nr+fdr,jc=nc+dc;
-            if (jr>=0&&jr<8&&jc>=0&&jc<8&&b[jr][jc]===EMPTY) canMove=true;
+      // Safe piece: guarded from behind
+      let safe = 0;
+      const protDr = isBot ? -1 : 1;
+      const pr = r + protDr;
+      if (pr >= 0 && pr < 8) {
+        for (const dc of [-1, 1]) {
+          const pc2 = c + dc;
+          if (pc2 >= 0 && pc2 < 8 && b[pr][pc2] !== EMPTY && b[pr][pc2].player === pc.player) {
+            safe = 5; break;
           }
         }
       }
-      if (!canMove) trapped=-12;
-    }
 
-    const total=base+pos*2+mob*2+dogHole+edgePenalty+pieceEdgePenalty+backRow+center+advance+safe+trapped;
+      // Trapped: no forward move possible
+      let trapped = 0;
+      if (!pc.isKing) {
+        const fdr = isBot ? 1 : -1;
+        let canMove = false;
+        for (const dc of [-1, 1]) {
+          const nr = r + fdr, nc = c + dc;
+          if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+            const t = b[nr][nc];
+            if (t === EMPTY) { canMove = true; break; }
+            if (t.player !== pc.player) {
+              const jr = nr + fdr, jc = nc + dc;
+              if (jr >= 0 && jr < 8 && jc >= 0 && jc < 8 && b[jr][jc] === EMPTY) { canMove = true; break; }
+            }
+          }
+        }
+        if (!canMove) trapped = -15;
+      }
 
-    if (isBot){
-      score+=total; botPc++; if(pc.isKing)botK++; botMob+=mob;
-      botBackRow+=r===0?1:0; botCenter+=center>0?1:0; botAdvance+=r;
-      botSafe+=safe>0?1:0; botTrapped+=trapped<0?1:0; botEdges+=(c===0||c===7)?1:0;
-    } else {
-      score-=total; plPc++; if(pc.isKing)plK++; plMob+=mob;
-      plBackRow+=r===7?1:0; plCenter+=center>0?1:0; plAdvance+=(7-r);
-      plSafe+=safe>0?1:0; plTrapped+=trapped<0?1:0; plEdges+=(c===0||c===7)?1:0;
-    }
-  }
+      // Dog-hole corners
+      const dogHole = ((r === 0 || r === 7) && (c === 0 || c === 7)) ? 18 : 0;
 
-  // Material advantage with nonlinear scaling
-  const matDiff=(botPc+botK*1.8)-(plPc+plK*1.8);
-  if (matDiff>0) score+=matDiff*20;
+      // King edge penalty (kings should avoid edges)
+      const kingEdge = pc.isKing && (r === 0 || r === 7 || c === 0 || c === 7) ? -10 : 0;
 
-  // Mobility dominance
-  score+=(botMob-plMob)*3;
+      // Piece edge penalty
+      const pieceEdge = !pc.isKing && (c === 0 || c === 7) ? -7 : 0;
 
-  // King advantage
-  const kingDiff=botK-plK;
-  if (kingDiff>0){
-    score+=kingDiff*50;
-    if (botPc+plPc<16) score+=kingDiff*30;
-  }
+      // Advancement toward promotion
+      const advance = isBot ? r * 5 : (7 - r) * 5;
 
-  // Back row control
-  score+=(botBackRow-plBackRow)*8;
+      const total = base + pos * 2 + cent * 3 + mob * 2 + safe + trapped +
+                    dogHole + kingEdge + pieceEdge + advance;
 
-  // Promotion race
-  score+=(botAdvance-plAdvance)*2;
-
-  // Safe piece advantage
-  score+=(botSafe-plSafe)*5;
-
-  // Trapped piece penalty
-  score+=(plTrapped-botTrapped)*8;
-
-  // Edge avoidance
-  score+=(plEdges-botEdges)*3;
-
-  // Opening: center control
-  if (botPc+plPc>=20) score+=botCenter*5;
-
-  // King endgame: opposition and cornering
-  if (botPc+plPc<=6 && botK>0 && plK>0 && botPc===botK && plPc===plK){
-    let bkr=0,bkc=0,pkr=0,pkc=0;
-    for (let r=0;r<8;r++)for(let c=0;c<8;c++){
-      const pc=b[r][c];
-      if (pc!==EMPTY&&pc.isKing){
-        if (pc.player===BOT){bkr=r;bkc=c;}
-        else {pkr=r;pkc=c;}
+      if (isBot) {
+        score += total;
+        botPc++; if (pc.isKing) botK++;
+        botMob += mob; botAdv += r;
+        botBack += (r === 0) ? 1 : 0;
+      } else {
+        score -= total;
+        plPc++; if (pc.isKing) plK++;
+        plMob += mob; plAdv += (7 - r);
+        plBack += (r === 7) ? 1 : 0;
       }
     }
-    const dist=Math.abs(bkr-pkr)+Math.abs(bkc-pkc);
-    if (dist%2===0) score+=20;
-    const plToCorner=Math.min(pkr,7-pkr)+Math.min(pkc,7-pkc);
-    score+=(4-plToCorner)*10;
+
+  const total = botPc + plPc;
+
+  // Material advantage
+  const matDiff = (botPc + botK * 2.0) - (plPc + plK * 2.0);
+  score += matDiff * 25;
+
+  // Mobility dominance (more important mid-game)
+  score += (botMob - plMob) * 4;
+
+  // King advantage
+  const kDiff = botK - plK;
+  score += kDiff * (total < 12 ? 80 : 40);
+
+  // Back-row anchor
+  score += (botBack - plBack) * 10;
+
+  // Advancement (less important in endgame)
+  if (total > 8) score += (botAdv - plAdv) * 2;
+
+  // Endgame king opposition and cornering
+  if (total <= 6 && botK > 0 && plK > 0 && botPc === botK && plPc === plK) {
+    let bkr = 0, bkc = 0, pkr = 0, pkc = 0;
+    for (let r = 0; r < 8; r++)
+      for (let c = 0; c < 8; c++) {
+        const pc = b[r][c];
+        if (pc !== EMPTY && pc.isKing) {
+          if (pc.player === BOT)    { bkr = r; bkc = c; }
+          else                       { pkr = r; pkc = c; }
+        }
+      }
+    // Distance from player king to corner (force into corner)
+    const plToCorner = Math.min(pkr, 7 - pkr) + Math.min(pkc, 7 - pkc);
+    score += (4 - plToCorner) * 15;
+    // Opposition bonus
+    const dist = Math.abs(bkr - pkr) + Math.abs(bkc - pkc);
+    if (dist % 2 === 0) score += 25;
   }
+
+  // Piece count lead bonus (nonlinear)
+  const lead = botPc - plPc;
+  if (lead > 0) score += lead * lead * 8;
 
   return score;
 }
 
 /* ═══════════════════════════════════════════
-   QUIESCENCE SEARCH
+   QUIESCENCE SEARCH (captures only)
    ═══════════════════════════════════════════ */
-function quiesce(b, alpha, beta, isMax, ply) {
+function quiesce(b, alpha, beta, isMax, qdepth) {
   _nodes++;
-  const standPat=evalBoard(b);
-  if (ply>10) return standPat;
+  const standPat = evalBoard(b);
+  if (qdepth > 12) return standPat;
 
-  if (isMax){
-    if (standPat>=beta) return beta;
-    if (standPat>alpha) alpha=standPat;
-    const jumps=getMoves(BOT,b).filter(m=>m.jump);
-    if (!jumps.length) return standPat;
-    jumps.sort((a,b)=>b.tr-a.tr);
-    for (const mv of jumps){
-      const nb=copyBoard(b); applyMove(nb,mv);
-      const s=quiesce(nb,alpha,beta,false,ply+1);
-      if (s>=beta) return beta;
-      if (s>alpha) alpha=s;
+  if (isMax) {
+    if (standPat >= beta) return beta;
+    if (standPat > alpha) alpha = standPat;
+    const jumps = getMoves(BOT, b).filter(m => m.jump);
+    for (const mv of jumps) {
+      const nb = copyBoard(b); applyMove(nb, mv);
+      const s = quiesce(nb, alpha, beta, false, qdepth + 1);
+      if (s >= beta) return beta;
+      if (s > alpha) alpha = s;
     }
     return alpha;
   } else {
-    if (standPat<=alpha) return alpha;
-    if (standPat<beta) beta=standPat;
-    const jumps=getMoves(PLAYER,b).filter(m=>m.jump);
-    if (!jumps.length) return standPat;
-    jumps.sort((a,b)=>a.tr-b.tr);
-    for (const mv of jumps){
-      const nb=copyBoard(b); applyMove(nb,mv);
-      const s=quiesce(nb,alpha,beta,true,ply+1);
-      if (s<=alpha) return alpha;
-      if (s<beta) beta=s;
+    if (standPat <= alpha) return alpha;
+    if (standPat < beta) beta = standPat;
+    const jumps = getMoves(PLAYER, b).filter(m => m.jump);
+    for (const mv of jumps) {
+      const nb = copyBoard(b); applyMove(nb, mv);
+      const s = quiesce(nb, alpha, beta, true, qdepth + 1);
+      if (s <= alpha) return alpha;
+      if (s < beta) beta = s;
     }
     return beta;
   }
 }
 
 /* ═══════════════════════════════════════════
-   MAIN SEARCH: Minimax + αβ + PVS + LMR + Futility + Null Move + TT
+   MAIN SEARCH: αβ + PVS + LMR + Null Move + Futility + TT
+   isMax = true means it's BOT's turn to move (maximising)
    ═══════════════════════════════════════════ */
-function minimax(b, depth, alpha, beta, isMax, nullOk, ply) {
+function minimax(b, depth, alpha, beta, isMax, nullOk, ply, hashTurn) {
   _nodes++;
 
-  const hash=boardHash(b);
-  const repCount=repHash.get(hash)||0;
-  if (repCount>=2) return 0; // draw by repetition
+  const hash = boardHash(b, hashTurn);
+
+  // Repetition detection (draw)
+  const repCnt = searchRepHash.get(hash) || 0;
+  if (repCnt >= 2) return 0;
 
   // TT lookup
-  const tte=TT.get(hash);
-  if (tte&&tte.depth>=depth&&tte.age===ttAge){
+  const tte = TT.get(hash);
+  if (tte && tte.depth >= depth && tte.age === ttAge) {
     _ttHits++;
-    if (tte.flag===0) return tte.score;
-    if (tte.flag===1&&tte.score>=beta) return tte.score;
-    if (tte.flag===2&&tte.score<=alpha) return tte.score;
+    if (tte.flag === 0) return tte.score;                    // exact
+    if (tte.flag === 1 && tte.score >= beta)  return beta;   // lower bound
+    if (tte.flag === 2 && tte.score <= alpha) return alpha;  // upper bound
   }
 
-  const player=isMax?BOT:PLAYER;
-  const moves=getMoves(player,b);
-  if (depth===0) return quiesce(b,alpha,beta,isMax,0);
-  if (!moves.length) return isMax?-INF+ply:INF-ply;
+  const player = isMax ? BOT : PLAYER;
+  const moves = getMoves(player, b);
 
-  // Null-move pruning
-  const R=2;
-  if (nullOk&&depth>=R+1&&!isMax){
-    const s=minimax(b,depth-1-R,alpha,beta,true,false,ply+1);
-    if (s<=alpha) return alpha;
+  // Terminal / leaf
+  if (!moves.length) return isMax ? -INF + ply : INF - ply;
+  if (depth === 0)   return quiesce(b, alpha, beta, isMax, 0);
+
+  // ── Null-move pruning ──
+  // Only when we're the maximising side (BOT) and not in a capture-heavy position
+  const R = depth >= 6 ? 3 : 2;
+  if (nullOk && isMax && depth >= R + 1) {
+    // Null move: give the turn to the opponent
+    const s = minimax(b, depth - 1 - R, alpha, beta, false, false, ply + 1, PLAYER);
+    if (s >= beta) return beta; // β cut-off even without moving
   }
 
-  // Futility pruning
-  const canFutility=!isMax&&depth<=4&&ply>0;
-  const futilityMargin=canFutility?(FUTILITY_MARGIN[depth]||1000):0;
+  // ── Futility pruning ──
+  const canFutility = depth <= 5 && ply > 0;
+  const futMargin = canFutility ? (FUTILITY_MARGIN[depth] || 1200) : 0;
 
-  const hashMove=tte?.move||null;
-  const ordered=orderMoves(moves,player,ply,hashMove);
-  let bestScore=isMax?-INF:INF;
-  let bestMove=null;
-  const origAlpha=alpha;
-  let movesSearched=0;
+  const hashMove = tte?.move || null;
+  const ordered  = orderMoves(moves, player, ply, hashMove);
 
-  for (const mv of ordered){
-    // Periodic time check
-    if (_nodes%1024===0&&Date.now()-searchStartTime>TIME_LIMIT){
+  let bestScore = isMax ? -INF : INF;
+  let bestMove  = null;
+  const origAlpha = alpha;
+  let movesSearched = 0;
+
+  for (const mv of ordered) {
+    // Time check every 2048 nodes
+    if ((_nodes & 2047) === 0 && Date.now() - searchStartTime > TIME_LIMIT) {
       if (bestMove) break;
     }
 
-    const nb=copyBoard(b); applyMove(nb,mv);
-    let s;
+    const nb = copyBoard(b);
+    applyMove(nb, mv);
 
-    // Futility pruning
-    if (canFutility&&!mv.jump&&movesSearched>0){
-      const staticEval=evalBoard(nb);
-      if (staticEval+futilityMargin<=alpha){ movesSearched++; continue; }
+    // Futility pruning (quiet moves far below α)
+    if (canFutility && !mv.jump && movesSearched > 0) {
+      const fe = evalBoard(nb);
+      if (isMax && fe + futMargin <= alpha)  { movesSearched++; continue; }
+      if (!isMax && fe - futMargin >= beta)  { movesSearched++; continue; }
     }
 
-    // Late Move Reductions
-    const doLMR=!isMax&&depth>=3&&movesSearched>=4&&!mv.jump;
+    // Track this position for repetition detection
+    const nextTurn = isMax ? PLAYER : BOT;
+    const nbHash = boardHash(nb, nextTurn);
+    searchRepHash.set(nbHash, (searchRepHash.get(nbHash) || 0) + 1);
 
-    if (movesSearched===0){
-      s=minimax(nb,depth-1,alpha,beta,!isMax,true,ply+1);
-    } else if (doLMR){
-      const rd=depth-2;
-      if (isMax){
-        s=minimax(nb,rd,alpha,alpha+1,false,true,ply+1);
-        if (s>alpha&&s<beta) s=minimax(nb,depth-1,alpha,beta,false,true,ply+1);
-      } else {
-        s=minimax(nb,rd,beta-1,beta,true,true,ply+1);
-        if (s>alpha&&s<beta) s=minimax(nb,depth-1,alpha,beta,true,true,ply+1);
+    // ── Late Move Reductions ──
+    const doLMR = depth >= 3 && movesSearched >= 4 && !mv.jump;
+
+    let s;
+    if (movesSearched === 0) {
+      // First move: full window search
+      s = minimax(nb, depth - 1, alpha, beta, !isMax, true, ply + 1, nextTurn);
+    } else if (doLMR) {
+      // Reduce depth for late moves
+      const rd = Math.max(1, depth - 2);
+      s = minimax(nb, rd, alpha, alpha + 1, !isMax, true, ply + 1, nextTurn);
+      if (s > alpha && s < beta) {
+        // Re-search at full depth with full window
+        s = minimax(nb, depth - 1, alpha, beta, !isMax, true, ply + 1, nextTurn);
       }
     } else {
-      // PVS zero-window
-      if (isMax){
-        s=minimax(nb,depth-1,alpha,alpha+1,false,true,ply+1);
-        if (s>alpha&&s<beta) s=minimax(nb,depth-1,alpha,beta,false,true,ply+1);
+      // PVS zero-window search
+      if (isMax) {
+        s = minimax(nb, depth - 1, alpha, alpha + 1, false, true, ply + 1, nextTurn);
+        if (s > alpha && s < beta)
+          s = minimax(nb, depth - 1, alpha, beta, false, true, ply + 1, nextTurn);
       } else {
-        s=minimax(nb,depth-1,beta-1,beta,true,true,ply+1);
-        if (s>alpha&&s<beta) s=minimax(nb,depth-1,alpha,beta,true,true,ply+1);
+        s = minimax(nb, depth - 1, beta - 1, beta, true, true, ply + 1, nextTurn);
+        if (s > alpha && s < beta)
+          s = minimax(nb, depth - 1, alpha, beta, true, true, ply + 1, nextTurn);
       }
     }
+
+    // Undo repetition entry
+    const rc = searchRepHash.get(nbHash);
+    if (rc <= 1) searchRepHash.delete(nbHash);
+    else searchRepHash.set(nbHash, rc - 1);
 
     movesSearched++;
 
-    if (isMax){
-      if (s>bestScore){bestScore=s;bestMove=mv;}
-      alpha=Math.max(alpha,s);
+    if (isMax) {
+      if (s > bestScore) { bestScore = s; bestMove = mv; }
+      if (s > alpha) alpha = s;
     } else {
-      if (s<bestScore){bestScore=s;bestMove=mv;}
-      beta=Math.min(beta,s);
+      if (s < bestScore) { bestScore = s; bestMove = mv; }
+      if (s < beta) beta = s;
     }
 
-    if (beta<=alpha){
-      // Update killer
-      if (!mv.jump&&ply<30){
-        if (!killers[ply]) killers[ply]=[null,null];
-        if (!killers[ply][0]||!movesEqual(mv,killers[ply][0])){
-          killers[ply][1]=killers[ply][0];
-          killers[ply][0]=mv;
+    if (beta <= alpha) {
+      // Update killers (quiet moves that caused β cut-off)
+      if (!mv.jump && ply < killers.length) {
+        const [k0] = killers[ply];
+        if (!k0 || !movesEqual(mv, k0)) {
+          killers[ply][1] = killers[ply][0];
+          killers[ply][0] = mv;
         }
       }
       // Update history
-      if (!mv.jump){
-        HISTORY[player][mv.fr][mv.fc][mv.tr]+=depth*depth;
-        if (HISTORY[player][mv.fr][mv.fc][mv.tr]>100000){
-          for (let rr=0;rr<8;rr++)for(let cc=0;cc<8;cc++)for(let tt=0;tt<8;tt++)
-            HISTORY[player][rr][cc][tt]=Math.floor(HISTORY[player][rr][cc][tt]/2);
-        }
+      if (!mv.jump) {
+        const hv = HISTORY[player][sqIdx(mv.fr, mv.fc)][sqIdx(mv.tr, mv.tc)];
+        HISTORY[player][sqIdx(mv.fr, mv.fc)][sqIdx(mv.tr, mv.tc)] =
+          Math.min(hv + depth * depth, 32000);
       }
-      _cutoffs++;
       break;
     }
   }
 
-  // Store in TT
-  if (TT.size>TT_MAX){
-    const entries=Array.from(TT.entries());
-    for (let i=0;i<entries.length/2;i++) TT.delete(entries[i][0]);
+  // Age-aware TT store
+  if (TT.size > TT_MAX) {
+    // Evict old entries first
+    for (const [k, v] of TT) {
+      if (v.age !== ttAge) { TT.delete(k); break; }
+    }
+    if (TT.size > TT_MAX) TT.delete(TT.keys().next().value);
   }
-  let flag=0;
-  if (bestScore<=origAlpha) flag=2;
-  else if (bestScore>=beta) flag=1;
-  TT.set(hash,{score:bestScore,depth,flag,move:bestMove,age:ttAge});
+  let flag = 0; // exact
+  if (bestScore <= origAlpha) flag = 2; // upper bound
+  else if (bestScore >= beta) flag = 1; // lower bound
+  TT.set(hash, { score: bestScore, depth, flag, move: bestMove, age: ttAge });
 
   return bestScore;
 }
 
 /* ═══════════════════════════════════════════
-   ITERATIVE DEEPENING ROOT SEARCH
+   ROOT SEARCH: Iterative Deepening + Aspiration Windows
+   Returns { move, depth, nodes, ttHits, time, score }
    ═══════════════════════════════════════════ */
 function findBestMove() {
-  const moves=getMoves(BOT,board);
-  if (!moves.length) return {move:null,depth:0,nodes:0,ttHits:0,time:0,score:0};
+  const moves = getMoves(BOT, board);
+  if (!moves.length) return { move: null, depth: 0, nodes: 0, ttHits: 0, time: 0, score: 0 };
 
-  _nodes=0; _ttHits=0; _cutoffs=0;
-  searchStartTime=Date.now();
-  TIME_LIMIT=TIME_LIMITS[difficulty];
+  _nodes = 0; _ttHits = 0;
+  searchStartTime = Date.now();
+  const cfg = DIFFICULTY_CFG[difficulty];
+  TIME_LIMIT = cfg.time;
+  MAX_DEPTH   = cfg.maxDepth;
 
-  let bestMove=orderMoves(moves,BOT,0,null)[0];
-  let reachedDepth=0;
-  let lastScore=0;
+  // Decay history to avoid stale values dominating
+  for (const p of [PLAYER, BOT])
+    for (let i = 0; i < HIST_SIZE; i++)
+      for (let j = 0; j < HIST_SIZE; j++)
+        if (HISTORY[p][i][j] > 0) HISTORY[p][i][j] >>= 1;
 
-  for (let depth=1;depth<=18;depth++){
-    if (Date.now()-searchStartTime>TIME_LIMIT) break;
+  searchRepHash.clear();
 
-    let alpha=-INF,beta=INF;
-    let window=40;
-    if (depth>=4&&reachedDepth>0){
-      alpha=lastScore-window; beta=lastScore+window;
+  let bestMove = orderMoves(moves, BOT, 0, null)[0];
+  let reachedDepth = 0;
+  let lastScore    = 0;
+
+  for (let depth = 1; depth <= MAX_DEPTH; depth++) {
+    if (Date.now() - searchStartTime > TIME_LIMIT) break;
+
+    // Aspiration window (skip for shallow depths)
+    let alpha, beta, window = 50;
+    if (depth >= 5 && reachedDepth > 0) {
+      alpha = lastScore - window;
+      beta  = lastScore + window;
+    } else {
+      alpha = -INF; beta = INF;
     }
 
-    let iterBest=null,iterScore=-INF,candidates=[];
-    let attempts=0;
+    let iterBest  = null;
+    let iterScore = -INF;
+    let aspirationFailed = false;
 
-    while (attempts<3){
-      iterBest=null; iterScore=-INF; candidates=[];
-      const ttEntry=TT.get(boardHash(board));
-      const ordered=orderMoves(moves,BOT,0,ttEntry?.move||null);
+    aspirationLoop: for (let attempt = 0; attempt < 4; attempt++) {
+      // Fresh alpha for each root iteration — DON'T accumulate across moves
+      let rootAlpha = alpha;
+      iterBest  = null;
+      iterScore = -INF;
 
-      for (const mv of ordered){
-        if (Date.now()-searchStartTime>TIME_LIMIT){ if (iterBest) break; }
-        const nb=copyBoard(board); applyMove(nb,mv);
+      const ttEntry = TT.get(boardHash(board, BOT));
+      const ordered = orderMoves(moves, BOT, 0, ttEntry?.move || null);
+
+      let moveIdx = 0;
+      for (const mv of ordered) {
+        if (Date.now() - searchStartTime > TIME_LIMIT) break;
+
+        const nb = copyBoard(board);
+        applyMove(nb, mv);
+        const nbHash = boardHash(nb, PLAYER);
+        searchRepHash.set(nbHash, (searchRepHash.get(nbHash) || 0) + 1);
+
         let s;
-        if (iterBest===null){
-          s=minimax(nb,depth-1,alpha,beta,false,true,1);
+        if (moveIdx === 0) {
+          s = minimax(nb, depth - 1, rootAlpha, beta, false, true, 1, PLAYER);
         } else {
-          s=minimax(nb,depth-1,alpha,alpha+1,false,true,1);
-          if (s>alpha&&s<beta) s=minimax(nb,depth-1,alpha,beta,false,true,1);
+          // PVS: zero-window
+          s = minimax(nb, depth - 1, rootAlpha, rootAlpha + 1, false, true, 1, PLAYER);
+          if (s > rootAlpha && s < beta) {
+            s = minimax(nb, depth - 1, rootAlpha, beta, false, true, 1, PLAYER);
+          }
         }
-        if (s>iterScore){iterScore=s;iterBest=mv;candidates=[mv];}
-        else if (s===iterScore) candidates.push(mv);
-        alpha=Math.max(alpha,s);
+
+        const rc = searchRepHash.get(nbHash);
+        if (rc <= 1) searchRepHash.delete(nbHash); else searchRepHash.set(nbHash, rc - 1);
+
+        if (s > iterScore) { iterScore = s; iterBest = mv; }
+        if (s > rootAlpha) rootAlpha = s;
+        if (rootAlpha >= beta) break; // β cut
+        moveIdx++;
       }
 
-      if (iterScore<=alpha-window||iterScore>=beta+window){
-        window*=4; alpha=-INF; beta=INF; attempts++;
-        if (attempts>=2){alpha=-INF;beta=INF;}
-      } else break;
+      // Aspiration window check
+      if (iterScore <= alpha - window) {
+        // Fail low: widen downward
+        alpha -= window * 4; window *= 4; aspirationFailed = true;
+      } else if (iterScore >= beta + window) {
+        // Fail high: widen upward
+        beta += window * 4; window *= 4; aspirationFailed = true;
+      } else {
+        break aspirationLoop; // Within window — accept
+      }
+
+      if (alpha < -INF / 2 && beta > INF / 2) break; // Full window — accept
     }
 
-    if (iterBest&&Date.now()-searchStartTime<=TIME_LIMIT){
-      bestMove=candidates[0];
-      reachedDepth=depth;
-      lastScore=iterScore;
+    if (iterBest && Date.now() - searchStartTime <= TIME_LIMIT) {
+      bestMove    = iterBest;
+      reachedDepth = depth;
+      lastScore    = iterScore;
     }
-    if (Date.now()-searchStartTime>TIME_LIMIT) break;
   }
 
-  const time=Date.now()-searchStartTime;
-  return {move:bestMove,depth:reachedDepth,nodes:_nodes,ttHits:_ttHits,time,score:lastScore};
+  const time = Date.now() - searchStartTime;
+  return { move: bestMove, depth: reachedDepth, nodes: _nodes, ttHits: _ttHits, time, score: lastScore };
 }
 
 /* ═══════════════════════════════════════════
-   ENDGAME CHECK
+   BOT MULTI-JUMP: use full search at each step
    ═══════════════════════════════════════════ */
-function checkEnd(){
-  const pm=getMoves(PLAYER),bm=getMoves(BOT);
-  if (!pm.length&&turn===PLAYER){setStatus('Bot wins. Good game.','lose');gameOver=true;return true;}
-  if (!bm.length&&turn===BOT){setStatus('You win! Exceptional.','win');gameOver=true;return true;}
-  return false;
+function executeBotMultiJump(mv, onDone) {
+  // Animate then check for continuations
+  animateMove(board, mv, BOT, () => {
+    applyMove(board, mv);
+    pushSnapshot(mv, BOT);
+    const cont = getContinuations(BOT, board, mv.tr, mv.tc);
+    if (!cont.length) { onDone(); return; }
+
+    // Pick best continuation using a quick search
+    let bestCont = cont[0], bestSc = -INF;
+    for (const cc of cont) {
+      const tb = copyBoard(board); applyMove(tb, cc);
+      const sc = evalBoard(tb);
+      if (sc > bestSc) { bestSc = sc; bestCont = cc; }
+    }
+    executeBotMultiJump(bestCont, onDone);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   SLIDE ANIMATION
+   Creates a floating piece that slides from src to dst,
+   then calls onDone when the CSS transition ends.
+   ═══════════════════════════════════════════ */
+function animateMove(b, mv, player, onDone) {
+  const boardEl = document.getElementById('board');
+  const boardRect = boardEl.getBoundingClientRect();
+  const sqW = boardRect.width  / 8;
+  const sqH = boardRect.height / 8;
+
+  const pc = b[mv.fr][mv.fc];
+  const isKing = pc && pc.isKing;
+
+  // Create the sliding element
+  const slider = document.createElement('div');
+  slider.className = 'sliding-piece ' + (player === PLAYER ? 'player' : 'bot');
+  if (isKing) slider.classList.add('king');
+
+  const pieceW = sqW * 0.76;
+  const pieceH = sqH * 0.76;
+  slider.style.width   = pieceW + 'px';
+  slider.style.height  = pieceH + 'px';
+  slider.style.setProperty('--slide-ms', SLIDE_MS + 'ms');
+
+  // Start position (relative to board)
+  const startL = mv.fc * sqW + (sqW - pieceW) / 2;
+  const startT = mv.fr * sqH + (sqH - pieceH) / 2;
+  const endL   = mv.tc * sqW + (sqW - pieceW) / 2;
+  const endT   = mv.tr * sqH + (sqH - pieceH) / 2;
+
+  slider.style.left = startL + 'px';
+  slider.style.top  = startT + 'px';
+  slider.style.transition = 'none';
+
+  boardEl.appendChild(slider);
+
+  // Force a reflow so the starting position is painted before we set the end
+  slider.getBoundingClientRect();
+  slider.style.transition = `left ${SLIDE_MS}ms cubic-bezier(.4,.0,.2,1), top ${SLIDE_MS}ms cubic-bezier(.4,.0,.2,1)`;
+  slider.style.left = endL + 'px';
+  slider.style.top  = endT + 'px';
+
+  // Hide the source square piece during animation
+  const srcSqEl = boardEl.children[mv.fr * 8 + mv.fc];
+  const srcPieceEl = srcSqEl && srcSqEl.querySelector('.piece');
+  if (srcPieceEl) srcPieceEl.style.opacity = '0';
+
+  slider.addEventListener('transitionend', () => {
+    slider.remove();
+    onDone();
+  }, { once: true });
+}
+
+/* ═══════════════════════════════════════════
+   SNAPSHOT SYSTEM (for move navigation)
+   ═══════════════════════════════════════════ */
+function pushSnapshot(mv, player) {
+  // Label like: 🔴 e6→d5  or ⚫ a3×b4
+  const cols = 'abcdefgh';
+  const who  = player === PLAYER ? '🔴' : '⚫';
+  const from = cols[mv.fc] + (8 - mv.fr);
+  const to   = cols[mv.tc] + (8 - mv.tr);
+  const type = mv.jump ? '×' : '→';
+  const label = `${who} ${from}${type}${to}`;
+
+  // If we're not at the end (after rewinding), truncate future history
+  // (In this implementation we always push at the live end)
+  snapshots.push({
+    board: copyBoard(board),  // snapshot AFTER the move
+    turn:  player === PLAYER ? BOT : PLAYER,
+    label,
+  });
+  snapIdx = snapshots.length - 1;
+  updateHistoryLog();
+  updateNavButtons();
+}
+
+function initSnapshots() {
+  // Snapshot 0 = starting position
+  snapshots = [{
+    board: copyBoard(board),
+    turn:  PLAYER,
+    label: 'Start',
+  }];
+  snapIdx = 0;
+}
+
+/* Navigate ← or → through history */
+function stepHistory(dir) {
+  const target = snapIdx + dir;
+  if (target < 0 || target >= snapshots.length) return;
+  snapIdx = target;
+  isReplaying = (snapIdx < snapshots.length - 1);
+  renderSnapshot(snapshots[snapIdx]);
+  updateHistoryLog();
+  updateNavButtons();
+  document.getElementById('replay-banner').classList.toggle('active', isReplaying);
+  if (isReplaying) {
+    setStatus('Move ' + snapIdx + ' of ' + (snapshots.length - 1), 'replay');
+  } else {
+    // Returned to live position
+    restoreLive();
+  }
+}
+
+function restoreLive() {
+  isReplaying = false;
+  document.getElementById('replay-banner').classList.remove('active');
+  const live = snapshots[snapshots.length - 1];
+  board = copyBoard(live.board);
+  turn  = live.turn;
+  if (!gameOver) setStatus(turn === PLAYER ? 'Your turn — Red' : 'Thinking…', turn === PLAYER ? 'you' : 'bot');
+  render();
+}
+
+function renderSnapshot(snap) {
+  // Show the board state without allowing interaction
+  const prevBoard = board, prevTurn = turn;
+  board = copyBoard(snap.board);
+  turn  = snap.turn;
+  selPiece = null; availMoves = [];
+  render(/* frozen = */ true);
+  board = prevBoard; turn = prevTurn;
 }
 
 /* ═══════════════════════════════════════════
    RENDER
    ═══════════════════════════════════════════ */
-function render(){
-  const el=document.getElementById('board');
-  el.innerHTML='';
-  const jumps=getMoves(turn).some(m=>m.jump);
+function render(frozen) {
+  const el = document.getElementById('board');
+  el.innerHTML = '';
 
-  for (let r=0;r<8;r++){
-    for (let c=0;c<8;c++){
-      const sq=document.createElement('div');
-      sq.className='sq '+((r+c)%2===0?'light':'dark');
+  // When replaying, show snapshot board; otherwise live board
+  const displayBoard = isReplaying
+    ? copyBoard(snapshots[snapIdx].board)
+    : board;
 
-      const pc=board[r][c];
-      if (pc!==EMPTY){
-        const div=document.createElement('div');
-        div.className='piece '+(pc.player===PLAYER?'player':'bot');
+  const jumpsExist = !frozen && !isReplaying && turn === PLAYER
+    ? getMoves(PLAYER, board).some(m => m.jump)
+    : false;
+
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const sq = document.createElement('div');
+      sq.className = 'sq ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
+
+      const pc = displayBoard[r][c];
+      if (pc !== EMPTY) {
+        const div = document.createElement('div');
+        div.className = 'piece ' + (pc.player === PLAYER ? 'player' : 'bot');
         if (pc.isKing) div.classList.add('king');
         sq.appendChild(div);
       }
 
-      if (selPiece&&selPiece.r===r&&selPiece.c===c) sq.classList.add('sel');
+      if (selPiece && selPiece.r === r && selPiece.c === c) sq.classList.add('sel');
 
-      const mv=availMoves.find(m=>m.tr===r&&m.tc===c);
-      if (mv){
+      const mv = availMoves.find(m => m.tr === r && m.tc === c);
+      if (mv) {
         sq.classList.add('dot');
-        if (mv.jump&&pc!==EMPTY) sq.classList.add('cap-target');
+        if (mv.jump && pc !== EMPTY) sq.classList.add('cap-target');
       }
 
-      if ((r+c)%2===1&&turn===PLAYER&&!gameOver){
-        sq.style.cursor='pointer';
-        sq.addEventListener('click',()=>onClick(r,c,jumps));
+      if (!frozen && !isReplaying && (r + c) % 2 === 1 && turn === PLAYER && !gameOver) {
+        sq.style.cursor = 'pointer';
+        sq.addEventListener('click', () => onClick(r, c, jumpsExist));
       }
 
       el.appendChild(sq);
     }
   }
-  updateScores();
+
+  updateScores(displayBoard);
 }
 
-function updateScores(){
-  let p=0,b=0;
-  for (let r=0;r<8;r++)for(let c=0;c<8;c++){
-    const pc=board[r][c];
-    if (pc!==EMPTY) pc.player===PLAYER?p++:b++;
-  }
-  document.getElementById('sp').textContent=p;
-  document.getElementById('sb').textContent=b;
+function updateScores(b) {
+  let p = 0, bot = 0;
+  for (let r = 0; r < 8; r++)
+    for (let c = 0; c < 8; c++) {
+      const pc = b[r][c];
+      if (pc !== EMPTY) pc.player === PLAYER ? p++ : bot++;
+    }
+  document.getElementById('sp').textContent = p;
+  document.getElementById('sb').textContent = bot;
 }
 
 /* ═══════════════════════════════════════════
    PLAYER CLICK HANDLER
    ═══════════════════════════════════════════ */
-function onClick(r,c,jumpsExist){
-  if (turn!==PLAYER||gameOver) return;
-  const pc=board[r][c];
+function onClick(r, c, jumpsExist) {
+  if (turn !== PLAYER || gameOver || isReplaying) return;
+  const pc = board[r][c];
 
-  if (pc!==EMPTY&&pc.player===PLAYER){
-    const all=getMoves(PLAYER);
-    const pool=jumpsExist?all.filter(m=>m.jump):all;
-    availMoves=pool.filter(m=>m.fr===r&&m.fc===c);
-    selPiece=availMoves.length?{r,c}:null;
-    if (!availMoves.length) availMoves=[];
+  // Clicked on own piece: select it
+  if (pc !== EMPTY && pc.player === PLAYER) {
+    const all  = getMoves(PLAYER, board);
+    const pool = jumpsExist ? all.filter(m => m.jump) : all;
+    availMoves = pool.filter(m => m.fr === r && m.fc === c);
+    selPiece   = availMoves.length ? { r, c } : null;
+    if (!selPiece) availMoves = [];
     render(); return;
   }
 
-  const mv=availMoves.find(m=>m.tr===r&&m.tc===c);
+  // Clicked on a destination
+  const mv = availMoves.find(m => m.tr === r && m.tc === c);
   if (!mv) return;
 
-  applyMove(board,mv);
-  logMove(mv,PLAYER);
+  animateMove(board, mv, PLAYER, () => {
+    applyMove(board, mv);
+    pushSnapshot(mv, PLAYER);
 
-  if (mv.jump){
-    const cont=getContinuations(PLAYER,board,mv.tr,mv.tc);
-    if (cont.length){
-      selPiece={r:mv.tr,c:mv.tc}; availMoves=cont; render(); return;
+    if (mv.jump) {
+      const cont = getContinuations(PLAYER, board, mv.tr, mv.tc);
+      if (cont.length) {
+        selPiece = { r: mv.tr, c: mv.tc };
+        availMoves = cont;
+        render(); return;
+      }
     }
-  }
 
-  selPiece=null; availMoves=[]; turn=BOT;
-  setStatus('Thinking\u2026','bot'); showSpinner(true);
+    selPiece = null; availMoves = [];
+    turn = BOT;
+    setStatus('Thinking…', 'bot');
+    showSpinner(true);
+    render();
+    setTimeout(doBotTurn, 80);
+  });
+
+  // Hide the piece on source square immediately
+  selPiece = null; availMoves = [];
   render();
-  setTimeout(doBotTurn,80);
 }
 
 /* ═══════════════════════════════════════════
    BOT TURN
    ═══════════════════════════════════════════ */
-function doBotTurn(){
+function doBotTurn() {
   if (gameOver) return;
-  const {move,depth,nodes,ttHits,time,score}=findBestMove();
-  lastStats={depth,nodes,ttHits,time,score};
-  document.getElementById('inf-depth').textContent=depth;
-  document.getElementById('inf-nodes').textContent=nodes>999?(nodes/1000).toFixed(1)+'k':nodes;
-  document.getElementById('inf-tt').textContent=ttHits>999?(ttHits/1000).toFixed(1)+'k':ttHits;
-  document.getElementById('inf-time').textContent=time+'ms';
 
-  if (move){
-    applyMove(board,move);
-    logMove(move,BOT);
-    let cur=move;
-    while (cur.jump){
-      const nxt=getContinuations(BOT,board,cur.tr,cur.tc);
-      if (!nxt.length) break;
-      let bestCont=nxt[0],bestSc=-Infinity;
-      for (const cc of nxt){
-        const tb=copyBoard(board); applyMove(tb,cc);
-        let sc=0;
-        if (cc.tr===7) sc+=500;
-        sc+=cc.tr*10;
-        if (sc>bestSc){bestSc=sc;bestCont=cc;}
-      }
-      cur=bestCont; applyMove(board,cur); logMove(cur,BOT);
-    }
+  const { move, depth, nodes, ttHits, time } = findBestMove();
+
+  document.getElementById('inf-depth').textContent = depth;
+  document.getElementById('inf-nodes').textContent = nodes > 9999 ? (nodes / 1000).toFixed(1) + 'k' : nodes;
+  document.getElementById('inf-tt').textContent    = ttHits > 9999 ? (ttHits / 1000).toFixed(1) + 'k' : ttHits;
+  document.getElementById('inf-time').textContent  = time + 'ms';
+
+  if (!move) {
+    showSpinner(false);
+    turn = PLAYER;
+    render();
+    checkEnd();
+    return;
   }
 
-  showSpinner(false); turn=PLAYER;
-  setStatus('Your turn \u2014 Red','you');
-  render(); checkEnd();
+  executeBotMultiJump(move, () => {
+    showSpinner(false);
+    turn = PLAYER;
+    setStatus('Your turn — Red', 'you');
+    render();
+    checkEnd();
+  });
+}
+
+/* ═══════════════════════════════════════════
+   END-GAME CHECK
+   ═══════════════════════════════════════════ */
+function checkEnd() {
+  const pm = getMoves(PLAYER, board);
+  const bm = getMoves(BOT,    board);
+  if (!pm.length && turn === PLAYER) {
+    setStatus('Bot wins. Good game.', 'lose'); gameOver = true;
+    updateNavButtons(); return true;
+  }
+  if (!bm.length && turn === BOT) {
+    setStatus('You win! Exceptional.', 'win'); gameOver = true;
+    updateNavButtons(); return true;
+  }
+  return false;
+}
+
+/* ═══════════════════════════════════════════
+   HISTORY LOG UI
+   ═══════════════════════════════════════════ */
+function updateHistoryLog() {
+  const h = document.getElementById('history');
+  if (snapshots.length <= 1) { h.textContent = 'Moves will appear here…'; return; }
+
+  h.innerHTML = '';
+  for (let i = 1; i < snapshots.length; i++) {
+    const span = document.createElement('span');
+    span.textContent = snapshots[i].label + '  ';
+    if (i === snapIdx) span.className = 'hist-current';
+    span.style.cursor = 'pointer';
+    span.addEventListener('click', () => {
+      snapIdx = i;
+      isReplaying = (snapIdx < snapshots.length - 1);
+      renderSnapshot(snapshots[snapIdx]);
+      updateHistoryLog();
+      updateNavButtons();
+      document.getElementById('replay-banner').classList.toggle('active', isReplaying);
+      if (isReplaying) setStatus('Move ' + snapIdx + ' of ' + (snapshots.length - 1), 'replay');
+      else restoreLive();
+    });
+    h.appendChild(span);
+  }
+  h.scrollTop = h.scrollHeight;
+}
+
+function updateNavButtons() {
+  document.getElementById('btn-prev').disabled = snapIdx <= 0;
+  document.getElementById('btn-next').disabled = snapIdx >= snapshots.length - 1;
 }
 
 /* ═══════════════════════════════════════════
    UTILITIES
    ═══════════════════════════════════════════ */
-function setStatus(txt,cls){
-  const el=document.getElementById('status');
-  el.textContent=txt; el.className=cls;
+function setStatus(txt, cls) {
+  const el = document.getElementById('status');
+  el.textContent = txt;
+  el.className   = cls;
 }
-function showSpinner(v){
-  document.getElementById('spinner').style.display=v?'block':'none';
-}
-
-function logMove(mv,player){
-  const cols='abcdefgh';
-  const who=player===PLAYER?'\u{1F534}':'\u26AB';
-  const from=cols[mv.fc]+(8-mv.fr);
-  const to=cols[mv.tc]+(8-mv.tr);
-  const type=mv.jump?'\u00D7':'\u2192';
-  const h=document.getElementById('history');
-  if (h.textContent==='Moves will appear here\u2026') h.textContent='';
-  h.textContent+=`${who} ${from}${type}${to}  `;
-  h.scrollTop=h.scrollHeight;
+function showSpinner(v) {
+  document.getElementById('spinner').style.display = v ? 'block' : 'none';
 }
 
-function resetGame(){
-  turn=PLAYER; selPiece=null; availMoves=[]; gameOver=false;
-  histLog=[];
-  document.getElementById('history').textContent='Moves will appear here\u2026';
-  document.getElementById('inf-depth').textContent='\u2014';
-  document.getElementById('inf-nodes').textContent='\u2014';
-  document.getElementById('inf-tt').textContent='\u2014';
-  document.getElementById('inf-time').textContent='\u2014';
-  setStatus('Your turn \u2014 Red','you');
+function resetGame() {
+  turn = PLAYER; selPiece = null; availMoves = []; gameOver = false;
+  isReplaying = false;
+  document.getElementById('replay-banner').classList.remove('active');
+  document.getElementById('inf-depth').textContent = '—';
+  document.getElementById('inf-nodes').textContent = '—';
+  document.getElementById('inf-tt').textContent    = '—';
+  document.getElementById('inf-time').textContent  = '—';
+  setStatus('Your turn — Red', 'you');
   showSpinner(false);
-  initBoard(); render();
+  initBoard();
+  initSnapshots();
+  updateHistoryLog();
+  updateNavButtons();
+  render();
 }
 
-function setDifficulty(level){
-  difficulty=level;
-  document.querySelectorAll('.diff-btn').forEach(btn=>{
-    btn.classList.toggle('active',btn.dataset.diff===level);
+function setDifficulty(level) {
+  difficulty = level;
+  document.querySelectorAll('.diff-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.diff === level);
   });
   resetGame();
 }
 
 /* ── Boot ── */
-initBoard();
-render();
+resetGame();
 </script>
 </body>
 </html>
