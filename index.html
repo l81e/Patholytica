@@ -2,644 +2,1603 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Patholytica</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>Patholytica — Home</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --bg:   #0a0a0a;
-      --text: #e8e6e1;
-      --dim:  #5a5855;
-      --gold: #c8a96e;
-      --line: rgba(255,255,255,0.07);
-      --glass: rgba(255,255,255,0.04);
-    }
+/* ══════════════════════════════════════════════
+   CSS VARIABLES
+══════════════════════════════════════════════ */
+:root {
+  --bg-color: #0f0e0b;
+  --text-primary: #f5f0e8;
+  --text-secondary: #8a8070;
+  --hover-bg: #1a1810;
+  --border-color: #2a2518;
+  --accent: #c8a96e;
+  --accent-hover: #b8935a;
+  --accent-glow: rgba(200,169,110,0.25);
+  --accent-soft: rgba(200,169,110,0.12);
+  --font-article: 'Merriweather', serif;
+  --font-ui: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+body.theme-dark {
+  --bg-color: #0f0e0b; --text-primary: #f5f0e8; --text-secondary: #8a8070;
+  --hover-bg: #1a1810; --border-color: #2a2518;
+  --accent: #c8a96e; --accent-hover: #b8935a;
+  --accent-glow: rgba(200,169,110,0.25); --accent-soft: rgba(200,169,110,0.12);
+}
+body.theme-light {
+  --bg-color: #faf6ee; --text-primary: #1a1710; --text-secondary: #706050;
+  --hover-bg: #f0ebe0; --border-color: #e0d8c8;
+  --accent: #a07840; --accent-hover: #8a6430;
+  --accent-glow: rgba(160,120,64,0.2); --accent-soft: rgba(160,120,64,0.08);
+}
+body.font-serif  { --font-article: 'Merriweather', serif; }
+body.font-slab   { --font-article: 'Source Serif 4', serif; }
+body.font-modern { --font-article: 'Inter', sans-serif; }
 
-    html { scroll-behavior: smooth; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg-color);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  transition: background 0.2s ease, color 0.2s ease;
+}
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 16px;
-      line-height: 1.6;
-      overflow-x: hidden;
-    }
+/* ══════════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════════ */
+.header-wrapper {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: var(--bg-color);
+  border-bottom: 1px solid var(--border-color);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  padding-top: env(safe-area-inset-top);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 18px; max-width: 1200px; margin: 0 auto;
+}
+.header-logo { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.header-logo img { height: 24px; width: auto; }
+.header-right { display: flex; align-items: center; gap: 8px; }
 
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      background-image: radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px);
-      background-size: 28px 28px;
-      pointer-events: none;
-    }
+.hdr-icon-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--hover-bg); border: 1px solid var(--border-color);
+  color: var(--text-secondary); font-size: 13px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.15s, color 0.15s, background 0.2s;
+  position: relative; flex-shrink: 0;
+}
+.hdr-icon-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-    .page {
-      position: relative;
-      z-index: 1;
-      max-width: 560px;
-      margin: 0 auto;
-      padding: 0 22px;
-    }
+/* notification badge */
+.notif-badge {
+  position: absolute; top: -3px; right: -3px;
+  background: #c46a4e; color: #fff; font-size: 9px; font-weight: 700;
+  width: 15px; height: 15px; border-radius: 50%;
+  display: none; align-items: center; justify-content: center;
+  border: 1.5px solid var(--bg-color); pointer-events: none;
+}
+.notif-badge.show { display: flex; }
 
-    /* TOP BAR */
-    .top-bar {
-      padding: 28px 0 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
+/* ══════════════════════════════════════════════
+   NOTIFICATIONS PANEL
+══════════════════════════════════════════════ */
+.notif-panel {
+  display: none; flex-direction: column;
+  position: fixed; z-index: 500;
+  width: 310px; max-width: calc(100vw - 24px); max-height: 460px;
+  background: var(--hover-bg); border: 1px solid var(--border-color);
+  border-radius: 16px; box-shadow: 0 16px 48px rgba(0,0,0,0.7);
+  overflow: hidden;
+}
+.notif-panel.open { display: flex; }
+.notif-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 16px 10px; border-bottom: 1px solid var(--border-color); flex-shrink: 0;
+}
+.notif-panel-title { font-size: 13px; font-weight: 700; }
+.notif-mark-all {
+  font-size: 11px; font-weight: 600; color: var(--accent);
+  background: none; border: none; cursor: pointer; font-family: var(--font-ui);
+  transition: opacity 0.2s;
+}
+.notif-mark-all:hover { opacity: 0.7; }
+.notif-list { flex: 1; overflow-y: auto; }
+.notif-list::-webkit-scrollbar { width: 2px; }
+.notif-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+.notif-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 11px 16px; border-bottom: 1px solid rgba(42,37,24,0.6);
+  cursor: pointer; transition: background 0.15s; position: relative;
+}
+.notif-item:hover { background: var(--hover-bg); }
+.notif-item.unread { background: rgba(200,169,110,0.04); }
+.notif-item.unread::before {
+  content: ''; position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
+  width: 4px; height: 4px; border-radius: 50%; background: var(--accent);
+}
+.notif-icon {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 12px;
+}
+.notif-icon.like    { background: rgba(196,106,78,0.15); color: #c46a4e; }
+.notif-icon.comment { background: rgba(138,160,192,0.15); color: #8aa0c0; }
+.notif-icon.follow  { background: var(--accent-soft); color: var(--accent); }
+.notif-icon.article { background: rgba(106,191,133,0.15); color: #6abf85; }
+.notif-text { flex: 1; min-width: 0; }
+.notif-msg  { font-size: 12px; line-height: 1.4; color: var(--text-primary); }
+.notif-time { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
+.notif-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 40px 20px; color: var(--text-secondary);
+}
+.notif-empty i { font-size: 28px; opacity: 0.25; color: var(--accent); }
+.notif-empty p { font-size: 12px; opacity: 0.6; margin: 0; }
+.notif-spinner-wrap { padding: 24px; display: flex; justify-content: center; }
+.notif-spinner {
+  width: 22px; height: 22px;
+  border: 2px solid var(--border-color); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-    .top-logo {
-      height: 26px;
-      width: auto;
-      display: block;
-      flex-shrink: 0;
-    }
+/* ══════════════════════════════════════════════
+   SETTINGS POPOVER
+══════════════════════════════════════════════ */
+.settings-popover {
+  position: fixed; z-index: 500;
+  background: var(--hover-bg); border: 1px solid var(--border-color);
+  border-radius: 16px; padding: 0; width: 230px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  opacity: 0; pointer-events: none;
+  transform: translateY(-8px) scale(0.97);
+  transition: opacity 0.2s, transform 0.2s;
+  overflow: hidden;
+}
+.settings-popover.open { opacity: 1; pointer-events: all; transform: translateY(0) scale(1); }
 
-    .top-nav {
-      display: flex;
-      gap: 8px;
-    }
+/* profile section at top of settings */
+.sp-profile {
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.sp-profile:hover { background: rgba(200,169,110,0.06); }
+.sp-profile-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--accent-soft); border: 1.5px solid rgba(200,169,110,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: var(--accent);
+  overflow: hidden; flex-shrink: 0;
+}
+.sp-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.sp-profile-info { flex: 1; min-width: 0; }
+.sp-profile-name {
+  font-size: 13px; font-weight: 700; color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sp-profile-status {
+  font-size: 10px; margin-top: 1px;
+}
+.sp-profile-status.online { color: #6abf85; }
+.sp-profile-status.guest  { color: var(--text-secondary); }
 
-    .nav-btn {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.8rem;
-      font-weight: 600;
-      padding: 6px 15px;
-      border-radius: 8px;
-      text-decoration: none;
-      transition: opacity 0.15s, color 0.15s;
-      white-space: nowrap;
-      border: none;
-      cursor: pointer;
-    }
+/* settings body */
+.sp-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 12px; }
+.sp-section { }
+.sp-label {
+  font-size: 9px; font-weight: 800; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-secondary); margin-bottom: 7px;
+}
+.sp-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sp-pill {
+  padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  border: 1px solid var(--border-color); background: var(--bg-color);
+  color: var(--text-secondary); cursor: pointer; transition: all 0.15s;
+  font-family: var(--font-ui);
+}
+.sp-pill.active { background: var(--accent); color: #0f0e0b; border-color: var(--accent); }
+.sp-pill:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
 
-    .nav-btn-ghost {
-      background: var(--glass);
-      color: var(--dim);
-      border: 1px solid var(--line);
-    }
-    .nav-btn-ghost:hover { color: var(--text); }
+/* logout button */
+.sp-logout {
+  width: 100%; padding: 9px 12px; border-radius: 10px;
+  background: rgba(196,106,78,0.08); border: 1px solid rgba(196,106,78,0.22);
+  color: #c46a4e; font-size: 12px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
+  font-family: var(--font-ui); transition: background 0.15s;
+  margin-top: 4px;
+}
+.sp-logout:hover { background: rgba(196,106,78,0.16); }
+.sp-login {
+  width: 100%; padding: 9px 12px; border-radius: 10px;
+  background: var(--accent-soft); border: 1px solid rgba(200,169,110,0.3);
+  color: var(--accent); font-size: 12px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
+  font-family: var(--font-ui); transition: background 0.15s;
+  margin-top: 4px;
+}
+.sp-login:hover { background: rgba(200,169,110,0.2); }
 
-    .nav-btn-primary {
-      background: var(--gold);
-      color: #0a0a0a;
-    }
-    .nav-btn-primary:hover { opacity: 0.82; }
+/* ══════════════════════════════════════════════
+   USER PREVIEW POPUP (creator strip click)
+══════════════════════════════════════════════ */
+.user-popup-overlay {
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+  display: none; align-items: flex-end; justify-content: center;
+}
+.user-popup-overlay.open { display: flex; }
+.user-popup {
+  width: 100%; max-width: 420px;
+  background: var(--hover-bg); border: 1px solid var(--border-color);
+  border-radius: 20px 20px 0 0; border-bottom: none;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+  animation: slideUp 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+@keyframes slideUp { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
+.user-popup-handle {
+  width: 36px; height: 4px; background: var(--border-color);
+  border-radius: 2px; margin: 0 auto 18px;
+}
+.user-popup-header {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 14px;
+}
+.user-popup-avatar {
+  width: 58px; height: 58px; border-radius: 50%;
+  background: var(--accent-soft); border: 2px solid rgba(200,169,110,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 700; color: var(--accent);
+  overflow: hidden; flex-shrink: 0;
+}
+.user-popup-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.user-popup-identity { flex: 1; min-width: 0; }
+.user-popup-name {
+  font-size: 16px; font-weight: 800; color: var(--text-primary);
+  font-family: var(--font-article); margin-bottom: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.user-popup-handle { font-size: 12px; color: var(--text-secondary); }
+.user-popup-stats {
+  display: flex; gap: 0;
+  border: 1px solid var(--border-color); border-radius: 12px;
+  overflow: hidden; margin-bottom: 14px;
+}
+.user-popup-stat {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 10px 6px; position: relative;
+}
+.user-popup-stat + .user-popup-stat::before {
+  content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
+  width: 1px; background: var(--border-color);
+}
+.user-popup-stat-val {
+  font-size: 16px; font-weight: 800; color: var(--text-primary);
+  font-family: var(--font-article); line-height: 1;
+}
+.user-popup-stat-label {
+  font-size: 9px; font-weight: 600; color: var(--text-secondary);
+  margin-top: 3px; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.user-popup-bio {
+  font-size: 13px; color: var(--text-secondary); line-height: 1.6;
+  margin-bottom: 16px;
+}
+.user-popup-btn {
+  width: 100%; padding: 11px; border-radius: 10px;
+  background: var(--accent); color: #0f0e0b;
+  font-size: 13px; font-weight: 700; border: none; cursor: pointer;
+  font-family: var(--font-ui); transition: background 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.user-popup-btn:hover { background: var(--accent-hover); }
+.user-popup-spinner {
+  display: flex; align-items: center; justify-content: center; padding: 30px;
+}
+.user-popup-spinner-ring {
+  width: 24px; height: 24px;
+  border: 2px solid var(--border-color); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.9s linear infinite;
+}
 
-    /* TABS */
-    .tabs-section {
-      padding-top: 0;
-    }
+/* ══════════════════════════════════════════════
+   CONTENT PREVIEW POPUP (pin card click)
+══════════════════════════════════════════════ */
+.card-preview-overlay {
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+  display: none; align-items: flex-end; justify-content: center;
+}
+.card-preview-overlay.open { display: flex; }
+.card-preview {
+  width: 100%; max-width: 480px;
+  background: var(--hover-bg); border: 1px solid var(--border-color);
+  border-radius: 20px 20px 0 0; border-bottom: none;
+  max-height: 80vh; display: flex; flex-direction: column;
+  animation: slideUp 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.card-preview-handle {
+  width: 36px; height: 4px; background: var(--border-color);
+  border-radius: 2px; margin: 12px auto 0; flex-shrink: 0;
+}
+.card-preview-inner {
+  flex: 1; overflow-y: auto; padding: 16px 18px calc(18px + env(safe-area-inset-bottom));
+}
+.card-preview-inner::-webkit-scrollbar { width: 2px; }
+.card-preview-inner::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
 
-    .tabs-bar {
-      display: flex;
-      gap: 0;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      overflow: hidden;
-      margin-bottom: 32px;
-    }
+.cp-type-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+  border-radius: 5px; padding: 3px 8px; margin-bottom: 10px;
+}
+.cp-type-badge.article { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(200,169,110,0.3); }
+.cp-type-badge.mcq     { background: rgba(106,191,133,0.12); color: #a0d8b0; border: 1px solid rgba(106,191,133,0.25); }
+.cp-type-badge.library { background: rgba(106,159,207,0.12); color: #a8c8e8; border: 1px solid rgba(106,159,207,0.25); }
 
-    .tab-btn {
-      flex: 1;
-      background: none;
-      border: none;
-      border-right: 1px solid var(--line);
-      color: var(--dim);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.78rem;
-      font-weight: 500;
-      padding: 10px 8px;
-      cursor: pointer;
-      transition: color 0.15s, background 0.15s;
-      text-align: center;
-      white-space: nowrap;
-    }
-    .tab-btn:last-child { border-right: none; }
-    .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.03); }
-    .tab-btn.active {
-      color: var(--gold);
-      background: rgba(200,169,110,0.07);
-    }
+.cp-title {
+  font-size: 17px; font-weight: 800; line-height: 1.3; color: var(--text-primary);
+  font-family: var(--font-article); margin-bottom: 10px;
+}
+.cp-meta {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
+}
+.cp-meta-item { font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
+.cp-meta-item i { font-size: 10px; }
+.cp-excerpt {
+  font-size: 14px; line-height: 1.7; color: var(--text-secondary);
+  margin-bottom: 18px;
+}
+/* MCQ inside preview */
+.cp-mcq-q {
+  font-size: 15px; font-weight: 700; color: var(--text-primary);
+  font-family: var(--font-article); line-height: 1.4; margin-bottom: 12px;
+}
+.cp-mcq-opts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.cp-mcq-opt {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 13px; border-radius: 10px;
+  border: 1px solid var(--border-color); background: var(--bg-color);
+  font-size: 13px; color: var(--text-primary); cursor: pointer;
+  transition: border-color 0.15s, background 0.15s; text-align: left; width: 100%;
+  font-family: var(--font-ui);
+}
+.cp-mcq-opt:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+.cp-mcq-opt:disabled { cursor: default; }
+.cp-mcq-opt .opt-l {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 1.5px solid var(--border-color);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 800; flex-shrink: 0; color: var(--text-secondary);
+}
+.cp-mcq-opt.correct { border-color: #6abf85; background: rgba(106,191,133,0.08); }
+.cp-mcq-opt.correct .opt-l { background: #6abf85; border-color: #6abf85; color: #0f0e0b; }
+.cp-mcq-opt.wrong   { border-color: #c46a4e; background: rgba(196,106,78,0.07); }
+.cp-mcq-opt.wrong   .opt-l { background: #c46a4e; border-color: #c46a4e; color: #fff; }
+.cp-mcq-opt.reveal  { border-color: rgba(106,191,133,0.5); }
+.cp-mcq-opt.reveal  .opt-l { border-color: #6abf85; color: #6abf85; }
+.cp-mcq-result { font-size: 13px; font-weight: 700; margin-bottom: 14px; }
+.cp-mcq-result.correct { color: #6abf85; }
+.cp-mcq-result.wrong   { color: #c46a4e; }
+/* library inside preview */
+.cp-lib-desc {
+  font-size: 14px; line-height: 1.7; color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+.cp-lib-save-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+}
+.cp-save-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700;
+  border: 1px solid var(--border-color); background: none; color: var(--text-secondary);
+  cursor: pointer; font-family: var(--font-ui); transition: all 0.15s;
+}
+.cp-save-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cp-save-btn.saved { border-color: rgba(200,169,110,0.4); color: var(--accent); background: var(--accent-soft); }
+.cp-save-btn i { font-size: 12px; }
+/* footer actions */
+.cp-actions {
+  display: flex; gap: 8px;
+}
+.cp-btn-primary {
+  flex: 1; padding: 11px; border-radius: 10px;
+  background: var(--accent); color: #0f0e0b;
+  font-size: 13px; font-weight: 700; border: none; cursor: pointer;
+  font-family: var(--font-ui); transition: background 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.cp-btn-primary:hover { background: var(--accent-hover); }
+.cp-btn-secondary {
+  padding: 11px 16px; border-radius: 10px;
+  background: none; border: 1px solid var(--border-color); color: var(--text-secondary);
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  font-family: var(--font-ui); transition: border-color 0.15s, color 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.cp-btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
 
-    /* TAB PANELS — fade transition */
-    .tab-panel {
-      display: none;
-      opacity: 0;
-      transform: translateY(6px);
-    }
-    .tab-panel.active {
-      display: block;
-    }
-    .tab-panel.fade-in {
-      animation: tabFadeIn 0.28s ease forwards;
-    }
+/* preview loading */
+.cp-loading {
+  display: flex; align-items: center; justify-content: center; padding: 40px;
+}
+.cp-loading-ring {
+  width: 26px; height: 26px;
+  border: 2px solid var(--border-color); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.9s linear infinite;
+}
 
-    @keyframes tabFadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
+/* ══════════════════════════════════════════════
+   PAGE BODY
+══════════════════════════════════════════════ */
+.page-body {
+  max-width: 1200px; margin: 0 auto;
+  padding: 0 12px;
+  padding-top: calc(44px + env(safe-area-inset-top) + 14px);
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+}
 
-    /* AIMS TAB */
-    .aims-list { display: flex; flex-direction: column; }
+/* ══════════════════════════════════════════════
+   CREATORS STRIP
+══════════════════════════════════════════════ */
+.creators-strip {
+  display: flex; gap: 14px; overflow-x: auto;
+  padding: 4px 0 14px; scrollbar-width: none;
+}
+.creators-strip::-webkit-scrollbar { display: none; }
+.creator-pill {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  cursor: pointer; flex-shrink: 0; width: 54px;
+  transition: opacity 0.15s;
+}
+.creator-pill:hover { opacity: 0.8; }
+.creator-pill-avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--accent-soft);
+  border: 2px solid var(--border-color);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; color: var(--accent);
+  overflow: hidden; flex-shrink: 0;
+  transition: border-color 0.2s;
+}
+.creator-pill:hover .creator-pill-avatar { border-color: var(--accent); }
+.creator-pill-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.creator-pill-name {
+  font-size: 9px; font-weight: 600; color: var(--text-secondary);
+  text-align: center; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; width: 100%;
+}
 
-    .aim {
-      padding: 18px 0;
-      border-bottom: 1px solid var(--line);
-      display: grid;
-      grid-template-columns: 24px 1fr;
-      gap: 0 14px;
-      align-items: start;
-    }
-    .aim:last-child { border-bottom: none; }
+/* ══════════════════════════════════════════════
+   MASONRY
+══════════════════════════════════════════════ */
+.masonry-grid { columns: 2; column-gap: 10px; }
+@media (min-width: 640px)  { .masonry-grid { columns: 3; } }
+@media (min-width: 820px)  { .masonry-grid { columns: 4; } }
+@media (min-width: 1080px) { .masonry-grid { columns: 5; } }
 
-    .aim-num {
-      font-size: 0.62rem;
-      font-weight: 700;
-      color: var(--gold);
-      opacity: 0.4;
-      padding-top: 2px;
-      letter-spacing: 0.04em;
-    }
+/* ══════════════════════════════════════════════
+   PIN CARD
+══════════════════════════════════════════════ */
+.pin-card {
+  break-inside: avoid; margin-bottom: 10px; border-radius: 14px;
+  overflow: hidden; cursor: pointer; position: relative; display: block;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  background: var(--hover-bg);
+}
+.pin-card:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.55);
+}
+.pin-card:active { transform: scale(0.98); }
 
-    .aim-title {
-      font-size: 0.93rem;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 4px;
-      line-height: 1.3;
-    }
+.pin-card-img {
+  width: 100%; height: auto; display: block;
+}
+.pin-card-img.fixed-ratio {
+  width: 100%; object-fit: cover; display: block;
+}
 
-    .aim-body {
-      font-size: 0.84rem;
-      color: var(--dim);
-      line-height: 1.75;
-      font-weight: 300;
-    }
+/* CSS-only fallback when image fails */
+.pin-card-img-fallback {
+  width: 100%; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--hover-bg) 0%, #1e1c16 100%);
+  color: var(--accent); font-size: 28px; opacity: 0.4;
+}
 
-    /* STORY TAB */
-    .timeline { padding-left: 18px; border-left: 1px solid var(--line); }
+.pin-card-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, rgba(4,3,2,0.92) 0%, rgba(4,3,2,0.70) 30%, rgba(4,3,2,0.30) 60%, transparent 100%);
+  padding: 28px 11px 11px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.pin-overlay-title {
+  font-size: 12px; font-weight: 700; color: #f5f0e8;
+  line-height: 1.3; font-family: var(--font-article);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  letter-spacing: -0.01em; text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+}
+.pin-overlay-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.pin-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+  background: var(--accent-soft); color: var(--accent);
+  border: 1px solid rgba(200,169,110,0.3);
+  border-radius: 4px; padding: 2px 6px; backdrop-filter: blur(4px);
+}
+/* all badge types use champagne */
+.pin-badge.lib-badge  { background: var(--accent-soft); color: var(--accent); border-color: rgba(200,169,110,0.3); }
+.pin-badge.mcq-badge  { background: var(--accent-soft); color: var(--accent); border-color: rgba(200,169,110,0.3); }
+.pin-badge.art-badge  { background: var(--accent-soft); color: var(--accent); border-color: rgba(200,169,110,0.3); }
+.pin-stat {
+  font-size: 9px; color: rgba(245,240,232,0.65);
+  display: flex; align-items: center; gap: 3px;
+}
+.pin-stat i { font-size: 8px; }
 
-    .tl-item {
-      padding-bottom: 32px;
-      position: relative;
-    }
-    .tl-item:last-child { padding-bottom: 0; }
+/* ══════════════════════════════════════════════
+   SKELETON
+══════════════════════════════════════════════ */
+@keyframes shimmer { 0%,100%{opacity:0.4} 50%{opacity:0.85} }
+.pin-skeleton {
+  break-inside: avoid; margin-bottom: 10px;
+  border-radius: 14px; overflow: hidden;
+  background: var(--hover-bg);
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+.pin-skeleton:nth-child(3n)   { height: 200px; }
+.pin-skeleton:nth-child(3n+1) { height: 260px; }
+.pin-skeleton:nth-child(3n+2) { height: 220px; }
 
-    .tl-dot {
-      position: absolute;
-      left: -22px; top: 6px;
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--gold);
-      outline: 3px solid var(--bg);
-    }
+/* ══════════════════════════════════════════════
+   LOAD MORE
+══════════════════════════════════════════════ */
+.load-more-wrap { text-align: center; margin-top: 10px; }
+.btn-load-more {
+  background: none; border: 1px solid var(--border-color);
+  color: var(--text-secondary); font-size: 12px; font-weight: 600;
+  cursor: pointer; padding: 9px 24px; border-radius: 20px;
+  font-family: var(--font-ui); display: inline-flex; align-items: center; gap: 7px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.btn-load-more:hover { border-color: var(--accent); color: var(--accent); }
+.btn-load-more:disabled { opacity: 0.35; pointer-events: none; }
 
-    .tl-when {
-      font-size: 0.63rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--gold);
-      opacity: 0.55;
-      margin-bottom: 4px;
-      display: block;
-    }
+/* ══════════════════════════════════════════════
+   FAB — create button
+══════════════════════════════════════════════ */
+.fab-wrap {
+  position: fixed; bottom: calc(72px + env(safe-area-inset-bottom)); right: 18px;
+  z-index: 200; display: none; flex-direction: column; align-items: flex-end; gap: 8px;
+}
+.fab-wrap.visible { display: flex; }
+.fab-menu { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.fab-menu-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 14px 8px 12px; border-radius: 20px;
+  background: var(--hover-bg); border: 1px solid var(--border-color);
+  color: var(--text-primary); font-size: 12px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+  font-family: var(--font-ui); transition: border-color 0.15s, background 0.15s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  opacity: 0; transform: translateY(10px) scale(0.95);
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s, border-color 0.15s, background 0.15s;
+}
+.fab-menu-item:hover { border-color: var(--accent); background: rgba(200,169,110,0.08); }
+.fab-menu-item i { font-size: 12px; color: var(--accent); }
+.fab-wrap.menu-open .fab-menu-item {
+  opacity: 1; transform: translateY(0) scale(1); pointer-events: all;
+}
+.fab-menu-item:nth-child(1) { transition-delay: 0.05s; }
+.fab-menu-item:nth-child(2) { transition-delay: 0.0s; }
+.fab-btn {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--accent); color: #0f0e0b;
+  border: none; font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px var(--accent-glow);
+  transition: background 0.15s, transform 0.2s;
+}
+.fab-btn:hover { background: var(--accent-hover); }
+.fab-wrap.menu-open .fab-btn { transform: rotate(45deg); }
 
-    .tl-title {
-      font-family: 'DM Serif Display', serif;
-      font-size: 1.05rem;
-      color: var(--text);
-      margin-bottom: 6px;
-      line-height: 1.25;
-    }
+/* ══════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════ */
+.toast {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(10px);
+  background: var(--hover-bg); border: 1px solid var(--border-color);
+  border-radius: 14px; padding: 10px 18px;
+  font-size: 13px; font-weight: 700; color: var(--text-primary);
+  z-index: 9999; opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none; white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    .tl-body {
-      font-size: 0.85rem;
-      color: var(--dim);
-      line-height: 1.78;
-      font-weight: 300;
-      margin-bottom: 8px;
-    }
+/* ══════════════════════════════════════════════
+   FOOTER BAR — solid, no transparency
+══════════════════════════════════════════════ */
+.footer-bar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 450px;
+  background: #0f0e0b;
+  border-top: 1px solid #2a2518;
+  padding: 8px 24px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  display: flex; justify-content: space-around; align-items: center;
+  z-index: 100;
+}
+body.theme-light .footer-bar { background: #faf6ee; border-top-color: #e0d8c8; }
+.footer-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: none; border: none; color: #8a8070;
+  cursor: pointer; transition: color 0.2s ease; padding: 6px 12px;
+}
+.footer-btn:hover { color: #f5f0e8; }
+.footer-btn.active { color: #c8a96e; }
+.footer-btn i { font-size: 19px; }
+.footer-btn span { font-size: 10px; font-weight: 600; }
+body.theme-light .footer-btn { color: #706050; }
+body.theme-light .footer-btn:hover { color: #1a1710; }
+body.theme-light .footer-btn.active { color: #a07840; }
+@media (max-width: 768px) {
+  .footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+  .footer-btn { padding: 6px 8px; }
+  .footer-btn i { font-size: 17px; }
+  .footer-btn span { font-size: 9px; }
+}
 
-    .tl-links { display: flex; gap: 12px; flex-wrap: wrap; }
+/* ══════════════════════════════════════════════
+   EMPTY STATE
+══════════════════════════════════════════════ */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 60px 20px; color: var(--text-secondary); gap: 10px;
+  grid-column: 1 / -1;
+}
+.empty-state i { font-size: 36px; opacity: 0.2; color: var(--accent); }
+.empty-state p { font-size: 13px; opacity: 0.55; }
 
-    .tl-link {
-      font-size: 0.73rem;
-      font-weight: 600;
-      color: var(--gold);
-      text-decoration: none;
-      opacity: 0.5;
-      transition: opacity 0.15s;
-    }
-    .tl-link:hover { opacity: 1; }
-
-    /* PRESS TAB */
-    .rec-list { display: flex; flex-direction: column; gap: 8px; }
-
-    .rec-card {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      padding: 16px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: var(--glass);
-      text-decoration: none;
-      color: inherit;
-      transition: border-color 0.15s, transform 0.15s;
-    }
-    .rec-card:hover {
-      border-color: rgba(200,169,110,0.2);
-      transform: translateY(-2px);
-    }
-
-    .rec-when {
-      font-size: 0.62rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--gold);
-      opacity: 0.6;
-    }
-
-    .rec-title {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--text);
-      line-height: 1.3;
-    }
-
-    .rec-body {
-      font-size: 0.81rem;
-      color: var(--dim);
-      line-height: 1.6;
-      font-weight: 300;
-    }
-
-    .rec-arrow {
-      font-size: 0.72rem;
-      color: var(--gold);
-      opacity: 0.38;
-      margin-top: 2px;
-      transition: opacity 0.15s, transform 0.15s;
-      display: inline-block;
-    }
-    .rec-card:hover .rec-arrow { opacity: 1; transform: translateX(3px); }
-
-    /* FOUNDER TAB */
-    .founder-block { margin-bottom: 24px; }
-
-    .f-name {
-      font-family: 'DM Serif Display', serif;
-      font-size: 1.5rem;
-      color: var(--text);
-      margin-bottom: 2px;
-    }
-
-    .f-role {
-      font-size: 0.68rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--dim);
-      margin-bottom: 14px;
-      display: block;
-    }
-
-    .f-body {
-      font-size: 0.88rem;
-      color: var(--dim);
-      line-height: 1.78;
-      font-weight: 300;
-      margin-bottom: 12px;
-    }
-
-    .tweet-shell {
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      overflow: hidden;
-      background: var(--glass);
-      padding: 6px;
-    }
-
-    /* FOOTER */
-    .footer {
-      border-top: 1px solid var(--line);
-      margin-top: 48px;
-      padding: 28px 0 36px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 18px;
-      text-align: center;
-    }
-
-    .f-logo {
-      height: 22px;
-      width: auto;
-      display: block;
-      opacity: 0.55;
-    }
-
-    .f-links {
-      display: flex;
-      gap: 18px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    .f-links a {
-      font-size: 0.78rem;
-      color: var(--dim);
-      text-decoration: none;
-      transition: color 0.15s;
-    }
-    .f-links a:hover { color: var(--gold); }
-
-    .mbi-link {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      text-decoration: none;
-      opacity: 0.3;
-      transition: opacity 0.15s;
-    }
-    .mbi-link:hover { opacity: 0.7; }
-
-    .mbi-logo {
-      height: 18px;
-      width: auto;
-      display: block;
-    }
-
-    .mbi-link span {
-      font-size: 0.7rem;
-      color: var(--dim);
-    }
-
-    .f-copy {
-      font-size: 0.63rem;
-      color: var(--dim);
-      opacity: 0.4;
-    }
-
-    /* REVEAL */
-    .r {
-      opacity: 0;
-      transform: translateY(12px);
-      transition: opacity 0.5s ease, transform 0.5s ease;
-    }
-    .r.v { opacity: 1; transform: none; }
-    .d1 { transition-delay: 0.07s; }
-    .d2 { transition-delay: 0.14s; }
-
-    @media (max-width: 400px) {
-      .tab-btn { font-size: 0.72rem; padding: 9px 4px; }
-      .top-nav { gap: 6px; }
-      .nav-btn { padding: 6px 10px; font-size: 0.75rem; }
-    }
   </style>
 </head>
-<body>
+<body class="theme-dark font-serif">
 
-<div class="page">
+<!-- Toast -->
+<div class="toast" id="toast"></div>
 
-  <!-- TOP BAR -->
-  <div class="top-bar r">
-    <img class="top-logo" src="IMG_3220.png" alt="Patholytica">
-    <nav class="top-nav">
-      <a class="nav-btn nav-btn-ghost" href="https://patholytica.com/login">Login</a>
-      <a class="nav-btn nav-btn-ghost" href="https://patholytica.com/dailyfeed">Feed</a>
-      <a class="nav-btn nav-btn-primary" href="https://patholytica.com/space">Space</a>
-    </nav>
+<!-- ══ HEADER ══ -->
+<div class="header-wrapper">
+  <div class="header">
+    <div class="header-logo" onclick="location.href='index.html'">
+      <img src="IMG_3220.png" alt="Patholytica">
+    </div>
+    <div class="header-right">
+      <!-- Notifications bell -->
+      <button class="hdr-icon-btn" id="notifBellBtn" title="Notifications" style="display:none;">
+        <i class="fas fa-bell"></i>
+        <div class="notif-badge" id="notifBadge"></div>
+      </button>
+      <!-- Settings -->
+      <button class="hdr-icon-btn" id="settingsBtn" onclick="toggleSettings(this)" title="Settings">
+        <i class="fas fa-sliders-h"></i>
+      </button>
+    </div>
   </div>
-
-  <!-- TABS -->
-  <div class="tabs-section r d1">
-
-    <div class="tabs-bar" role="tablist">
-      <button class="tab-btn active" role="tab" data-tab="aims">Aims</button>
-      <button class="tab-btn" role="tab" data-tab="story">Story</button>
-      <button class="tab-btn" role="tab" data-tab="press">Press</button>
-      <button class="tab-btn" role="tab" data-tab="founder">Founder</button>
-    </div>
-
-    <!-- AIMS -->
-    <div class="tab-panel active fade-in" id="tab-aims">
-      <div class="aims-list">
-
-        <div class="aim">
-          <span class="aim-num">01</span>
-          <div>
-            <div class="aim-title">Make learning accessible to the less attentive</div>
-            <p class="aim-body">Attention deficit is not a personal failure — it is an adaptation to an environment of infinite competing signals. Patholytica meets people inside that environment and delivers knowledge anyway.</p>
-          </div>
-        </div>
-
-        <div class="aim">
-          <span class="aim-num">02</span>
-          <div>
-            <div class="aim-title">Diagnose and address weak cognitive learning patterns</div>
-            <p class="aim-body">The platform does not just deliver content — it watches how you consume it. Scroll velocity, dwell time, re-reads, and quiz performance map to a cognitive profile used to close your specific gaps.</p>
-          </div>
-        </div>
-
-        <div class="aim">
-          <span class="aim-num">03</span>
-          <div>
-            <div class="aim-title">Prove that rapid, short-form learning is an evolutionary step</div>
-            <p class="aim-body">The assumption that long-form is inherently superior is wrong. A brain that absorbs twelve dense concepts in five minutes of scrolling and retains them is more capable — not less.</p>
-          </div>
-        </div>
-
-        <div class="aim">
-          <span class="aim-num">04</span>
-          <div>
-            <div class="aim-title">Use ML to find the text patterns that make you read longer</div>
-            <p class="aim-body">Every person has a readable cadence — a sentence rhythm, a density level, a pacing that holds them. Patholytica's algorithm learns yours and optimises continuously. Attention is not lost. It is mismatched.</p>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- STORY -->
-    <div class="tab-panel" id="tab-story">
-      <div class="timeline">
-
-        <div class="tl-item">
-          <div class="tl-dot"></div>
-          <span class="tl-when">Nov 2025</span>
-          <div class="tl-title">A domain without a home</div>
-          <p class="tl-body">Patholytica.com was registered for a local medical project that later found its own domain. The URL sat unused — briefly.</p>
-        </div>
-
-        <div class="tl-item">
-          <div class="tl-dot"></div>
-          <span class="tl-when">Feb 2026 · Kuwait</span>
-          <div class="tl-title">The idea takes shape</div>
-          <p class="tl-body">A feed that learns what you care about and delivers it in the format you actually consume. An algorithm you control instead of one that controls you.</p>
-        </div>
-
-        <div class="tl-item">
-          <div class="tl-dot"></div>
-          <span class="tl-when">May 2026 · Egypt</span>
-          <div class="tl-title">Pitched at MNU</div>
-          <p class="tl-body">Competed at Mansoura National University's Startup Grind Pitch Royale among 13 student projects. Covered by Al-Nahar, Al-Ahram, and Al-Dostor.</p>
-          <div class="tl-links">
-            <a class="tl-link" href="https://www.alnaharegypt.com/1176339" target="_blank" rel="noopener">• Al-Nahar</a>
-            <a class="tl-link" href="https://www.facebook.com/MansouraNationalUniversity/posts/954397337394016/" target="_blank" rel="noopener">• MNU post</a>
-          </div>
-        </div>
-
-        <div class="tl-item">
-          <div class="tl-dot"></div>
-          <span class="tl-when">Jun 2026 · Tbilisi</span>
-          <div class="tl-title">Qualified — Startup World Cup</div>
-          <p class="tl-body">Selected to represent Egypt at Startup Connect Georgia 2026 — a regional semifinal of the global Startup World Cup. Grand Finale prize: $1,000,000 in Silicon Valley.</p>
-          <div class="tl-links">
-            <a class="tl-link" href="https://startupconnect.ge" target="_blank" rel="noopener">• Startup Connect</a>
-            <a class="tl-link" href="https://www.startupworldcup.io/georgia-tbilisi-2026" target="_blank" rel="noopener">• World Cup</a>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- PRESS -->
-    <div class="tab-panel" id="tab-press">
-      <div class="rec-list">
-
-        <a class="rec-card" href="https://www.facebook.com/MansouraNationalUniversity/posts/954397337394016/" target="_blank" rel="noopener">
-          <span class="rec-when">May 2026 · Mansoura, Egypt</span>
-          <div class="rec-title">Startup Grind MNU Pitch Royale</div>
-          <p class="rec-body">13 student projects, the university president in the audience, Egypt's national press in attendance.</p>
-          <span class="rec-arrow">View →</span>
-        </a>
-
-        <a class="rec-card" href="https://www.alnaharegypt.com/1176339" target="_blank" rel="noopener">
-          <span class="rec-when">May 2026 · National press</span>
-          <div class="rec-title">Al-Nahar Egypt</div>
-          <p class="rec-body">National media coverage of Patholytica's appearance at the MNU competition.</p>
-          <span class="rec-arrow">Read →</span>
-        </a>
-
-        <a class="rec-card" href="https://gate.ahram.org.eg/News/5608476.aspx" target="_blank" rel="noopener">
-          <span class="rec-when">May 2026 · National press</span>
-          <div class="rec-title">Al-Ahram</div>
-          <p class="rec-body">Coverage by one of Egypt's oldest and most widely read newspapers.</p>
-          <span class="rec-arrow">Read →</span>
-        </a>
-
-        <a class="rec-card" href="https://www.dostor.org/5553299" target="_blank" rel="noopener">
-          <span class="rec-when">May 2026 · National press</span>
-          <div class="rec-title">Al-Dostor</div>
-          <p class="rec-body">Feature by Al-Dostor on Patholytica's debut at the MNU pitch competition.</p>
-          <span class="rec-arrow">Read →</span>
-        </a>
-
-        <a class="rec-card" href="https://startupconnect.ge" target="_blank" rel="noopener">
-          <span class="rec-when">Jun 19–21, 2026 · Tbilisi</span>
-          <div class="rec-title">Startup Connect Georgia — Qualified</div>
-          <p class="rec-body">Regional semifinal of the global Startup World Cup. One path to a $1M Grand Finale prize in Silicon Valley.</p>
-          <span class="rec-arrow">Visit →</span>
-        </a>
-
-        <a class="rec-card" href="https://www.startupworldcup.io/georgia-tbilisi-2026" target="_blank" rel="noopener">
-          <span class="rec-when">2026 · Global</span>
-          <div class="rec-title">Startup World Cup — Georgia 2026</div>
-          <p class="rec-body">Listed as a qualifying startup on the path to the Grand Finale.</p>
-          <span class="rec-arrow">View →</span>
-        </a>
-
-      </div>
-    </div>
-
-    <!-- FOUNDER -->
-    <div class="tab-panel" id="tab-founder">
-      <div class="founder-block">
-        <div class="f-name">Eyad Ayman</div>
-        <span class="f-role">Founder · Third-year medical student</span>
-        <p class="f-body">Had the idea in Kuwait, built it in Egypt, took it to Tbilisi — between anatomy lectures.</p>
-        <a class="tl-link" href="https://x.com/eyadiguess" target="_blank" rel="noopener">• @eyadiguess on X</a>
-      </div>
-      <div class="tweet-shell">
-        <blockquote class="twitter-tweet" data-theme="dark" data-dnt="true" data-conversation="none">
-          <a href="https://x.com/eyadiguess/status/2036536094691373064"></a>
-        </blockquote>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- FOOTER -->
-  <footer class="footer">
-    <img class="f-logo" src="IMG_3220.png" alt="Patholytica">
-
-    <div class="f-links">
-      <a href="https://www.instagram.com/patholytica?igsh=MzR6MWZxaXluM2Vq&utm_source=qr" target="_blank" rel="noopener">Instagram</a>
-      <a href="https://x.com/patholytica?s=11" target="_blank" rel="noopener">X.com</a>
-      <a href="mailto:eyadd@iCloud.com">Contact</a>
-    </div>
-
-    <a class="mbi-link" href="https://www.linkedin.com/company/medicinebank" target="_blank" rel="noopener">
-      <img class="mbi-logo" src="IMG_2629.png" alt="Medicinebank">
-      <span></span>
-    </a>
-
-    <p class="f-copy">© 2026 Patholytica</p>
-  </footer>
-
 </div>
 
-<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+<!-- Notifications Panel -->
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-panel-header">
+    <div class="notif-panel-title">Notifications</div>
+    <button class="notif-mark-all" id="notifMarkAll">Mark all read</button>
+  </div>
+  <div class="notif-list" id="notifList">
+    <div class="notif-spinner-wrap"><div class="notif-spinner"></div></div>
+  </div>
+</div>
+
+<!-- Settings Popover -->
+<div class="settings-popover" id="settingsPopover">
+  <!-- Profile section -->
+  <div class="sp-profile" id="spProfile" onclick="handleSpProfileClick()">
+    <div class="sp-profile-avatar" id="spAvatar">?</div>
+    <div class="sp-profile-info">
+      <div class="sp-profile-name" id="spName">Guest</div>
+      <div class="sp-profile-status guest" id="spStatus">Not logged in</div>
+    </div>
+  </div>
+  <!-- Settings body -->
+  <div class="sp-body">
+    <div class="sp-section">
+      <div class="sp-label">Font</div>
+      <div class="sp-row" id="sp-fonts">
+        <button class="sp-pill" data-val="font-serif">Serif</button>
+        <button class="sp-pill" data-val="font-slab">Slab</button>
+        <button class="sp-pill" data-val="font-modern">Modern</button>
+      </div>
+    </div>
+    <!-- logout / login button -->
+    <div id="spAuthAction">
+      <button class="sp-login" onclick="location.href='login.html'">
+        <i class="fas fa-sign-in-alt"></i> Log in
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ USER PREVIEW POPUP ══ -->
+<div class="user-popup-overlay" id="userPopupOverlay" onclick="closeUserPopup(event)">
+  <div class="user-popup" id="userPopup">
+    <div class="user-popup-handle"></div>
+    <div id="userPopupContent">
+      <div class="user-popup-spinner"><div class="user-popup-spinner-ring"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CARD PREVIEW POPUP ══ -->
+<div class="card-preview-overlay" id="cardPreviewOverlay" onclick="closeCardPreview(event)">
+  <div class="card-preview">
+    <div class="card-preview-handle"></div>
+    <div class="card-preview-inner" id="cardPreviewInner">
+      <div class="cp-loading"><div class="cp-loading-ring"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PAGE BODY ══ -->
+<div class="page-body">
+  <div class="creators-strip" id="creatorsStrip"></div>
+  <div class="masonry-grid" id="mainGrid"></div>
+  <div class="load-more-wrap" id="loadMoreWrap" style="display:none;">
+    <button class="btn-load-more" id="loadMoreBtn" onclick="loadMore()">
+      <i class="fas fa-chevron-down"></i> Load more
+    </button>
+  </div>
+</div>
+
+<!-- ══ FAB ══ -->
+<div class="fab-wrap" id="fabWrap">
+  <div class="fab-menu">
+    <div class="fab-menu-item" onclick="location.href='https://patholytica.com/Create'">
+      <i class="fas fa-layer-group"></i> Batch Create
+    </div>
+    <div class="fab-menu-item" onclick="location.href='https://patholytica.com/create'">
+      <i class="fas fa-pen"></i> Classic
+    </div>
+  </div>
+  <button class="fab-btn" id="fabBtn" onclick="toggleFab()">
+    <i class="fas fa-plus"></i>
+  </button>
+</div>
+
+<!-- ══ FOOTER ══ -->
+<div class="footer-bar">
+  <button class="footer-btn active" onclick="location.href='index.html'">
+    <i class="fas fa-home"></i><span>Home</span>
+  </button>
+  <button class="footer-btn" onclick="location.href='https://patholytica.com/dailyfeed'">
+    <i class="fas fa-scroll"></i><span>Feed</span>
+  </button>
+  <button class="footer-btn" onclick="location.href='explore.html'">
+    <i class="fas fa-search"></i><span>Explore</span>
+  </button>
+  <button class="footer-btn" onclick="location.href='https://patholytica.com/space'">
+    <i class="fas fa-th-large"></i><span>Space</span>
+  </button>
+</div>
+
+<!-- ══ SCRIPTS ══ -->
+
+<!-- 1. Theme persistence (runs immediately, no flash) -->
 <script>
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const current = document.querySelector('.tab-panel.active');
+(function(){
+  const theme   = localStorage.getItem('pref_theme')   || 'theme-dark';
+  const fontFam = localStorage.getItem('pref_fontfam') || 'font-serif';
+  const safeTheme = (theme === 'theme-light') ? 'theme-light' : 'theme-dark';
+  document.body.className = [safeTheme, fontFam].filter(Boolean).join(' ');
+})();
+</script>
 
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+<!-- 2. Settings popover -->
+<script>
+(function(){
+  const FONTS = ['font-serif','font-slab','font-modern'];
 
-      const next = document.getElementById('tab-' + btn.dataset.tab);
-      if (current === next) return;
-
-      // fade out current
-      current.style.transition = 'opacity 0.18s ease, transform 0.18s ease';
-      current.style.opacity = '0';
-      current.style.transform = 'translateY(4px)';
-
-      setTimeout(() => {
-        current.classList.remove('active');
-        current.style.transition = '';
-        current.style.opacity = '';
-        current.style.transform = '';
-
-        next.classList.add('active');
-        next.classList.remove('fade-in');
-        // force reflow so animation restarts
-        void next.offsetWidth;
-        next.classList.add('fade-in');
-      }, 180);
-    });
+  function applyFont(val){
+    FONTS.forEach(f=>document.body.classList.remove(f));
+    document.body.classList.add(val);
+    localStorage.setItem('pref_fontfam', val);
+  }
+  function syncPills(){
+    const curF = FONTS.find(f=>document.body.classList.contains(f))||'font-serif';
+    document.querySelectorAll('#sp-fonts [data-val]').forEach(b=>b.classList.toggle('active',b.dataset.val===curF));
+  }
+  document.getElementById('sp-fonts').addEventListener('click',e=>{
+    const b=e.target.closest('[data-val]');if(!b)return;applyFont(b.dataset.val);syncPills();
   });
 
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (e.isIntersecting) { e.target.classList.add('v'); io.unobserve(e.target); }
-    });
-  }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
-  document.querySelectorAll('.r').forEach(el => io.observe(el));
+  let _open=false;
+  window.closeSettings=function(){
+    document.getElementById('settingsPopover').classList.remove('open');
+    _open=false;
+  };
+  window.toggleSettings=function(btn){
+    const pop=document.getElementById('settingsPopover');
+    _open=!_open;
+    if(_open){
+      const r=btn.getBoundingClientRect();
+      pop.style.top=(r.bottom+8)+'px';
+      pop.style.right=Math.max(8,window.innerWidth-r.right)+'px';
+      pop.style.left='auto';
+      pop.classList.add('open');
+      syncPills();
+      setTimeout(()=>document.addEventListener('click',function oc(e){
+        if(!pop.contains(e.target)&&e.target!==btn&&!btn.contains(e.target)){
+          pop.classList.remove('open');_open=false;
+        }
+        document.removeEventListener('click',oc);
+      },10));
+    } else {
+      pop.classList.remove('open');
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded',syncPills);
+})();
+</script>
+
+<!-- 3. Helpers -->
+<script>
+window.showToast=function(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400);
+};
+window.fmtNum=function(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return String(n||0);};
+window.relTime=function(dateStr){
+  const ms=Date.now()-new Date(dateStr).getTime(),m=Math.floor(ms/60000),h=Math.floor(ms/3600000),d=Math.floor(ms/86400000);
+  if(m<1)return'just now';if(m<60)return`${m}m ago`;if(h<24)return`${h}h ago`;if(d<7)return`${d}d ago`;
+  return new Date(dateStr).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+};
+</script>
+
+<!-- 4. FAB toggle -->
+<script>
+window.toggleFab=function(){
+  document.getElementById('fabWrap').classList.toggle('menu-open');
+};
+// close fab when clicking outside
+document.addEventListener('click',function(e){
+  const fab=document.getElementById('fabWrap');
+  if(fab&&!fab.contains(e.target)) fab.classList.remove('menu-open');
+});
+</script>
+
+<!-- 5. MAIN MODULE -->
+<script type="module">
+import { initializeApp }        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig={
+  apiKey:"AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+  authDomain:"patholytica.firebaseapp.com",
+  databaseURL:"https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:"patholytica",
+  storageBucket:"patholytica.firebasestorage.app",
+  messagingSenderId:"738430635282",
+  appId:"1:738430635282:web:8451ef380447c7611137cb"
+};
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const supabase = window.supabase.createClient(
+  "https://vduqewqyvszfquntmark.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
+);
+
+/* ══════════════════════════════════════════════
+   STOCK IMAGE POOL — non-medical, randomised per reload
+   Each entry: url + natural height for stagger
+══════════════════════════════════════════════ */
+const STOCK_POOL_RAW = [
+  /* architecture / cities */
+  { url:'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600&q=80', h:340 },
+  { url:'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=600&q=80', h:300 },
+  { url:'https://images.unsplash.com/photo-1448630360428-65456885c650?w=600&q=80', h:280 },
+  /* nature / landscapes */
+  { url:'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80', h:360 },
+  { url:'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=600&q=80', h:310 },
+  { url:'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=600&q=80', h:270 },
+  { url:'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=600&q=80', h:390 },
+  /* abstract / textures */
+  { url:'https://images.unsplash.com/photo-1550859492-d5da9d8e45f3?w=600&q=80', h:260 },
+  { url:'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=600&q=80', h:320 },
+  { url:'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80', h:350 },
+  /* books / study / desk */
+  { url:'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&q=80', h:290 },
+  { url:'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&q=80', h:300 },
+  { url:'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&q=80', h:330 },
+  /* minimalist / objects */
+  { url:'https://images.unsplash.com/photo-1495562569060-2eec283d3391?w=600&q=80', h:250 },
+  { url:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80', h:370 },
+  { url:'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&q=80', h:280 },
+  /* space / science visuals */
+  { url:'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=600&q=80', h:340 },
+  { url:'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=600&q=80', h:300 },
+  /* coffee / warm interiors */
+  { url:'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&q=80', h:260 },
+  { url:'https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=600&q=80', h:380 },
+];
+
+// Shuffle once per page load so every reload gives different image assignments
+function shuffleArray(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+const STOCK_POOL = shuffleArray(STOCK_POOL_RAW);
+function stockFor(id){ return STOCK_POOL[id % STOCK_POOL.length]; }
+
+/* ── State ── */
+let currentUserData = null;
+let currentSupaUser = null;
+let userFavourites  = new Set();
+let artOffset = 0, artHasMore = true, artLoading = false;
+const ART_BATCH = 18;
+let libOffset  = 0;
+const LIB_PER_BATCH = 4;
+
+function esc(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
+function isMCQ(c){ return typeof c==='string'&&c.trimStart().startsWith('❔'); }
+function trunc(s,n){ s=s||''; return s.length>n?s.slice(0,n)+'…':s; }
+
+/* ══════════════════════════════════════════════
+   AUTH
+══════════════════════════════════════════════ */
+onAuthStateChanged(auth, async user=>{
+  const bellBtn = document.getElementById('notifBellBtn');
+  const fabWrap = document.getElementById('fabWrap');
+
+  if(user){
+    const{data:ud}=await supabase.from('users').select('user_id,username,pfp,full_name').eq('firebase_uid',user.uid).single();
+    if(ud){
+      currentSupaUser = { ...ud, firebase_uid: user.uid };
+      currentUserData = ud;
+      // settings popover profile
+      updateSpProfile(ud, true);
+      // show logout button
+      document.getElementById('spAuthAction').innerHTML=
+        `<button class="sp-logout" onclick="window._doLogout()"><i class="fas fa-sign-out-alt"></i> Log out</button>`;
+      // bell & FAB
+      bellBtn.style.display = 'flex';
+      fabWrap.classList.add('visible');
+      // load favourites
+      await loadUserFavourites();
+      // load notifications
+      await loadNotifications();
+    }
+  } else {
+    currentSupaUser = null; currentUserData = null; userFavourites.clear();
+    updateSpProfile(null, false);
+    document.getElementById('spAuthAction').innerHTML=
+      `<button class="sp-login" onclick="location.href='login.html'"><i class="fas fa-sign-in-alt"></i> Log in</button>`;
+    bellBtn.style.display = 'none';
+    fabWrap.classList.remove('visible');
+  }
+});
+
+window._doLogout = async function(){
+  try{ await signOut(auth); } catch(e){}
+  window.location.reload();
+};
+
+function updateSpProfile(ud, loggedIn){
+  const avatar = document.getElementById('spAvatar');
+  const nameEl = document.getElementById('spName');
+  const statusEl = document.getElementById('spStatus');
+  if(loggedIn && ud){
+    if(ud.pfp){ avatar.innerHTML=`<img src="${esc(ud.pfp)}" alt="">`; }
+    else{ avatar.textContent=(ud.username||'U')[0].toUpperCase(); }
+    nameEl.textContent = ud.username ? `@${ud.username}` : (ud.full_name||'User');
+    statusEl.textContent = '● Logged in';
+    statusEl.className = 'sp-profile-status online';
+  } else {
+    avatar.innerHTML = '<i class="fas fa-user" style="font-size:15px;opacity:0.5;"></i>';
+    nameEl.textContent = 'Guest';
+    statusEl.textContent = 'Not logged in';
+    statusEl.className = 'sp-profile-status guest';
+  }
+}
+
+window.handleSpProfileClick = function(){
+  closeSettings();
+  if(currentUserData){
+    location.href = currentUserData.username
+      ? `profile.html?username=${encodeURIComponent(currentUserData.username)}`
+      : 'login.html';
+  } else {
+    location.href = 'login.html';
+  }
+};
+
+/* ══════════════════════════════════════════════
+   FAVOURITES
+══════════════════════════════════════════════ */
+async function loadUserFavourites(){
+  if(!currentSupaUser) return;
+  try{
+    const{data}=await supabase.from('favourite_playlists').select('playlist_id').eq('user_id',currentSupaUser.user_id);
+    userFavourites.clear();
+    (data||[]).forEach(r=>userFavourites.add(String(r.playlist_id)));
+  }catch(e){}
+}
+
+async function toggleFavourite(playlistId){
+  if(!currentSupaUser){ location.href='login.html'; return; }
+  const pid = String(playlistId);
+  const wasFaved = userFavourites.has(pid);
+  if(wasFaved) userFavourites.delete(pid); else userFavourites.add(pid);
+  try{
+    if(wasFaved){
+      await supabase.from('favourite_playlists').delete()
+        .eq('user_id',currentSupaUser.user_id).eq('playlist_id',parseInt(pid));
+    } else {
+      await supabase.from('favourite_playlists').insert([
+        {user_id:currentSupaUser.user_id, playlist_id:parseInt(pid)}
+      ]);
+    }
+    showToast(wasFaved ? 'Removed from saved' : 'Library saved!');
+  }catch(err){
+    if(wasFaved) userFavourites.add(pid); else userFavourites.delete(pid);
+  }
+  return !wasFaved; // new state
+}
+
+/* ══════════════════════════════════════════════
+   NOTIFICATIONS
+══════════════════════════════════════════════ */
+function notifIcon(type){
+  if(type==='like_article'||type==='like_comment')    return{cls:'like',icon:'fa-heart'};
+  if(type==='comment_on_article'||type==='reply_to_comment') return{cls:'comment',icon:'fa-comment'};
+  if(type==='new_follower')                           return{cls:'follow',icon:'fa-user-plus'};
+  if(type==='new_article_from_following')             return{cls:'article',icon:'fa-file-alt'};
+  return{cls:'follow',icon:'fa-bell'};
+}
+
+async function loadNotifications(){
+  if(!currentSupaUser) return;
+  const list=document.getElementById('notifList');
+  const badge=document.getElementById('notifBadge');
+  list.innerHTML='<div class="notif-spinner-wrap"><div class="notif-spinner"></div></div>';
+  try{
+    const{data:notifs}=await supabase.from('notifications').select('*')
+      .eq('recipient_id',currentSupaUser.user_id)
+      .order('created_at',{ascending:false}).limit(30);
+    if(!notifs||!notifs.length){
+      list.innerHTML=`<div class="notif-empty"><i class="fas fa-bell-slash"></i><p>No notifications yet</p></div>`;
+      badge.classList.remove('show'); return;
+    }
+    const unread=notifs.filter(n=>!n.is_read).length;
+    if(unread>0){badge.textContent=unread>9?'9+':unread;badge.classList.add('show');}
+    else badge.classList.remove('show');
+    list.innerHTML=notifs.map(n=>{
+      const{cls,icon}=notifIcon(n.type);
+      let target='#';
+      if(n.article_id) target=`https://patholytica.com/dailyfeed?article=${n.article_id}`;
+      else if(n.playlist_id) target=`playlist.html?id=${n.playlist_id}`;
+      return`<div class="notif-item ${n.is_read?'':'unread'}" data-id="${n.id}" data-target="${target}" onclick="window._handleNotif(this)">
+        <div class="notif-icon ${cls}"><i class="fas ${icon}"></i></div>
+        <div class="notif-text">
+          <div class="notif-msg">${esc(n.message||'New notification')}</div>
+          <div class="notif-time">${relTime(n.created_at)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    list.innerHTML=`<div class="notif-empty"><i class="fas fa-exclamation-triangle"></i><p>Failed to load</p></div>`;
+  }
+}
+
+window._handleNotif=async function(el){
+  const id=el.dataset.id, target=el.dataset.target;
+  el.classList.remove('unread');
+  const unread=document.querySelectorAll('.notif-item.unread').length;
+  const badge=document.getElementById('notifBadge');
+  if(unread===0) badge.classList.remove('show');
+  else{badge.textContent=unread>9?'9+':unread;}
+  try{await supabase.from('notifications').update({is_read:true}).eq('id',id);}catch(e){}
+  if(target&&target!=='#') window.location.href=target;
+};
+
+document.getElementById('notifMarkAll').addEventListener('click',async function(){
+  if(!currentSupaUser)return;
+  document.querySelectorAll('.notif-item.unread').forEach(el=>el.classList.remove('unread'));
+  document.getElementById('notifBadge').classList.remove('show');
+  try{await supabase.from('notifications').update({is_read:true}).eq('recipient_id',currentSupaUser.user_id).eq('is_read',false);}catch(e){}
+});
+
+// Bell toggle
+document.getElementById('notifBellBtn').addEventListener('click',function(e){
+  e.stopPropagation();
+  const panel=document.getElementById('notifPanel');
+  const btn=this;
+  const isOpen=panel.classList.contains('open');
+  // close settings if open
+  closeSettings();
+  if(isOpen){ panel.classList.remove('open'); return; }
+  // position below bell
+  const r=btn.getBoundingClientRect();
+  panel.style.top=(r.bottom+8)+'px';
+  panel.style.right=Math.max(8,window.innerWidth-r.right)+'px';
+  panel.style.left='auto';
+  panel.classList.add('open');
+  if(currentSupaUser) loadNotifications();
+  setTimeout(()=>document.addEventListener('click',function oc(e){
+    if(!panel.contains(e.target)&&e.target!==btn&&!btn.contains(e.target)){
+      panel.classList.remove('open');
+    }
+    document.removeEventListener('click',oc);
+  },10));
+});
+
+/* ══════════════════════════════════════════════
+   USER PREVIEW POPUP
+══════════════════════════════════════════════ */
+window.openUserPopup = async function(firebaseUid){
+  const overlay=document.getElementById('userPopupOverlay');
+  const content=document.getElementById('userPopupContent');
+  content.innerHTML='<div class="user-popup-spinner"><div class="user-popup-spinner-ring"></div></div>';
+  overlay.classList.add('open');
+  try{
+    const[{data:ud},{data:arts},{count:followers}]=await Promise.all([
+      supabase.from('users').select('*').eq('firebase_uid',firebaseUid).single(),
+      supabase.from('articles').select('id,views,likes').eq('firebase_user_id',firebaseUid),
+      supabase.from('subscriptions').select('*',{count:'exact',head:true}).eq('author_id',
+        // need user_id from ud — fetch separately if needed
+        // we'll get it from ud below
+        'placeholder'
+      ),
+    ]);
+    // re-fetch with user_id for followers
+    const{data:user}=await supabase.from('users').select('*').eq('firebase_uid',firebaseUid).single();
+    const{data:articles}=await supabase.from('articles').select('id,views,likes').eq('firebase_user_id',firebaseUid);
+    const{count:followerCount}=await supabase.from('subscriptions')
+      .select('*',{count:'exact',head:true}).eq('author_id',user?.user_id||0);
+
+    if(!user){ content.innerHTML='<p style="padding:20px;color:var(--text-secondary);text-align:center;">User not found</p>'; return; }
+
+    const totalViews=(articles||[]).reduce((s,a)=>s+(a.views||0),0);
+    const totalLikes=(articles||[]).reduce((s,a)=>s+(a.likes||0),0);
+    const displayName=user.full_name||user.username||'User';
+    const avatarHTML=user.pfp
+      ?`<img src="${esc(user.pfp)}" alt="">`
+      :(user.username||'U')[0].toUpperCase();
+    const profileUrl=user.username?`profile.html?username=${encodeURIComponent(user.username)}`:'#';
+
+    content.innerHTML=`
+      <div class="user-popup-header">
+        <div class="user-popup-avatar">${avatarHTML}</div>
+        <div class="user-popup-identity">
+          <div class="user-popup-name">${esc(displayName)}</div>
+          <div class="user-popup-handle">@${esc(user.username||'user')}</div>
+        </div>
+      </div>
+      <div class="user-popup-stats">
+        <div class="user-popup-stat">
+          <div class="user-popup-stat-val">${fmtNum(followerCount||0)}</div>
+          <div class="user-popup-stat-label">Followers</div>
+        </div>
+        <div class="user-popup-stat">
+          <div class="user-popup-stat-val">${fmtNum((articles||[]).length)}</div>
+          <div class="user-popup-stat-label">Articles</div>
+        </div>
+        <div class="user-popup-stat">
+          <div class="user-popup-stat-val">${fmtNum(totalViews)}</div>
+          <div class="user-popup-stat-label">Views</div>
+        </div>
+        <div class="user-popup-stat">
+          <div class="user-popup-stat-val">${fmtNum(totalLikes)}</div>
+          <div class="user-popup-stat-label">Likes</div>
+        </div>
+      </div>
+      ${user.bio?`<div class="user-popup-bio">${esc(user.bio)}</div>`:''}
+      <button class="user-popup-btn" onclick="location.href='${profileUrl}'">
+        <i class="fas fa-user"></i> View Profile
+      </button>`;
+  }catch(e){
+    content.innerHTML='<p style="padding:20px;color:var(--text-secondary);text-align:center;">Failed to load</p>';
+  }
+};
+
+window.closeUserPopup=function(e){
+  if(!e||e.target===document.getElementById('userPopupOverlay')){
+    document.getElementById('userPopupOverlay').classList.remove('open');
+  }
+};
+
+/* ══════════════════════════════════════════════
+   CARD PREVIEW POPUP
+══════════════════════════════════════════════ */
+let previewMCQAnswered = false;
+
+window.openCardPreview = async function(type, id){
+  const overlay=document.getElementById('cardPreviewOverlay');
+  const inner=document.getElementById('cardPreviewInner');
+  previewMCQAnswered = false;
+  inner.innerHTML='<div class="cp-loading"><div class="cp-loading-ring"></div></div>';
+  overlay.classList.add('open');
+
+  try{
+    if(type==='article' || type==='mcq'){
+      const{data:art}=await supabase.from('articles').select('*').eq('id',id).single();
+      if(!art){inner.innerHTML='<p style="padding:20px;color:var(--text-secondary);">Not found</p>';return;}
+
+      // fetch author
+      let authorName='Unknown', authorPfp=null;
+      if(art.firebase_user_id){
+        const{data:au}=await supabase.from('users').select('username,pfp').eq('firebase_uid',art.firebase_user_id).single();
+        if(au){ authorName=au.username?`@${au.username}`:'Unknown'; authorPfp=au.pfp||null; }
+      }
+
+      const mcq=isMCQ(art.content);
+      const badgeClass=mcq?'mcq':'article';
+      const badgeLabel=mcq?'MCQ':'Article';
+
+      let contentHTML='';
+      if(mcq){
+        const lines=(art.content||'').trim().split('\n').map(l=>l.trim()).filter(Boolean);
+        const question=lines[0].replace(/^❔/,'').trim();
+        const rawOpts=lines.slice(1).map(l=>({label:l.replace(/^✅/,'').trim(),correct:l.startsWith('✅')}));
+        // shuffle options
+        for(let i=rawOpts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[rawOpts[i],rawOpts[j]]=[rawOpts[j],rawOpts[i]];}
+        const letters=['A','B','C','D','E','F'];
+        const optsHTML=rawOpts.map((o,i)=>
+          `<button class="cp-mcq-opt" data-correct="${o.correct}">
+            <span class="opt-l">${letters[i]||i+1}</span>
+            <span>${esc(o.label)}</span>
+          </button>`).join('');
+        contentHTML=`
+          <div class="cp-mcq-q">${esc(question)}</div>
+          <div class="cp-mcq-opts" id="cpMcqOpts">${optsHTML}</div>
+          <div class="cp-mcq-result" id="cpMcqResult"></div>`;
+      } else {
+        const excerpt=trunc((art.content||'').replace(/\n/g,' '),320);
+        contentHTML=`<div class="cp-excerpt">${esc(excerpt)}${(art.content||'').length>320?'…':''}</div>`;
+      }
+
+      inner.innerHTML=`
+        <div class="cp-type-badge ${badgeClass}"><i class="fas fa-${mcq?'question-circle':'file-alt'}"></i> ${badgeLabel}</div>
+        <div class="cp-title">${esc(art.title||'Untitled')}</div>
+        <div class="cp-meta">
+          <span class="cp-meta-item"><i class="fas fa-eye"></i>${fmtNum(art.views||0)}</span>
+          <span class="cp-meta-item"><i class="fas fa-heart"></i>${fmtNum(art.likes||0)}</span>
+          <span class="cp-meta-item"><i class="fas fa-user"></i>${esc(authorName)}</span>
+        </div>
+        ${contentHTML}
+        <div class="cp-actions">
+          <button class="cp-btn-primary" onclick="location.href='https://patholytica.com/dailyfeed?article=${id}'">
+            <i class="fas fa-book-open"></i> Read in Feed
+          </button>
+          <button class="cp-btn-secondary" onclick="closeCardPreview()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>`;
+
+      // wire up MCQ interactivity
+      if(mcq){
+        inner.querySelectorAll('.cp-mcq-opt').forEach(btn=>{
+          btn.addEventListener('click',()=>{
+            if(previewMCQAnswered)return;
+            previewMCQAnswered=true;
+            const isCorrect=btn.dataset.correct==='true';
+            inner.querySelectorAll('.cp-mcq-opt').forEach(b=>b.disabled=true);
+            const res=document.getElementById('cpMcqResult');
+            if(isCorrect){
+              btn.classList.add('correct');
+              if(res){res.textContent='✓ Correct!';res.className='cp-mcq-result correct';}
+            } else {
+              btn.classList.add('wrong');
+              const cb=inner.querySelector('.cp-mcq-opt[data-correct="true"]');
+              if(cb)cb.classList.add('reveal');
+              if(res){res.textContent='✗ Incorrect';res.className='cp-mcq-result wrong';}
+            }
+          });
+        });
+      }
+
+    } else if(type==='library'){
+      const{data:lib}=await supabase.from('playlists').select('*').eq('id',id).single();
+      if(!lib){inner.innerHTML='<p style="padding:20px;color:var(--text-secondary);">Not found</p>';return;}
+
+      const{count:artCount}=await supabase.from('playlist_items')
+        .select('*',{count:'exact',head:true}).eq('playlist_id',id);
+
+      // fetch saved libraries (top 5 shown at top)
+      const savedLibs = await getFavedLibIds();
+      const isSaved = savedLibs.has(String(id));
+
+      // creator
+      let creatorName='Unknown';
+      if(lib.user_id){
+        const{data:cr}=await supabase.from('users').select('username').eq('user_id',lib.user_id).single();
+        if(cr) creatorName=cr.username?`@${cr.username}`:'Unknown';
+      }
+
+      inner.innerHTML=`
+        <div class="cp-type-badge library"><i class="fas fa-layer-group"></i> Library</div>
+        <div class="cp-title">${esc(lib.name||'Untitled Library')}</div>
+        <div class="cp-meta">
+          <span class="cp-meta-item"><i class="fas fa-layer-group"></i>${artCount||0} articles</span>
+          <span class="cp-meta-item"><i class="fas fa-user"></i>${esc(creatorName)}</span>
+        </div>
+        ${lib.description?`<div class="cp-lib-desc">${esc(lib.description)}</div>`:''}
+        <div class="cp-lib-save-row">
+          <button class="cp-save-btn ${isSaved?'saved':''}" id="cpSaveBtn" onclick="window._cpToggleSave(${id})">
+            <i class="fas fa-bookmark"></i> ${isSaved?'Saved':'Save Library'}
+          </button>
+        </div>
+        <div class="cp-actions">
+          <button class="cp-btn-primary" onclick="location.href='https://patholytica.com/dailyfeed?playlist=${id}'">
+            <i class="fas fa-play"></i> Study Now
+          </button>
+          <button class="cp-btn-secondary" onclick="closeCardPreview()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>`;
+    }
+  }catch(e){
+    inner.innerHTML='<p style="padding:20px;color:var(--text-secondary);text-align:center;">Failed to load</p>';
+  }
+};
+
+// helper to get current saved lib ids (from memory or supabase)
+async function getFavedLibIds(){
+  if(userFavourites.size>0) return userFavourites;
+  if(!currentSupaUser) return new Set();
+  try{
+    const{data}=await supabase.from('favourite_playlists').select('playlist_id').eq('user_id',currentSupaUser.user_id);
+    const s=new Set();(data||[]).forEach(r=>s.add(String(r.playlist_id)));
+    return s;
+  }catch(e){return new Set();}
+}
+
+window._cpToggleSave=async function(playlistId){
+  const btn=document.getElementById('cpSaveBtn');
+  if(!btn)return;
+  const newState=await toggleFavourite(playlistId);
+  if(newState===undefined)return;
+  btn.className=`cp-save-btn ${newState?'saved':''}`;
+  btn.innerHTML=`<i class="fas fa-bookmark"></i> ${newState?'Saved':'Save Library'}`;
+};
+
+window.closeCardPreview=function(e){
+  if(!e||e.target===document.getElementById('cardPreviewOverlay')){
+    document.getElementById('cardPreviewOverlay').classList.remove('open');
+  }
+};
+
+/* ══════════════════════════════════════════════
+   CREATORS STRIP
+══════════════════════════════════════════════ */
+async function loadCreators(){
+  const strip=document.getElementById('creatorsStrip');
+  try{
+    const{data:arts}=await supabase.from('articles').select('firebase_user_id');
+    if(!arts){strip.innerHTML='';return;}
+    const counts={};
+    arts.forEach(a=>{if(a.firebase_user_id)counts[a.firebase_user_id]=(counts[a.firebase_user_id]||0)+1;});
+    const topUids=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([u])=>u);
+    if(!topUids.length){strip.innerHTML='';return;}
+    const{data:users}=await supabase.from('users').select('firebase_uid,username,full_name,pfp').in('firebase_uid',topUids);
+    const um={};(users||[]).forEach(u=>{um[u.firebase_uid]=u;});
+    strip.innerHTML=topUids.map(uid=>{
+      const u=um[uid];
+      const name=u?.username?'@'+u.username:(u?.full_name||'?');
+      const init=(name.replace(/^@/,'')||'?')[0].toUpperCase();
+      const av=u?.pfp?`<img src="${esc(u.pfp)}" alt="${init}">`:`${init}`;
+      return`<div class="creator-pill" onclick="openUserPopup('${uid}')">
+        <div class="creator-pill-avatar">${av}</div>
+        <div class="creator-pill-name">${esc(name)}</div>
+      </div>`;
+    }).join('');
+  }catch(e){strip.innerHTML='';}
+}
+
+/* ══════════════════════════════════════════════
+   BUILD ARTICLE PIN
+══════════════════════════════════════════════ */
+function buildArticlePin(article, imageUrl){
+  const div=document.createElement('div');
+  div.className='pin-card';
+  const mcq=isMCQ(article.content);
+  const title=article.title||'Untitled';
+  const type=mcq?'mcq':'article';
+
+  let imgSrc=imageUrl, imgH=null;
+  if(!imgSrc){
+    const stock=stockFor(article.id);
+    imgSrc=stock.url; imgH=stock.h;
+  }
+  const imgStyle=imgH?`height:${imgH}px;`:'';
+
+  div.innerHTML=`
+    <img class="pin-card-img${imgH?' fixed-ratio':''}"
+         src="${esc(imgSrc)}" alt="${esc(title)}" loading="lazy"
+         style="${imgStyle}object-fit:cover;"
+         onerror="this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex')">
+    <div class="pin-card-img-fallback" style="display:none;height:${imgH||220}px;">
+      <i class="fas fa-file-alt"></i>
+    </div>
+    <div class="pin-card-overlay">
+      <div class="pin-overlay-title">${esc(trunc(title,90))}</div>
+      <div class="pin-overlay-meta">
+        ${mcq
+          ?`<div class="pin-badge mcq-badge"><i class="fas fa-question-circle"></i> MCQ</div>`
+          :`<div class="pin-badge art-badge"><i class="fas fa-file-alt"></i> Article</div>`
+        }
+        <span class="pin-stat"><i class="fas fa-eye"></i>${fmtNum(article.views||0)}</span>
+        <span class="pin-stat"><i class="fas fa-heart"></i>${fmtNum(article.likes||0)}</span>
+      </div>
+    </div>`;
+
+  // single tap → preview popup; double-tap / read-more → feed
+  div.addEventListener('click', ()=>{ openCardPreview(type, article.id); });
+  return div;
+}
+
+/* ══════════════════════════════════════════════
+   BUILD LIBRARY PIN
+   Saved libraries float to top (handled in batch sorting)
+══════════════════════════════════════════════ */
+function buildLibraryPin(lib, articleCount){
+  const div=document.createElement('div');
+  div.className='pin-card';
+  const name=lib.name||'Untitled Library';
+  const isSaved=userFavourites.has(String(lib.id));
+
+  let imgSrc=lib.thumbnail_url, imgH=null;
+  if(!imgSrc){
+    const stock=stockFor(lib.id+500);
+    imgSrc=stock.url; imgH=stock.h;
+  }
+  const imgStyle=imgH?`height:${imgH}px;`:'';
+
+  div.innerHTML=`
+    <img class="pin-card-img${imgH?' fixed-ratio':''}"
+         src="${esc(imgSrc)}" alt="${esc(name)}" loading="lazy"
+         style="${imgStyle}object-fit:cover;"
+         onerror="this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex')">
+    <div class="pin-card-img-fallback" style="display:none;height:${imgH||220}px;">
+      <i class="fas fa-layer-group"></i>
+    </div>
+    <div class="pin-card-overlay">
+      <div class="pin-overlay-title">${esc(trunc(name,70))}</div>
+      <div class="pin-overlay-meta">
+        <div class="pin-badge lib-badge"><i class="fas fa-layer-group"></i> Library</div>
+        ${isSaved?`<div class="pin-badge lib-badge"><i class="fas fa-bookmark"></i> Saved</div>`:''}
+        <span class="pin-stat">${articleCount} article${articleCount!==1?'s':''}</span>
+      </div>
+    </div>`;
+
+  div.addEventListener('click', ()=>{ openCardPreview('library', lib.id); });
+  return div;
+}
+
+/* ══════════════════════════════════════════════
+   SKELETONS
+══════════════════════════════════════════════ */
+function injectSkeletons(n=8){
+  const grid=document.getElementById('mainGrid');
+  for(let i=0;i<n;i++){
+    const sk=document.createElement('div');sk.className='pin-skeleton';grid.appendChild(sk);
+  }
+}
+function clearSkeletons(){ document.querySelectorAll('.pin-skeleton').forEach(s=>s.remove()); }
+
+/* ══════════════════════════════════════════════
+   MAIN LOADER
+   Saved libraries bubble to the top of each batch
+══════════════════════════════════════════════ */
+async function loadBatch(isInitial=true){
+  if(artLoading||(!isInitial&&!artHasMore))return;
+  artLoading=true;
+  const grid=document.getElementById('mainGrid');
+  if(isInitial) injectSkeletons(10);
+
+  try{
+    const{data:arts,error:aErr}=await supabase
+      .from('articles').select('*')
+      .order('created_at',{ascending:false})
+      .range(artOffset, artOffset+ART_BATCH-1);
+    if(aErr)throw aErr;
+
+    if(!arts||arts.length===0){ artHasMore=false; }
+    else{
+      artOffset+=arts.length;
+      if(arts.length<ART_BATCH) artHasMore=false;
+
+      const artIds=arts.map(a=>a.id);
+      const{data:media}=await supabase.from('media').select('article_id,url,type')
+        .in('article_id',artIds).eq('type','image').order('display_order',{ascending:true});
+      const imgMap={};
+      (media||[]).forEach(m=>{if(!imgMap[m.article_id])imgMap[m.article_id]=m.url;});
+
+      const{data:libs}=await supabase.from('playlists').select('*')
+        .order('created_at',{ascending:false})
+        .range(libOffset, libOffset+LIB_PER_BATCH-1);
+      libOffset+=(libs||[]).length;
+
+      const libIds=(libs||[]).map(l=>l.id);
+      let libCountMap={};
+      if(libIds.length){
+        const{data:irows}=await supabase.from('playlist_items').select('playlist_id').in('playlist_id',libIds);
+        (irows||[]).forEach(r=>{libCountMap[r.playlist_id]=(libCountMap[r.playlist_id]||0)+1;});
+      }
+
+      // Sort libs: saved ones float to top (max 5 saved shown first)
+      let sortedLibs = [...(libs||[])];
+      if(userFavourites.size>0){
+        const saved   = sortedLibs.filter(l=>userFavourites.has(String(l.id))).slice(0,5);
+        const unsaved = sortedLibs.filter(l=>!userFavourites.has(String(l.id)));
+        sortedLibs = [...saved, ...unsaved];
+      }
+
+      clearSkeletons();
+
+      let libIdx=0;
+      arts.forEach((art,i)=>{
+        grid.appendChild(buildArticlePin(art, imgMap[art.id]||null));
+        if((i+1)%4===0 && libIdx<sortedLibs.length){
+          const lib=sortedLibs[libIdx++];
+          grid.appendChild(buildLibraryPin(lib, libCountMap[lib.id]||0));
+        }
+      });
+      while(libIdx<sortedLibs.length){
+        const l=sortedLibs[libIdx++];
+        grid.appendChild(buildLibraryPin(l,libCountMap[l.id]||0));
+      }
+    }
+
+    const lmw=document.getElementById('loadMoreWrap');
+    const lmb=document.getElementById('loadMoreBtn');
+    if(artHasMore){ lmw.style.display='block'; lmb.disabled=false; lmb.innerHTML='<i class="fas fa-chevron-down"></i> Load more'; }
+    else lmw.style.display='none';
+
+  }catch(e){
+    console.error(e);
+    clearSkeletons();
+    document.getElementById('mainGrid').innerHTML+=
+      `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Failed to load</p></div>`;
+  }finally{
+    artLoading=false;
+  }
+}
+
+window.loadMore=async function(){
+  const btn=document.getElementById('loadMoreBtn');
+  btn.disabled=true; btn.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Loading…';
+  injectSkeletons(4);
+  await loadBatch(false);
+};
+
+/* ── INIT ── */
+loadCreators();
+loadBatch(true);
 </script>
 
 </body>
