@@ -5,599 +5,322 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Patholytica — Explore</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
+
+/* ══════════════════════════════════════════════
+   CSS VARIABLES
+══════════════════════════════════════════════ */
 :root {
-  --bg-color: #1f1f1f;
-  --text-primary: #fff;
-  --text-secondary: #aaa;
-  --card-bg: #1f1f1f;
-  --hover-bg: #2a2a2a;
-  --border-color: #303030;
-  --accent: #f1d19e;
-  --accent-hover: #d4b47a;
-  --accent-green: #2ecc71;
-  --accent-purple: #9b59b6;
-  --accent-orange: #e67e22;
+  --bg-color: #0f0e0b;
+  --text-primary: #f5f0e8;
+  --text-secondary: #8a8070;
+  --hover-bg: #1a1810;
+  --border-color: #2a2518;
+  --accent: #c8a96e;
+  --accent-hover: #b8935a;
+  --accent-glow: rgba(200,169,110,0.25);
+  --accent-soft: rgba(200,169,110,0.12);
+  --font-article: 'Merriweather', serif;
+  --font-ui: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+body.theme-dark {
+  --bg-color: #0f0e0b; --text-primary: #f5f0e8; --text-secondary: #8a8070;
+  --hover-bg: #1a1810; --border-color: #2a2518;
+  --accent: #c8a96e; --accent-hover: #b8935a;
+  --accent-glow: rgba(200,169,110,0.25); --accent-soft: rgba(200,169,110,0.12);
+}
+body.theme-light {
+  --bg-color: #faf6ee; --text-primary: #1a1710; --text-secondary: #706050;
+  --hover-bg: #f0ebe0; --border-color: #e0d8c8;
+  --accent: #a07840; --accent-hover: #8a6430;
+  --accent-glow: rgba(160,120,64,0.2); --accent-soft: rgba(160,120,64,0.08);
 }
 
-* { box-sizing: border-box; }
-html, body {
-  margin: 0;
-  padding: 0;
-  min-height: 100%;
-  font-family: "Roboto", Arial, sans-serif;
-  overflow-x: hidden;
-  max-width: 100vw;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; overflow-x: hidden; }
 body {
+  font-family: var(--font-ui);
   background: var(--bg-color);
   color: var(--text-primary);
   transition: background 0.2s ease, color 0.2s ease;
 }
-.header-wrapper {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+
+/* ══════════════════════════════════════════════
+   STATIC HEADER
+══════════════════════════════════════════════ */
+.static-header {
   background: var(--bg-color);
   padding-top: env(safe-area-inset-top);
-  border-bottom: 1px solid var(--border-color);
-  z-index: 40;
-  width: 100%;
-}
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 24px;
-  max-width: 100%;
-  margin: 0 auto;
-}
-.logo-img {
-  height: 28px;
-  width: auto;
-  cursor: pointer;
-  transition: filter 0.2s ease;
-}
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.icon-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: transparent;
-  border: none;
-  color: var(--text-primary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
   transition: background 0.2s ease;
 }
-.icon-btn:hover {
-  background: var(--hover-bg);
+.static-header-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 18px 8px; max-width: 900px; margin: 0 auto;
 }
-.auth-buttons {
-  display: none;
-  gap: 12px;
+.header-logo { display: flex; align-items: center; cursor: pointer; }
+.header-logo img {
+  height: 28px; width: auto;
+  transition: filter 0.2s ease;
 }
-.auth-buttons.show {
-  display: flex;
-}
-.btn-login, .btn-signup {
-  padding: 8px 20px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  border: none;
-}
-.btn-login {
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-}
-.btn-login:hover {
-  background: var(--hover-bg);
-}
-.btn-signup {
-  background: var(--accent);
-  color: #1f1f1f;
-}
-.btn-signup:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-.user-welcome {
-  display: none;
-  align-items: center;
-  gap: 12px;
-  font-size: 14px;
-  color: var(--text-primary);
-}
-.user-welcome.show {
-  display: flex;
-}
-.welcome-text {
-  font-weight: 500;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-.welcome-text:hover {
-  color: var(--accent);
+body.theme-light .header-logo img {
+  filter: invert(1) grayscale(1);
 }
 
-/* Search Container */
-.search-container {
-  position: fixed;
-  top: calc(53px + env(safe-area-inset-top));
-  left: 0;
-  right: 0;
+.header-right { display: flex; align-items: center; gap: 8px; }
+.auth-buttons { display: none; }
+.auth-buttons.show { display: flex; gap: 8px; align-items: center; }
+.btn-login {
+  padding: 7px 18px; border-radius: 20px; font-size: 13px; font-weight: 600;
+  cursor: pointer; text-decoration: none;
+  border: 1px solid var(--border-color); background: transparent;
+  color: var(--text-secondary); font-family: var(--font-ui);
+  transition: border-color 0.2s, color 0.2s;
+}
+.btn-login:hover { border-color: var(--accent); color: var(--accent); }
+.user-welcome { display: none; align-items: center; gap: 8px; }
+.user-welcome.show { display: flex; }
+.welcome-text {
+  font-size: 13px; font-weight: 600; color: var(--text-secondary);
+  cursor: pointer; transition: color 0.15s;
+}
+.welcome-text:hover { color: var(--accent); }
+
+/* ══════════════════════════════════════════════
+   SEARCH SECTION (static, scrolls with page)
+══════════════════════════════════════════════ */
+.search-section {
   background: var(--bg-color);
-  padding: 16px 24px;
-  z-index: 35;
+  padding: 0 18px 14px;
   border-bottom: 1px solid var(--border-color);
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
-.search-bar {
-  position: relative;
-  max-width: 900px;
-  margin: 0 auto;
-}
+.search-bar { max-width: 900px; margin: 0 auto; }
 .search-input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
+  position: relative; display: flex; align-items: center;
 }
 .search-icon {
-  position: absolute;
-  left: 16px;
-  color: var(--text-secondary);
-  font-size: 16px;
-  pointer-events: none;
+  position: absolute; left: 14px;
+  color: var(--text-secondary); font-size: 14px; pointer-events: none;
 }
 .search-input {
   width: 100%;
-  padding: 12px 48px 12px 48px;
+  padding: 11px 44px 11px 42px;
   border: 1px solid var(--border-color);
   border-radius: 24px;
-  background: var(--card-bg);
+  background: var(--hover-bg);
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 14px; font-family: var(--font-ui);
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
+.search-input::placeholder { color: var(--text-secondary); opacity: 0.7; }
 .search-input:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .clear-search {
-  position: absolute;
-  right: 12px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  transition: background 0.2s ease;
+  position: absolute; right: 10px;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: transparent; border: none;
+  color: var(--text-secondary); cursor: pointer;
+  display: none; align-items: center; justify-content: center; font-size: 13px;
+  transition: background 0.15s, color 0.15s;
 }
-.clear-search.show {
-  display: flex;
-}
-.clear-search:hover {
-  background: var(--hover-bg);
-}
+.clear-search.show { display: flex; }
+.clear-search:hover { background: var(--border-color); color: var(--text-primary); }
 
-/* Filter Tabs */
+/* Filter tabs */
 .filter-tabs {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  display: flex; gap: 6px; margin-top: 10px;
+  overflow-x: auto; scrollbar-width: none;
 }
-.filter-tabs::-webkit-scrollbar {
-  display: none;
-}
+.filter-tabs::-webkit-scrollbar { display: none; }
 .filter-tab {
-  padding: 8px 16px;
-  border-radius: 20px;
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s ease;
+  padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700;
+  border: 1px solid var(--border-color); background: none;
+  color: var(--text-secondary); cursor: pointer; white-space: nowrap;
+  font-family: var(--font-ui); transition: all 0.15s;
 }
-.filter-tab:hover {
-  background: var(--hover-bg);
-  color: var(--text-primary);
-}
+.filter-tab:hover { border-color: var(--accent); color: var(--accent); }
 .filter-tab.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #1f1f1f;
+  background: var(--accent); border-color: var(--accent);
+  color: #0f0e0b;
 }
 
-/* Content Container */
+/* ══════════════════════════════════════════════
+   CONTENT
+══════════════════════════════════════════════ */
 .content-container {
-  max-width: 900px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 24px 24px 80px;
-  padding-top: calc(53px + env(safe-area-inset-top) + 140px);
+  max-width: 900px; margin: 0 auto;
+  padding: 0 18px calc(80px + env(safe-area-inset-bottom));
 }
 
-/* Results List */
-.results-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
+/* ══════════════════════════════════════════════
+   RESULT ITEMS
+══════════════════════════════════════════════ */
+.results-list { list-style: none; }
 
-/* Result Item */
 .result-item {
-  padding: 16px;
+  display: flex; align-items: center; gap: 13px;
+  padding: 14px 0;
   border-bottom: 1px solid var(--border-color);
   cursor: pointer;
-  transition: background 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  transition: background 0.15s, padding 0.15s, margin 0.15s;
+  border-radius: 0;
 }
 .result-item:hover {
   background: var(--hover-bg);
   margin: 0 -12px;
-  padding: 16px 28px;
+  padding: 14px 12px;
+  border-radius: 10px;
+  border-bottom-color: transparent;
 }
+.result-item:last-child { border-bottom: none; }
+
+/* Avatar */
 .result-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  font-weight: 600;
-  color: #1f1f1f;
-  flex-shrink: 0;
-  overflow: hidden;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--accent-soft); border: 1.5px solid rgba(200,169,110,0.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 700; color: var(--accent);
+  flex-shrink: 0; overflow: hidden;
 }
-.result-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.result-avatar.article {
-  background: var(--accent-green);
-  color: #fff;
-}
-.result-avatar.article-content {
-  background: var(--accent-orange);
-  color: #fff;
-}
-.result-avatar.playlist {
-  background: var(--accent-purple);
-  color: #fff;
-}
-.result-content {
-  flex: 1;
-  min-width: 0;
-}
+.result-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.result-avatar.article  { background: rgba(106,191,133,0.12); color: #6abf85; border-color: rgba(106,191,133,0.2); }
+.result-avatar.article-content { background: rgba(200,169,110,0.12); color: var(--accent); border-color: rgba(200,169,110,0.2); }
+.result-avatar.playlist { background: rgba(106,159,207,0.12); color: #6a9fcf; border-color: rgba(106,159,207,0.2); }
+
+.result-content { flex: 1; min-width: 0; }
 .result-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0 0 4px 0;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 14px; font-weight: 700; color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 3px; font-family: var(--font-article);
+  letter-spacing: -0.01em;
 }
 .result-subtitle {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 11px; color: var(--text-secondary); font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .result-excerpt {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin: 4px 0 0 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  line-height: 1.4;
+  font-size: 12px; color: var(--text-secondary); line-height: 1.5;
+  margin-top: 4px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .result-excerpt mark {
-  background: rgba(241, 209, 158, 0.25);
-  color: var(--text-primary);
-  padding: 2px 4px;
-  border-radius: 3px;
-}
-.result-type-badge {
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  flex-shrink: 0;
-}
-.result-type-badge.user {
-  background: rgba(241, 209, 158, 0.15);
+  background: rgba(200,169,110,0.22);
   color: var(--accent);
-}
-.result-type-badge.article {
-  background: rgba(46, 204, 113, 0.15);
-  color: var(--accent-green);
-}
-.result-type-badge.article-content {
-  background: rgba(230, 126, 34, 0.15);
-  color: var(--accent-orange);
-}
-.result-type-badge.playlist {
-  background: rgba(155, 89, 182, 0.15);
-  color: var(--accent-purple);
+  padding: 1px 3px; border-radius: 3px;
 }
 
-/* Load More Button */
-.load-more-container {
-  text-align: center;
-  padding: 24px;
-  display: none;
+/* Type badge */
+.result-type-badge {
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.05em; flex-shrink: 0;
 }
-.load-more-container.show {
-  display: block;
-}
-.btn-load-more {
-  padding: 12px 32px;
-  border-radius: 24px;
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.btn-load-more:hover {
-  background: var(--hover-bg);
-  border-color: var(--accent);
-}
-.btn-load-more:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.result-type-badge.user    { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(200,169,110,0.25); }
+.result-type-badge.article { background: rgba(106,191,133,0.1); color: #6abf85; border: 1px solid rgba(106,191,133,0.2); }
+.result-type-badge.article-content { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(200,169,110,0.25); }
+.result-type-badge.playlist { background: rgba(106,159,207,0.1); color: #6a9fcf; border: 1px solid rgba(106,159,207,0.2); }
 
-/* Empty State */
+/* ══════════════════════════════════════════════
+   EMPTY / LOADING STATES
+══════════════════════════════════════════════ */
 .empty-state {
-  text-align: center;
-  padding: 60px 24px;
-  color: var(--text-secondary);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 60px 20px; color: var(--text-secondary); gap: 10px;
+  list-style: none;
 }
-.empty-state i {
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-.empty-state h3 {
-  font-size: 18px;
-  margin: 0 0 8px 0;
-  color: var(--text-primary);
-}
-.empty-state p {
-  font-size: 14px;
-  margin: 0;
-}
+.empty-state i { font-size: 36px; opacity: 0.2; color: var(--accent); }
+.empty-state h3 { font-size: 15px; font-weight: 700; color: var(--text-primary); margin: 0; }
+.empty-state p  { font-size: 12px; opacity: 0.6; margin: 0; text-align: center; }
 
-/* Loading State */
-.loading-state {
-  text-align: center;
-  padding: 40px;
-  color: var(--text-secondary);
-  font-size: 16px;
-}
-.loading-spinner {
-  display: inline-block;
-  width: 24px;
-  height: 24px;
-  border: 3px solid var(--border-color);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Skeleton Loading */
-@keyframes shimmer {
-  0% { background-position: -600px 0; }
-  100% { background-position: 600px 0; }
-}
+/* Skeleton */
+@keyframes shimmer { 0%,100%{opacity:0.4} 50%{opacity:0.85} }
 .skeleton-item {
-  padding: 16px;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  display: flex; align-items: center; gap: 13px;
+  padding: 14px 0; border-bottom: 1px solid var(--border-color);
 }
 .skeleton-base {
-  background: linear-gradient(
-    90deg,
-    #2a2a2a 25%,
-    #333333 50%,
-    #2a2a2a 75%
-  );
-  background-size: 600px 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
-  border-radius: 4px;
+  background: var(--hover-bg);
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
 }
-.skeleton-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.skeleton-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.skeleton-title {
-  height: 16px;
-  width: 60%;
-  border-radius: 4px;
-}
-.skeleton-subtitle {
-  height: 13px;
-  width: 40%;
-  border-radius: 4px;
-}
-.skeleton-badge {
-  width: 52px;
-  height: 24px;
-  border-radius: 12px;
-  flex-shrink: 0;
-}
+.skeleton-avatar { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
+.skeleton-content { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+.skeleton-title  { height: 13px; width: 55%; border-radius: 4px; }
+.skeleton-subtitle { height: 10px; width: 35%; border-radius: 4px; }
+.skeleton-badge { width: 48px; height: 22px; border-radius: 20px; flex-shrink: 0; }
 
-/* Footer Bar Navigation */
+/* Load more */
+.load-more-container { text-align: center; padding: 20px; display: none; }
+.load-more-container.show { display: block; }
+.btn-load-more {
+  background: none; border: 1px solid var(--border-color);
+  color: var(--text-secondary); font-size: 12px; font-weight: 600;
+  cursor: pointer; padding: 9px 24px; border-radius: 20px;
+  font-family: var(--font-ui);
+  display: inline-flex; align-items: center; gap: 7px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.btn-load-more:hover { border-color: var(--accent); color: var(--accent); }
+.btn-load-more:disabled { opacity: 0.35; pointer-events: none; }
+
+/* Spinner */
+.loading-spinner {
+  display: inline-block; width: 20px; height: 20px;
+  border: 2px solid var(--border-color); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ══════════════════════════════════════════════
+   FOOTER BAR — always dark
+══════════════════════════════════════════════ */
 .footer-bar {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 450px;
-  background: var(--card-bg);
-  border-top: 1px solid var(--border-color);
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 450px;
+  background: #0f0e0b;
+  border-top: 1px solid #2a2518;
   padding: 8px 24px;
   padding-bottom: calc(8px + env(safe-area-inset-bottom));
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
+  display: flex; justify-content: space-around; align-items: center;
   z-index: 100;
 }
 .footer-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color 0.2s ease;
-  padding: 6px 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: none; border: none; color: #8a8070;
+  cursor: pointer; transition: color 0.2s ease; padding: 6px 12px;
 }
-.footer-btn:hover {
-  color: var(--text-primary);
-}
-.footer-btn.active {
-  color: var(--accent);
-}
-.footer-btn i {
-  font-size: 20px;
-}
-.footer-btn span {
-  font-size: 10px;
-  font-weight: 500;
-}
+.footer-btn:hover { color: #f5f0e8; }
+.footer-btn.active { color: #c8a96e; }
+.footer-btn i { font-size: 19px; }
+.footer-btn span { font-size: 10px; font-weight: 600; }
 
 @media (max-width: 768px) {
-  .search-container {
-    padding: 12px 16px;
-  }
-  .search-input {
-    font-size: 14px;
-    padding: 10px 40px 10px 40px;
-  }
-  .filter-tabs {
-    margin-top: 10px;
-    gap: 6px;
-  }
-  .filter-tab {
-    padding: 6px 14px;
-    font-size: 12px;
-  }
-  .content-container {
-    padding: 16px 16px 100px;
-    padding-top: calc(53px + env(safe-area-inset-top) + 130px);
-  }
-  .result-avatar {
-    width: 42px;
-    height: 42px;
-    font-size: 18px;
-  }
-  .skeleton-avatar {
-    width: 42px;
-    height: 42px;
-  }
-  .result-title {
-    font-size: 15px;
-  }
-  .result-subtitle {
-    font-size: 12px;
-  }
-  .empty-state {
-    padding: 40px 20px;
-  }
-  .empty-state i {
-    font-size: 40px;
-  }
-  .empty-state h3 {
-    font-size: 16px;
-  }
-  .empty-state p {
-    font-size: 13px;
-  }
-  .auth-buttons {
-    gap: 8px;
-  }
-  .btn-login, .btn-signup {
-    padding: 6px 16px;
-    font-size: 13px;
-  }
-  .footer-bar {
-    padding: 8px 16px;
-    padding-bottom: calc(8px + env(safe-area-inset-bottom));
-  }
-  .footer-btn {
-    padding: 6px 8px;
-  }
-  .footer-btn i {
-    font-size: 18px;
-  }
-  .footer-btn span {
-    font-size: 9px;
-  }
+  .static-header-inner { padding: 10px 14px 6px; }
+  .search-section { padding: 0 14px 12px; }
+  .content-container { padding: 0 14px calc(80px + env(safe-area-inset-bottom)); }
+  .footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+  .footer-btn { padding: 6px 8px; }
+  .footer-btn i { font-size: 17px; }
+  .footer-btn span { font-size: 9px; }
+  .result-item:hover { margin: 0 -8px; padding: 14px 8px; }
 }
+
 </style>
 </head>
-<body>
-<div class="header-wrapper">
-  <div class="header">
-    <img src="IMG_3220.png" class="logo-img" alt="Patholytica Logo" onclick="window.location.href='index.html'">
-    <div class="header-actions">
+<body class="theme-dark">
+
+<!-- ══ STATIC HEADER ══ -->
+<div class="static-header">
+  <div class="static-header-inner">
+    <div class="header-logo" onclick="location.href='index.html'">
+      <img src="IMG_3220.png" alt="Patholytica">
+    </div>
+    <div class="header-right">
       <div class="auth-buttons" id="authButtons">
         <a href="login.html" class="btn-login">Log In</a>
       </div>
@@ -608,16 +331,16 @@ body {
   </div>
 </div>
 
-<!-- Search Container -->
-<div class="search-container">
+<!-- ══ SEARCH SECTION ══ -->
+<div class="search-section">
   <div class="search-bar">
     <div class="search-input-wrapper">
       <i class="fas fa-search search-icon"></i>
-      <input 
-        type="text" 
-        class="search-input" 
-        id="searchInput" 
-        placeholder="Search for users, articles, or libraries..."
+      <input
+        type="text"
+        class="search-input"
+        id="searchInput"
+        placeholder="Search users, articles, libraries…"
         autocomplete="off"
       >
       <button class="clear-search" id="clearSearch">
@@ -634,6 +357,7 @@ body {
   </div>
 </div>
 
+<!-- ══ CONTENT ══ -->
 <div class="content-container">
   <ul class="results-list" id="resultsList">
     <li class="empty-state" id="initialState">
@@ -644,39 +368,38 @@ body {
   </ul>
   <div class="load-more-container" id="loadMoreContainer">
     <button class="btn-load-more" id="loadMoreBtn">
-      <i class="fas fa-chevron-down" style="margin-right: 8px;"></i>
-      Load More
+      <i class="fas fa-chevron-down"></i> Load more
     </button>
   </div>
 </div>
 
-<!-- Footer Bar Navigation -->
+<!-- ══ FOOTER ══ -->
 <div class="footer-bar">
-  <button class="footer-btn" onclick="window.location.href='index.html'">
-    <i class="fas fa-home"></i>
-    <span>Home</span>
+  <button class="footer-btn" onclick="location.href='index.html'">
+    <i class="fas fa-home"></i><span>Home</span>
   </button>
-  <button class="footer-btn" onclick="window.location.href='https://patholytica.com/dailyfeed'">
-    <i class="fas fa-scroll"></i>
-    <span>Feed</span>
+  <button class="footer-btn" onclick="location.href='https://patholytica.com/dailyfeed'">
+    <i class="fas fa-scroll"></i><span>Feed</span>
   </button>
-  <button class="footer-btn active" onclick="window.location.href='explore.html'">
-    <i class="fas fa-search"></i>
-    <span>Explore</span>
+  <button class="footer-btn active" onclick="location.href='explore.html'">
+    <i class="fas fa-search"></i><span>Explore</span>
   </button>
-  <button class="footer-btn" onclick="window.location.href='https://patholytica.com/space'">
-    <i class="fas fa-th-large"></i>
-    <span>Space</span>
+  <button class="footer-btn" onclick="location.href='https://patholytica.com/space'">
+    <i class="fas fa-th-large"></i><span>Space</span>
   </button>
 </div>
 
+<!-- 1. Theme persistence -->
+<script>
+(function(){
+  const theme = localStorage.getItem('pref_theme') || 'theme-dark';
+  document.body.className = (theme === 'theme-light') ? 'theme-light' : 'theme-dark';
+})();
+</script>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { 
-  getAuth, 
-  onAuthStateChanged,
-  signOut
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
@@ -687,13 +410,13 @@ const firebaseConfig = {
   messagingSenderId: "738430635282",
   appId: "1:738430635282:web:8451ef380447c7611137cb"
 };
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-const SUPABASE_URL = "https://vduqewqyvszfquntmark.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = window.supabase.createClient(
+  "https://vduqewqyvszfquntmark.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
+);
 
 let currentFilter = 'all';
 let searchTimeout;
@@ -702,403 +425,253 @@ let currentOffset = 0;
 let hasMore = false;
 const RESULTS_PER_PAGE = 10;
 
-const searchInput = document.getElementById('searchInput');
+const searchInput    = document.getElementById('searchInput');
 const clearSearchBtn = document.getElementById('clearSearch');
-const resultsList = document.getElementById('resultsList');
-const initialState = document.getElementById('initialState');
-const filterTabs = document.querySelectorAll('.filter-tab');
+const resultsList    = document.getElementById('resultsList');
+const initialState   = document.getElementById('initialState');
+const filterTabs     = document.querySelectorAll('.filter-tab');
 const loadMoreContainer = document.getElementById('loadMoreContainer');
-const loadMoreBtn = document.getElementById('loadMoreBtn');
+const loadMoreBtn    = document.getElementById('loadMoreBtn');
 
-window.logOut = async function() {
-  try {
-    await signOut(auth);
-    window.location.reload();
-  } catch (error) {
-    alert("Error logging out. Please try again.");
-  }
+/* AUTH */
+window.logOut = async function(){
+  try{ await signOut(auth); window.location.reload(); }catch(e){}
 };
 
 onAuthStateChanged(auth, async (user) => {
   const authButtons = document.getElementById('authButtons');
   const userWelcome = document.getElementById('userWelcome');
   const welcomeText = document.getElementById('welcomeText');
-  
-  if (user) {
+  if(user){
     authButtons.classList.remove('show');
     userWelcome.classList.add('show');
     welcomeText.onclick = window.logOut;
-    welcomeText.style.cursor = 'pointer';
-    
-    try {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('username')
-        .eq('firebase_uid', user.uid)
-        .single();
-      
-      if (userData && userData.username) {
-        welcomeText.textContent = `@${userData.username}`;
-      }
-    } catch (error) {
-      console.error('Error fetching username:', error);
-    }
+    try{
+      const{data:ud}=await supabase.from('users').select('username').eq('firebase_uid',user.uid).single();
+      if(ud?.username) welcomeText.textContent=`@${ud.username}`;
+    }catch(e){}
   } else {
     authButtons.classList.add('show');
     userWelcome.classList.remove('show');
   }
 });
 
-filterTabs.forEach(tab => {
-  tab.addEventListener('click', () => {
-    filterTabs.forEach(t => t.classList.remove('active'));
+/* FILTER TABS */
+filterTabs.forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    filterTabs.forEach(t=>t.classList.remove('active'));
     tab.classList.add('active');
-    currentFilter = tab.dataset.filter;
-    const query = searchInput.value.trim();
-    if (query) {
-      currentOffset = 0;
-      performSearch(query, true);
-    }
+    currentFilter=tab.dataset.filter;
+    const q=searchInput.value.trim();
+    if(q){ currentOffset=0; performSearch(q,true); }
   });
 });
 
-clearSearchBtn.addEventListener('click', () => {
-  searchInput.value = '';
+/* CLEAR */
+clearSearchBtn.addEventListener('click',()=>{
+  searchInput.value='';
   clearSearchBtn.classList.remove('show');
-  resultsList.innerHTML = '';
+  resultsList.innerHTML='';
   resultsList.appendChild(initialState);
-  initialState.style.display = 'block';
+  initialState.style.display='';
   loadMoreContainer.classList.remove('show');
-  currentOffset = 0;
-  currentQuery = '';
+  currentOffset=0; currentQuery='';
   searchInput.focus();
 });
 
-searchInput.addEventListener('input', (e) => {
-  const query = e.target.value.trim();
-  if (query) {
-    clearSearchBtn.classList.add('show');
-  } else {
+/* INPUT */
+searchInput.addEventListener('input',(e)=>{
+  const q=e.target.value.trim();
+  if(q){ clearSearchBtn.classList.add('show'); }
+  else{
     clearSearchBtn.classList.remove('show');
-    resultsList.innerHTML = '';
-    resultsList.appendChild(initialState);
-    initialState.style.display = 'block';
+    resultsList.innerHTML=''; resultsList.appendChild(initialState);
+    initialState.style.display='';
     loadMoreContainer.classList.remove('show');
-    currentOffset = 0;
-    currentQuery = '';
-    return;
+    currentOffset=0; currentQuery=''; return;
   }
   clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(() => {
-    currentOffset = 0;
-    performSearch(query, true);
-  }, 300);
+  searchTimeout=setTimeout(()=>{ currentOffset=0; performSearch(q,true); },300);
 });
 
-loadMoreBtn.addEventListener('click', () => {
-  if (currentQuery) {
-    performSearch(currentQuery, false);
-  }
+/* LOAD MORE */
+loadMoreBtn.addEventListener('click',()=>{
+  if(currentQuery) performSearch(currentQuery,false);
 });
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+/* HELPERS */
+function escHtml(s){
+  const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;
+}
+function highlightText(text,query){
+  if(!text||!query) return escHtml(text);
+  const escaped=escHtml(text);
+  const re=new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+  return escaped.replace(re,'<mark>$1</mark>');
+}
+function handleImageError(img,fallback){
+  img.style.display='none';
+  img.parentElement.textContent=fallback;
 }
 
-function highlightText(text, query) {
-  if (!text || !query) return escapeHtml(text);
-  const escapedText = escapeHtml(text);
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-  return escapedText.replace(regex, '<mark>$1</mark>');
-}
-
-function handleImageError(img, fallbackText) {
-  img.style.display = 'none';
-  img.parentElement.textContent = fallbackText;
-}
-
-function showSkeletons(count = 5) {
-  resultsList.innerHTML = '';
-  for (let i = 0; i < count; i++) {
-    const li = document.createElement('li');
-    li.className = 'skeleton-item';
-    li.innerHTML = `
+/* SKELETONS */
+function showSkeletons(n=5){
+  resultsList.innerHTML='';
+  for(let i=0;i<n;i++){
+    const li=document.createElement('li');
+    li.className='skeleton-item';
+    li.innerHTML=`
       <div class="skeleton-base skeleton-avatar"></div>
       <div class="skeleton-content">
         <div class="skeleton-base skeleton-title"></div>
         <div class="skeleton-base skeleton-subtitle"></div>
       </div>
-      <div class="skeleton-base skeleton-badge"></div>
-    `;
+      <div class="skeleton-base skeleton-badge"></div>`;
     resultsList.appendChild(li);
   }
 }
 
-async function performSearch(query, isNewSearch = true) {
-  if (!query) return;
-
-  if (isNewSearch) {
-    currentQuery = query;
-    currentOffset = 0;
-    initialState.style.display = 'none';
+/* SEARCH */
+async function performSearch(query, isNewSearch=true){
+  if(!query) return;
+  if(isNewSearch){
+    currentQuery=query; currentOffset=0;
+    initialState.style.display='none';
     showSkeletons(6);
     loadMoreContainer.classList.remove('show');
   } else {
-    loadMoreBtn.disabled = true;
-    loadMoreBtn.innerHTML = '<div class="loading-spinner" style="margin: 0 auto;"></div>';
+    loadMoreBtn.disabled=true;
+    loadMoreBtn.innerHTML='<div class="loading-spinner"></div>';
   }
 
-  try {
-    let results = [];
-    let totalCount = 0;
+  try{
+    let results=[]; let totalCount=0;
 
-    if (currentFilter === 'all' || currentFilter === 'users') {
-      const { data: users, error: usersError, count } = await supabase
-        .from('users')
-        .select('*', { count: 'exact' })
-        .ilike('username', `%${query}%`)
-        .range(currentOffset, currentOffset + RESULTS_PER_PAGE - 1);
-      if (!usersError && users) {
-        results.push(...users.map(u => ({ ...u, type: 'user' })));
-        totalCount += count || 0;
+    if(currentFilter==='all'||currentFilter==='users'){
+      const{data:users,count}=await supabase.from('users').select('*',{count:'exact'})
+        .ilike('username',`%${query}%`).range(currentOffset,currentOffset+RESULTS_PER_PAGE-1);
+      if(users){ results.push(...users.map(u=>({...u,type:'user'}))); totalCount+=count||0; }
+    }
+
+    if(currentFilter==='all'||currentFilter==='articles'){
+      const{data:articles,count}=await supabase.from('articles').select('*, media(url)',{count:'exact'})
+        .ilike('title',`%${query}%`).range(currentOffset,currentOffset+RESULTS_PER_PAGE-1);
+      if(articles){
+        const fbUids=[...new Set(articles.map(a=>a.firebase_user_id).filter(Boolean))];
+        let um={};
+        if(fbUids.length){const{data:users}=await supabase.from('users').select('firebase_uid,username,pfp').in('firebase_uid',fbUids);if(users)users.forEach(u=>{um[u.firebase_uid]=u;});}
+        results.push(...articles.map(a=>({...a,type:'article',authorUsername:um[a.firebase_user_id]?.username||'Unknown',articleImage:a.media?.length>0?a.media[0].url:null})));
+        totalCount+=count||0;
       }
     }
 
-    if (currentFilter === 'all' || currentFilter === 'articles') {
-      const { data: articles, error: articlesError, count } = await supabase
-        .from('articles')
-        .select('*, media(url)', { count: 'exact' })
-        .ilike('title', `%${query}%`)
-        .range(currentOffset, currentOffset + RESULTS_PER_PAGE - 1);
-      if (!articlesError && articles) {
-        const firebaseUserIds = [...new Set(articles.map(a => a.firebase_user_id).filter(Boolean))];
-        let userMap = {};
-        if (firebaseUserIds.length > 0) {
-          const { data: users } = await supabase
-            .from('users')
-            .select('firebase_uid, username, pfp')
-            .in('firebase_uid', firebaseUserIds);
-          if (users) users.forEach(u => { userMap[u.firebase_uid] = u; });
-        }
-        results.push(...articles.map(a => ({
-          ...a,
-          type: 'article',
-          authorUsername: userMap[a.firebase_user_id]?.username || 'Unknown',
-          articleImage: a.media && a.media.length > 0 ? a.media[0].url : null
-        })));
-        totalCount += count || 0;
-      }
-    }
-
-    if (currentFilter === 'article-content') {
-      const { data: articleContent, error: contentError, count } = await supabase
-        .from('articles')
-        .select('*, media(url)', { count: 'exact' })
-        .ilike('content', `%${query}%`)
-        .range(currentOffset, currentOffset + RESULTS_PER_PAGE - 1);
-      if (!contentError && articleContent) {
-        const firebaseUserIds = [...new Set(articleContent.map(a => a.firebase_user_id).filter(Boolean))];
-        let userMap = {};
-        if (firebaseUserIds.length > 0) {
-          const { data: users } = await supabase
-            .from('users')
-            .select('firebase_uid, username, pfp')
-            .in('firebase_uid', firebaseUserIds);
-          if (users) users.forEach(u => { userMap[u.firebase_uid] = u; });
-        }
-        results.push(...articleContent.map(a => {
-          let excerpt = '';
-          if (a.content) {
-            const idx = a.content.toLowerCase().indexOf(query.toLowerCase());
-            if (idx !== -1) {
-              const start = Math.max(0, idx - 50);
-              const end = Math.min(a.content.length, idx + query.length + 100);
-              excerpt = (start > 0 ? '...' : '') + a.content.substring(start, end) + (end < a.content.length ? '...' : '');
-            } else {
-              excerpt = a.content.substring(0, 150) + (a.content.length > 150 ? '...' : '');
-            }
+    if(currentFilter==='article-content'){
+      const{data:content,count}=await supabase.from('articles').select('*, media(url)',{count:'exact'})
+        .ilike('content',`%${query}%`).range(currentOffset,currentOffset+RESULTS_PER_PAGE-1);
+      if(content){
+        const fbUids=[...new Set(content.map(a=>a.firebase_user_id).filter(Boolean))];
+        let um={};
+        if(fbUids.length){const{data:users}=await supabase.from('users').select('firebase_uid,username,pfp').in('firebase_uid',fbUids);if(users)users.forEach(u=>{um[u.firebase_uid]=u;});}
+        results.push(...content.map(a=>{
+          let excerpt='';
+          if(a.content){
+            const idx=a.content.toLowerCase().indexOf(query.toLowerCase());
+            if(idx!==-1){
+              const start=Math.max(0,idx-50),end=Math.min(a.content.length,idx+query.length+100);
+              excerpt=(start>0?'…':'')+a.content.substring(start,end)+(end<a.content.length?'…':'');
+            } else excerpt=a.content.substring(0,150)+(a.content.length>150?'…':'');
           }
-          return {
-            ...a,
-            type: 'article-content',
-            authorUsername: userMap[a.firebase_user_id]?.username || 'Unknown',
-            articleImage: a.media && a.media.length > 0 ? a.media[0].url : null,
-            excerpt
-          };
+          return{...a,type:'article-content',authorUsername:um[a.firebase_user_id]?.username||'Unknown',articleImage:a.media?.length>0?a.media[0].url:null,excerpt};
         }));
-        totalCount += count || 0;
+        totalCount+=count||0;
       }
     }
 
-    if (currentFilter === 'all' || currentFilter === 'playlists') {
-      const { data: playlists, error: playlistsError, count } = await supabase
-        .from('playlists')
-        .select('*', { count: 'exact' })
-        .ilike('name', `%${query}%`)
-        .range(currentOffset, currentOffset + RESULTS_PER_PAGE - 1);
-      if (!playlistsError && playlists) {
-        results.push(...playlists.map(p => ({ ...p, type: 'playlist' })));
-        totalCount += count || 0;
-      }
+    if(currentFilter==='all'||currentFilter==='playlists'){
+      const{data:playlists,count}=await supabase.from('playlists').select('*',{count:'exact'})
+        .ilike('name',`%${query}%`).range(currentOffset,currentOffset+RESULTS_PER_PAGE-1);
+      if(playlists){ results.push(...playlists.map(p=>({...p,type:'playlist'}))); totalCount+=count||0; }
     }
 
-    hasMore = (currentOffset + results.length) < totalCount;
-    displayResults(results, query, isNewSearch);
-    currentOffset += results.length;
+    hasMore=(currentOffset+results.length)<totalCount;
+    displayResults(results,query,isNewSearch);
+    currentOffset+=results.length;
 
-    if (hasMore && results.length > 0) {
+    if(hasMore&&results.length>0){
       loadMoreContainer.classList.add('show');
-      loadMoreBtn.disabled = false;
-      loadMoreBtn.innerHTML = '<i class="fas fa-chevron-down" style="margin-right: 8px;"></i>Load More';
+      loadMoreBtn.disabled=false;
+      loadMoreBtn.innerHTML='<i class="fas fa-chevron-down"></i> Load more';
     } else {
       loadMoreContainer.classList.remove('show');
     }
 
-  } catch (error) {
-    console.error('Search error:', error);
-    if (isNewSearch) {
-      resultsList.innerHTML = `
-        <li class="empty-state">
-          <i class="fas fa-exclamation-circle"></i>
-          <h3>Search Error</h3>
-          <p>An error occurred while searching. Please try again.</p>
-        </li>
-      `;
+  }catch(err){
+    console.error(err);
+    if(isNewSearch){
+      resultsList.innerHTML=`<li class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Search failed</h3><p>Please try again</p></li>`;
     } else {
-      loadMoreBtn.disabled = false;
-      loadMoreBtn.innerHTML = '<i class="fas fa-chevron-down" style="margin-right: 8px;"></i>Load More';
-      alert('Error loading more results. Please try again.');
+      loadMoreBtn.disabled=false;
+      loadMoreBtn.innerHTML='<i class="fas fa-chevron-down"></i> Load more';
     }
   }
 }
 
-function displayResults(results, query, isNewSearch) {
-  if (results.length === 0 && isNewSearch) {
-    resultsList.innerHTML = `
-      <li class="empty-state">
-        <i class="fas fa-search"></i>
-        <h3>No results found</h3>
-        <p>Try searching with different keywords</p>
-      </li>
-    `;
+/* DISPLAY */
+function displayResults(results,query,isNewSearch){
+  if(results.length===0&&isNewSearch){
+    resultsList.innerHTML=`<li class="empty-state"><i class="fas fa-search"></i><h3>No results found</h3><p>Try different keywords</p></li>`;
     return;
   }
+  if(isNewSearch) resultsList.innerHTML='';
 
-  if (isNewSearch) {
-    resultsList.innerHTML = '';
-  }
+  results.forEach(result=>{
+    const li=document.createElement('li');
+    li.className='result-item';
 
-  results.forEach(result => {
-    const li = document.createElement('li');
-    li.className = 'result-item';
+    if(result.type==='user'){
+      const init=(result.username||'U')[0].toUpperCase();
+      const av=document.createElement('div');av.className='result-avatar';
+      if(result.pfp){const img=document.createElement('img');img.src=result.pfp;img.alt=result.username||'';img.onerror=function(){handleImageError(this,init);};av.appendChild(img);}
+      else av.textContent=init;
+      const ct=document.createElement('div');ct.className='result-content';
+      ct.innerHTML=`<div class="result-title">@${escHtml(result.username||'Unknown')}</div><div class="result-subtitle">${escHtml(result.bio||'No bio')}</div>`;
+      const badge=document.createElement('span');badge.className='result-type-badge user';badge.textContent='User';
+      li.appendChild(av);li.appendChild(ct);li.appendChild(badge);
+      li.onclick=()=>location.href=`profile.html?username=${result.username}`;
 
-    if (result.type === 'user') {
-      const initial = result.username ? result.username[0].toUpperCase() : 'U';
-      const avatarDiv = document.createElement('div');
-      avatarDiv.className = 'result-avatar';
-      if (result.pfp) {
-        const img = document.createElement('img');
-        img.src = result.pfp;
-        img.alt = result.username || 'User';
-        img.onerror = function() { handleImageError(this, initial); };
-        avatarDiv.appendChild(img);
-      } else {
-        avatarDiv.textContent = initial;
-      }
-      const contentDiv = document.createElement('div');
-      contentDiv.className = 'result-content';
-      contentDiv.innerHTML = `
-        <h3 class="result-title">@${escapeHtml(result.username || 'Unknown')}</h3>
-        <p class="result-subtitle">${escapeHtml(result.bio || 'No bio available')}</p>
-      `;
-      const badge = document.createElement('span');
-      badge.className = 'result-type-badge user';
-      badge.textContent = 'User';
-      li.appendChild(avatarDiv);
-      li.appendChild(contentDiv);
-      li.appendChild(badge);
-      li.onclick = () => window.location.href = `profile.html?username=${result.username}`;
+    } else if(result.type==='article'){
+      const init=(result.title||'A')[0].toUpperCase();
+      const av=document.createElement('div');av.className='result-avatar article';
+      if(result.articleImage){const img=document.createElement('img');img.src=result.articleImage;img.alt=result.title||'';img.onerror=function(){handleImageError(this,init);};av.appendChild(img);}
+      else av.innerHTML='<i class="fas fa-file-alt" style="font-size:16px;"></i>';
+      const date=new Date(result.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      const ct=document.createElement('div');ct.className='result-content';
+      ct.innerHTML=`<div class="result-title">${escHtml(result.title)}</div><div class="result-subtitle">by @${escHtml(result.authorUsername)} · ${date}</div>`;
+      const badge=document.createElement('span');badge.className='result-type-badge article';badge.textContent='Article';
+      li.appendChild(av);li.appendChild(ct);li.appendChild(badge);
+      li.onclick=()=>location.href=`https://patholytica.com/dailyfeed?article=${result.id}`;
 
-    } else if (result.type === 'article') {
-      const initial = result.title ? result.title[0].toUpperCase() : 'A';
-      const avatarDiv = document.createElement('div');
-      avatarDiv.className = 'result-avatar article';
-      if (result.articleImage) {
-        const img = document.createElement('img');
-        img.src = result.articleImage;
-        img.alt = result.title || 'Article';
-        img.onerror = function() { handleImageError(this, initial); };
-        avatarDiv.appendChild(img);
-      } else {
-        avatarDiv.textContent = initial;
-      }
-      const date = new Date(result.created_at);
-      const formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-      const contentDiv = document.createElement('div');
-      contentDiv.className = 'result-content';
-      contentDiv.innerHTML = `
-        <h3 class="result-title">${escapeHtml(result.title)}</h3>
-        <p class="result-subtitle">by @${escapeHtml(result.authorUsername)} • ${formattedDate}</p>
-      `;
-      const badge = document.createElement('span');
-      badge.className = 'result-type-badge article';
-      badge.textContent = 'Article';
-      li.appendChild(avatarDiv);
-      li.appendChild(contentDiv);
-      li.appendChild(badge);
-      li.onclick = () => window.location.href = `article.html?id=${result.id}`;
+    } else if(result.type==='article-content'){
+      const init=(result.title||'A')[0].toUpperCase();
+      const av=document.createElement('div');av.className='result-avatar article-content';
+      if(result.articleImage){const img=document.createElement('img');img.src=result.articleImage;img.alt=result.title||'';img.onerror=function(){handleImageError(this,init);};av.appendChild(img);}
+      else av.innerHTML='<i class="fas fa-align-left" style="font-size:16px;"></i>';
+      const date=new Date(result.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      const ct=document.createElement('div');ct.className='result-content';
+      ct.innerHTML=`<div class="result-title">${escHtml(result.title)}</div><div class="result-subtitle">by @${escHtml(result.authorUsername)} · ${date}</div><div class="result-excerpt">${highlightText(result.excerpt,query)}</div>`;
+      const badge=document.createElement('span');badge.className='result-type-badge article-content';badge.textContent='Content';
+      li.appendChild(av);li.appendChild(ct);li.appendChild(badge);
+      li.onclick=()=>location.href=`https://patholytica.com/dailyfeed?article=${result.id}`;
 
-    } else if (result.type === 'article-content') {
-      const initial = result.title ? result.title[0].toUpperCase() : 'A';
-      const avatarDiv = document.createElement('div');
-      avatarDiv.className = 'result-avatar article-content';
-      if (result.articleImage) {
-        const img = document.createElement('img');
-        img.src = result.articleImage;
-        img.alt = result.title || 'Article';
-        img.onerror = function() { handleImageError(this, initial); };
-        avatarDiv.appendChild(img);
-      } else {
-        avatarDiv.textContent = initial;
-      }
-      const date = new Date(result.created_at);
-      const formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-      const contentDiv = document.createElement('div');
-      contentDiv.className = 'result-content';
-      contentDiv.innerHTML = `
-        <h3 class="result-title">${escapeHtml(result.title)}</h3>
-        <p class="result-subtitle">by @${escapeHtml(result.authorUsername)} • ${formattedDate}</p>
-        <p class="result-excerpt">${highlightText(result.excerpt, query)}</p>
-      `;
-      const badge = document.createElement('span');
-      badge.className = 'result-type-badge article-content';
-      badge.textContent = 'Content';
-      li.appendChild(avatarDiv);
-      li.appendChild(contentDiv);
-      li.appendChild(badge);
-      li.onclick = () => window.location.href = `article.html?id=${result.id}`;
-
-    } else if (result.type === 'playlist') {
-      const initial = result.name ? result.name[0].toUpperCase() : 'L';
-      const articleCount = result.article_count || 0;
-      const avatarDiv = document.createElement('div');
-      avatarDiv.className = 'result-avatar playlist';
-      avatarDiv.textContent = initial;
-      const contentDiv = document.createElement('div');
-      contentDiv.className = 'result-content';
-      contentDiv.innerHTML = `
-        <h3 class="result-title">${escapeHtml(result.name)}</h3>
-        <p class="result-subtitle">${articleCount} article${articleCount !== 1 ? 's' : ''}</p>
-      `;
-      const badge = document.createElement('span');
-      badge.className = 'result-type-badge playlist';
-      badge.textContent = 'Library';
-      li.appendChild(avatarDiv);
-      li.appendChild(contentDiv);
-      li.appendChild(badge);
-      li.onclick = () => window.location.href = `playlist.html?id=${result.id}`;
+    } else if(result.type==='playlist'){
+      const init=(result.name||'L')[0].toUpperCase();
+      const av=document.createElement('div');av.className='result-avatar playlist';
+      av.innerHTML='<i class="fas fa-layer-group" style="font-size:16px;"></i>';
+      const ct=document.createElement('div');ct.className='result-content';
+      ct.innerHTML=`<div class="result-title">${escHtml(result.name)}</div><div class="result-subtitle">${result.article_count||0} article${(result.article_count||0)!==1?'s':''}</div>`;
+      const badge=document.createElement('span');badge.className='result-type-badge playlist';badge.textContent='Library';
+      li.appendChild(av);li.appendChild(ct);li.appendChild(badge);
+      li.onclick=()=>location.href=`https://patholytica.com/dailyfeed?playlist=${result.id}`;
     }
 
     resultsList.appendChild(li);
