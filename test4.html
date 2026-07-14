@@ -78,6 +78,8 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
   display: flex; align-items: center; justify-content: center;
   font-size: 16px; color: var(--text-secondary);
   transition: color 0.2s, background 0.2s;
+  /* FIX 1: shift bookmark icon 4px left */
+  margin-right: 4px;
 }
 .header-icon-btn:hover { color: var(--accent); background: var(--accent-soft); }
 .header-icon-btn.active { color: var(--accent); }
@@ -223,7 +225,7 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 .sp-login:hover { background: rgba(200,169,110,0.2); }
 
 /* ══════════════════════════════════════════════
-   FLOATING CARD OVERLAY (replaces bottom-sheet for user + card previews)
+   FLOATING CARD OVERLAY
 ══════════════════════════════════════════════ */
 .float-overlay {
   position: fixed; inset: 0; z-index: 400;
@@ -257,7 +259,6 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 }
 .float-close:hover { color: var(--accent); border-color: var(--accent); }
 
-/* User card inner elements — reuse existing selectors */
 .user-float-card .user-popup-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
 .user-float-card .user-popup-avatar {
   width: 58px; height: 58px; border-radius: 50%;
@@ -304,7 +305,7 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 }
 .user-float-card .user-popup-btn:hover { background: var(--accent-hover); }
 
-/* Skeleton shimmer for user card */
+/* Skeleton shimmer */
 @keyframes skelShimmer {
   0%   { background-position: -400px 0; }
   100% { background-position:  400px 0; }
@@ -338,7 +339,7 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 .card-float-inner::-webkit-scrollbar { width: 2px; }
 .card-float-inner::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
 
-/* ── Saved Libraries panel (from bookmark icon) ── */
+/* ── Saved Libraries panel ── */
 .saved-panel {
   display: none; flex-direction: column;
   position: fixed; z-index: 500;
@@ -389,7 +390,7 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
   border-radius: 50%; animation: spin 0.9s linear infinite;
 }
 
-/* Card preview reuse from old styles */
+/* Card preview */
 .cp-type-badge {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
@@ -530,30 +531,54 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
   overflow: hidden; text-overflow: ellipsis; width: 100%;
 }
 
+/* FIX 2: Creator strip skeleton pills */
+.strip-skeleton-pill {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  flex-shrink: 0; width: 54px;
+}
+.strip-skeleton-circle {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: linear-gradient(90deg, var(--border-color) 25%, var(--hover-bg) 50%, var(--border-color) 75%);
+  background-size: 400px 100%;
+  animation: skelShimmer 1.4s ease infinite;
+}
+.strip-skeleton-label {
+  width: 36px; height: 8px; border-radius: 4px;
+  background: linear-gradient(90deg, var(--border-color) 25%, var(--hover-bg) 50%, var(--border-color) 75%);
+  background-size: 400px 100%;
+  animation: skelShimmer 1.4s ease infinite;
+}
+
 /* ══════════════════════════════════════════════
-   MASONRY — fix orphan gap on mobile
+   FIX 3: MASONRY GRID — JS-driven two-column layout
+   eliminates gaps from landscape images
 ══════════════════════════════════════════════ */
-.masonry-grid { columns: 2; column-gap: 10px; }
-@media (min-width: 640px)  { .masonry-grid { columns: 3; } }
+
+/* Default: JS masonry columns on mobile (set via inline style by JS) */
+.masonry-grid {
+  position: relative; /* JS absolute-positions children */
+}
+
+/* On larger screens keep CSS columns — gaps matter less there */
+@media (min-width: 640px) {
+  .masonry-grid { columns: 3; column-gap: 10px; position: static; }
+  .pin-card, .pin-skeleton { break-inside: avoid; margin-bottom: 10px; position: static !important; width: auto !important; left: auto !important; top: auto !important; }
+}
 @media (min-width: 820px)  { .masonry-grid { columns: 4; } }
 @media (min-width: 1080px) { .masonry-grid { columns: 5; } }
-
-/* Prevent orphan half-row: if the last item would sit alone in col 1 of 2,
-   stretch it to span both columns on 2-col layout */
-@media (max-width: 639px) {
-  .masonry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
-  .pin-card, .pin-skeleton { break-inside: unset; margin-bottom: 0; }
-}
 
 /* ══════════════════════════════════════════════
    PIN CARD
 ══════════════════════════════════════════════ */
 .pin-card {
-  break-inside: avoid; margin-bottom: 10px; border-radius: 14px;
+  break-inside: avoid; border-radius: 14px;
   overflow: hidden; cursor: pointer; position: relative; display: block;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
   background: var(--hover-bg);
 }
+/* margin-bottom only used on CSS-columns path (≥640px) */
+@media (min-width: 640px) { .pin-card { margin-bottom: 10px; } }
+
 .pin-card:hover { transform: translateY(-3px) scale(1.01); box-shadow: 0 12px 36px rgba(0,0,0,0.55); }
 .pin-card:active { transform: scale(0.98); }
 .pin-card-img { width: 100%; height: auto; display: block; }
@@ -591,14 +616,17 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 ══════════════════════════════════════════════ */
 @keyframes shimmer { 0%,100%{opacity:0.4} 50%{opacity:0.85} }
 .pin-skeleton {
-  break-inside: avoid; margin-bottom: 10px;
-  border-radius: 14px; overflow: hidden;
+  break-inside: avoid; border-radius: 14px; overflow: hidden;
   background: var(--hover-bg);
   animation: shimmer 1.6s ease-in-out infinite;
 }
-.pin-skeleton:nth-child(3n)   { height: 200px; }
-.pin-skeleton:nth-child(3n+1) { height: 260px; }
-.pin-skeleton:nth-child(3n+2) { height: 220px; }
+/* Heights for skeleton on CSS-columns path */
+@media (min-width: 640px) {
+  .pin-skeleton { margin-bottom: 10px; }
+  .pin-skeleton:nth-child(3n)   { height: 200px; }
+  .pin-skeleton:nth-child(3n+1) { height: 260px; }
+  .pin-skeleton:nth-child(3n+2) { height: 220px; }
+}
 
 /* ══════════════════════════════════════════════
    LOAD MORE
@@ -665,7 +693,7 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* ══════════════════════════════════════════════
-   FOOTER BAR — phone: fixed bottom, desktop: floating side pill
+   FOOTER BAR
 ══════════════════════════════════════════════ */
 .footer-bar {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
@@ -687,10 +715,8 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 .footer-btn i { font-size: 19px; }
 .footer-btn span { font-size: 10px; font-weight: 600; }
 
-/* ── Desktop: floating vertical side nav ── */
 @media (min-width: 820px) {
   .footer-bar {
-    /* Detach from bottom-center, float on left side */
     left: auto; right: 24px; bottom: 50%;
     transform: translateY(50%);
     width: auto; max-width: none;
@@ -711,8 +737,6 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
   .footer-btn:hover { background: var(--hover-bg); color: var(--accent); }
   .footer-btn i { font-size: 18px; }
   .footer-btn span { font-size: 9px; }
-
-  /* Don't let page body overlap the side nav */
   .page-body { padding-right: 108px; padding-bottom: 20px; }
   .fab-wrap  { bottom: 24px; right: 108px; }
 }
@@ -807,7 +831,6 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
   <div class="user-float-card" id="userFloatCard" style="position:relative;">
     <button class="float-close" onclick="closeUserPopup()"><i class="fas fa-times"></i></button>
     <div id="userPopupContent">
-      <!-- skeleton shown while loading -->
       <div id="userSkeleton">
         <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
           <div class="skel-circle" style="width:58px;height:58px;flex-shrink:0;"></div>
@@ -859,6 +882,7 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 <div class="page-body">
 
   <div class="creators-strip" id="creatorsStrip">
+    <!-- FIX 2: skeleton pills injected here by JS immediately -->
     <div class="strip-pill" id="stripBellPill" onclick="handleStripBell(this)">
       <div class="strip-icon-circle" id="stripBellCircle">
         <i class="fas fa-bell"></i>
@@ -873,6 +897,14 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
       </div>
       <div class="strip-pill-name">Settings</div>
     </div>
+
+    <!-- skeleton creator pills — replaced by real ones after load -->
+    <div class="strip-skeleton-pill" id="creatorSkel0"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
+    <div class="strip-skeleton-pill" id="creatorSkel1"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
+    <div class="strip-skeleton-pill" id="creatorSkel2"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
+    <div class="strip-skeleton-pill" id="creatorSkel3"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
+    <div class="strip-skeleton-pill" id="creatorSkel4"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
+    <div class="strip-skeleton-pill" id="creatorSkel5"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
   </div>
 
   <div class="masonry-grid" id="mainGrid"></div>
@@ -982,7 +1014,6 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 <script>
 window._isLoggedIn = false;
 
-/* Pinned community notifications always shown at top */
 const COMMUNITY_NOTIFS = [
   {
     id:'__discord__', cls:'discord', icon:'fa-brands fa-discord',
@@ -1048,8 +1079,21 @@ function positionPanel(panel, anchor){
 }
 </script>
 
-<!-- 4. Bookmark (saved libraries) panel -->
+<!-- 4. Bookmark (saved libraries) panel — FIX 1: localStorage cache -->
 <script>
+const LS_SAVED_KEY = 'patholytica_saved_libs';
+
+/* Read cache from localStorage */
+function getSavedCache(){
+  try{ return JSON.parse(localStorage.getItem(LS_SAVED_KEY)||'null'); }
+  catch(e){ return null; }
+}
+/* Write cache to localStorage */
+function setSavedCache(data){
+  try{ localStorage.setItem(LS_SAVED_KEY, JSON.stringify({ ts: Date.now(), data })); }
+  catch(e){}
+}
+
 window.handleBookmarkBtn = function(btn){
   const panel = document.getElementById('savedPanel');
   const isOpen = panel.classList.contains('open');
@@ -1057,7 +1101,6 @@ window.handleBookmarkBtn = function(btn){
   document.getElementById('notifPanel').classList.remove('open');
   if(isOpen){ panel.classList.remove('open'); return; }
 
-  // Position below the bookmark button
   const r = btn.getBoundingClientRect();
   panel.style.top  = (r.bottom + 8) + 'px';
   let left = r.right - 320;
@@ -1076,11 +1119,8 @@ window.handleBookmarkBtn = function(btn){
   loadSavedPanel();
 };
 
-window._savedPanelLoaded = false;
-
 async function loadSavedPanel(){
   const list = document.getElementById('savedList');
-  list.innerHTML = '<div class="saved-spinner-wrap"><div class="saved-spinner"></div></div>';
 
   if(!window._isLoggedIn){
     list.innerHTML = `
@@ -1096,47 +1136,60 @@ async function loadSavedPanel(){
     return;
   }
 
-  // _supabaseClient is set by the main module
+  /* Show cached data instantly while fetching fresh */
+  const cache = getSavedCache();
+  if(cache && cache.data && cache.data.length){
+    list.innerHTML = renderSavedItems(cache.data);
+  } else {
+    list.innerHTML = '<div class="saved-spinner-wrap"><div class="saved-spinner"></div></div>';
+  }
+
   const sb = window._supabaseClient;
-  if(!sb || !window._currentSupaUser){ list.innerHTML='<div class="saved-empty"><i class="fas fa-bookmark"></i><p>Not available</p></div>'; return; }
+  if(!sb || !window._currentSupaUser){ return; }
 
   try{
     const{data:favs}=await sb.from('favourite_playlists').select('playlist_id')
       .eq('user_id',window._currentSupaUser.user_id);
     if(!favs||!favs.length){
+      setSavedCache([]);
       list.innerHTML='<div class="saved-empty"><i class="fas fa-bookmark"></i><p>No saved libraries yet</p></div>';
       return;
     }
     const ids=favs.map(f=>f.playlist_id);
     const{data:libs}=await sb.from('playlists').select('id,name,description,thumbnail_url,user_id').in('id',ids);
     if(!libs||!libs.length){
+      setSavedCache([]);
       list.innerHTML='<div class="saved-empty"><i class="fas fa-bookmark"></i><p>No saved libraries found</p></div>';
       return;
     }
-    // Get article counts
     const{data:irows}=await sb.from('playlist_items').select('playlist_id').in('playlist_id',ids);
     const countMap={};(irows||[]).forEach(r=>{countMap[r.playlist_id]=(countMap[r.playlist_id]||0)+1;});
 
-    list.innerHTML = libs.map(lib=>{
-      const thumb=lib.thumbnail_url
-        ? `<img src="${lib.thumbnail_url}" alt="">`
-        : `<i class="fas fa-layer-group"></i>`;
-      const cnt=countMap[lib.id]||0;
-      return`<div class="saved-item" onclick="window.openCardPreview('library',${lib.id});document.getElementById('savedPanel').classList.remove('open');">
-        <div class="saved-item-thumb">${thumb}</div>
-        <div class="saved-item-info">
-          <div class="saved-item-name">${esc(lib.name||'Untitled')}</div>
-          <div class="saved-item-meta">${cnt} article${cnt!==1?'s':''}</div>
-        </div>
-        <i class="fas fa-chevron-right saved-item-arrow"></i>
-      </div>`;
-    }).join('');
+    const enriched = libs.map(lib=>({ ...lib, _count: countMap[lib.id]||0 }));
+    setSavedCache(enriched);
+    list.innerHTML = renderSavedItems(enriched);
   }catch(e){
-    list.innerHTML='<div class="saved-empty"><i class="fas fa-exclamation-triangle"></i><p>Failed to load</p></div>';
+    if(!cache) list.innerHTML='<div class="saved-empty"><i class="fas fa-exclamation-triangle"></i><p>Failed to load</p></div>';
   }
 }
 
-// esc helper available globally (defined below too, but needed here for the saved panel)
+function renderSavedItems(libs){
+  return libs.map(lib=>{
+    const cnt = lib._count || 0;
+    const thumb = lib.thumbnail_url
+      ? `<img src="${esc(lib.thumbnail_url)}" alt="">`
+      : `<i class="fas fa-layer-group"></i>`;
+    return`<div class="saved-item" onclick="window.openCardPreview('library',${lib.id});document.getElementById('savedPanel').classList.remove('open');">
+      <div class="saved-item-thumb">${thumb}</div>
+      <div class="saved-item-info">
+        <div class="saved-item-name">${esc(lib.name||'Untitled')}</div>
+        <div class="saved-item-meta">${cnt} article${cnt!==1?'s':''}</div>
+      </div>
+      <i class="fas fa-chevron-right saved-item-arrow"></i>
+    </div>`;
+  }).join('');
+}
+
 window.esc=function(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; };
 </script>
 
@@ -1166,6 +1219,70 @@ document.addEventListener('click',function(e){
 });
 </script>
 
+<!-- FIX 3: JS Masonry for mobile — two-column absolute positioning -->
+<script>
+(function(){
+  const COL_GAP = 10;
+  const CARD_W_APPROX = (window.innerWidth - 24 - COL_GAP) / 2; // rough estimate
+
+  function isMobile(){ return window.innerWidth < 640; }
+
+  let _scheduled = false;
+  function scheduleMasonry(){
+    if(_scheduled) return;
+    _scheduled = true;
+    requestAnimationFrame(()=>{ _scheduled=false; runMasonry(); });
+  }
+
+  window.runMasonry = function(){
+    if(!isMobile()) return;
+    const grid = document.getElementById('mainGrid');
+    if(!grid) return;
+    const cards = Array.from(grid.querySelectorAll('.pin-card'));
+    if(!cards.length) return;
+
+    const containerW = grid.offsetWidth;
+    const colW = (containerW - COL_GAP) / 2;
+
+    grid.style.position = 'relative';
+
+    const colHeights = [0, 0]; // left, right
+
+    cards.forEach(card => {
+      card.style.position  = 'absolute';
+      card.style.width     = colW + 'px';
+      card.style.left      = '';
+      card.style.top       = '';
+    });
+
+    cards.forEach(card => {
+      const col = colHeights[0] <= colHeights[1] ? 0 : 1;
+      card.style.left = col === 0 ? '0px' : (colW + COL_GAP) + 'px';
+      card.style.top  = colHeights[col] + 'px';
+      colHeights[col] += card.offsetHeight + COL_GAP;
+    });
+
+    grid.style.height = Math.max(colHeights[0], colHeights[1]) + 'px';
+  };
+
+  /* Re-run whenever images inside grid load (they change card height) */
+  function observeGrid(){
+    const grid = document.getElementById('mainGrid');
+    if(!grid) return;
+    // MutationObserver: new cards added
+    const mo = new MutationObserver(()=>{ if(isMobile()) scheduleMasonry(); });
+    mo.observe(grid, { childList: true });
+    // Image loads
+    grid.addEventListener('load', e=>{
+      if(e.target.tagName==='IMG' && isMobile()) scheduleMasonry();
+    }, true);
+  }
+
+  window.addEventListener('resize', ()=>{ if(isMobile()) scheduleMasonry(); });
+  document.addEventListener('DOMContentLoaded', observeGrid);
+})();
+</script>
+
 <!-- 7. MAIN MODULE -->
 <script type="module">
 import { initializeApp }        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -1187,7 +1304,6 @@ const supabase = window.supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
 );
 
-/* Expose supabase client for the saved-panel script */
 window._supabaseClient = supabase;
 
 /* ══ STOCK IMAGES ══ */
@@ -1216,11 +1332,6 @@ function shuffleArray(arr){ const a=[...arr];for(let i=a.length-1;i>0;i--){const
 const STOCK_POOL = shuffleArray(STOCK_POOL_RAW);
 function stockFor(id){ return STOCK_POOL[id % STOCK_POOL.length]; }
 
-/* ══ WEIGHTED SHUFFLE ══
-   Items with higher engagement get higher probability of appearing earlier.
-   Weight = log(views+1)*2 + log(likes+1)*3 + random jitter.
-   Then we do a weighted Fisher-Yates so popular items bubble up
-   without being fully sorted (keeps it feeling organic/random). */
 function weightedScore(item){
   const v = item.views  || 0;
   const l = item.likes  || 0;
@@ -1229,7 +1340,6 @@ function weightedScore(item){
 function weightedShuffle(arr){
   const scored = arr.map(item=>({ item, score: weightedScore(item) }));
   scored.sort((a,b)=> b.score - a.score);
-  // Re-introduce partial randomness: swap adjacent pairs occasionally
   for(let i=0; i<scored.length-1; i+=2){
     if(Math.random()<0.25){ [scored[i],scored[i+1]]=[scored[i+1],scored[i]]; }
   }
@@ -1241,8 +1351,7 @@ let currentUserData = null;
 let currentSupaUser = null;
 let userFavourites  = new Set();
 
-// We now fetch ALL articles once and paginate client-side after weighted shuffle
-let allArticles = null;   // fetched once
+let allArticles = null;
 let shuffledArts = [];
 let artOffset = 0;
 let artHasMore = true;
@@ -1407,6 +1516,8 @@ async function toggleFavourite(playlistId){
         {user_id:currentSupaUser.user_id, playlist_id:parseInt(pid)}
       ]);
     }
+    /* Invalidate saved-libs cache so next open reflects the change */
+    try{ localStorage.removeItem('patholytica_saved_libs'); }catch(e){}
     showToast(wasFaved ? 'Removed from saved' : 'Library saved!');
     return !wasFaved;
   }catch(err){
@@ -1416,16 +1527,13 @@ async function toggleFavourite(playlistId){
   }
 }
 
-/* ══ USER PREVIEW POPUP — floating card ══ */
+/* ══ USER PREVIEW POPUP ══ */
 window.openUserPopup = async function(firebaseUid){
   const overlay  = document.getElementById('userFloatOverlay');
   const content  = document.getElementById('userPopupContent');
-  const skeleton = document.getElementById('userSkeleton');
-  // Show skeleton; clear any previous real content
   content.innerHTML = '';
   overlay.classList.add('open');
 
-  // Re-inject skeleton
   const skelDiv = document.createElement('div');
   skelDiv.id = 'userSkeleton';
   skelDiv.innerHTML = `
@@ -1492,7 +1600,7 @@ window.closeUserPopup=function(e){
     document.getElementById('userFloatOverlay').classList.remove('open');
 };
 
-/* ══ CARD PREVIEW — floating card ══ */
+/* ══ CARD PREVIEW ══ */
 let previewMCQAnswered = false;
 
 window.openCardPreview = async function(type, id){
@@ -1596,19 +1704,26 @@ window.closeCardPreview=function(e){
     document.getElementById('cardFloatOverlay').classList.remove('open');
 };
 
-/* ══ CREATORS STRIP ══ */
+/* ══ CREATORS STRIP — FIX 2: remove skeletons, inject real pills ══ */
 async function loadCreators(){
   const strip = document.getElementById('creatorsStrip');
-  strip.querySelectorAll('.creator-strip-pill').forEach(el=>el.remove());
   try{
     const{data:arts}=await supabase.from('articles').select('firebase_user_id');
     if(!arts) return;
     const counts={};
     arts.forEach(a=>{if(a.firebase_user_id)counts[a.firebase_user_id]=(counts[a.firebase_user_id]||0)+1;});
     const topUids=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([u])=>u);
-    if(!topUids.length) return;
+    if(!topUids.length){
+      // just remove skeletons
+      strip.querySelectorAll('[id^="creatorSkel"]').forEach(el=>el.remove());
+      return;
+    }
     const{data:users}=await supabase.from('users').select('firebase_uid,username,full_name,pfp').in('firebase_uid',topUids);
     const um={};(users||[]).forEach(u=>{um[u.firebase_uid]=u;});
+
+    /* Remove skeleton placeholders */
+    strip.querySelectorAll('[id^="creatorSkel"]').forEach(el=>el.remove());
+
     topUids.forEach(uid=>{
       const u=um[uid];
       const name=u?.username?'@'+u.username:(u?.full_name||'?');
@@ -1621,7 +1736,9 @@ async function loadCreators(){
       pill.addEventListener('click',()=>openUserPopup(uid));
       strip.appendChild(pill);
     });
-  }catch(e){}
+  }catch(e){
+    strip.querySelectorAll('[id^="creatorSkel"]').forEach(el=>el.remove());
+  }
 }
 
 /* ══ PIN CARDS ══ */
@@ -1648,6 +1765,9 @@ function buildArticlePin(article, imageUrl){
       </div>
     </div>`;
   div.addEventListener('click',()=>openCardPreview(type, article.id));
+  /* After image loads, re-run masonry so column heights stay accurate */
+  const img = div.querySelector('img');
+  if(img){ img.addEventListener('load', ()=>window.runMasonry(), {once:true}); }
   return div;
 }
 
@@ -1672,20 +1792,31 @@ function buildLibraryPin(lib, articleCount){
       </div>
     </div>`;
   div.addEventListener('click',()=>openCardPreview('library', lib.id));
+  const img = div.querySelector('img');
+  if(img){ img.addEventListener('load', ()=>window.runMasonry(), {once:true}); }
   return div;
 }
 
 /* ══ SKELETONS ══ */
 function injectSkeletons(n=8){
   const grid=document.getElementById('mainGrid');
-  for(let i=0;i<n;i++){const sk=document.createElement('div');sk.className='pin-skeleton';grid.appendChild(sk);}
+  for(let i=0;i<n;i++){
+    const sk=document.createElement('div');
+    sk.className='pin-skeleton';
+    /* On mobile give skeletons an explicit height so masonry can measure them */
+    if(window.innerWidth < 640){
+      const heights=[200,260,220,240,200,280,220,260];
+      sk.style.height = heights[i % heights.length] + 'px';
+    }
+    grid.appendChild(sk);
+  }
+  if(window.innerWidth < 640) window.runMasonry();
 }
 function clearSkeletons(){ document.querySelectorAll('.pin-skeleton').forEach(s=>s.remove()); }
 
-/* ══ MAIN LOADER with weighted-random ordering ══ */
+/* ══ MAIN LOADER ══ */
 async function fetchAllArticles(){
-  if(allArticles !== null) return; // already fetched
-  // Fetch up to 300 articles with views+likes for scoring
+  if(allArticles !== null) return;
   const{data,error}=await supabase.from('articles')
     .select('*')
     .order('created_at',{ascending:false})
@@ -1742,6 +1873,8 @@ async function loadBatch(isInitial=true){
         const l=sortedLibs[libIdx++];
         grid.appendChild(buildLibraryPin(l,libCountMap[l.id]||0));
       }
+      /* Run masonry after DOM is populated */
+      if(window.innerWidth < 640) window.runMasonry();
     }
     const lmw=document.getElementById('loadMoreWrap');
     const lmb=document.getElementById('loadMoreBtn');
