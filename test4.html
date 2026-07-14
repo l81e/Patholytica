@@ -60,19 +60,27 @@ body {
   transition: background 0.2s ease;
 }
 .static-header-inner {
-  display: flex; align-items: center;
+  display: flex; align-items: center; justify-content: space-between;
   padding: 12px 18px 6px; max-width: 1200px; margin: 0 auto;
 }
-/* Logo always visible, slightly bigger */
 .header-logo { display: flex; align-items: center; cursor: pointer; }
 .header-logo img {
   height: 28px; width: auto;
   transition: filter 0.2s ease;
 }
-/* Light theme: invert to black & white */
-body.theme-light .header-logo img {
-  filter: invert(1) grayscale(1);
+body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
+
+/* Header right actions */
+.header-actions { display: flex; align-items: center; gap: 4px; }
+.header-icon-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: none; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: var(--text-secondary);
+  transition: color 0.2s, background 0.2s;
 }
+.header-icon-btn:hover { color: var(--accent); background: var(--accent-soft); }
+.header-icon-btn.active { color: var(--accent); }
 
 /* ══════════════════════════════════════════════
    NOTIFICATIONS PANEL
@@ -119,6 +127,8 @@ body.theme-light .header-logo img {
 .notif-icon.comment { background: rgba(138,160,192,0.15); color: #8aa0c0; }
 .notif-icon.follow  { background: var(--accent-soft); color: var(--accent); }
 .notif-icon.article { background: rgba(106,191,133,0.15); color: #6abf85; }
+.notif-icon.discord { background: rgba(88,101,242,0.15); color: #7289da; }
+.notif-icon.insta   { background: rgba(225,48,108,0.12); color: #e1306c; }
 .notif-text { flex: 1; min-width: 0; }
 .notif-msg  { font-size: 12px; line-height: 1.4; color: var(--text-primary); }
 .notif-time { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
@@ -213,103 +223,173 @@ body.theme-light .header-logo img {
 .sp-login:hover { background: rgba(200,169,110,0.2); }
 
 /* ══════════════════════════════════════════════
-   USER PREVIEW POPUP
+   FLOATING CARD OVERLAY (replaces bottom-sheet for user + card previews)
 ══════════════════════════════════════════════ */
-.user-popup-overlay {
+.float-overlay {
   position: fixed; inset: 0; z-index: 400;
-  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-  display: none; align-items: flex-end; justify-content: center;
+  background: rgba(0,0,0,0.65); backdrop-filter: blur(5px);
+  display: none; align-items: center; justify-content: center;
+  padding: 20px;
 }
-.user-popup-overlay.open { display: flex; }
-.user-popup {
-  width: 100%; max-width: 420px;
+.float-overlay.open { display: flex; }
+
+/* ── USER PREVIEW CARD ── */
+.user-float-card {
+  width: 100%; max-width: 360px;
   background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-radius: 20px 20px 0 0; border-bottom: none;
-  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
-  animation: slideUp 0.3s cubic-bezier(0.4,0,0.2,1);
+  border-radius: 20px;
+  padding: 22px 20px 20px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.75);
+  animation: floatIn 0.22s cubic-bezier(0.34,1.26,0.64,1);
+  max-height: 90vh; overflow-y: auto;
 }
-@keyframes slideUp { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
-.user-popup-handle {
-  width: 36px; height: 4px; background: var(--border-color);
-  border-radius: 2px; margin: 0 auto 18px;
+@keyframes floatIn {
+  from { opacity:0; transform: scale(0.93) translateY(8px); }
+  to   { opacity:1; transform: scale(1)    translateY(0);   }
 }
-.user-popup-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
-.user-popup-avatar {
+.float-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--bg-color); border: 1px solid var(--border-color);
+  color: var(--text-secondary); font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: color 0.15s, border-color 0.15s;
+}
+.float-close:hover { color: var(--accent); border-color: var(--accent); }
+
+/* User card inner elements — reuse existing selectors */
+.user-float-card .user-popup-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.user-float-card .user-popup-avatar {
   width: 58px; height: 58px; border-radius: 50%;
   background: var(--accent-soft); border: 2px solid rgba(200,169,110,0.3);
   display: flex; align-items: center; justify-content: center;
   font-size: 22px; font-weight: 700; color: var(--accent);
   overflow: hidden; flex-shrink: 0;
 }
-.user-popup-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.user-popup-identity { flex: 1; min-width: 0; }
-.user-popup-name {
+.user-float-card .user-popup-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.user-float-card .user-popup-identity { flex: 1; min-width: 0; }
+.user-float-card .user-popup-name {
   font-size: 16px; font-weight: 800; color: var(--text-primary);
   font-family: var(--font-article); margin-bottom: 2px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.user-popup-handle-txt { font-size: 12px; color: var(--text-secondary); }
-.user-popup-stats {
+.user-float-card .user-popup-handle-txt { font-size: 12px; color: var(--text-secondary); }
+.user-float-card .user-popup-stats {
   display: flex; border: 1px solid var(--border-color);
   border-radius: 12px; overflow: hidden; margin-bottom: 14px;
 }
-.user-popup-stat {
+.user-float-card .user-popup-stat {
   flex: 1; display: flex; flex-direction: column; align-items: center;
   padding: 10px 6px; position: relative;
 }
-.user-popup-stat + .user-popup-stat::before {
+.user-float-card .user-popup-stat + .user-popup-stat::before {
   content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
   width: 1px; background: var(--border-color);
 }
-.user-popup-stat-val {
+.user-float-card .user-popup-stat-val {
   font-size: 16px; font-weight: 800; color: var(--text-primary);
   font-family: var(--font-article); line-height: 1;
 }
-.user-popup-stat-label {
+.user-float-card .user-popup-stat-label {
   font-size: 9px; font-weight: 600; color: var(--text-secondary);
   margin-top: 3px; text-transform: uppercase; letter-spacing: 0.04em;
 }
-.user-popup-bio { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px; }
-.user-popup-btn {
+.user-float-card .user-popup-bio { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px; }
+.user-float-card .user-popup-btn {
   width: 100%; padding: 11px; border-radius: 10px;
   background: var(--accent); color: #0f0e0b;
   font-size: 13px; font-weight: 700; border: none; cursor: pointer;
   font-family: var(--font-ui); transition: background 0.15s;
   display: flex; align-items: center; justify-content: center; gap: 7px;
 }
-.user-popup-btn:hover { background: var(--accent-hover); }
-.user-popup-spinner { display: flex; align-items: center; justify-content: center; padding: 30px; }
-.user-popup-spinner-ring {
-  width: 24px; height: 24px;
+.user-float-card .user-popup-btn:hover { background: var(--accent-hover); }
+
+/* Skeleton shimmer for user card */
+@keyframes skelShimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+.skel-line {
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--border-color) 25%, var(--hover-bg) 50%, var(--border-color) 75%);
+  background-size: 400px 100%;
+  animation: skelShimmer 1.4s ease infinite;
+}
+.skel-circle {
+  border-radius: 50%;
+  background: linear-gradient(90deg, var(--border-color) 25%, var(--hover-bg) 50%, var(--border-color) 75%);
+  background-size: 400px 100%;
+  animation: skelShimmer 1.4s ease infinite;
+}
+
+/* ── CARD PREVIEW CARD ── */
+.card-float-card {
+  width: 100%; max-width: 460px;
+  background: var(--hover-bg); border: 1px solid var(--border-color);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.75);
+  animation: floatIn 0.22s cubic-bezier(0.34,1.26,0.64,1);
+  max-height: 90vh; display: flex; flex-direction: column;
+  position: relative;
+}
+.card-float-inner {
+  flex: 1; overflow-y: auto; padding: 22px 20px 20px;
+}
+.card-float-inner::-webkit-scrollbar { width: 2px; }
+.card-float-inner::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+
+/* ── Saved Libraries panel (from bookmark icon) ── */
+.saved-panel {
+  display: none; flex-direction: column;
+  position: fixed; z-index: 500;
+  width: 320px; max-width: calc(100vw - 24px); max-height: 480px;
+  background: var(--hover-bg); border: 1px solid var(--border-color);
+  border-radius: 16px; box-shadow: 0 16px 48px rgba(0,0,0,0.7);
+  overflow: hidden;
+}
+.saved-panel.open { display: flex; }
+.saved-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 16px 10px; border-bottom: 1px solid var(--border-color); flex-shrink: 0;
+}
+.saved-panel-title { font-size: 13px; font-weight: 700; }
+.saved-list { flex: 1; overflow-y: auto; }
+.saved-list::-webkit-scrollbar { width: 2px; }
+.saved-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+.saved-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 11px 16px; border-bottom: 1px solid rgba(42,37,24,0.6);
+  cursor: pointer; transition: background 0.15s;
+}
+.saved-item:hover { background: rgba(200,169,110,0.05); }
+.saved-item-thumb {
+  width: 44px; height: 44px; border-radius: 9px; flex-shrink: 0;
+  background: var(--accent-soft); overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent); font-size: 16px;
+}
+.saved-item-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.saved-item-info { flex: 1; min-width: 0; }
+.saved-item-name {
+  font-size: 13px; font-weight: 700; color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.saved-item-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.saved-item-arrow { color: var(--text-secondary); font-size: 11px; flex-shrink: 0; }
+.saved-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 40px 20px; color: var(--text-secondary);
+}
+.saved-empty i { font-size: 28px; opacity: 0.25; color: var(--accent); }
+.saved-empty p { font-size: 12px; opacity: 0.6; margin: 0; text-align: center; }
+.saved-spinner-wrap { padding: 24px; display: flex; justify-content: center; }
+.saved-spinner {
+  width: 22px; height: 22px;
   border: 2px solid var(--border-color); border-top-color: var(--accent);
   border-radius: 50%; animation: spin 0.9s linear infinite;
 }
 
-/* ══════════════════════════════════════════════
-   CARD PREVIEW POPUP
-══════════════════════════════════════════════ */
-.card-preview-overlay {
-  position: fixed; inset: 0; z-index: 400;
-  background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
-  display: none; align-items: flex-end; justify-content: center;
-}
-.card-preview-overlay.open { display: flex; }
-.card-preview {
-  width: 100%; max-width: 480px;
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-radius: 20px 20px 0 0; border-bottom: none;
-  max-height: 80vh; display: flex; flex-direction: column;
-  animation: slideUp 0.3s cubic-bezier(0.4,0,0.2,1);
-}
-.card-preview-handle {
-  width: 36px; height: 4px; background: var(--border-color);
-  border-radius: 2px; margin: 12px auto 0; flex-shrink: 0;
-}
-.card-preview-inner {
-  flex: 1; overflow-y: auto; padding: 16px 18px calc(18px + env(safe-area-inset-bottom));
-}
-.card-preview-inner::-webkit-scrollbar { width: 2px; }
-.card-preview-inner::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+/* Card preview reuse from old styles */
 .cp-type-badge {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
@@ -403,7 +483,6 @@ body.theme-light .header-logo img {
 }
 .creators-strip::-webkit-scrollbar { display: none; }
 
-/* Shared pill base */
 .strip-pill {
   display: flex; flex-direction: column; align-items: center; gap: 5px;
   cursor: pointer; flex-shrink: 0; width: 54px;
@@ -411,7 +490,6 @@ body.theme-light .header-logo img {
 }
 .strip-pill:hover { opacity: 0.8; }
 
-/* Icon-type pill (bell, settings) */
 .strip-icon-circle {
   width: 44px; height: 44px; border-radius: 50%;
   background: var(--hover-bg);
@@ -425,7 +503,6 @@ body.theme-light .header-logo img {
   border-color: var(--accent); color: var(--accent);
 }
 
-/* Notification badge inside bell circle */
 .strip-notif-badge {
   position: absolute; top: -2px; right: -2px;
   background: #c46a4e; color: #fff; font-size: 9px; font-weight: 700;
@@ -435,7 +512,6 @@ body.theme-light .header-logo img {
 }
 .strip-notif-badge.show { display: flex; }
 
-/* Creator-type pill */
 .creator-pill-circle {
   width: 44px; height: 44px; border-radius: 50%;
   background: var(--accent-soft);
@@ -448,7 +524,6 @@ body.theme-light .header-logo img {
 .strip-pill:hover .creator-pill-circle { border-color: var(--accent); }
 .creator-pill-circle img { width: 100%; height: 100%; object-fit: cover; }
 
-/* Label under any pill */
 .strip-pill-name {
   font-size: 9px; font-weight: 600; color: var(--text-secondary);
   text-align: center; white-space: nowrap;
@@ -456,12 +531,19 @@ body.theme-light .header-logo img {
 }
 
 /* ══════════════════════════════════════════════
-   MASONRY
+   MASONRY — fix orphan gap on mobile
 ══════════════════════════════════════════════ */
 .masonry-grid { columns: 2; column-gap: 10px; }
 @media (min-width: 640px)  { .masonry-grid { columns: 3; } }
 @media (min-width: 820px)  { .masonry-grid { columns: 4; } }
 @media (min-width: 1080px) { .masonry-grid { columns: 5; } }
+
+/* Prevent orphan half-row: if the last item would sit alone in col 1 of 2,
+   stretch it to span both columns on 2-col layout */
+@media (max-width: 639px) {
+  .masonry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+  .pin-card, .pin-skeleton { break-inside: unset; margin-bottom: 0; }
+}
 
 /* ══════════════════════════════════════════════
    PIN CARD
@@ -583,7 +665,7 @@ body.theme-light .header-logo img {
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* ══════════════════════════════════════════════
-   FOOTER BAR — always dark, matches dailyfeed
+   FOOTER BAR — phone: fixed bottom, desktop: floating side pill
 ══════════════════════════════════════════════ */
 .footer-bar {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
@@ -604,6 +686,37 @@ body.theme-light .header-logo img {
 .footer-btn.active { color: #c8a96e; }
 .footer-btn i { font-size: 19px; }
 .footer-btn span { font-size: 10px; font-weight: 600; }
+
+/* ── Desktop: floating vertical side nav ── */
+@media (min-width: 820px) {
+  .footer-bar {
+    /* Detach from bottom-center, float on left side */
+    left: auto; right: 24px; bottom: 50%;
+    transform: translateY(50%);
+    width: auto; max-width: none;
+    border: 1px solid var(--border-color);
+    border-top: 1px solid var(--border-color);
+    border-radius: 24px;
+    padding: 12px 10px;
+    flex-direction: column; gap: 4px;
+    justify-content: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    backdrop-filter: blur(12px);
+    background: rgba(15,14,11,0.88);
+  }
+  .footer-btn {
+    padding: 10px 14px; border-radius: 14px;
+    gap: 5px; width: 64px;
+  }
+  .footer-btn:hover { background: var(--hover-bg); color: var(--accent); }
+  .footer-btn i { font-size: 18px; }
+  .footer-btn span { font-size: 9px; }
+
+  /* Don't let page body overlap the side nav */
+  .page-body { padding-right: 108px; padding-bottom: 20px; }
+  .fab-wrap  { bottom: 24px; right: 108px; }
+}
+
 @media (max-width: 768px) {
   .footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
   .footer-btn { padding: 6px 8px; }
@@ -633,6 +746,11 @@ body.theme-light .header-logo img {
   <div class="static-header-inner">
     <div class="header-logo" onclick="location.href='index.html'">
       <img src="IMG_3220.png" alt="Patholytica" id="headerLogoImg">
+    </div>
+    <div class="header-actions">
+      <button class="header-icon-btn" id="bookmarkBtn" onclick="handleBookmarkBtn(this)" title="Saved Libraries">
+        <i class="fas fa-bookmark"></i>
+      </button>
     </div>
   </div>
 </div>
@@ -674,21 +792,64 @@ body.theme-light .header-logo img {
   </div>
 </div>
 
-<!-- ══ USER PREVIEW POPUP ══ -->
-<div class="user-popup-overlay" id="userPopupOverlay" onclick="closeUserPopup(event)">
-  <div class="user-popup" id="userPopup">
-    <div class="user-popup-handle"></div>
+<!-- Saved Libraries Panel -->
+<div class="saved-panel" id="savedPanel">
+  <div class="saved-panel-header">
+    <div class="saved-panel-title">Saved Libraries</div>
+  </div>
+  <div class="saved-list" id="savedList">
+    <div class="saved-spinner-wrap"><div class="saved-spinner"></div></div>
+  </div>
+</div>
+
+<!-- ══ USER PREVIEW (floating card) ══ -->
+<div class="float-overlay" id="userFloatOverlay" onclick="closeUserPopup(event)">
+  <div class="user-float-card" id="userFloatCard" style="position:relative;">
+    <button class="float-close" onclick="closeUserPopup()"><i class="fas fa-times"></i></button>
     <div id="userPopupContent">
-      <div class="user-popup-spinner"><div class="user-popup-spinner-ring"></div></div>
+      <!-- skeleton shown while loading -->
+      <div id="userSkeleton">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+          <div class="skel-circle" style="width:58px;height:58px;flex-shrink:0;"></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+            <div class="skel-line" style="height:14px;width:65%;"></div>
+            <div class="skel-line" style="height:11px;width:40%;"></div>
+          </div>
+        </div>
+        <div style="display:flex;border:1px solid var(--border-color);border-radius:12px;overflow:hidden;margin-bottom:16px;">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:6px;">
+            <div class="skel-line" style="height:16px;width:40px;"></div>
+            <div class="skel-line" style="height:9px;width:55px;"></div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:6px;border-left:1px solid var(--border-color);">
+            <div class="skel-line" style="height:16px;width:40px;"></div>
+            <div class="skel-line" style="height:9px;width:55px;"></div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:6px;border-left:1px solid var(--border-color);">
+            <div class="skel-line" style="height:16px;width:40px;"></div>
+            <div class="skel-line" style="height:9px;width:55px;"></div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:6px;border-left:1px solid var(--border-color);">
+            <div class="skel-line" style="height:16px;width:40px;"></div>
+            <div class="skel-line" style="height:9px;width:55px;"></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:18px;">
+          <div class="skel-line" style="height:11px;width:90%;"></div>
+          <div class="skel-line" style="height:11px;width:75%;"></div>
+          <div class="skel-line" style="height:11px;width:60%;"></div>
+        </div>
+        <div class="skel-line" style="height:42px;width:100%;border-radius:10px;"></div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ══ CARD PREVIEW POPUP ══ -->
-<div class="card-preview-overlay" id="cardPreviewOverlay" onclick="closeCardPreview(event)">
-  <div class="card-preview">
-    <div class="card-preview-handle"></div>
-    <div class="card-preview-inner" id="cardPreviewInner">
+<!-- ══ CARD PREVIEW (floating card) ══ -->
+<div class="float-overlay" id="cardFloatOverlay" onclick="closeCardPreview(event)">
+  <div class="card-float-card" style="position:relative;">
+    <button class="float-close" style="position:absolute;top:14px;right:14px;z-index:2;" onclick="closeCardPreview()"><i class="fas fa-times"></i></button>
+    <div class="card-float-inner" id="cardPreviewInner">
       <div class="cp-loading"><div class="cp-loading-ring"></div></div>
     </div>
   </div>
@@ -697,10 +858,7 @@ body.theme-light .header-logo img {
 <!-- ══ PAGE BODY ══ -->
 <div class="page-body">
 
-  <!-- Creators strip: bell + settings always first, then creator pills added by JS -->
   <div class="creators-strip" id="creatorsStrip">
-
-    <!-- BELL pill — always visible -->
     <div class="strip-pill" id="stripBellPill" onclick="handleStripBell(this)">
       <div class="strip-icon-circle" id="stripBellCircle">
         <i class="fas fa-bell"></i>
@@ -709,16 +867,13 @@ body.theme-light .header-logo img {
       <div class="strip-pill-name">Alerts</div>
     </div>
 
-    <!-- SETTINGS pill — always visible -->
     <div class="strip-pill" id="stripSettingsPill" onclick="handleStripSettings(this)">
       <div class="strip-icon-circle">
         <i class="fas fa-sliders-h"></i>
       </div>
       <div class="strip-pill-name">Settings</div>
     </div>
-
   </div>
-  <!-- Creator pills are appended into #creatorsStrip by JS after the two above -->
 
   <div class="masonry-grid" id="mainGrid"></div>
   <div class="load-more-wrap" id="loadMoreWrap" style="display:none;">
@@ -799,6 +954,7 @@ body.theme-light .header-logo img {
     _open=!_open;
     if(_open){
       document.getElementById('notifPanel').classList.remove('open');
+      document.getElementById('savedPanel').classList.remove('open');
       const r=pill.getBoundingClientRect();
       pop.style.top=(r.bottom+8)+'px';
       let left=r.left;
@@ -824,17 +980,45 @@ body.theme-light .header-logo img {
 
 <!-- 3. Bell strip handler -->
 <script>
-window._isLoggedIn = false; // updated by auth
+window._isLoggedIn = false;
+
+/* Pinned community notifications always shown at top */
+const COMMUNITY_NOTIFS = [
+  {
+    id:'__discord__', cls:'discord', icon:'fa-brands fa-discord',
+    msg:'🎉 Join our early community on Discord — be among the first members!',
+    time:'Patholytica Community',
+    target:'https://discord.gg/cx6cWF4KTf'
+  },
+  {
+    id:'__insta__', cls:'insta', icon:'fa-brands fa-instagram',
+    msg:'📸 Follow us on Instagram @patholytica for updates and highlights.',
+    time:'Patholytica Community',
+    target:'https://www.instagram.com/patholytica'
+  }
+];
+
+function communityNotifsHTML(){
+  return COMMUNITY_NOTIFS.map(n=>`
+    <div class="notif-item" data-target="${n.target}" onclick="window.open('${n.target}','_blank')">
+      <div class="notif-icon ${n.cls}"><i class="fas ${n.icon}"></i></div>
+      <div class="notif-text">
+        <div class="notif-msg">${n.msg}</div>
+        <div class="notif-time">${n.time}</div>
+      </div>
+      <i class="fas fa-external-link-alt" style="font-size:9px;color:var(--text-secondary);flex-shrink:0;margin-top:2px;"></i>
+    </div>`).join('');
+}
 
 window.handleStripBell = function(pill){
+  const panel = document.getElementById('notifPanel');
+  const isOpen = panel.classList.contains('open');
+  window.closeSettings();
+  document.getElementById('savedPanel').classList.remove('open');
+  if(isOpen){ panel.classList.remove('open'); return; }
+
   if(!window._isLoggedIn){
-    // Show the panel with a login prompt instead
-    const panel = document.getElementById('notifPanel');
-    const isOpen = panel.classList.contains('open');
-    window.closeSettings();
-    if(isOpen){ panel.classList.remove('open'); return; }
-    // Show logged-out state
-    document.getElementById('notifList').innerHTML = `
+    document.getElementById('notifList').innerHTML = communityNotifsHTML() + `
       <div class="notif-empty">
         <i class="fas fa-bell"></i>
         <p>Log in to see your notifications</p>
@@ -843,11 +1027,6 @@ window.handleStripBell = function(pill){
     positionPanel(panel, pill);
     return;
   }
-  // Logged in: normal toggle
-  const panel = document.getElementById('notifPanel');
-  const isOpen = panel.classList.contains('open');
-  window.closeSettings();
-  if(isOpen){ panel.classList.remove('open'); return; }
   positionPanel(panel, pill);
   if(window._supabaseNotifLoader) window._supabaseNotifLoader();
 };
@@ -869,7 +1048,99 @@ function positionPanel(panel, anchor){
 }
 </script>
 
-<!-- 4. Helpers -->
+<!-- 4. Bookmark (saved libraries) panel -->
+<script>
+window.handleBookmarkBtn = function(btn){
+  const panel = document.getElementById('savedPanel');
+  const isOpen = panel.classList.contains('open');
+  window.closeSettings();
+  document.getElementById('notifPanel').classList.remove('open');
+  if(isOpen){ panel.classList.remove('open'); return; }
+
+  // Position below the bookmark button
+  const r = btn.getBoundingClientRect();
+  panel.style.top  = (r.bottom + 8) + 'px';
+  let left = r.right - 320;
+  if(left < 8) left = 8;
+  panel.style.left  = left + 'px';
+  panel.style.right = 'auto';
+  panel.classList.add('open');
+
+  setTimeout(()=>document.addEventListener('click', function oc(e){
+    if(!panel.contains(e.target) && !btn.contains(e.target)){
+      panel.classList.remove('open');
+    }
+    document.removeEventListener('click', oc);
+  }, 10));
+
+  loadSavedPanel();
+};
+
+window._savedPanelLoaded = false;
+
+async function loadSavedPanel(){
+  const list = document.getElementById('savedList');
+  list.innerHTML = '<div class="saved-spinner-wrap"><div class="saved-spinner"></div></div>';
+
+  if(!window._isLoggedIn){
+    list.innerHTML = `
+      <div class="saved-empty">
+        <i class="fas fa-bookmark"></i>
+        <p>Log in to see your saved libraries</p>
+        <a href="login.html" style="font-size:12px;font-weight:700;color:var(--accent);
+           background:var(--accent-soft);border:1px solid rgba(200,169,110,0.3);
+           border-radius:20px;padding:6px 16px;display:inline-block;text-decoration:none;margin-top:6px;">
+           Log in
+        </a>
+      </div>`;
+    return;
+  }
+
+  // _supabaseClient is set by the main module
+  const sb = window._supabaseClient;
+  if(!sb || !window._currentSupaUser){ list.innerHTML='<div class="saved-empty"><i class="fas fa-bookmark"></i><p>Not available</p></div>'; return; }
+
+  try{
+    const{data:favs}=await sb.from('favourite_playlists').select('playlist_id')
+      .eq('user_id',window._currentSupaUser.user_id);
+    if(!favs||!favs.length){
+      list.innerHTML='<div class="saved-empty"><i class="fas fa-bookmark"></i><p>No saved libraries yet</p></div>';
+      return;
+    }
+    const ids=favs.map(f=>f.playlist_id);
+    const{data:libs}=await sb.from('playlists').select('id,name,description,thumbnail_url,user_id').in('id',ids);
+    if(!libs||!libs.length){
+      list.innerHTML='<div class="saved-empty"><i class="fas fa-bookmark"></i><p>No saved libraries found</p></div>';
+      return;
+    }
+    // Get article counts
+    const{data:irows}=await sb.from('playlist_items').select('playlist_id').in('playlist_id',ids);
+    const countMap={};(irows||[]).forEach(r=>{countMap[r.playlist_id]=(countMap[r.playlist_id]||0)+1;});
+
+    list.innerHTML = libs.map(lib=>{
+      const thumb=lib.thumbnail_url
+        ? `<img src="${lib.thumbnail_url}" alt="">`
+        : `<i class="fas fa-layer-group"></i>`;
+      const cnt=countMap[lib.id]||0;
+      return`<div class="saved-item" onclick="window.openCardPreview('library',${lib.id});document.getElementById('savedPanel').classList.remove('open');">
+        <div class="saved-item-thumb">${thumb}</div>
+        <div class="saved-item-info">
+          <div class="saved-item-name">${esc(lib.name||'Untitled')}</div>
+          <div class="saved-item-meta">${cnt} article${cnt!==1?'s':''}</div>
+        </div>
+        <i class="fas fa-chevron-right saved-item-arrow"></i>
+      </div>`;
+    }).join('');
+  }catch(e){
+    list.innerHTML='<div class="saved-empty"><i class="fas fa-exclamation-triangle"></i><p>Failed to load</p></div>';
+  }
+}
+
+// esc helper available globally (defined below too, but needed here for the saved panel)
+window.esc=function(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; };
+</script>
+
+<!-- 5. Helpers -->
 <script>
 window.showToast=function(msg){
   const t=document.getElementById('toast');
@@ -884,7 +1155,7 @@ window.relTime=function(dateStr){
 };
 </script>
 
-<!-- 5. FAB toggle -->
+<!-- 6. FAB toggle -->
 <script>
 window.toggleFab=function(){
   document.getElementById('fabWrap').classList.toggle('menu-open');
@@ -895,7 +1166,7 @@ document.addEventListener('click',function(e){
 });
 </script>
 
-<!-- 6. MAIN MODULE -->
+<!-- 7. MAIN MODULE -->
 <script type="module">
 import { initializeApp }        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -916,6 +1187,9 @@ const supabase = window.supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
 );
 
+/* Expose supabase client for the saved-panel script */
+window._supabaseClient = supabase;
+
 /* ══ STOCK IMAGES ══ */
 const STOCK_POOL_RAW = [
   { url:'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600&q=80', h:340 },
@@ -932,7 +1206,6 @@ const STOCK_POOL_RAW = [
   { url:'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&q=80', h:300 },
   { url:'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&q=80', h:330 },
   { url:'https://images.unsplash.com/photo-1495562569060-2eec283d3391?w=600&q=80', h:250 },
-  { url:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80', h:370 },
   { url:'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&q=80', h:280 },
   { url:'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=600&q=80', h:340 },
   { url:'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=600&q=80', h:300 },
@@ -943,20 +1216,47 @@ function shuffleArray(arr){ const a=[...arr];for(let i=a.length-1;i>0;i--){const
 const STOCK_POOL = shuffleArray(STOCK_POOL_RAW);
 function stockFor(id){ return STOCK_POOL[id % STOCK_POOL.length]; }
 
+/* ══ WEIGHTED SHUFFLE ══
+   Items with higher engagement get higher probability of appearing earlier.
+   Weight = log(views+1)*2 + log(likes+1)*3 + random jitter.
+   Then we do a weighted Fisher-Yates so popular items bubble up
+   without being fully sorted (keeps it feeling organic/random). */
+function weightedScore(item){
+  const v = item.views  || 0;
+  const l = item.likes  || 0;
+  return Math.log(v + 1) * 2 + Math.log(l + 1) * 3 + Math.random() * 4;
+}
+function weightedShuffle(arr){
+  const scored = arr.map(item=>({ item, score: weightedScore(item) }));
+  scored.sort((a,b)=> b.score - a.score);
+  // Re-introduce partial randomness: swap adjacent pairs occasionally
+  for(let i=0; i<scored.length-1; i+=2){
+    if(Math.random()<0.25){ [scored[i],scored[i+1]]=[scored[i+1],scored[i]]; }
+  }
+  return scored.map(s=>s.item);
+}
+
 /* ══ STATE ══ */
 let currentUserData = null;
 let currentSupaUser = null;
 let userFavourites  = new Set();
-let artOffset = 0, artHasMore = true, artLoading = false;
+
+// We now fetch ALL articles once and paginate client-side after weighted shuffle
+let allArticles = null;   // fetched once
+let shuffledArts = [];
+let artOffset = 0;
+let artHasMore = true;
+let artLoading = false;
 const ART_BATCH = 18;
 let libOffset = 0;
 const LIB_PER_BATCH = 4;
 
 function esc(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
+window.esc = esc;
 function isMCQ(c){ return typeof c==='string'&&c.trimStart().startsWith('❔'); }
 function trunc(s,n){ s=s||''; return s.length>n?s.slice(0,n)+'…':s; }
 
-/* ══ NOTIFICATIONS loader — exposed for bell handler ══ */
+/* ══ NOTIFICATIONS loader ══ */
 window._supabaseNotifLoader = async function(){
   if(!currentSupaUser) return;
   const list  = document.getElementById('notifList');
@@ -966,13 +1266,6 @@ window._supabaseNotifLoader = async function(){
     const{data:notifs}=await supabase.from('notifications').select('*')
       .eq('recipient_id',currentSupaUser.user_id)
       .order('created_at',{ascending:false}).limit(30);
-    if(!notifs||!notifs.length){
-      list.innerHTML=`<div class="notif-empty"><i class="fas fa-bell-slash"></i><p>No notifications yet</p></div>`;
-      badge.classList.remove('show'); return;
-    }
-    const unread=notifs.filter(n=>!n.is_read).length;
-    if(unread>0){badge.textContent=unread>9?'9+':unread;badge.classList.add('show');}
-    else badge.classList.remove('show');
 
     function notifIcon(type){
       if(type==='like_article'||type==='like_comment')    return{cls:'like',icon:'fa-heart'};
@@ -981,21 +1274,31 @@ window._supabaseNotifLoader = async function(){
       if(type==='new_article_from_following')             return{cls:'article',icon:'fa-file-alt'};
       return{cls:'follow',icon:'fa-bell'};
     }
-    list.innerHTML=notifs.map(n=>{
-      const{cls,icon}=notifIcon(n.type);
-      let target='#';
-      if(n.article_id) target=`https://patholytica.com/dailyfeed?article=${n.article_id}`;
-      else if(n.playlist_id) target=`playlist.html?id=${n.playlist_id}`;
-      return`<div class="notif-item ${n.is_read?'':'unread'}" data-id="${n.id}" data-target="${target}" onclick="window._handleNotif(this)">
-        <div class="notif-icon ${cls}"><i class="fas ${icon}"></i></div>
-        <div class="notif-text">
-          <div class="notif-msg">${esc(n.message||'New notification')}</div>
-          <div class="notif-time">${relTime(n.created_at)}</div>
-        </div>
-      </div>`;
-    }).join('');
+
+    const unread=(notifs||[]).filter(n=>!n.is_read).length;
+    if(unread>0){badge.textContent=unread>9?'9+':unread;badge.classList.add('show');}
+    else badge.classList.remove('show');
+
+    const userNotifHTML = (!notifs||!notifs.length)
+      ? `<div class="notif-empty"><i class="fas fa-bell-slash"></i><p>No notifications yet</p></div>`
+      : notifs.map(n=>{
+          const{cls,icon}=notifIcon(n.type);
+          let target='#';
+          if(n.article_id) target=`https://patholytica.com/dailyfeed?article=${n.article_id}`;
+          else if(n.playlist_id) target=`playlist.html?id=${n.playlist_id}`;
+          return`<div class="notif-item ${n.is_read?'':'unread'}" data-id="${n.id}" data-target="${target}" onclick="window._handleNotif(this)">
+            <div class="notif-icon ${cls}"><i class="fas ${icon}"></i></div>
+            <div class="notif-text">
+              <div class="notif-msg">${esc(n.message||'New notification')}</div>
+              <div class="notif-time">${relTime(n.created_at)}</div>
+            </div>
+          </div>`;
+        }).join('');
+
+    list.innerHTML = communityNotifsHTML() + userNotifHTML;
   }catch(e){
-    list.innerHTML=`<div class="notif-empty"><i class="fas fa-exclamation-triangle"></i><p>Failed to load</p></div>`;
+    list.innerHTML = communityNotifsHTML() +
+      `<div class="notif-empty"><i class="fas fa-exclamation-triangle"></i><p>Failed to load</p></div>`;
   }
 };
 
@@ -1026,6 +1329,7 @@ onAuthStateChanged(auth, async user=>{
     if(ud){
       currentSupaUser = { ...ud, firebase_uid: user.uid };
       currentUserData = ud;
+      window._currentSupaUser = currentSupaUser;
       updateSpProfile(ud, true);
       document.getElementById('spAuthAction').innerHTML=
         `<button class="sp-logout" onclick="window._doLogout()"><i class="fas fa-sign-out-alt"></i> Log out</button>`;
@@ -1036,11 +1340,11 @@ onAuthStateChanged(auth, async user=>{
   } else {
     window._isLoggedIn = false;
     currentSupaUser = null; currentUserData = null; userFavourites.clear();
+    window._currentSupaUser = null;
     updateSpProfile(null, false);
     document.getElementById('spAuthAction').innerHTML=
       `<button class="sp-login" onclick="location.href='login.html'"><i class="fas fa-sign-in-alt"></i> Log in</button>`;
     fabWrap.classList.remove('visible');
-    // Clear badge when logged out
     document.getElementById('stripNotifBadge').classList.remove('show');
   }
 });
@@ -1112,18 +1416,49 @@ async function toggleFavourite(playlistId){
   }
 }
 
-/* ══ USER PREVIEW POPUP ══ */
+/* ══ USER PREVIEW POPUP — floating card ══ */
 window.openUserPopup = async function(firebaseUid){
-  const overlay=document.getElementById('userPopupOverlay');
-  const content=document.getElementById('userPopupContent');
-  content.innerHTML='<div class="user-popup-spinner"><div class="user-popup-spinner-ring"></div></div>';
+  const overlay  = document.getElementById('userFloatOverlay');
+  const content  = document.getElementById('userPopupContent');
+  const skeleton = document.getElementById('userSkeleton');
+  // Show skeleton; clear any previous real content
+  content.innerHTML = '';
   overlay.classList.add('open');
+
+  // Re-inject skeleton
+  const skelDiv = document.createElement('div');
+  skelDiv.id = 'userSkeleton';
+  skelDiv.innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+      <div class="skel-circle" style="width:58px;height:58px;flex-shrink:0;"></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+        <div class="skel-line" style="height:14px;width:65%;"></div>
+        <div class="skel-line" style="height:11px;width:40%;"></div>
+      </div>
+    </div>
+    <div style="display:flex;border:1px solid var(--border-color);border-radius:12px;overflow:hidden;margin-bottom:16px;">
+      ${[0,1,2,3].map(i=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:6px;${i?'border-left:1px solid var(--border-color);':''}">
+        <div class="skel-line" style="height:16px;width:40px;"></div>
+        <div class="skel-line" style="height:9px;width:55px;"></div>
+      </div>`).join('')}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:18px;">
+      <div class="skel-line" style="height:11px;width:90%;"></div>
+      <div class="skel-line" style="height:11px;width:75%;"></div>
+      <div class="skel-line" style="height:11px;width:60%;"></div>
+    </div>
+    <div class="skel-line" style="height:42px;width:100%;border-radius:10px;"></div>`;
+  content.appendChild(skelDiv);
+
   try{
     const{data:user}=await supabase.from('users').select('*').eq('firebase_uid',firebaseUid).single();
     const{data:articles}=await supabase.from('articles').select('id,views,likes').eq('firebase_user_id',firebaseUid);
     const{count:followerCount}=await supabase.from('subscriptions')
       .select('*',{count:'exact',head:true}).eq('author_id',user?.user_id||0);
-    if(!user){ content.innerHTML='<p style="padding:20px;color:var(--text-secondary);text-align:center;">User not found</p>'; return; }
+    if(!user){
+      content.innerHTML='<p style="padding:20px;color:var(--text-secondary);text-align:center;">User not found</p>';
+      return;
+    }
     const totalViews=(articles||[]).reduce((s,a)=>s+(a.views||0),0);
     const totalLikes=(articles||[]).reduce((s,a)=>s+(a.likes||0),0);
     const displayName=user.full_name||user.username||'User';
@@ -1151,17 +1486,18 @@ window.openUserPopup = async function(firebaseUid){
     content.innerHTML='<p style="padding:20px;color:var(--text-secondary);text-align:center;">Failed to load</p>';
   }
 };
+
 window.closeUserPopup=function(e){
-  if(!e||e.target===document.getElementById('userPopupOverlay'))
-    document.getElementById('userPopupOverlay').classList.remove('open');
+  if(!e || e.target===document.getElementById('userFloatOverlay'))
+    document.getElementById('userFloatOverlay').classList.remove('open');
 };
 
-/* ══ CARD PREVIEW ══ */
+/* ══ CARD PREVIEW — floating card ══ */
 let previewMCQAnswered = false;
 
 window.openCardPreview = async function(type, id){
-  const overlay=document.getElementById('cardPreviewOverlay');
-  const inner=document.getElementById('cardPreviewInner');
+  const overlay = document.getElementById('cardFloatOverlay');
+  const inner   = document.getElementById('cardPreviewInner');
   previewMCQAnswered = false;
   inner.innerHTML='<div class="cp-loading"><div class="cp-loading-ring"></div></div>';
   overlay.classList.add('open');
@@ -1199,9 +1535,8 @@ window.openCardPreview = async function(type, id){
           <span class="cp-meta-item"><i class="fas fa-user"></i>${esc(authorName)}</span>
         </div>
         ${contentHTML}
-        <div class="cp-actions">
+        <div class="cp-actions" style="padding-right:36px;">
           <button class="cp-btn-primary" onclick="location.href='https://patholytica.com/dailyfeed?article=${id}'"><i class="fas fa-book-open"></i> Read in Feed</button>
-          <button class="cp-btn-secondary" onclick="closeCardPreview()"><i class="fas fa-times"></i></button>
         </div>`;
       if(mcq){
         inner.querySelectorAll('.cp-mcq-opt').forEach(btn=>{
@@ -1239,9 +1574,8 @@ window.openCardPreview = async function(type, id){
             <i class="fas fa-bookmark"></i> ${isSaved?'Saved':'Save Library'}
           </button>
         </div>
-        <div class="cp-actions">
+        <div class="cp-actions" style="padding-right:36px;">
           <button class="cp-btn-primary" onclick="location.href='https://patholytica.com/dailyfeed?playlist=${id}'"><i class="fas fa-play"></i> Study Now</button>
-          <button class="cp-btn-secondary" onclick="closeCardPreview()"><i class="fas fa-times"></i></button>
         </div>`;
     }
   }catch(e){
@@ -1258,16 +1592,14 @@ window._cpToggleSave=async function(playlistId){
 };
 
 window.closeCardPreview=function(e){
-  if(!e||e.target===document.getElementById('cardPreviewOverlay'))
-    document.getElementById('cardPreviewOverlay').classList.remove('open');
+  if(!e || e.target===document.getElementById('cardFloatOverlay'))
+    document.getElementById('cardFloatOverlay').classList.remove('open');
 };
 
-/* ══ CREATORS STRIP — appends AFTER the two static pills ══ */
+/* ══ CREATORS STRIP ══ */
 async function loadCreators(){
   const strip = document.getElementById('creatorsStrip');
-  // Remove only elements that are creator pills (class 'creator-strip-pill')
   strip.querySelectorAll('.creator-strip-pill').forEach(el=>el.remove());
-
   try{
     const{data:arts}=await supabase.from('articles').select('firebase_user_id');
     if(!arts) return;
@@ -1282,7 +1614,6 @@ async function loadCreators(){
       const name=u?.username?'@'+u.username:(u?.full_name||'?');
       const init=(name.replace(/^@/,'')||'?')[0].toUpperCase();
       const pill=document.createElement('div');
-      // Mark with unique class so removal is safe and deterministic
       pill.className='strip-pill creator-strip-pill';
       pill.innerHTML=`
         <div class="creator-pill-circle">${u?.pfp?`<img src="${esc(u.pfp)}" alt="${init}">`:`${init}`}</div>
@@ -1351,24 +1682,38 @@ function injectSkeletons(n=8){
 }
 function clearSkeletons(){ document.querySelectorAll('.pin-skeleton').forEach(s=>s.remove()); }
 
-/* ══ MAIN LOADER ══ */
+/* ══ MAIN LOADER with weighted-random ordering ══ */
+async function fetchAllArticles(){
+  if(allArticles !== null) return; // already fetched
+  // Fetch up to 300 articles with views+likes for scoring
+  const{data,error}=await supabase.from('articles')
+    .select('*')
+    .order('created_at',{ascending:false})
+    .limit(300);
+  if(error) throw error;
+  allArticles = data || [];
+  shuffledArts = weightedShuffle(allArticles);
+}
+
 async function loadBatch(isInitial=true){
   if(artLoading||(!isInitial&&!artHasMore))return;
   artLoading=true;
   if(isInitial) injectSkeletons(10);
   const grid=document.getElementById('mainGrid');
   try{
-    const{data:arts,error:aErr}=await supabase.from('articles').select('*')
-      .order('created_at',{ascending:false}).range(artOffset,artOffset+ART_BATCH-1);
-    if(aErr)throw aErr;
-    if(!arts||arts.length===0){ artHasMore=false; }
+    if(isInitial) await fetchAllArticles();
+
+    const batch = shuffledArts.slice(artOffset, artOffset + ART_BATCH);
+    artOffset += batch.length;
+    if(artOffset >= shuffledArts.length) artHasMore = false;
+
+    if(!batch.length){ artHasMore=false; }
     else{
-      artOffset+=arts.length;
-      if(arts.length<ART_BATCH) artHasMore=false;
-      const artIds=arts.map(a=>a.id);
+      const artIds = batch.map(a=>a.id);
       const{data:media}=await supabase.from('media').select('article_id,url,type')
         .in('article_id',artIds).eq('type','image').order('display_order',{ascending:true});
       const imgMap={};(media||[]).forEach(m=>{if(!imgMap[m.article_id])imgMap[m.article_id]=m.url;});
+
       const{data:libs}=await supabase.from('playlists').select('*')
         .order('created_at',{ascending:false}).range(libOffset,libOffset+LIB_PER_BATCH-1);
       libOffset+=(libs||[]).length;
@@ -1386,7 +1731,7 @@ async function loadBatch(isInitial=true){
       }
       clearSkeletons();
       let libIdx=0;
-      arts.forEach((art,i)=>{
+      batch.forEach((art,i)=>{
         grid.appendChild(buildArticlePin(art,imgMap[art.id]||null));
         if((i+1)%4===0&&libIdx<sortedLibs.length){
           const lib=sortedLibs[libIdx++];
