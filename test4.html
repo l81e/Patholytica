@@ -78,7 +78,6 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
   display: flex; align-items: center; justify-content: center;
   font-size: 16px; color: var(--text-secondary);
   transition: color 0.2s, background 0.2s;
-  /* FIX 1: shift bookmark icon 4px left */
   margin-right: 4px;
 }
 .header-icon-btn:hover { color: var(--accent); background: var(--accent-soft); }
@@ -377,6 +376,13 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 }
 .saved-item-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
 .saved-item-arrow { color: var(--text-secondary); font-size: 11px; flex-shrink: 0; }
+.saved-item-remove {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-secondary); font-size: 11px; background: none; border: none;
+  cursor: pointer; transition: color 0.15s, background 0.15s;
+}
+.saved-item-remove:hover { color: #c46a4e; background: rgba(196,106,78,0.1); }
 .saved-empty {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 10px; padding: 40px 20px; color: var(--text-secondary);
@@ -531,7 +537,6 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
   overflow: hidden; text-overflow: ellipsis; width: 100%;
 }
 
-/* FIX 2: Creator strip skeleton pills */
 .strip-skeleton-pill {
   display: flex; flex-direction: column; align-items: center; gap: 5px;
   flex-shrink: 0; width: 54px;
@@ -550,19 +555,44 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 }
 
 /* ══════════════════════════════════════════════
-   FIX 3: MASONRY GRID — JS-driven two-column layout
-   eliminates gaps from landscape images
+   MASONRY GRID — JS-driven two-column layout on mobile,
+   CSS columns on desktop. FIX: .masonry-grid always
+   establishes a clean positioning context and clips
+   any stale absolutely-positioned children so a resize
+   between breakpoints can never leave "ghost" cards
+   overlapping each other.
 ══════════════════════════════════════════════ */
-
-/* Default: JS masonry columns on mobile (set via inline style by JS) */
 .masonry-grid {
-  position: relative; /* JS absolute-positions children */
+  position: relative;
+  width: 100%;
 }
 
-/* On larger screens keep CSS columns — gaps matter less there */
+/* Mobile (default): absolute-positioned columns via JS */
+.pin-card, .pin-skeleton {
+  position: absolute;
+  top: 0; left: 0;
+  /* Cards are invisible until JS has measured & placed them,
+     so there is never a frame where they sit stacked at 0,0 */
+  visibility: hidden;
+}
+.pin-card.positioned, .pin-skeleton.positioned {
+  visibility: visible;
+}
+
+/* On larger screens, switch to CSS columns and fully reset
+   every positioning property JS may have set inline */
 @media (min-width: 640px) {
-  .masonry-grid { columns: 3; column-gap: 10px; position: static; }
-  .pin-card, .pin-skeleton { break-inside: avoid; margin-bottom: 10px; position: static !important; width: auto !important; left: auto !important; top: auto !important; }
+  .masonry-grid {
+    columns: 3; column-gap: 10px;
+    height: auto !important; /* JS-set inline height from mobile mode must not persist */
+  }
+  .pin-card, .pin-skeleton {
+    break-inside: avoid; margin-bottom: 10px;
+    position: static !important;
+    top: auto !important; left: auto !important;
+    width: auto !important; height: auto !important;
+    visibility: visible !important;
+  }
 }
 @media (min-width: 820px)  { .masonry-grid { columns: 4; } }
 @media (min-width: 1080px) { .masonry-grid { columns: 5; } }
@@ -572,11 +602,10 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 ══════════════════════════════════════════════ */
 .pin-card {
   break-inside: avoid; border-radius: 14px;
-  overflow: hidden; cursor: pointer; position: relative; display: block;
+  overflow: hidden; cursor: pointer; display: block;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
   background: var(--hover-bg);
 }
-/* margin-bottom only used on CSS-columns path (≥640px) */
 @media (min-width: 640px) { .pin-card { margin-bottom: 10px; } }
 
 .pin-card:hover { transform: translateY(-3px) scale(1.01); box-shadow: 0 12px 36px rgba(0,0,0,0.55); }
@@ -593,6 +622,10 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
   background: linear-gradient(to top, rgba(4,3,2,0.92) 0%, rgba(4,3,2,0.70) 30%, rgba(4,3,2,0.30) 60%, transparent 100%);
   padding: 28px 11px 11px;
   display: flex; flex-direction: column; gap: 5px;
+  /* FIX: overlay must sit above the card's own image and always
+     be readable — give it its own stacking context so text never
+     gets visually mixed with a neighboring card during resize */
+  z-index: 1;
 }
 .pin-overlay-title {
   font-size: 12px; font-weight: 700; color: #f5f0e8;
@@ -620,7 +653,6 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
   background: var(--hover-bg);
   animation: shimmer 1.6s ease-in-out infinite;
 }
-/* Heights for skeleton on CSS-columns path */
 @media (min-width: 640px) {
   .pin-skeleton { margin-bottom: 10px; }
   .pin-skeleton:nth-child(3n)   { height: 200px; }
@@ -882,7 +914,6 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 <div class="page-body">
 
   <div class="creators-strip" id="creatorsStrip">
-    <!-- FIX 2: skeleton pills injected here by JS immediately -->
     <div class="strip-pill" id="stripBellPill" onclick="handleStripBell(this)">
       <div class="strip-icon-circle" id="stripBellCircle">
         <i class="fas fa-bell"></i>
@@ -898,7 +929,6 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
       <div class="strip-pill-name">Settings</div>
     </div>
 
-    <!-- skeleton creator pills — replaced by real ones after load -->
     <div class="strip-skeleton-pill" id="creatorSkel0"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
     <div class="strip-skeleton-pill" id="creatorSkel1"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
     <div class="strip-skeleton-pill" id="creatorSkel2"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
@@ -1079,19 +1109,45 @@ function positionPanel(panel, anchor){
 }
 </script>
 
-<!-- 4. Bookmark (saved libraries) panel — FIX 1: localStorage cache -->
+<!-- 4. Bookmark (saved libraries) panel — FULLY LOCALSTORAGE-DRIVEN, no backend dependency -->
 <script>
+/*
+  Saved-libraries system rebuilt so it is entirely self-contained in
+  localStorage. It does NOT read from or depend on Supabase to display
+  what's saved — toggling a save writes a full record (id, name,
+  thumbnail, article count) straight to localStorage, and the bookmark
+  panel renders directly from that localStorage record. This is why
+  saving previously didn't show up: the panel only ever populated itself
+  from a Supabase round-trip, and the localStorage cache was write-only
+  (used for pre-painting) rather than the actual source of truth.
+*/
 const LS_SAVED_KEY = 'patholytica_saved_libs';
 
-/* Read cache from localStorage */
-function getSavedCache(){
-  try{ return JSON.parse(localStorage.getItem(LS_SAVED_KEY)||'null'); }
-  catch(e){ return null; }
+function getSavedLibs(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(LS_SAVED_KEY) || '[]');
+    return Array.isArray(raw) ? raw : [];
+  }catch(e){ return []; }
 }
-/* Write cache to localStorage */
-function setSavedCache(data){
-  try{ localStorage.setItem(LS_SAVED_KEY, JSON.stringify({ ts: Date.now(), data })); }
-  catch(e){}
+function setSavedLibs(list){
+  try{ localStorage.setItem(LS_SAVED_KEY, JSON.stringify(list)); }catch(e){}
+}
+function isLibSaved(id){
+  return getSavedLibs().some(l => String(l.id) === String(id));
+}
+function addSavedLib(lib){
+  const list = getSavedLibs().filter(l => String(l.id) !== String(lib.id));
+  list.unshift({
+    id: lib.id,
+    name: lib.name || 'Untitled Library',
+    thumbnail_url: lib.thumbnail_url || null,
+    _count: lib._count || 0,
+    saved_at: Date.now()
+  });
+  setSavedLibs(list);
+}
+function removeSavedLib(id){
+  setSavedLibs(getSavedLibs().filter(l => String(l.id) !== String(id)));
 }
 
 window.handleBookmarkBtn = function(btn){
@@ -1116,79 +1172,50 @@ window.handleBookmarkBtn = function(btn){
     document.removeEventListener('click', oc);
   }, 10));
 
-  loadSavedPanel();
+  renderSavedPanel();
 };
 
-async function loadSavedPanel(){
+/* Renders purely from localStorage — no network call, no auth check */
+function renderSavedPanel(){
   const list = document.getElementById('savedList');
+  const libs = getSavedLibs();
 
-  if(!window._isLoggedIn){
+  if(!libs.length){
     list.innerHTML = `
       <div class="saved-empty">
         <i class="fas fa-bookmark"></i>
-        <p>Log in to see your saved libraries</p>
-        <a href="login.html" style="font-size:12px;font-weight:700;color:var(--accent);
-           background:var(--accent-soft);border:1px solid rgba(200,169,110,0.3);
-           border-radius:20px;padding:6px 16px;display:inline-block;text-decoration:none;margin-top:6px;">
-           Log in
-        </a>
+        <p>No saved libraries yet</p>
       </div>`;
     return;
   }
 
-  /* Show cached data instantly while fetching fresh */
-  const cache = getSavedCache();
-  if(cache && cache.data && cache.data.length){
-    list.innerHTML = renderSavedItems(cache.data);
-  } else {
-    list.innerHTML = '<div class="saved-spinner-wrap"><div class="saved-spinner"></div></div>';
-  }
-
-  const sb = window._supabaseClient;
-  if(!sb || !window._currentSupaUser){ return; }
-
-  try{
-    const{data:favs}=await sb.from('favourite_playlists').select('playlist_id')
-      .eq('user_id',window._currentSupaUser.user_id);
-    if(!favs||!favs.length){
-      setSavedCache([]);
-      list.innerHTML='<div class="saved-empty"><i class="fas fa-bookmark"></i><p>No saved libraries yet</p></div>';
-      return;
-    }
-    const ids=favs.map(f=>f.playlist_id);
-    const{data:libs}=await sb.from('playlists').select('id,name,description,thumbnail_url,user_id').in('id',ids);
-    if(!libs||!libs.length){
-      setSavedCache([]);
-      list.innerHTML='<div class="saved-empty"><i class="fas fa-bookmark"></i><p>No saved libraries found</p></div>';
-      return;
-    }
-    const{data:irows}=await sb.from('playlist_items').select('playlist_id').in('playlist_id',ids);
-    const countMap={};(irows||[]).forEach(r=>{countMap[r.playlist_id]=(countMap[r.playlist_id]||0)+1;});
-
-    const enriched = libs.map(lib=>({ ...lib, _count: countMap[lib.id]||0 }));
-    setSavedCache(enriched);
-    list.innerHTML = renderSavedItems(enriched);
-  }catch(e){
-    if(!cache) list.innerHTML='<div class="saved-empty"><i class="fas fa-exclamation-triangle"></i><p>Failed to load</p></div>';
-  }
-}
-
-function renderSavedItems(libs){
-  return libs.map(lib=>{
+  list.innerHTML = libs.map(lib=>{
     const cnt = lib._count || 0;
     const thumb = lib.thumbnail_url
       ? `<img src="${esc(lib.thumbnail_url)}" alt="">`
       : `<i class="fas fa-layer-group"></i>`;
-    return`<div class="saved-item" onclick="window.openCardPreview('library',${lib.id});document.getElementById('savedPanel').classList.remove('open');">
-      <div class="saved-item-thumb">${thumb}</div>
-      <div class="saved-item-info">
+    return `<div class="saved-item" data-id="${esc(String(lib.id))}">
+      <div class="saved-item-thumb" onclick="window.openCardPreview('library','${esc(String(lib.id))}');document.getElementById('savedPanel').classList.remove('open');">${thumb}</div>
+      <div class="saved-item-info" onclick="window.openCardPreview('library','${esc(String(lib.id))}');document.getElementById('savedPanel').classList.remove('open');">
         <div class="saved-item-name">${esc(lib.name||'Untitled')}</div>
         <div class="saved-item-meta">${cnt} article${cnt!==1?'s':''}</div>
       </div>
-      <i class="fas fa-chevron-right saved-item-arrow"></i>
+      <button class="saved-item-remove" title="Remove" onclick="window._removeSavedFromPanel(event, '${esc(String(lib.id))}')">
+        <i class="fas fa-times"></i>
+      </button>
     </div>`;
   }).join('');
 }
+
+/* Remove directly from the panel without needing to open the card first */
+window._removeSavedFromPanel = function(e, id){
+  e.stopPropagation();
+  removeSavedLib(id);
+  if(typeof userFavouritesLocalSync === 'function') userFavouritesLocalSync();
+  renderSavedPanel();
+  showToast('Removed from saved');
+  if(typeof window._refreshLibraryBadges === 'function') window._refreshLibraryBadges();
+};
 
 window.esc=function(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; };
 </script>
@@ -1219,11 +1246,19 @@ document.addEventListener('click',function(e){
 });
 </script>
 
-<!-- FIX 3: JS Masonry for mobile — two-column absolute positioning -->
+<!-- FIX: JS Masonry for mobile — two-column absolute positioning.
+     Key changes vs before:
+     - Cards/skeletons start invisible (CSS) and only become visible
+       once JS has computed a real left/top for them, so there is
+       no first-frame flash where everything stacks at (0,0).
+     - runMasonry() ALWAYS sets left/top/width for every card on every
+       call (never leaves stale inline styles from a previous mode),
+       and toggles the 'positioned' class that flips visibility on.
+     - On resize into desktop widths, inline styles are explicitly
+       cleared so the CSS-columns path starts from a clean slate. -->
 <script>
 (function(){
   const COL_GAP = 10;
-  const CARD_W_APPROX = (window.innerWidth - 24 - COL_GAP) / 2; // rough estimate
 
   function isMobile(){ return window.innerWidth < 640; }
 
@@ -1235,50 +1270,59 @@ document.addEventListener('click',function(e){
   }
 
   window.runMasonry = function(){
-    if(!isMobile()) return;
     const grid = document.getElementById('mainGrid');
     if(!grid) return;
-    const cards = Array.from(grid.querySelectorAll('.pin-card'));
+    const cards = Array.from(grid.querySelectorAll('.pin-card, .pin-skeleton'));
     if(!cards.length) return;
+
+    if(!isMobile()){
+      /* Desktop: CSS columns handle layout. Explicitly clear any
+         inline styles JS may have set while the page was narrower,
+         so nothing "ghosts" on top of another card. */
+      grid.style.height = '';
+      cards.forEach(card=>{
+        card.style.position = '';
+        card.style.left = '';
+        card.style.top = '';
+        card.style.width = '';
+        card.classList.add('positioned');
+      });
+      return;
+    }
 
     const containerW = grid.offsetWidth;
     const colW = (containerW - COL_GAP) / 2;
+    const colHeights = [0, 0];
 
-    grid.style.position = 'relative';
-
-    const colHeights = [0, 0]; // left, right
-
+    /* First pass: fix widths so offsetHeight is measured correctly */
     cards.forEach(card => {
-      card.style.position  = 'absolute';
-      card.style.width     = colW + 'px';
-      card.style.left      = '';
-      card.style.top       = '';
+      card.style.position = 'absolute';
+      card.style.width    = colW + 'px';
     });
 
+    /* Second pass: place using measured heights */
     cards.forEach(card => {
       const col = colHeights[0] <= colHeights[1] ? 0 : 1;
       card.style.left = col === 0 ? '0px' : (colW + COL_GAP) + 'px';
       card.style.top  = colHeights[col] + 'px';
+      card.classList.add('positioned');
       colHeights[col] += card.offsetHeight + COL_GAP;
     });
 
     grid.style.height = Math.max(colHeights[0], colHeights[1]) + 'px';
   };
 
-  /* Re-run whenever images inside grid load (they change card height) */
   function observeGrid(){
     const grid = document.getElementById('mainGrid');
     if(!grid) return;
-    // MutationObserver: new cards added
-    const mo = new MutationObserver(()=>{ if(isMobile()) scheduleMasonry(); });
+    const mo = new MutationObserver(()=>{ scheduleMasonry(); });
     mo.observe(grid, { childList: true });
-    // Image loads
     grid.addEventListener('load', e=>{
-      if(e.target.tagName==='IMG' && isMobile()) scheduleMasonry();
+      if(e.target.tagName==='IMG') scheduleMasonry();
     }, true);
   }
 
-  window.addEventListener('resize', ()=>{ if(isMobile()) scheduleMasonry(); });
+  window.addEventListener('resize', scheduleMasonry);
   document.addEventListener('DOMContentLoaded', observeGrid);
 })();
 </script>
@@ -1349,7 +1393,16 @@ function weightedShuffle(arr){
 /* ══ STATE ══ */
 let currentUserData = null;
 let currentSupaUser = null;
+/* userFavourites now mirrors localStorage saved IDs, kept in sync so
+   pin badges ("Saved") reflect localStorage instantly without a
+   network round-trip. */
 let userFavourites  = new Set();
+
+function syncFavouritesFromLocal(){
+  userFavourites = new Set(getSavedLibs().map(l=>String(l.id)));
+}
+window.userFavouritesLocalSync = syncFavouritesFromLocal;
+syncFavouritesFromLocal();
 
 let allArticles = null;
 let shuffledArts = [];
@@ -1443,12 +1496,11 @@ onAuthStateChanged(auth, async user=>{
       document.getElementById('spAuthAction').innerHTML=
         `<button class="sp-logout" onclick="window._doLogout()"><i class="fas fa-sign-out-alt"></i> Log out</button>`;
       fabWrap.classList.add('visible');
-      await loadUserFavourites();
       await window._supabaseNotifLoader();
     }
   } else {
     window._isLoggedIn = false;
-    currentSupaUser = null; currentUserData = null; userFavourites.clear();
+    currentSupaUser = null; currentUserData = null;
     window._currentSupaUser = null;
     updateSpProfile(null, false);
     document.getElementById('spAuthAction').innerHTML=
@@ -1456,6 +1508,7 @@ onAuthStateChanged(auth, async user=>{
     fabWrap.classList.remove('visible');
     document.getElementById('stripNotifBadge').classList.remove('show');
   }
+  /* Saved libraries stay entirely local — no favourites fetch here */
 });
 
 window._doLogout = async function(){
@@ -1492,39 +1545,19 @@ window.handleSpProfileClick = function(){
   }
 };
 
-/* ══ FAVOURITES ══ */
-async function loadUserFavourites(){
-  if(!currentSupaUser) return;
-  try{
-    const{data}=await supabase.from('favourite_playlists').select('playlist_id').eq('user_id',currentSupaUser.user_id);
-    userFavourites.clear();
-    (data||[]).forEach(r=>userFavourites.add(String(r.playlist_id)));
-  }catch(e){}
-}
-
-async function toggleFavourite(playlistId){
-  if(!currentSupaUser){ location.href='login.html'; return; }
-  const pid = String(playlistId);
-  const wasFaved = userFavourites.has(pid);
-  if(wasFaved) userFavourites.delete(pid); else userFavourites.add(pid);
-  try{
-    if(wasFaved){
-      await supabase.from('favourite_playlists').delete()
-        .eq('user_id',currentSupaUser.user_id).eq('playlist_id',parseInt(pid));
-    } else {
-      await supabase.from('favourite_playlists').insert([
-        {user_id:currentSupaUser.user_id, playlist_id:parseInt(pid)}
-      ]);
-    }
-    /* Invalidate saved-libs cache so next open reflects the change */
-    try{ localStorage.removeItem('patholytica_saved_libs'); }catch(e){}
-    showToast(wasFaved ? 'Removed from saved' : 'Library saved!');
-    return !wasFaved;
-  }catch(err){
-    if(wasFaved) userFavourites.add(pid); else userFavourites.delete(pid);
-    showToast('Something went wrong');
-    return wasFaved;
+/* ══ FAVOURITES — pure localStorage, no Supabase read or write ══ */
+function toggleFavourite(lib){
+  const pid = String(lib.id);
+  const wasFaved = isLibSaved(pid);
+  if(wasFaved){
+    removeSavedLib(pid);
+    showToast('Removed from saved');
+  } else {
+    addSavedLib(lib);
+    showToast('Library saved!');
   }
+  syncFavouritesFromLocal();
+  return !wasFaved;
 }
 
 /* ══ USER PREVIEW POPUP ══ */
@@ -1602,11 +1635,13 @@ window.closeUserPopup=function(e){
 
 /* ══ CARD PREVIEW ══ */
 let previewMCQAnswered = false;
+let _currentPreviewLib = null; /* holds full lib object so save button has data to write locally */
 
 window.openCardPreview = async function(type, id){
   const overlay = document.getElementById('cardFloatOverlay');
   const inner   = document.getElementById('cardPreviewInner');
   previewMCQAnswered = false;
+  _currentPreviewLib = null;
   inner.innerHTML='<div class="cp-loading"><div class="cp-loading-ring"></div></div>';
   overlay.classList.add('open');
   try{
@@ -1663,7 +1698,8 @@ window.openCardPreview = async function(type, id){
       const{data:lib}=await supabase.from('playlists').select('*').eq('id',id).single();
       if(!lib){inner.innerHTML='<p style="padding:20px;color:var(--text-secondary);">Not found</p>';return;}
       const{count:artCount}=await supabase.from('playlist_items').select('*',{count:'exact',head:true}).eq('playlist_id',id);
-      const isSaved=userFavourites.has(String(id));
+      _currentPreviewLib = { id: lib.id, name: lib.name, thumbnail_url: lib.thumbnail_url, _count: artCount||0 };
+      const isSaved=isLibSaved(id);
       let creatorName='Unknown';
       if(lib.user_id){
         const{data:cr}=await supabase.from('users').select('username').eq('user_id',lib.user_id).single();
@@ -1678,7 +1714,7 @@ window.openCardPreview = async function(type, id){
         </div>
         ${lib.description?`<div class="cp-lib-desc">${esc(lib.description)}</div>`:''}
         <div class="cp-lib-save-row">
-          <button class="cp-save-btn ${isSaved?'saved':''}" id="cpSaveBtn" onclick="window._cpToggleSave(${id})">
+          <button class="cp-save-btn ${isSaved?'saved':''}" id="cpSaveBtn" onclick="window._cpToggleSave()">
             <i class="fas fa-bookmark"></i> ${isSaved?'Saved':'Save Library'}
           </button>
         </div>
@@ -1691,12 +1727,18 @@ window.openCardPreview = async function(type, id){
   }
 };
 
-window._cpToggleSave=async function(playlistId){
-  const btn=document.getElementById('cpSaveBtn');if(!btn)return;
-  const newState=await toggleFavourite(playlistId);
-  if(newState===undefined)return;
+/* Save button now writes straight to localStorage using the lib data
+   already fetched for this preview — no id-only round trip needed */
+window._cpToggleSave=function(){
+  const btn=document.getElementById('cpSaveBtn');
+  if(!btn || !_currentPreviewLib)return;
+  const newState=toggleFavourite(_currentPreviewLib);
   btn.className=`cp-save-btn ${newState?'saved':''}`;
   btn.innerHTML=`<i class="fas fa-bookmark"></i> ${newState?'Saved':'Save Library'}`;
+  /* Update any matching "Saved" badge already rendered on the grid */
+  document.querySelectorAll(`.pin-card[data-lib-id="${_currentPreviewLib.id}"] .lib-saved-badge`).forEach(b=>{
+    b.style.display = newState ? 'inline-flex' : 'none';
+  });
 };
 
 window.closeCardPreview=function(e){
@@ -1704,7 +1746,7 @@ window.closeCardPreview=function(e){
     document.getElementById('cardFloatOverlay').classList.remove('open');
 };
 
-/* ══ CREATORS STRIP — FIX 2: remove skeletons, inject real pills ══ */
+/* ══ CREATORS STRIP ══ */
 async function loadCreators(){
   const strip = document.getElementById('creatorsStrip');
   try{
@@ -1714,14 +1756,12 @@ async function loadCreators(){
     arts.forEach(a=>{if(a.firebase_user_id)counts[a.firebase_user_id]=(counts[a.firebase_user_id]||0)+1;});
     const topUids=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([u])=>u);
     if(!topUids.length){
-      // just remove skeletons
       strip.querySelectorAll('[id^="creatorSkel"]').forEach(el=>el.remove());
       return;
     }
     const{data:users}=await supabase.from('users').select('firebase_uid,username,full_name,pfp').in('firebase_uid',topUids);
     const um={};(users||[]).forEach(u=>{um[u.firebase_uid]=u;});
 
-    /* Remove skeleton placeholders */
     strip.querySelectorAll('[id^="creatorSkel"]').forEach(el=>el.remove());
 
     topUids.forEach(uid=>{
@@ -1765,7 +1805,6 @@ function buildArticlePin(article, imageUrl){
       </div>
     </div>`;
   div.addEventListener('click',()=>openCardPreview(type, article.id));
-  /* After image loads, re-run masonry so column heights stay accurate */
   const img = div.querySelector('img');
   if(img){ img.addEventListener('load', ()=>window.runMasonry(), {once:true}); }
   return div;
@@ -1773,8 +1812,9 @@ function buildArticlePin(article, imageUrl){
 
 function buildLibraryPin(lib, articleCount){
   const div=document.createElement('div');div.className='pin-card';
+  div.setAttribute('data-lib-id', lib.id);
   const name=lib.name||'Untitled Library';
-  const isSaved=userFavourites.has(String(lib.id));
+  const isSaved=isLibSaved(lib.id);
   let imgSrc=lib.thumbnail_url, imgH=null;
   if(!imgSrc){const stock=stockFor(lib.id+500);imgSrc=stock.url;imgH=stock.h;}
   const imgStyle=imgH?`height:${imgH}px;`:'';
@@ -1787,7 +1827,7 @@ function buildLibraryPin(lib, articleCount){
       <div class="pin-overlay-title">${esc(trunc(name,70))}</div>
       <div class="pin-overlay-meta">
         <div class="pin-badge lib-badge"><i class="fas fa-layer-group"></i> Library</div>
-        ${isSaved?`<div class="pin-badge lib-badge"><i class="fas fa-bookmark"></i> Saved</div>`:''}
+        <div class="pin-badge lib-badge lib-saved-badge" style="display:${isSaved?'inline-flex':'none'};"><i class="fas fa-bookmark"></i> Saved</div>
         <span class="pin-stat">${articleCount} article${articleCount!==1?'s':''}</span>
       </div>
     </div>`;
@@ -1803,14 +1843,13 @@ function injectSkeletons(n=8){
   for(let i=0;i<n;i++){
     const sk=document.createElement('div');
     sk.className='pin-skeleton';
-    /* On mobile give skeletons an explicit height so masonry can measure them */
     if(window.innerWidth < 640){
       const heights=[200,260,220,240,200,280,220,260];
       sk.style.height = heights[i % heights.length] + 'px';
     }
     grid.appendChild(sk);
   }
-  if(window.innerWidth < 640) window.runMasonry();
+  window.runMasonry();
 }
 function clearSkeletons(){ document.querySelectorAll('.pin-skeleton').forEach(s=>s.remove()); }
 
@@ -1873,8 +1912,7 @@ async function loadBatch(isInitial=true){
         const l=sortedLibs[libIdx++];
         grid.appendChild(buildLibraryPin(l,libCountMap[l.id]||0));
       }
-      /* Run masonry after DOM is populated */
-      if(window.innerWidth < 640) window.runMasonry();
+      window.runMasonry();
     }
     const lmw=document.getElementById('loadMoreWrap');
     const lmb=document.getElementById('loadMoreBtn');
