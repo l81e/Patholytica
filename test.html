@@ -387,37 +387,26 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 
 <script type="module">
 
-/* ══════════════════════════════════════════════
-   CONFIG — no API key here, goes through Edge Function
-══════════════════════════════════════════════ */
+const SUPABASE_URL = "https://vduqewqyvszfquntmark.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c";
 const EDGE_URL = "https://vduqewqyvszfquntmark.supabase.co/functions/v1/super-processor";
 
-const supabase = window.supabase.createClient(
-  "https://vduqewqyvszfquntmark.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
-);
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const SULLIVAN_SYSTEM_PROMPT = `You are Sullivan, the AI study assistant built into Patholytica, a social publishing platform for medical and academic education. You help medical students and educators with pathology, general medicine, and study strategy questions. Be clear, accurate, and concise. Use plain language before jargon. When appropriate, use short lists or bolded terms for scannability, but don't over-format short answers. If asked something outside medicine/education, you can still help, but medical accuracy is your priority. Never invent citations or specific statistics you're not confident about — say so instead.`;
 
-/* ══════════════════════════════════════════════
-   STATE
-══════════════════════════════════════════════ */
 let chatHistory = [];
 let attachedArticle = null;
 let currentFilter = 'all';
 let searchTimeout;
 let isSending = false;
 
-/* ══════════════════════════════════════════════
-   DOM
-══════════════════════════════════════════════ */
 const chatScroll = document.getElementById('chatScroll');
 const chatInner = document.getElementById('chatInner');
 const chatWelcome = document.getElementById('chatWelcome');
 const composerInput = document.getElementById('composerInput');
 const sendBtn = document.getElementById('sendBtn');
 const newChatBtn = document.getElementById('newChatBtn');
-
 const searchPanel = document.getElementById('searchPanel');
 const searchToggleHeader = document.getElementById('searchToggleHeader');
 const searchToggleComposer = document.getElementById('searchToggleComposer');
@@ -426,9 +415,6 @@ const clearSearchBtn = document.getElementById('clearSearch');
 const searchResultsList = document.getElementById('searchResultsList');
 const filterTabs = document.querySelectorAll('.filter-tab');
 
-/* ══════════════════════════════════════════════
-   HELPERS
-══════════════════════════════════════════════ */
 function escHtml(s){
   const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML;
 }
@@ -448,9 +434,6 @@ function renderMarkdownLite(text){
   return escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 }
 
-/* ══════════════════════════════════════════════
-   SEARCH PANEL
-══════════════════════════════════════════════ */
 function toggleSearchPanel(){
   searchPanel.classList.toggle('open');
   if(searchPanel.classList.contains('open')) searchInput.focus();
@@ -504,13 +487,11 @@ async function runSearch(query){
   showSearchSkeletons(4);
   try{
     let results = [];
-
     if(currentFilter==='all' || currentFilter==='users'){
       const { data: users } = await supabase.from('users').select('*')
         .ilike('username', `%${query}%`).limit(6);
       if(users) results.push(...users.map(u=>({...u, type:'user'})));
     }
-
     if(currentFilter==='all' || currentFilter==='articles'){
       const { data: articles } = await supabase.from('articles').select('*, media(url)')
         .ilike('title', `%${query}%`).limit(6);
@@ -528,13 +509,11 @@ async function runSearch(query){
         })));
       }
     }
-
     if(currentFilter==='all' || currentFilter==='playlists'){
       const { data: playlists } = await supabase.from('playlists').select('*')
         .ilike('name', `%${query}%`).limit(6);
       if(playlists) results.push(...playlists.map(p=>({...p, type:'playlist'})));
     }
-
     renderSearchResults(results);
   } catch(err){
     console.error(err);
@@ -551,7 +530,6 @@ function renderSearchResults(results){
   results.forEach(r=>{
     const li = document.createElement('li');
     li.className='search-result-item';
-
     if(r.type==='user'){
       const init=(r.username||'U')[0].toUpperCase();
       const av=document.createElement('div'); av.className='sr-avatar';
@@ -560,7 +538,6 @@ function renderSearchResults(results){
       li.innerHTML=`<div class="sr-content"><div class="sr-title">@${escHtml(r.username||'Unknown')}</div><div class="sr-subtitle">${escHtml(r.bio||'No bio')}</div></div><span class="sr-badge user">User</span>`;
       li.prepend(av);
       li.onclick=()=> insertPromptAboutUser(r);
-
     } else if(r.type==='article'){
       const init=(r.title||'A')[0].toUpperCase();
       const av=document.createElement('div'); av.className='sr-avatar article';
@@ -569,7 +546,6 @@ function renderSearchResults(results){
       li.innerHTML=`<div class="sr-content"><div class="sr-title">${escHtml(r.title)}</div><div class="sr-subtitle">by @${escHtml(r.authorUsername)}</div></div><span class="sr-badge article">Article</span>`;
       li.prepend(av);
       li.onclick=()=> attachArticleForTagging(r);
-
     } else if(r.type==='playlist'){
       const av=document.createElement('div'); av.className='sr-avatar playlist';
       av.innerHTML='<i class="fas fa-layer-group" style="font-size:13px;"></i>';
@@ -577,63 +553,39 @@ function renderSearchResults(results){
       li.prepend(av);
       li.onclick=()=> insertPromptAboutLibrary(r);
     }
-
     searchResultsList.appendChild(li);
   });
 }
 
-function closeSearchPanel(){
-  searchPanel.classList.remove('open');
-}
+function closeSearchPanel(){ searchPanel.classList.remove('open'); }
 
 function attachArticleForTagging(article){
-  attachedArticle = {
-    id: article.id,
-    title: article.title,
-    content: article.content || '',
-    authorUsername: article.authorUsername
-  };
+  attachedArticle = { id: article.id, title: article.title, content: article.content || '', authorUsername: article.authorUsername };
   closeSearchPanel();
   composerInput.value = `Tag this article: "${article.title}"`;
-  autoResizeTextarea();
-  updateSendState();
-  composerInput.focus();
+  autoResizeTextarea(); updateSendState(); composerInput.focus();
 }
-
 function insertPromptAboutUser(user){
   closeSearchPanel();
   composerInput.value = `Tell me a bit about what @${user.username} tends to write about, based on their profile.`;
-  autoResizeTextarea();
-  updateSendState();
-  composerInput.focus();
+  autoResizeTextarea(); updateSendState(); composerInput.focus();
 }
-
 function insertPromptAboutLibrary(playlist){
   closeSearchPanel();
   composerInput.value = `What kind of topics would you expect in a library called "${playlist.name}"?`;
-  autoResizeTextarea();
-  updateSendState();
-  composerInput.focus();
+  autoResizeTextarea(); updateSendState(); composerInput.focus();
 }
 
-/* ══════════════════════════════════════════════
-   COMPOSER
-══════════════════════════════════════════════ */
 composerInput.addEventListener('input', ()=>{ autoResizeTextarea(); updateSendState(); });
 composerInput.addEventListener('keydown', (e)=>{
-  if(e.key==='Enter' && !e.shiftKey){
-    e.preventDefault();
-    sendMessage();
-  }
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); }
 });
 sendBtn.addEventListener('click', sendMessage);
 
 document.querySelectorAll('.suggestion-chip').forEach(chip=>{
   chip.addEventListener('click', ()=>{
     composerInput.value = chip.dataset.prompt;
-    autoResizeTextarea();
-    updateSendState();
-    sendMessage();
+    autoResizeTextarea(); updateSendState(); sendMessage();
   });
 });
 
@@ -642,32 +594,20 @@ function updateSendState(){
 }
 
 newChatBtn.addEventListener('click', ()=>{
-  chatHistory = [];
-  attachedArticle = null;
-  chatInner.innerHTML = '';
-  chatInner.appendChild(chatWelcome);
+  chatHistory = []; attachedArticle = null;
+  chatInner.innerHTML = ''; chatInner.appendChild(chatWelcome);
 });
 
-/* ══════════════════════════════════════════════
-   SEND FLOW
-══════════════════════════════════════════════ */
 async function sendMessage(){
   const text = composerInput.value.trim();
   if(!text || isSending) return;
-
   const articleForThisTurn = attachedArticle;
   attachedArticle = null;
-
   removeWelcome();
   appendUserMessage(text, articleForThisTurn);
-
-  composerInput.value='';
-  autoResizeTextarea();
-  isSending = true;
-  updateSendState();
-
+  composerInput.value=''; autoResizeTextarea();
+  isSending = true; updateSendState();
   const typingEl = appendTypingIndicator();
-
   try {
     const reply = await callGemini(text, articleForThisTurn);
     typingEl.remove();
@@ -679,81 +619,40 @@ async function sendMessage(){
     typingEl.remove();
     appendErrorMessage(err);
   } finally {
-    isSending = false;
-    updateSendState();
+    isSending = false; updateSendState();
   }
 }
 
-function removeWelcome(){
-  if(chatWelcome.parentElement) chatWelcome.remove();
-}
+function removeWelcome(){ if(chatWelcome.parentElement) chatWelcome.remove(); }
 
 function buildUserTurnForHistory(text, article){
-  if(article){
-    return `${text}\n\n[Attached article: "${article.title}"]\n${article.content.slice(0,4000)}`;
-  }
+  if(article) return `${text}\n\n[Attached article: "${article.title}"]\n${article.content.slice(0,4000)}`;
   return text;
 }
 
-/* ══════════════════════════════════════════════
-   RENDERING MESSAGES
-══════════════════════════════════════════════ */
 function appendUserMessage(text, article){
-  const row = document.createElement('div');
-  row.className='msg-row user';
-
-  const av = document.createElement('div');
-  av.className='msg-avatar user-av';
-  av.innerHTML='<i class="fas fa-user"></i>';
-
-  const wrap = document.createElement('div');
-  wrap.className='msg-bubble-wrap';
-
-  const bubble = document.createElement('div');
-  bubble.className='msg-bubble';
-
+  const row = document.createElement('div'); row.className='msg-row user';
+  const av = document.createElement('div'); av.className='msg-avatar user-av'; av.innerHTML='<i class="fas fa-user"></i>';
+  const wrap = document.createElement('div'); wrap.className='msg-bubble-wrap';
+  const bubble = document.createElement('div'); bubble.className='msg-bubble';
   if(article){
-    const card = document.createElement('div');
-    card.className='attached-card';
+    const card = document.createElement('div'); card.className='attached-card';
     card.innerHTML = `<i class="fas fa-file-alt"></i><div class="attached-card-text"><div class="attached-card-title">${escHtml(article.title)}</div><div class="attached-card-sub">by @${escHtml(article.authorUsername)}</div></div>`;
     bubble.appendChild(card);
   }
-  const textNode = document.createElement('div');
-  textNode.textContent = text;
-  bubble.appendChild(textNode);
-
-  wrap.appendChild(bubble);
-  row.appendChild(av);
-  row.appendChild(wrap);
-  chatInner.appendChild(row);
-  scrollToBottom();
+  const textNode = document.createElement('div'); textNode.textContent = text;
+  bubble.appendChild(textNode); wrap.appendChild(bubble);
+  row.appendChild(av); row.appendChild(wrap); chatInner.appendChild(row); scrollToBottom();
 }
 
 function appendSullivanMessageBase(replyText){
-  const row = document.createElement('div');
-  row.className='msg-row sullivan';
-
-  const av = document.createElement('div');
-  av.className='msg-avatar sullivan';
-  av.innerHTML='<i class="fas fa-feather-pointed"></i>';
-
-  const wrap = document.createElement('div');
-  wrap.className='msg-bubble-wrap';
-
-  const name = document.createElement('div');
-  name.className='msg-name';
-  name.textContent='Sullivan';
-
-  const bubble = document.createElement('div');
-  bubble.className='msg-bubble';
-  bubble.innerHTML = renderMarkdownLite(replyText);
-
-  wrap.appendChild(name);
-  wrap.appendChild(bubble);
-  row.appendChild(av);
-  row.appendChild(wrap);
-  chatInner.appendChild(row);
-  scrollToBottom();
+  const row = document.createElement('div'); row.className='msg-row sullivan';
+  const av = document.createElement('div'); av.className='msg-avatar sullivan'; av.innerHTML='<i class="fas fa-feather-pointed"></i>';
+  const wrap = document.createElement('div'); wrap.className='msg-bubble-wrap';
+  const name = document.createElement('div'); name.className='msg-name'; name.textContent='Sullivan';
+  const bubble = document.createElement('div'); bubble.className='msg-bubble'; bubble.innerHTML = renderMarkdownLite(replyText);
+  wrap.appendChild(name); wrap.appendChild(bubble);
+  row.appendChild(av); row.appendChild(wrap); chatInner.appendChild(row); scrollToBottom();
 }
 
 function appendSullivanMessage(replyText, article){
@@ -766,37 +665,24 @@ function appendSullivanMessage(replyText, article){
 }
 
 function appendTypingIndicator(){
-  const row = document.createElement('div');
-  row.className='msg-row sullivan typing-row';
-  row.innerHTML = `
-    <div class="msg-avatar sullivan"><i class="fas fa-feather-pointed"></i></div>
-    <div class="typing-bubble">
-      <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
-    </div>`;
-  chatInner.appendChild(row);
-  scrollToBottom();
-  return row;
+  const row = document.createElement('div'); row.className='msg-row sullivan typing-row';
+  row.innerHTML = `<div class="msg-avatar sullivan"><i class="fas fa-feather-pointed"></i></div>
+    <div class="typing-bubble"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>`;
+  chatInner.appendChild(row); scrollToBottom(); return row;
 }
 
 function appendErrorMessage(err){
-  const row = document.createElement('div');
-  row.className='msg-row sullivan';
-  row.innerHTML = `
-    <div class="msg-avatar sullivan"><i class="fas fa-feather-pointed"></i></div>
+  const row = document.createElement('div'); row.className='msg-row sullivan';
+  row.innerHTML = `<div class="msg-avatar sullivan"><i class="fas fa-feather-pointed"></i></div>
     <div class="msg-bubble-wrap">
       <div class="msg-bubble">Something went wrong reaching Sullivan's brain.</div>
       <div class="msg-error">${escHtml(err.message || 'Unknown error')}</div>
     </div>`;
-  chatInner.appendChild(row);
-  scrollToBottom();
+  chatInner.appendChild(row); scrollToBottom();
 }
 
-/* ══════════════════════════════════════════════
-   GEMINI CALL — via Edge Function, no key in frontend
-══════════════════════════════════════════════ */
 async function callGemini(userText, article){
   let promptText = userText;
-
   if(article){
     promptText =
 `The user wants topic tags for the following Patholytica article.
@@ -823,7 +709,11 @@ Respond in two parts:
 
   const res = await fetch(EDGE_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': SUPABASE_ANON_KEY,
+    },
     body: JSON.stringify({
       model: 'gemini-2.0-flash',
       contents,
@@ -852,12 +742,9 @@ function extractAndRenderTags(bubbleEl, replyText){
   if(!match) return;
   const tags = match[1].split(',').map(t=>t.trim()).filter(Boolean);
   if(tags.length===0) return;
-  const row = document.createElement('div');
-  row.className='tag-chip-row';
+  const row = document.createElement('div'); row.className='tag-chip-row';
   tags.forEach(t=>{
-    const chip = document.createElement('span');
-    chip.className='tag-chip';
-    chip.textContent = t;
+    const chip = document.createElement('span'); chip.className='tag-chip'; chip.textContent = t;
     row.appendChild(chip);
   });
   bubbleEl.appendChild(row);
