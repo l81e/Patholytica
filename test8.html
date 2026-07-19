@@ -121,21 +121,12 @@
     .config-field input:focus, .config-field select:focus { border-color: var(--gold-dim); }
     .config-field input::placeholder { color: var(--muted); }
 
-    /* Service badge pill inside the config section */
-    .service-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 10px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      padding: 2px 8px;
-      border-radius: 4px;
-      margin-top: 4px;
-      width: fit-content;
+    .field-hint {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-top: 2px;
     }
-    .service-badge.puter  { background: rgba(90,158,114,0.12); color: var(--success); border: 1px solid rgba(90,158,114,0.3); }
-    .service-badge.bl     { background: rgba(200,169,110,0.12); color: var(--gold);    border: 1px solid var(--gold-dim); }
 
     .btn {
       display: inline-flex;
@@ -429,11 +420,12 @@
       align-items: center;
       gap: 9px;
       z-index: 999;
-      max-width: 320px;
+      max-width: 340px;
     }
     #toast.show { display: flex; animation: slideUp 0.25s ease; }
     #toast.success { border-color: rgba(90,158,114,0.4); }
     #toast.error   { border-color: rgba(192,98,74,0.4); }
+    #toast.info    { border-color: rgba(200,169,110,0.4); }
     @keyframes slideUp {
       from { opacity: 0; transform: translateY(10px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -518,22 +510,27 @@
       <div class="config-field">
         <label>Provider</label>
         <select id="aiService">
-          <option value="puter">Puter.js (Free)</option>
+          <option value="puter">Puter.js (Free, no key needed)</option>
           <option value="bazaarlink">BazaarLink</option>
         </select>
       </div>
 
-      <!-- BazaarLink key — hidden by default -->
-      <div class="config-field" id="blKeyWrap" style="display:none">
-        <label>BazaarLink API Key</label>
-        <input id="blApiKey" type="password" value="sk-bl-d1Y95l1L3ILm4GXZ7AQ8aqS1CijlWk2TG2cR7m8ilqAnliYQ" />
+      <!-- BazaarLink-only fields -->
+      <div id="blFields" style="display:none">
+        <div class="config-field">
+          <label>BazaarLink API Key</label>
+          <input id="blApiKey" type="password" value="sk-bl-d1Y95l1L3ILm4GXZ7AQ8aqS1CijlWk2TG2cR7m8ilqAnliYQ" />
+        </div>
+        <div class="config-field">
+          <label>CORS Proxy URL</label>
+          <input id="blProxy" type="text" value="https://corsproxy.io/?url=" placeholder="https://corsproxy.io/?url=" />
+          <span class="field-hint">Browser → BazaarLink requires a proxy. Default uses corsproxy.io — clear to disable.</span>
+        </div>
       </div>
 
       <div class="config-field">
         <label>Model</label>
-        <select id="aiModel">
-          <!-- populated by JS on load / service change -->
-        </select>
+        <select id="aiModel"></select>
       </div>
 
       <div class="config-field">
@@ -603,49 +600,46 @@
 <script>
 (function () {
 
-  // ── Model lists ─────────────────────────────────────────
+  // ── Model lists ──────────────────────────────────────────
   var MODELS_PUTER = [
-    { value: 'anthropic/claude-opus-4-8',    label: 'Claude Opus 4.8' },
-    { value: 'anthropic/claude-sonnet-4-6',  label: 'Claude Sonnet 4.6', selected: true },
-    { value: 'openai/gpt-5.5',               label: 'GPT-5.5' },
-    { value: 'google/gemini-3.5-flash',      label: 'Gemini 3.5 Flash' },
-    { value: 'deepseek/deepseek-v4-pro',     label: 'DeepSeek V4 Pro' }
+    { value: 'anthropic/claude-opus-4-8',   label: 'Claude Opus 4.8' },
+    { value: 'anthropic/claude-sonnet-4-6', label: 'Claude Sonnet 4.6', selected: true },
+    { value: 'openai/gpt-5.5',              label: 'GPT-5.5' },
+    { value: 'google/gemini-3.5-flash',     label: 'Gemini 3.5 Flash' },
+    { value: 'deepseek/deepseek-v4-pro',    label: 'DeepSeek V4 Pro' }
   ];
 
   var MODELS_BL = [
-    { value: 'anthropic/claude-sonnet-4.6',  label: 'Claude Sonnet 4.6', selected: true },
-    { value: 'anthropic/claude-opus-4.8',    label: 'Claude Opus 4.8' },
-    { value: 'openai/gpt-5.5',               label: 'GPT-5.5' },
-    { value: 'google/gemini-3.5-flash',      label: 'Gemini 3.5 Flash' },
-    { value: 'deepseek/deepseek-v4-pro',     label: 'DeepSeek V4 Pro' },
-    { value: 'auto',                          label: 'Auto (Best fit)' }
+    { value: 'anthropic/claude-sonnet-4.6', label: 'Claude Sonnet 4.6', selected: true },
+    { value: 'anthropic/claude-opus-4.8',   label: 'Claude Opus 4.8' },
+    { value: 'openai/gpt-5.5',              label: 'GPT-5.5' },
+    { value: 'google/gemini-3.5-flash',     label: 'Gemini 3.5 Flash' },
+    { value: 'deepseek/deepseek-v4-pro',    label: 'DeepSeek V4 Pro' },
+    { value: 'auto',                         label: 'Auto (Best fit)' }
   ];
 
   // ── State ────────────────────────────────────────────────
-  var sbClient    = null;
-  var articles    = [];
-  var taggedCount = 0;
-  var isTaggingAll= false;
-  var cardTags    = {};
-  var toastTimer  = null;
+  var sbClient     = null;
+  var articles     = [];
+  var taggedCount  = 0;
+  var isTaggingAll = false;
+  var cardTags     = {};
+  var toastTimer   = null;
 
   // ── Boot ─────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', function () {
-    // Restore Supabase URL
     var saved = localStorage.getItem('patholytica_sb_url');
     if (saved) document.getElementById('sbUrl').value = saved;
     document.getElementById('sbUrl').addEventListener('change', function (e) {
       localStorage.setItem('patholytica_sb_url', e.target.value.trim());
     });
 
-    // Populate model list for default service
     populateModels('puter');
 
-    // Service switcher
     document.getElementById('aiService').addEventListener('change', function () {
+      var isBL = this.value === 'bazaarlink';
       populateModels(this.value);
-      document.getElementById('blKeyWrap').style.display =
-        this.value === 'bazaarlink' ? 'block' : 'none';
+      document.getElementById('blFields').style.display = isBL ? 'block' : 'none';
     });
 
     document.getElementById('btnLoad').addEventListener('click', loadArticles);
@@ -658,8 +652,7 @@
     var list   = service === 'bazaarlink' ? MODELS_BL : MODELS_PUTER;
     var select = document.getElementById('aiModel');
     select.innerHTML = list.map(function (m) {
-      return '<option value="' + m.value + '"' + (m.selected ? ' selected' : '') + '>' +
-             m.label + '</option>';
+      return '<option value="' + m.value + '"' + (m.selected ? ' selected' : '') + '>' + m.label + '</option>';
     }).join('');
   }
 
@@ -825,7 +818,75 @@
     }
   }
 
-  // ── AI tagging (branched by service) ─────────────────────
+  // ── BazaarLink fetch with CORS-proxy fallback ─────────────
+  function isCorsOrNetworkError(err) {
+    // TypeError is thrown by fetch on CORS block or network failure
+    return err instanceof TypeError ||
+           err.message === 'Load failed' ||
+           err.message === 'Failed to fetch' ||
+           err.message.toLowerCase().includes('networkerror') ||
+           err.message.toLowerCase().includes('network request failed');
+  }
+
+  async function fetchBazaarLink(prompt, model, apiKey) {
+    var BL_URL   = 'https://bazaarlink.ai/api/v1/chat/completions';
+    var proxyPfx = document.getElementById('blProxy').value.trim(); // e.g. "https://corsproxy.io/?url="
+
+    var body = JSON.stringify({
+      model:       model,
+      messages:    [{ role: 'user', content: prompt }],
+      max_tokens:  600,
+      temperature: 0.3
+    });
+    var headers = {
+      'Content-Type':  'application/json',
+      'Authorization': 'Bearer ' + apiKey
+    };
+
+    // ── 1. Try direct ────────────────────────────────────────
+    var res;
+    try {
+      res = await fetch(BL_URL, { method: 'POST', headers: headers, body: body });
+    } catch (directErr) {
+      // ── 2. CORS / network — try proxy if configured ───────
+      if (!proxyPfx) {
+        throw new Error(
+          'CORS blocked. BazaarLink cannot be called from a browser directly. ' +
+          'Add a CORS proxy URL in the sidebar (e.g. https://corsproxy.io/?url=).'
+        );
+      }
+
+      var proxyURL = proxyPfx + encodeURIComponent(BL_URL);
+      try {
+        showToast('Direct blocked — retrying via CORS proxy…', 'info');
+        res = await fetch(proxyURL, { method: 'POST', headers: headers, body: body });
+      } catch (proxyErr) {
+        throw new Error(
+          'Cannot reach BazaarLink (direct + proxy both failed). ' +
+          'Check your internet connection or switch to Puter.js.'
+        );
+      }
+    }
+
+    // ── 3. Handle HTTP errors ─────────────────────────────────
+    if (!res.ok) {
+      var errBody = {};
+      try { errBody = await res.json(); } catch (_) {}
+      var msg = (errBody.error && errBody.error.message)
+        ? errBody.error.message
+        : 'BazaarLink HTTP ' + res.status;
+      // Common HTTP error hints
+      if (res.status === 401) msg = 'Invalid BazaarLink API key (401).';
+      if (res.status === 402) msg = 'Insufficient BazaarLink credits (402).';
+      if (res.status === 429) msg = 'BazaarLink rate limit hit — slow down or upgrade (429).';
+      throw new Error(msg);
+    }
+
+    var data = await res.json();
+    return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+  }
+
+  // ── AI tagging ────────────────────────────────────────────
   async function tagArticleWithAI(id) {
     var article = articles.find(function (a) { return String(a.id) === String(id); });
     if (!article) return;
@@ -840,9 +901,9 @@
     var tagArea = document.getElementById('tags-' + id);
 
     card.classList.add('tagging');
-    badge.className = 'card-badge badge-tagging';
+    badge.className   = 'card-badge badge-tagging';
     badge.textContent = 'Tagging…';
-    aibtn.disabled = true;
+    aibtn.disabled    = true;
     tagArea.innerHTML = '<div class="thinking-pulse">AI is reading…</div>';
 
     var title   = article.title || article.name || article.heading || '';
@@ -862,40 +923,13 @@
       var raw = '';
 
       if (service === 'bazaarlink') {
-        // ── BazaarLink path ──────────────────────────────
         var apiKey = document.getElementById('blApiKey').value.trim();
-        if (!apiKey) throw new Error('BazaarLink API key is missing');
-
-        var res = await fetch('https://bazaarlink.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type':  'application/json',
-            'Authorization': 'Bearer ' + apiKey
-          },
-          body: JSON.stringify({
-            model:       model,
-            messages:    [{ role: 'user', content: prompt }],
-            max_tokens:  600,
-            temperature: 0.3
-          })
-        });
-
-        if (!res.ok) {
-          var errBody = await res.json().catch(function () { return {}; });
-          throw new Error(
-            (errBody.error && errBody.error.message)
-              ? errBody.error.message
-              : 'BazaarLink error ' + res.status
-          );
-        }
-
-        var data = await res.json();
-        raw = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+        if (!apiKey) throw new Error('BazaarLink API key is missing.');
+        raw = await fetchBazaarLink(prompt, model, apiKey);
 
       } else {
-        // ── Puter.js path ────────────────────────────────
+        // ── Puter.js ─────────────────────────────────────────
         var response = await puter.ai.chat(prompt, { model: model });
-
         if (typeof response === 'string') {
           raw = response;
         } else if (response && response.message && response.message.content) {
@@ -907,24 +941,26 @@
         }
       }
 
-      // ── Parse JSON array from raw ────────────────────
+      // ── Parse JSON array ──────────────────────────────────
       var match = raw.match(/\[[\s\S]*?\]/);
-      if (!match) throw new Error('No JSON array in AI response');
+      if (!match) throw new Error('No JSON array in AI response. Raw: ' + raw.slice(0, 120));
       var tags = JSON.parse(match[0]);
-      if (!Array.isArray(tags)) throw new Error('AI did not return an array');
+      if (!Array.isArray(tags)) throw new Error('AI did not return an array.');
 
       setTags(id, tags);
       card.classList.remove('tagging');
-      badge.className = 'card-badge badge-done';
+      badge.className   = 'card-badge badge-done';
       badge.textContent = 'AI Tagged';
 
     } catch (err) {
       console.error('AI error:', err);
       card.classList.remove('tagging');
       card.classList.add('error');
-      badge.className = 'card-badge badge-error';
+      badge.className   = 'card-badge badge-error';
       badge.textContent = 'Error';
-      tagArea.innerHTML = '<span style="font-size:12px;color:var(--danger)"><i class="fa fa-triangle-exclamation"></i> ' + escHtml(err.message) + '</span>';
+      tagArea.innerHTML =
+        '<span style="font-size:12px;color:var(--danger)">' +
+        '<i class="fa fa-triangle-exclamation"></i> ' + escHtml(err.message) + '</span>';
       showToast('AI error: ' + err.message, 'error');
     } finally {
       aibtn.disabled = false;
@@ -955,10 +991,10 @@
 
       card.classList.remove('tagging', 'error');
       card.classList.add('done');
-      badge.className = 'card-badge badge-done';
+      badge.className   = 'card-badge badge-done';
       badge.textContent = 'Saved ✓';
       savebtn.innerHTML = '<i class="fa fa-check"></i> Saved';
-      savebtn.disabled = true;
+      savebtn.disabled  = true;
 
       taggedCount++;
       updateStats(articles.length, taggedCount);
@@ -967,7 +1003,7 @@
     } catch (err) {
       console.error(err);
       showToast('Save failed: ' + err.message, 'error');
-      savebtn.disabled = false;
+      savebtn.disabled  = false;
       savebtn.innerHTML = '<i class="fa fa-floppy-disk"></i> Save Tags';
     }
   }
@@ -992,12 +1028,12 @@
         await saveArticleTags(id);
         saved++;
       }
-      await new Promise(function (r) { setTimeout(r, 800); });
+      await new Promise(function (r) { setTimeout(r, 900); });
     }
 
-    btn.disabled = false;
+    btn.disabled  = false;
     btn.innerHTML = '<i class="fa fa-wand-magic-sparkles"></i> Tag All with AI';
-    isTaggingAll = false;
+    isTaggingAll  = false;
     showToast('Done! Tagged and saved ' + saved + ' articles.', 'success');
   }
 
@@ -1005,7 +1041,7 @@
   function setStatus(state) {
     var dot  = document.getElementById('statusDot');
     var text = document.getElementById('statusText');
-    dot.className = 'status-dot';
+    dot.className    = 'status-dot';
     dot.style.background = '';
     if (state === 'connected') {
       dot.classList.add('connected');
@@ -1021,8 +1057,8 @@
   }
 
   function updateStats(total, done) {
-    document.getElementById('statTotal').textContent = total - done;
-    document.getElementById('statDone').textContent  = done;
+    document.getElementById('statTotal').textContent    = total - done;
+    document.getElementById('statDone').textContent     = done;
     var pct = total > 0 ? Math.round((done / total) * 100) : 0;
     document.getElementById('progressPct').textContent  = pct + '%';
     document.getElementById('progressFill').style.width = pct + '%';
@@ -1038,7 +1074,8 @@
 
   function showErrorState(msg) {
     document.getElementById('cardsContainer').innerHTML =
-      '<div class="state-panel"><div class="state-icon"><i class="fa fa-triangle-exclamation" style="color:var(--danger)"></i></div><div class="state-title">Load failed</div><div class="state-sub">' + escHtml(msg) + '</div></div>';
+      '<div class="state-panel"><div class="state-icon"><i class="fa fa-triangle-exclamation" style="color:var(--danger)"></i></div>' +
+      '<div class="state-title">Load failed</div><div class="state-sub">' + escHtml(msg) + '</div></div>';
   }
 
   function showToast(msg, type) {
@@ -1047,7 +1084,7 @@
     el.className = 'show ' + (type || '');
     el.innerHTML = '<span>' + icon + '</span><span>' + escHtml(msg) + '</span>';
     if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { el.className = ''; }, 3200);
+    toastTimer = setTimeout(function () { el.className = ''; }, 3800);
   }
 
   function escHtml(str) {
