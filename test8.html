@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Patholytica · Tag Studio</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://js.puter.com/v2/"></script>
@@ -120,13 +120,12 @@
     }
     .config-field input:focus, .config-field select:focus { border-color: var(--gold-dim); }
     .config-field input::placeholder { color: var(--muted); }
-
-    .field-hint {
+    .config-field-hint {
       font-size: 11px;
       color: var(--muted);
       line-height: 1.5;
-      margin-top: 2px;
     }
+    .config-field-hint a { color: var(--gold-dim); }
 
     .btn {
       display: inline-flex;
@@ -420,12 +419,11 @@
       align-items: center;
       gap: 9px;
       z-index: 999;
-      max-width: 340px;
+      max-width: 320px;
     }
     #toast.show { display: flex; animation: slideUp 0.25s ease; }
     #toast.success { border-color: rgba(90,158,114,0.4); }
     #toast.error   { border-color: rgba(192,98,74,0.4); }
-    #toast.info    { border-color: rgba(200,169,110,0.4); }
     @keyframes slideUp {
       from { opacity: 0; transform: translateY(10px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -476,8 +474,6 @@
 
 <div class="layout">
   <aside class="sidebar">
-
-    <!-- ── Supabase ── -->
     <div>
       <div class="sidebar-section-label">Supabase Config</div>
       <div class="config-field">
@@ -503,34 +499,42 @@
 
     <hr class="divider" />
 
-    <!-- ── AI Service ── -->
     <div>
-      <div class="sidebar-section-label">AI Service</div>
-
+      <div class="sidebar-section-label">AI Provider</div>
       <div class="config-field">
         <label>Provider</label>
-        <select id="aiService">
-          <option value="puter">Puter.js (Free, no key needed)</option>
-          <option value="bazaarlink">BazaarLink</option>
+        <select id="aiProvider">
+          <option value="puter" selected>Puter.js (no key needed)</option>
+          <option value="openrouter">OpenRouter (bring your own key)</option>
         </select>
       </div>
 
-      <!-- BazaarLink-only fields -->
-      <div id="blFields" style="display:none">
-        <div class="config-field">
-          <label>BazaarLink API Key</label>
-          <input id="blApiKey" type="password" value="sk-bl-d1Y95l1L3ILm4GXZ7AQ8aqS1CijlWk2TG2cR7m8ilqAnliYQ" />
-        </div>
-        <div class="config-field">
-          <label>CORS Proxy URL</label>
-          <input id="blProxy" type="text" value="https://corsproxy.io/?url=" placeholder="https://corsproxy.io/?url=" />
-          <span class="field-hint">Browser → BazaarLink requires a proxy. Default uses corsproxy.io — clear to disable.</span>
-        </div>
+      <div class="config-field" id="modelFieldPuter">
+        <label>Model via Puter.js</label>
+        <select id="aiModelPuter">
+          <option value="anthropic/claude-opus-4-8">Claude Opus 4.8</option>
+          <option value="anthropic/claude-sonnet-4-6" selected>Claude Sonnet 4.6</option>
+          <option value="openai/gpt-5.5">GPT-5.5</option>
+          <option value="google/gemini-3.5-flash">Gemini 3.5 Flash</option>
+          <option value="deepseek/deepseek-v4-pro">DeepSeek V4 Pro</option>
+        </select>
       </div>
 
-      <div class="config-field">
-        <label>Model</label>
-        <select id="aiModel"></select>
+      <div class="config-field" id="modelFieldOpenrouter" style="display:none">
+        <label>Model via OpenRouter</label>
+        <select id="aiModelOpenrouter">
+          <option value="~openai/gpt-latest" selected>GPT (latest)</option>
+          <option value="~anthropic/claude-sonnet-latest">Claude Sonnet (latest)</option>
+          <option value="anthropic/claude-opus-4.8">Claude Opus 4.8</option>
+          <option value="google/gemini-3.5-flash">Gemini 3.5 Flash</option>
+          <option value="deepseek/deepseek-v4-pro">DeepSeek V4 Pro</option>
+        </select>
+      </div>
+
+      <div class="config-field" id="keyFieldOpenrouter" style="display:none">
+        <label>OpenRouter API Key</label>
+        <input id="orKey" type="password" placeholder="sk-or-v1-..." autocomplete="off" />
+        <div class="config-field-hint">Stored only in this browser's local storage. Get a key at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>.</div>
       </div>
 
       <div class="config-field">
@@ -541,7 +545,6 @@
 
     <hr class="divider" />
 
-    <!-- ── Stats ── -->
     <div>
       <div class="sidebar-section-label">Session Stats</div>
       <div class="stats-row">
@@ -566,7 +569,6 @@
         </div>
       </div>
     </div>
-
   </aside>
 
   <main class="main">
@@ -598,48 +600,42 @@
 <div id="toast"></div>
 
 <script>
-(function () {
-
-  // ── Model lists ──────────────────────────────────────────
-  var MODELS_PUTER = [
-    { value: 'anthropic/claude-opus-4-8',   label: 'Claude Opus 4.8' },
-    { value: 'anthropic/claude-sonnet-4-6', label: 'Claude Sonnet 4.6', selected: true },
-    { value: 'openai/gpt-5.5',              label: 'GPT-5.5' },
-    { value: 'google/gemini-3.5-flash',     label: 'Gemini 3.5 Flash' },
-    { value: 'deepseek/deepseek-v4-pro',    label: 'DeepSeek V4 Pro' }
-  ];
-
-  var MODELS_BL = [
-    { value: 'anthropic/claude-sonnet-4.6', label: 'Claude Sonnet 4.6', selected: true },
-    { value: 'anthropic/claude-opus-4.8',   label: 'Claude Opus 4.8' },
-    { value: 'openai/gpt-5.5',              label: 'GPT-5.5' },
-    { value: 'google/gemini-3.5-flash',     label: 'Gemini 3.5 Flash' },
-    { value: 'deepseek/deepseek-v4-pro',    label: 'DeepSeek V4 Pro' },
-    { value: 'auto',                         label: 'Auto (Best fit)' }
-  ];
-
-  // ── State ────────────────────────────────────────────────
-  var sbClient     = null;
-  var articles     = [];
-  var taggedCount  = 0;
+(function() {
+  // ── State ──────────────────────────────────────────────
+  var sbClient = null;
+  var articles = [];
+  var taggedCount = 0;
   var isTaggingAll = false;
-  var cardTags     = {};
-  var toastTimer   = null;
+  var cardTags = {};
+  var toastTimer = null;
 
-  // ── Boot ─────────────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', function () {
-    var saved = localStorage.getItem('patholytica_sb_url');
-    if (saved) document.getElementById('sbUrl').value = saved;
-    document.getElementById('sbUrl').addEventListener('change', function (e) {
+  var OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
+
+  // ── Boot ───────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', function() {
+    var savedUrl = localStorage.getItem('patholytica_sb_url');
+    if (savedUrl) document.getElementById('sbUrl').value = savedUrl;
+
+    var savedOrKey = localStorage.getItem('patholytica_or_key');
+    if (savedOrKey) document.getElementById('orKey').value = savedOrKey;
+
+    var savedProvider = localStorage.getItem('patholytica_ai_provider');
+    if (savedProvider === 'openrouter' || savedProvider === 'puter') {
+      document.getElementById('aiProvider').value = savedProvider;
+    }
+    updateProviderVisibility();
+
+    document.getElementById('sbUrl').addEventListener('change', function(e) {
       localStorage.setItem('patholytica_sb_url', e.target.value.trim());
     });
 
-    populateModels('puter');
+    document.getElementById('orKey').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_or_key', e.target.value.trim());
+    });
 
-    document.getElementById('aiService').addEventListener('change', function () {
-      var isBL = this.value === 'bazaarlink';
-      populateModels(this.value);
-      document.getElementById('blFields').style.display = isBL ? 'block' : 'none';
+    document.getElementById('aiProvider').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_ai_provider', e.target.value);
+      updateProviderVisibility();
     });
 
     document.getElementById('btnLoad').addEventListener('click', loadArticles);
@@ -647,16 +643,23 @@
     document.getElementById('btnTagAll').addEventListener('click', tagAll);
   });
 
-  // ── Model dropdown ────────────────────────────────────────
-  function populateModels(service) {
-    var list   = service === 'bazaarlink' ? MODELS_BL : MODELS_PUTER;
-    var select = document.getElementById('aiModel');
-    select.innerHTML = list.map(function (m) {
-      return '<option value="' + m.value + '"' + (m.selected ? ' selected' : '') + '>' + m.label + '</option>';
-    }).join('');
+  // ── Provider toggle UI ─────────────────────────────────
+  function updateProviderVisibility() {
+    var provider = document.getElementById('aiProvider').value;
+    var isOpenRouter = provider === 'openrouter';
+    document.getElementById('modelFieldPuter').style.display       = isOpenRouter ? 'none' : 'flex';
+    document.getElementById('modelFieldOpenrouter').style.display  = isOpenRouter ? 'flex' : 'none';
+    document.getElementById('keyFieldOpenrouter').style.display    = isOpenRouter ? 'flex' : 'none';
   }
 
-  // ── Supabase client ───────────────────────────────────────
+  function getActiveModel() {
+    var provider = document.getElementById('aiProvider').value;
+    return provider === 'openrouter'
+      ? document.getElementById('aiModelOpenrouter').value
+      : document.getElementById('aiModelPuter').value;
+  }
+
+  // ── Supabase client ────────────────────────────────────
   function getClient() {
     var url = document.getElementById('sbUrl').value.trim().replace(/\/$/, '');
     var key = document.getElementById('sbKey').value.trim();
@@ -665,7 +668,7 @@
     return sbClient;
   }
 
-  // ── Load articles ─────────────────────────────────────────
+  // ── Load articles ──────────────────────────────────────
   async function loadArticles() {
     var client = getClient();
     if (!client) return;
@@ -689,8 +692,8 @@
 
       if (result.error) throw result.error;
 
-      articles    = result.data || [];
-      cardTags    = {};
+      articles = result.data || [];
+      cardTags = {};
       taggedCount = 0;
       renderCards(articles);
       updateStats(articles.length, 0);
@@ -709,7 +712,7 @@
     }
   }
 
-  // ── Render cards ──────────────────────────────────────────
+  // ── Render cards ───────────────────────────────────────
   function renderCards(data) {
     var container = document.getElementById('cardsContainer');
     document.getElementById('queueCount').textContent = data.length + ' article' + (data.length !== 1 ? 's' : '');
@@ -719,7 +722,7 @@
       return;
     }
 
-    container.innerHTML = data.map(function (article, i) {
+    container.innerHTML = data.map(function(article, i) {
       var title   = article.title || article.name || article.heading || '(Untitled)';
       var content = article.content || article.body || article.text || article.summary || article.excerpt || '';
       var snippet = (typeof content === 'string' ? content : JSON.stringify(content)).slice(0, 220);
@@ -727,7 +730,7 @@
 
       return '<div class="article-card" id="card-' + id + '" data-id="' + id + '">' +
         '<div class="card-header">' +
-          '<div class="card-index">' + String(i + 1).padStart(2, '0') + '</div>' +
+          '<div class="card-index">' + String(i+1).padStart(2,'0') + '</div>' +
           '<div class="card-meta">' +
             '<div class="card-title">' + escHtml(title) + '</div>' +
             (snippet ? '<div class="card-excerpt">' + escHtml(snippet) + '</div>' : '') +
@@ -750,11 +753,12 @@
       '</div>';
     }).join('');
 
+    // Attach all listeners via delegation on container
     container.addEventListener('click', handleCardClick);
     container.addEventListener('keydown', handleCardKeydown);
   }
 
-  // ── Event delegation ──────────────────────────────────────
+  // ── Event delegation ───────────────────────────────────
   function handleCardClick(e) {
     var aiBtn  = e.target.closest('[data-ai-tag]');
     var addBtn = e.target.closest('[data-add-tag]');
@@ -774,16 +778,14 @@
     }
   }
 
-  // ── Tag helpers ───────────────────────────────────────────
+  // ── Tag helpers ────────────────────────────────────────
   function getTags(id) {
     if (!cardTags[id]) cardTags[id] = [];
     return cardTags[id];
   }
 
   function setTags(id, tags) {
-    cardTags[id] = Array.from(new Set(
-      tags.map(function (t) { return t.trim().toLowerCase(); }).filter(Boolean)
-    ));
+    cardTags[id] = Array.from(new Set(tags.map(function(t){ return t.trim().toLowerCase(); }).filter(Boolean)));
     renderTagChips(id);
   }
 
@@ -794,7 +796,7 @@
     if (tags.length === 0) {
       area.innerHTML = '<span style="font-size:12px;color:var(--muted);font-style:italic">No tags yet</span>';
     } else {
-      area.innerHTML = tags.map(function (t) {
+      area.innerHTML = tags.map(function(t) {
         return '<span class="tag-chip">' + escHtml(t) +
           '<button class="remove-tag" data-remove-tag="' + id + '" data-remove-val="' + escHtml(t) + '" title="Remove">×</button>' +
           '</span>';
@@ -803,7 +805,7 @@
   }
 
   function removeTag(id, tag) {
-    cardTags[id] = getTags(id).filter(function (t) { return t !== tag; });
+    cardTags[id] = getTags(id).filter(function(t){ return t !== tag; });
     renderTagChips(id);
   }
 
@@ -818,156 +820,124 @@
     }
   }
 
-  // ── BazaarLink fetch with CORS-proxy fallback ─────────────
-  function isCorsOrNetworkError(err) {
-    // TypeError is thrown by fetch on CORS block or network failure
-    return err instanceof TypeError ||
-           err.message === 'Load failed' ||
-           err.message === 'Failed to fetch' ||
-           err.message.toLowerCase().includes('networkerror') ||
-           err.message.toLowerCase().includes('network request failed');
-  }
-
-  async function fetchBazaarLink(prompt, model, apiKey) {
-    var BL_URL   = 'https://bazaarlink.ai/api/v1/chat/completions';
-    var proxyPfx = document.getElementById('blProxy').value.trim(); // e.g. "https://corsproxy.io/?url="
-
-    var body = JSON.stringify({
-      model:       model,
-      messages:    [{ role: 'user', content: prompt }],
-      max_tokens:  600,
-      temperature: 0.3
-    });
-    var headers = {
-      'Content-Type':  'application/json',
-      'Authorization': 'Bearer ' + apiKey
-    };
-
-    // ── 1. Try direct ────────────────────────────────────────
-    var res;
-    try {
-      res = await fetch(BL_URL, { method: 'POST', headers: headers, body: body });
-    } catch (directErr) {
-      // ── 2. CORS / network — try proxy if configured ───────
-      if (!proxyPfx) {
-        throw new Error(
-          'CORS blocked. BazaarLink cannot be called from a browser directly. ' +
-          'Add a CORS proxy URL in the sidebar (e.g. https://corsproxy.io/?url=).'
-        );
-      }
-
-      var proxyURL = proxyPfx + encodeURIComponent(BL_URL);
-      try {
-        showToast('Direct blocked — retrying via CORS proxy…', 'info');
-        res = await fetch(proxyURL, { method: 'POST', headers: headers, body: body });
-      } catch (proxyErr) {
-        throw new Error(
-          'Cannot reach BazaarLink (direct + proxy both failed). ' +
-          'Check your internet connection or switch to Puter.js.'
-        );
-      }
-    }
-
-    // ── 3. Handle HTTP errors ─────────────────────────────────
-    if (!res.ok) {
-      var errBody = {};
-      try { errBody = await res.json(); } catch (_) {}
-      var msg = (errBody.error && errBody.error.message)
-        ? errBody.error.message
-        : 'BazaarLink HTTP ' + res.status;
-      // Common HTTP error hints
-      if (res.status === 401) msg = 'Invalid BazaarLink API key (401).';
-      if (res.status === 402) msg = 'Insufficient BazaarLink credits (402).';
-      if (res.status === 429) msg = 'BazaarLink rate limit hit — slow down or upgrade (429).';
-      throw new Error(msg);
-    }
-
-    var data = await res.json();
-    return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
-  }
-
-  // ── AI tagging ────────────────────────────────────────────
-  async function tagArticleWithAI(id) {
-    var article = articles.find(function (a) { return String(a.id) === String(id); });
-    if (!article) return;
-
-    var service = document.getElementById('aiService').value;
-    var model   = document.getElementById('aiModel').value;
-    var maxTags = parseInt(document.getElementById('maxTags').value) || 5;
-
-    var card    = document.getElementById('card-' + id);
-    var badge   = document.getElementById('badge-' + id);
-    var aibtn   = document.getElementById('aibtn-' + id);
-    var tagArea = document.getElementById('tags-' + id);
-
-    card.classList.add('tagging');
-    badge.className   = 'card-badge badge-tagging';
-    badge.textContent = 'Tagging…';
-    aibtn.disabled    = true;
-    tagArea.innerHTML = '<div class="thinking-pulse">AI is reading…</div>';
-
-    var title   = article.title || article.name || article.heading || '';
-    var content = article.content || article.body || article.text || article.summary || '';
-    var snippet = (typeof content === 'string' ? content : JSON.stringify(content)).slice(0, 1200);
-
-    var prompt =
-      'You are a medical education content tagger for Patholytica, an adaptive learning platform.\n\n' +
+  // ── AI tagging ─────────────────────────────────────────
+  function buildTagPrompt(title, snippet, maxTags) {
+    return 'You are a medical education content tagger for Patholytica, an adaptive learning platform.\n\n' +
       'Article title: "' + title + '"\n' +
       'Article content (excerpt): "' + snippet + '"\n\n' +
       'Generate up to ' + maxTags + ' precise, lowercase, hyphenated tags for this article.\n' +
       'Tags should reflect: medical specialty, organ system, condition/disease, clinical concept, or learning topic.\n' +
       'Examples of good tags: nephrology, aki, fluid-overload, ecg-interpretation, pharmacology, type-2-diabetes\n\n' +
       'Return ONLY a JSON array of tag strings — no explanation, no markdown. Example: ["nephrology","aki","fluid-management"]';
+  }
+
+  function extractTagArray(raw) {
+    var match = raw.match(/\[[\s\S]*?\]/);
+    if (!match) throw new Error('No JSON array in AI response');
+    var tags = JSON.parse(match[0]);
+    if (!Array.isArray(tags)) throw new Error('AI did not return an array');
+    return tags;
+  }
+
+  async function callPuter(prompt, model) {
+    var response = await puter.ai.chat(prompt, { model: model });
+    var raw = '';
+    if (typeof response === 'string') {
+      raw = response;
+    } else if (response && response.message && response.message.content) {
+      raw = Array.isArray(response.message.content)
+        ? response.message.content.map(function(c){ return c.text || ''; }).join('')
+        : response.message.content;
+    } else {
+      raw = JSON.stringify(response);
+    }
+    return raw;
+  }
+
+  async function callOpenRouter(prompt, model) {
+    var apiKey = document.getElementById('orKey').value.trim();
+    if (!apiKey) throw new Error('Enter an OpenRouter API key in the sidebar first');
+
+    var res = await fetch(OPENROUTER_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json',
+        'X-OpenRouter-Title': 'Patholytica Tag Studio'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    var data = await res.json();
+
+    if (!res.ok) {
+      var msg = (data && data.error && data.error.message) ? data.error.message : ('OpenRouter request failed (' + res.status + ')');
+      throw new Error(msg);
+    }
+
+    var content = data && data.choices && data.choices[0] && data.choices[0].message
+      ? data.choices[0].message.content
+      : null;
+    if (!content) throw new Error('OpenRouter returned no content');
+    return content;
+  }
+
+  async function tagArticleWithAI(id) {
+    var article = articles.find(function(a){ return String(a.id) === String(id); });
+    if (!article) return;
+
+    var provider = document.getElementById('aiProvider').value;
+    var model    = getActiveModel();
+    var maxTags  = parseInt(document.getElementById('maxTags').value) || 5;
+    var card     = document.getElementById('card-' + id);
+    var badge    = document.getElementById('badge-' + id);
+    var aibtn    = document.getElementById('aibtn-' + id);
+    var tagArea  = document.getElementById('tags-' + id);
+
+    if (provider === 'openrouter' && !document.getElementById('orKey').value.trim()) {
+      showToast('Enter an OpenRouter API key in the sidebar first', 'error');
+      return;
+    }
+
+    card.classList.add('tagging');
+    badge.className = 'card-badge badge-tagging';
+    badge.textContent = 'Tagging…';
+    aibtn.disabled = true;
+    tagArea.innerHTML = '<div class="thinking-pulse">AI is reading…</div>';
+
+    var title   = article.title || article.name || article.heading || '';
+    var content = article.content || article.body || article.text || article.summary || '';
+    var snippet = (typeof content === 'string' ? content : JSON.stringify(content)).slice(0, 1200);
+    var prompt  = buildTagPrompt(title, snippet, maxTags);
 
     try {
-      var raw = '';
+      var raw = provider === 'openrouter'
+        ? await callOpenRouter(prompt, model)
+        : await callPuter(prompt, model);
 
-      if (service === 'bazaarlink') {
-        var apiKey = document.getElementById('blApiKey').value.trim();
-        if (!apiKey) throw new Error('BazaarLink API key is missing.');
-        raw = await fetchBazaarLink(prompt, model, apiKey);
-
-      } else {
-        // ── Puter.js ─────────────────────────────────────────
-        var response = await puter.ai.chat(prompt, { model: model });
-        if (typeof response === 'string') {
-          raw = response;
-        } else if (response && response.message && response.message.content) {
-          raw = Array.isArray(response.message.content)
-            ? response.message.content.map(function (c) { return c.text || ''; }).join('')
-            : response.message.content;
-        } else {
-          raw = JSON.stringify(response);
-        }
-      }
-
-      // ── Parse JSON array ──────────────────────────────────
-      var match = raw.match(/\[[\s\S]*?\]/);
-      if (!match) throw new Error('No JSON array in AI response. Raw: ' + raw.slice(0, 120));
-      var tags = JSON.parse(match[0]);
-      if (!Array.isArray(tags)) throw new Error('AI did not return an array.');
+      var tags = extractTagArray(raw);
 
       setTags(id, tags);
       card.classList.remove('tagging');
-      badge.className   = 'card-badge badge-done';
+      badge.className = 'card-badge badge-done';
       badge.textContent = 'AI Tagged';
-
     } catch (err) {
       console.error('AI error:', err);
       card.classList.remove('tagging');
       card.classList.add('error');
-      badge.className   = 'card-badge badge-error';
+      badge.className = 'card-badge badge-error';
       badge.textContent = 'Error';
-      tagArea.innerHTML =
-        '<span style="font-size:12px;color:var(--danger)">' +
-        '<i class="fa fa-triangle-exclamation"></i> ' + escHtml(err.message) + '</span>';
+      tagArea.innerHTML = '<span style="font-size:12px;color:var(--danger)"><i class="fa fa-triangle-exclamation"></i> ' + escHtml(err.message) + '</span>';
       showToast('AI error: ' + err.message, 'error');
     } finally {
       aibtn.disabled = false;
     }
   }
 
-  // ── Save to Supabase ──────────────────────────────────────
+  // ── Save to Supabase ───────────────────────────────────
   async function saveArticleTags(id) {
     if (!sbClient) { showToast('Not connected to Supabase', 'error'); return; }
 
@@ -991,26 +961,33 @@
 
       card.classList.remove('tagging', 'error');
       card.classList.add('done');
-      badge.className   = 'card-badge badge-done';
+      badge.className = 'card-badge badge-done';
       badge.textContent = 'Saved ✓';
       savebtn.innerHTML = '<i class="fa fa-check"></i> Saved';
-      savebtn.disabled  = true;
+      savebtn.disabled = true;
 
       taggedCount++;
       updateStats(articles.length, taggedCount);
-      var art = articles.find(function (a) { return String(a.id) === String(id); });
+      var art = articles.find(function(a){ return String(a.id) === String(id); });
       showToast('Saved ' + tags.length + ' tags for "' + (art ? escHtml(art.title || id) : id) + '"', 'success');
     } catch (err) {
       console.error(err);
       showToast('Save failed: ' + err.message, 'error');
-      savebtn.disabled  = false;
+      savebtn.disabled = false;
       savebtn.innerHTML = '<i class="fa fa-floppy-disk"></i> Save Tags';
     }
   }
 
-  // ── Tag All ───────────────────────────────────────────────
+  // ── Tag All ────────────────────────────────────────────
   async function tagAll() {
     if (isTaggingAll) return;
+
+    var provider = document.getElementById('aiProvider').value;
+    if (provider === 'openrouter' && !document.getElementById('orKey').value.trim()) {
+      showToast('Enter an OpenRouter API key in the sidebar first', 'error');
+      return;
+    }
+
     isTaggingAll = true;
     var btn = document.getElementById('btnTagAll');
     btn.disabled = true;
@@ -1018,7 +995,7 @@
     var saved = 0;
 
     for (var i = 0; i < articles.length; i++) {
-      var id    = String(articles[i].id);
+      var id = String(articles[i].id);
       var badge = document.getElementById('badge-' + id);
       if (badge && badge.textContent === 'Saved ✓') continue;
 
@@ -1028,20 +1005,20 @@
         await saveArticleTags(id);
         saved++;
       }
-      await new Promise(function (r) { setTimeout(r, 900); });
+      await new Promise(function(r){ setTimeout(r, 800); });
     }
 
-    btn.disabled  = false;
+    btn.disabled = false;
     btn.innerHTML = '<i class="fa fa-wand-magic-sparkles"></i> Tag All with AI';
-    isTaggingAll  = false;
+    isTaggingAll = false;
     showToast('Done! Tagged and saved ' + saved + ' articles.', 'success');
   }
 
-  // ── UI helpers ────────────────────────────────────────────
+  // ── UI helpers ─────────────────────────────────────────
   function setStatus(state) {
     var dot  = document.getElementById('statusDot');
     var text = document.getElementById('statusText');
-    dot.className    = 'status-dot';
+    dot.className = 'status-dot';
     dot.style.background = '';
     if (state === 'connected') {
       dot.classList.add('connected');
@@ -1057,8 +1034,8 @@
   }
 
   function updateStats(total, done) {
-    document.getElementById('statTotal').textContent    = total - done;
-    document.getElementById('statDone').textContent     = done;
+    document.getElementById('statTotal').textContent = total - done;
+    document.getElementById('statDone').textContent  = done;
     var pct = total > 0 ? Math.round((done / total) * 100) : 0;
     document.getElementById('progressPct').textContent  = pct + '%';
     document.getElementById('progressFill').style.width = pct + '%';
@@ -1074,23 +1051,20 @@
 
   function showErrorState(msg) {
     document.getElementById('cardsContainer').innerHTML =
-      '<div class="state-panel"><div class="state-icon"><i class="fa fa-triangle-exclamation" style="color:var(--danger)"></i></div>' +
-      '<div class="state-title">Load failed</div><div class="state-sub">' + escHtml(msg) + '</div></div>';
+      '<div class="state-panel"><div class="state-icon"><i class="fa fa-triangle-exclamation" style="color:var(--danger)"></i></div><div class="state-title">Load failed</div><div class="state-sub">' + escHtml(msg) + '</div></div>';
   }
 
   function showToast(msg, type) {
-    var el   = document.getElementById('toast');
+    var el = document.getElementById('toast');
     var icon = type === 'success' ? '✓' : type === 'error' ? '⚠' : 'ℹ';
     el.className = 'show ' + (type || '');
     el.innerHTML = '<span>' + icon + '</span><span>' + escHtml(msg) + '</span>';
     if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { el.className = ''; }, 3800);
+    toastTimer = setTimeout(function(){ el.className = ''; }, 3200);
   }
 
   function escHtml(str) {
-    return String(str)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
 })();
