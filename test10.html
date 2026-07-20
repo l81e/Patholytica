@@ -1,781 +1,1406 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <title>Patholytica — Home</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Patholytica · Tag Tools</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://js.puter.com/v2/"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0e0b;--bg2:#161410;--bg3:#1c1a14;--border:#2a2518;--border2:#352e1e;
+  --gold:#c8a96e;--gold-dim:#8a7249;--gold-glow:rgba(200,169,110,0.12);
+  --text:#e8e0cc;--muted:#7a7060;--danger:#c0624a;--success:#5a9e72;--warning:#c8943e;
+  --tag-bg:rgba(200,169,110,0.1);--new-glow:rgba(90,158,114,0.1);--upd-glow:rgba(200,148,62,0.1);
+}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;font-size:15px}
 
-/* ══════════════════════════════════════════════
-   CSS VARIABLES — exact feedpage values
-══════════════════════════════════════════════ */
-:root {
-  --bg-color: #0f0e0b;
-  --text-primary: #f5f0e8;
-  --text-secondary: #8a8070;
-  --hover-bg: #1a1810;
-  --border-color: #2a2518;
-  --accent: #c8a96e;
-  --accent-hover: #b8935a;
-  --accent-glow: rgba(200,169,110,0.25);
-  --accent-soft: rgba(200,169,110,0.12);
-  --font-article: 'Merriweather', serif;
-  --font-ui: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-body.theme-dark {
-  --bg-color: #0f0e0b; --text-primary: #f5f0e8; --text-secondary: #8a8070;
-  --hover-bg: #1a1810; --border-color: #2a2518;
-  --accent: #c8a96e; --accent-hover: #b8935a;
-  --accent-glow: rgba(200,169,110,0.25); --accent-soft: rgba(200,169,110,0.12);
-}
-body.theme-light {
-  --bg-color: #faf6ee; --text-primary: #1a1710; --text-secondary: #706050;
-  --hover-bg: #f0ebe0; --border-color: #e0d8c8;
-  --accent: #a07840; --accent-hover: #8a6430;
-  --accent-glow: rgba(160,120,64,0.2); --accent-soft: rgba(160,120,64,0.08);
-}
-body.font-serif  { --font-article: 'Merriweather', serif; }
-body.font-slab   { --font-article: 'Source Serif 4', serif; }
-body.font-modern { --font-article: 'Inter', sans-serif; }
+/* ── header ── */
+.header{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:100;gap:20px;flex-wrap:wrap}
+.header-left{display:flex;align-items:center;gap:22px}
+.header-logo{font-family:'Merriweather',serif;font-size:18px;font-weight:700;color:var(--gold);letter-spacing:.03em}
+.header-logo span{color:var(--muted);font-weight:300;font-size:14px;margin-left:10px;font-family:'DM Sans',sans-serif}
+.tab-switch{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px}
+.tab-btn{background:transparent;border:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:7px 16px;border-radius:6px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:7px}
+.tab-btn.active{background:var(--gold);color:#0f0e0b;font-weight:600}
+.tab-btn:not(.active):hover{color:var(--text)}
+.header-status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s,box-shadow .3s}
+.status-dot.connected{background:var(--success);box-shadow:0 0 6px var(--success)}
+.status-dot.error{background:var(--danger);box-shadow:0 0 6px var(--danger)}
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { min-height: 100%; }
-body {
-  font-family: var(--font-ui);
-  background: var(--bg-color);
-  color: var(--text-primary);
-  overflow-x: hidden;
-  transition: background 0.2s ease, color 0.2s ease;
-}
+/* ── layout ── */
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 61px)}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:24px 20px;display:flex;flex-direction:column;gap:24px;position:sticky;top:61px;height:calc(100vh - 61px);overflow-y:auto}
+.sidebar-section-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.config-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.config-field label{font-size:12px;color:var(--muted)}
+.config-field input,.config-field select{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%;transition:border-color .2s}
+.config-field input:focus,.config-field select:focus{border-color:var(--gold-dim)}
+.config-field input::placeholder{color:var(--muted)}
+.config-field-hint{font-size:11px;color:var(--muted);line-height:1.5}
+.config-field-hint a{color:var(--gold-dim)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 16px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .2s}
+.btn-primary{background:var(--gold);color:#0f0e0b;width:100%}
+.btn-primary:hover{background:#d4b87a}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text)}
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stats-row.four{grid-template-columns:1fr 1fr}
+.stat-box{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}
+.stat-num{font-family:'Merriweather',serif;font-size:22px;font-weight:700;color:var(--gold);line-height:1}
+.stat-label{font-size:11px;color:var(--muted);margin-top:4px}
+.progress-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px}
+.progress-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:8px}
+.progress-bar-bg{background:var(--border);border-radius:99px;height:5px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));border-radius:99px;transition:width .5s ease;width:0%}
+.divider{border:none;border-top:1px solid var(--border)}
 
-/* ══════════════════════════════════════════════
-   HEADER — theme-aware (NOT hardcoded dark)
-══════════════════════════════════════════════ */
-.header-wrapper {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-  background: var(--bg-color);
-  border-bottom: 1px solid var(--border-color);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  padding-top: env(safe-area-inset-top);
-  transition: background 0.2s ease, border-color 0.2s ease;
-}
-.header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 18px; max-width: 1200px; margin: 0 auto;
-}
-.header-logo { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-.header-logo img { height: 24px; width: auto; }
-.header-right { display: flex; align-items: center; gap: 8px; }
+/* ── main ── */
+.main{display:flex;flex-direction:column}
+.main-toolbar{display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:1px solid var(--border);gap:12px;flex-wrap:wrap}
+.toolbar-left{display:flex;align-items:center;gap:12px}
+.queue-title{font-family:'Merriweather',serif;font-size:16px;font-weight:700;color:var(--text)}
+.queue-count{background:var(--tag-bg);color:var(--gold);border:1px solid var(--border);border-radius:99px;padding:2px 10px;font-size:12px;font-weight:500}
+.toolbar-right{display:flex;align-items:center;gap:8px}
+.btn-run-all{background:var(--gold);color:#0f0e0b;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;border:none;display:flex;align-items:center;gap:7px;transition:all .2s;font-family:'DM Sans',sans-serif}
+.btn-run-all:hover{background:#d4b87a}
+.btn-run-all:disabled{opacity:.4;cursor:not-allowed}
+.btn-sync{display:flex;align-items:center;justify-content:center;gap:9px;padding:8px 18px;border-radius:7px;background:transparent;border:1px solid var(--gold-dim);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-sync:hover{background:var(--gold-glow)}
+.btn-sync:disabled{opacity:.4;cursor:not-allowed}
+.cards-container{padding:24px 28px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;flex:1}
 
-.hdr-chip {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 11px; font-weight: 600; color: var(--text-secondary);
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-radius: 20px; padding: 5px 12px; cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.2s;
-}
-.hdr-chip.logged-in {
-  color: var(--accent);
-  border-color: rgba(200,169,110,0.3);
-  background: var(--accent-soft);
-}
-.hdr-chip i { font-size: 10px; }
+/* ── tag studio cards ── */
+.article-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .25s,box-shadow .25s}
+.article-card:hover{border-color:var(--border2)}
+.article-card.tagging{border-color:var(--gold-dim);box-shadow:0 0 0 2px var(--gold-glow)}
+.article-card.done{border-color:rgba(90,158,114,.35)}
+.article-card.error{border-color:rgba(192,98,74,.35)}
+.card-header{display:flex;align-items:flex-start;gap:14px;padding:16px 18px 14px}
+.card-index{font-family:'Merriweather',serif;font-size:11px;color:var(--muted);min-width:22px;margin-top:3px}
+.card-meta{flex:1;min-width:0}
+.card-title{font-family:'Merriweather',serif;font-size:14px;font-weight:700;color:var(--text);line-height:1.45;margin-bottom:5px}
+.card-excerpt{font-size:12px;color:var(--muted);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-badge{font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:4px;white-space:nowrap;flex-shrink:0}
+.badge-pending{background:rgba(122,112,96,.15);color:var(--muted);border:1px solid var(--border)}
+.badge-tagging{background:rgba(200,169,110,.12);color:var(--gold);border:1px solid var(--gold-dim)}
+.badge-done{background:rgba(90,158,114,.12);color:var(--success);border:1px solid rgba(90,158,114,.3)}
+.badge-error{background:rgba(192,98,74,.12);color:var(--danger);border:1px solid rgba(192,98,74,.3)}
+.badge-new{background:var(--new-glow);color:var(--success);border:1px solid rgba(90,158,114,.3)}
+.badge-update{background:var(--upd-glow);color:var(--warning);border:1px solid rgba(200,148,62,.3)}
+.badge-syncing{background:var(--gold-glow);color:var(--gold);border:1px solid var(--gold-dim)}
+.card-body{padding:0 18px 14px 54px}
+.tag-area{display:flex;flex-wrap:wrap;gap:7px;align-items:center;min-height:32px}
+.tag-chip{display:inline-flex;align-items:center;gap:5px;background:var(--tag-bg);border:1px solid rgba(200,169,110,.25);color:var(--gold);border-radius:5px;padding:4px 9px;font-size:12px;font-weight:500}
+.remove-tag{cursor:pointer;color:var(--gold-dim);font-size:10px;line-height:1;transition:color .15s;background:none;border:none;padding:0;font-family:inherit}
+.remove-tag:hover{color:var(--danger)}
+.tag-input-wrap{display:flex;align-items:center;gap:6px;margin-top:10px}
+.tag-input{background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:5px 9px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;width:160px;transition:border-color .2s}
+.tag-input:focus{border-color:var(--gold-dim)}
+.tag-input::placeholder{color:var(--muted)}
+.card-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 18px 14px 54px;gap:8px}
+.card-footer-left{display:flex;align-items:center;gap:8px}
+.btn-tag-ai{background:transparent;border:1px solid var(--gold-dim);color:var(--gold);padding:6px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;font-family:'DM Sans',sans-serif}
+.btn-tag-ai:hover{background:var(--gold-glow)}
+.btn-tag-ai:disabled{opacity:.4;cursor:not-allowed}
+.btn-save{background:var(--success);color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;display:flex;align-items:center;gap:6px;transition:all .2s;font-family:'DM Sans',sans-serif}
+.btn-save:hover{background:#4e8e65}
+.btn-save:disabled{opacity:.4;cursor:not-allowed}
 
-.hdr-icon-btn {
-  width: 32px; height: 32px; border-radius: 50%;
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  color: var(--text-secondary); font-size: 13px;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: border-color 0.15s, color 0.15s, background 0.2s;
-}
-.hdr-icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+/* ── algotag cards ── */
+.tag-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .2s}
+.tag-card.status-new{border-color:rgba(90,158,114,.4)}
+.tag-card.status-update{border-color:rgba(200,148,62,.4)}
+.tag-card.status-done{border-color:rgba(90,158,114,.5)}
+.tag-card.status-error{border-color:rgba(192,98,74,.4)}
+.tag-card.status-syncing{border-color:var(--gold-dim);box-shadow:0 0 0 2px var(--gold-glow)}
+.tag-card-inner{display:flex;align-items:center;gap:14px;padding:16px 18px;flex-wrap:wrap}
+.tag-icon{width:40px;height:40px;border-radius:9px;background:var(--tag-bg);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--gold);flex-shrink:0}
+.tag-card.status-new .tag-icon{background:var(--new-glow);color:var(--success);border-color:rgba(90,158,114,.3)}
+.tag-card.status-update .tag-icon{background:var(--upd-glow);color:var(--warning);border-color:rgba(200,148,62,.3)}
+.tag-card.status-done .tag-icon{background:var(--new-glow);color:var(--success);border-color:rgba(90,158,114,.4)}
+.tag-card.status-error .tag-icon{background:rgba(192,98,74,.08);color:var(--danger);border-color:rgba(192,98,74,.3)}
+.tag-info{flex:1;min-width:180px}
+.tag-name{font-family:'Merriweather',serif;font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px}
+.tag-library-name{font-size:12px;color:var(--gold-dim);font-family:monospace;letter-spacing:.02em;margin-bottom:4px}
+.tag-meta{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tag-meta-pill{display:inline-flex;align-items:center;gap:5px}
+.tag-status-badge{font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:4px;white-space:nowrap;flex-shrink:0}
+.tag-card-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tag-action-btn{background:transparent;border:1px solid var(--border2);color:var(--muted);border-radius:6px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;transition:all .2s;white-space:nowrap}
+.tag-action-btn:hover{border-color:var(--gold-dim);color:var(--gold)}
+.tag-action-btn:disabled{opacity:.4;cursor:not-allowed}
+.tag-action-btn.btn-view:hover{border-color:var(--gold-dim);color:var(--gold)}
 
-/* ══════════════════════════════════════════════
-   SETTINGS POPOVER — same as feedpage
-══════════════════════════════════════════════ */
-.settings-popover {
-  position: fixed; z-index: 500;
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-radius: 16px; padding: 14px; width: 220px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
-  opacity: 0; pointer-events: none;
-  transform: translateY(-8px) scale(0.97);
-  transition: opacity 0.2s, transform 0.2s;
-}
-.settings-popover.open { opacity: 1; pointer-events: all; transform: translateY(0) scale(1); }
-.sp-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);
-}
-.sp-title { font-size: 12px; font-weight: 800; }
-.sp-close {
-  width: 22px; height: 22px; border-radius: 50%; background: var(--bg-color);
-  border: 1px solid var(--border-color); color: var(--text-secondary);
-  cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center;
-  transition: border-color 0.15s, color 0.15s;
-}
-.sp-close:hover { border-color: var(--accent); color: var(--accent); }
-.sp-section { margin-bottom: 12px; }
-.sp-section:last-child { margin-bottom: 0; }
-.sp-label {
-  font-size: 9px; font-weight: 800; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--text-secondary); margin-bottom: 7px;
-}
-.sp-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.sp-pill {
-  padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
-  border: 1px solid var(--border-color); background: var(--bg-color);
-  color: var(--text-secondary); cursor: pointer; transition: all 0.15s;
-  font-family: var(--font-ui);
-}
-.sp-pill.active { background: var(--accent); color: #0f0e0b; border-color: var(--accent); }
-.sp-pill:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+/* ── AlgoTag sub-tabs (Needs Sync / Already Synced) ── */
+.subtab-bar{padding:14px 28px 0}
+.subtab-bar .tab-switch{display:inline-flex}
+.subtab-bar .tab-btn span{color:inherit;opacity:.75;font-size:11px;margin-left:2px}
 
-/* ══════════════════════════════════════════════
-   PAGE BODY
-══════════════════════════════════════════════ */
-.page-body {
-  max-width: 1200px; margin: 0 auto;
-  padding: 0 12px;
-  padding-top: calc(44px + env(safe-area-inset-top) + 14px);
-  padding-bottom: calc(80px + env(safe-area-inset-bottom));
-}
+/* ── modal ── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(10,9,6,.7);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:500;padding:20px}
+.modal-backdrop.show{display:flex}
+.modal-box{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border)}
+.modal-title-wrap{min-width:0}
+.modal-title{font-family:'Merriweather',serif;font-size:15px;font-weight:700;color:var(--gold)}
+.modal-sub{font-size:12px;color:var(--muted);margin-top:3px;font-family:monospace}
+.modal-close{background:transparent;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:all .15s}
+.modal-close:hover{color:var(--text);background:var(--bg3)}
+.modal-body{padding:14px 22px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.modal-article-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:13px}
+.modal-article-row i{color:var(--gold-dim);font-size:12px;flex-shrink:0}
+.modal-empty{text-align:center;color:var(--muted);font-size:13px;padding:30px 10px}
+.modal-loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:30px;color:var(--gold-dim);font-size:13px}
 
-/* ══════════════════════════════════════════════
-   CREATORS STRIP
-══════════════════════════════════════════════ */
-.creators-strip {
-  display: flex; gap: 14px; overflow-x: auto;
-  padding: 4px 0 14px; scrollbar-width: none;
-}
-.creators-strip::-webkit-scrollbar { display: none; }
-.creator-pill {
-  display: flex; flex-direction: column; align-items: center; gap: 5px;
-  cursor: pointer; flex-shrink: 0; width: 54px;
-  transition: opacity 0.15s;
-}
-.creator-pill:hover { opacity: 0.8; }
-.creator-pill-avatar {
-  width: 44px; height: 44px; border-radius: 50%;
-  background: var(--accent-soft);
-  border: 2px solid var(--border-color);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 15px; font-weight: 700; color: var(--accent);
-  overflow: hidden; flex-shrink: 0;
-  transition: border-color 0.2s;
-}
-.creator-pill:hover .creator-pill-avatar { border-color: var(--accent); }
-.creator-pill-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.creator-pill-name {
-  font-size: 9px; font-weight: 600; color: var(--text-secondary);
-  text-align: center; white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis; width: 100%;
-}
+/* ── shared ── */
+.log-panel{background:var(--bg3);border-top:1px solid var(--border);padding:14px 28px;max-height:150px;overflow-y:auto;font-size:12px;color:var(--muted);font-family:'Courier New',monospace;display:none}
+.log-panel.visible{display:block}
+.log-entry{padding:2px 0;line-height:1.6}
+.log-entry.ok{color:var(--success)}.log-entry.warn{color:var(--warning)}.log-entry.err{color:var(--danger)}.log-entry.info{color:var(--gold-dim)}
+.thinking-pulse{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--gold-dim);font-style:italic}
+.thinking-pulse::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 1s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+.state-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 40px;text-align:center;gap:14px;flex:1}
+.state-icon{font-size:36px;color:var(--border2)}
+.state-title{font-family:'Merriweather',serif;font-size:16px;color:var(--muted)}
+.state-sub{font-size:13px;color:var(--border2);max-width:320px;line-height:1.6}
+#toast{position:fixed;bottom:28px;right:28px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:12px 18px;border-radius:9px;font-size:13px;box-shadow:0 8px 28px rgba(0,0,0,.5);display:none;align-items:center;gap:9px;z-index:999;max-width:340px}
+#toast.show{display:flex;animation:slideUp .25s ease}
+#toast.success{border-left:3px solid var(--success)}
+#toast.error{border-left:3px solid var(--danger)}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.skeleton{background:linear-gradient(90deg,var(--bg3) 25%,var(--border) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:5px}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+.skel-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;align-items:center;gap:14px}
+.skel-icon{width:40px;height:40px;border-radius:9px;flex-shrink:0}
+.skel-body{flex:1;display:flex;flex-direction:column;gap:8px}
+.skel-line{height:12px}
+.skel-line.w80{width:80%}.skel-line.w60{width:60%}.skel-line.w40{width:40%}
 
-/* ══════════════════════════════════════════════
-   PINTEREST MASONRY
-══════════════════════════════════════════════ */
-.masonry-grid { columns: 2; column-gap: 10px; }
-@media (min-width: 540px)  { .masonry-grid { columns: 3; } }
-@media (min-width: 820px)  { .masonry-grid { columns: 4; } }
-@media (min-width: 1080px) { .masonry-grid { columns: 5; } }
+.tab-panel{display:none;flex-direction:column;flex:1}
+.tab-panel.active{display:flex}
 
-/* ══════════════════════════════════════════════
-   PIN CARD — full-bleed image, overlay title
-══════════════════════════════════════════════ */
-.pin-card {
-  break-inside: avoid;
-  margin-bottom: 10px;
-  border-radius: 14px;
-  overflow: hidden;
-  cursor: pointer;
-  position: relative;
-  display: block;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+@media (max-width:768px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}
+  .header{padding:14px 18px}
+  .cards-container{padding:16px}
+  .main-toolbar{padding:14px 16px}
+  .subtab-bar{padding:14px 16px 0}
 }
-.pin-card:hover {
-  transform: translateY(-3px) scale(1.01);
-  box-shadow: 0 12px 36px rgba(0,0,0,0.55);
-}
-.pin-card:active { transform: scale(0.98); }
-
-.pin-card-img {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-.pin-card-img.fixed-ratio {
-  width: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.pin-card-overlay {
-  position: absolute; bottom: 0; left: 0; right: 0;
-  background: linear-gradient(
-    to top,
-    rgba(4,3,2,0.92) 0%,
-    rgba(4,3,2,0.70) 30%,
-    rgba(4,3,2,0.30) 60%,
-    transparent 100%
-  );
-  padding: 28px 11px 11px;
-  display: flex; flex-direction: column; gap: 5px;
-}
-
-.pin-overlay-title {
-  font-size: 12px; font-weight: 700;
-  color: #f5f0e8;
-  line-height: 1.3; font-family: var(--font-article);
-  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
-  letter-spacing: -0.01em;
-  text-shadow: 0 1px 6px rgba(0,0,0,0.8);
-}
-
-.pin-overlay-meta {
-  display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
-}
-.pin-badge {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
-  background: rgba(200,169,110,0.22);
-  color: #e8d0a0;
-  border: 1px solid rgba(200,169,110,0.3);
-  border-radius: 4px; padding: 2px 6px;
-  backdrop-filter: blur(4px);
-}
-.pin-badge.lib-badge { background: rgba(106,159,207,0.2); color: #a8c8e8; border-color: rgba(106,159,207,0.3); }
-.pin-badge.mcq-badge { background: rgba(106,191,133,0.18); color: #a0d8b0; border-color: rgba(106,191,133,0.25); }
-.pin-stat {
-  font-size: 9px; color: rgba(245,240,232,0.65);
-  display: flex; align-items: center; gap: 3px;
-}
-.pin-stat i { font-size: 8px; }
-
-/* ══════════════════════════════════════════════
-   SKELETON — feedpage shimmer
-══════════════════════════════════════════════ */
-@keyframes shimmer { 0%,100%{opacity:0.4} 50%{opacity:0.85} }
-.pin-skeleton {
-  break-inside: avoid; margin-bottom: 10px;
-  border-radius: 14px; overflow: hidden;
-  background: var(--hover-bg);
-  animation: shimmer 1.6s ease-in-out infinite;
-}
-.pin-skeleton:nth-child(3n)   { height: 200px; }
-.pin-skeleton:nth-child(3n+1) { height: 260px; }
-.pin-skeleton:nth-child(3n+2) { height: 220px; }
-
-/* ══════════════════════════════════════════════
-   LOADING GIF
-══════════════════════════════════════════════ */
-.loading-gif-wrap {
-  position: fixed; top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 50; pointer-events: none;
-  display: flex; align-items: center; justify-content: center;
-}
-.loading-gif-wrap img { width: 80px; height: 80px; object-fit: contain; opacity: 0.92; }
-
-/* ══════════════════════════════════════════════
-   LOAD MORE
-══════════════════════════════════════════════ */
-.load-more-wrap { text-align: center; margin-top: 10px; }
-.btn-load-more {
-  background: none; border: 1px solid var(--border-color);
-  color: var(--text-secondary); font-size: 12px; font-weight: 600;
-  cursor: pointer; padding: 9px 24px; border-radius: 20px;
-  font-family: var(--font-ui); display: inline-flex; align-items: center; gap: 7px;
-  transition: border-color 0.2s, color 0.2s;
-}
-.btn-load-more:hover { border-color: var(--accent); color: var(--accent); }
-.btn-load-more:disabled { opacity: 0.35; pointer-events: none; }
-
-/* ══════════════════════════════════════════════
-   TOAST
-══════════════════════════════════════════════ */
-.toast {
-  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(10px);
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-radius: 14px; padding: 10px 18px;
-  font-size: 13px; font-weight: 700; color: var(--text-primary);
-  z-index: 9999; opacity: 0;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  pointer-events: none; white-space: nowrap;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-}
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-/* ══════════════════════════════════════════════
-   FOOTER BAR
-══════════════════════════════════════════════ */
-.footer-bar {
-  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-  width: 100%; max-width: 450px;
-  background: rgba(15,14,11,0.96);
-  border-top: 1px solid #2a2518;
-  padding: 8px 24px;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom));
-  display: flex; justify-content: space-around; align-items: center;
-  z-index: 100;
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-}
-.footer-btn {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  background: none; border: none; color: #8a8070;
-  cursor: pointer; transition: color 0.2s ease; padding: 6px 12px;
-}
-.footer-btn:hover { color: #f5f0e8; }
-.footer-btn.active { color: #c8a96e; }
-.footer-btn i { font-size: 19px; }
-.footer-btn span { font-size: 10px; font-weight: 600; }
-@media (max-width: 768px) {
-  .footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
-  .footer-btn { padding: 6px 8px; }
-  .footer-btn i { font-size: 17px; }
-  .footer-btn span { font-size: 9px; }
-}
-
-/* ══════════════════════════════════════════════
-   EMPTY STATE
-══════════════════════════════════════════════ */
-.empty-state {
-  display: flex; flex-direction: column; align-items: center;
-  padding: 60px 20px; color: var(--text-secondary); gap: 10px;
-  grid-column: 1 / -1;
-}
-.empty-state i { font-size: 36px; opacity: 0.2; color: var(--accent); }
-.empty-state p { font-size: 13px; opacity: 0.55; }
-
-  </style>
+</style>
 </head>
-<body class="theme-dark font-serif">
+<body>
 
-<!-- Loading GIF -->
-<div class="loading-gif-wrap" id="loadingGifWrap" style="display:none;">
-  <img id="loadingGifImg" src="IMG_4861.gif" alt="Loading">
-</div>
-
-<!-- Toast -->
-<div class="toast" id="toast"></div>
-
-<!-- ══ HEADER ══ -->
-<div class="header-wrapper">
-  <div class="header">
-    <div class="header-logo" onclick="location.href='index.html'">
-      <img src="IMG_3220.png" alt="Patholytica">
+<header class="header">
+  <div class="header-left">
+    <div class="header-logo">Patholytica <span>Tag Tools</span></div>
+    <div class="tab-switch">
+      <button class="tab-btn active" id="tabBtnStudio" data-tab="studio"><i class="fa fa-wand-magic-sparkles"></i> Tag Studio</button>
+      <button class="tab-btn" id="tabBtnAlgo" data-tab="algo"><i class="fa fa-layer-group"></i> AlgoTag Sync</button>
     </div>
-    <div class="header-right">
-      <div class="hdr-chip" id="authChip" onclick="handleAuthChip()">
-        <i class="fas fa-sign-in-alt" id="authChipIcon"></i>
-        <span id="authChipText">Log in</span>
+  </div>
+  <div class="header-status">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Not connected</span>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div>
+      <div class="sidebar-section-label">Supabase Config</div>
+      <div class="config-field">
+        <label>Project URL</label>
+        <input id="sbUrl" type="text" placeholder="https://xxx.supabase.co" />
       </div>
-      <button class="hdr-icon-btn" id="settingsBtn" onclick="toggleSettings(this)" title="Settings">
-        <i class="fas fa-sliders-h"></i>
+      <div class="config-field">
+        <label>Anon Key</label>
+        <input id="sbKey" type="password" placeholder="eyJ..." />
+      </div>
+      <div class="config-field">
+        <label>Articles table</label>
+        <input id="sbTable" type="text" value="articles" />
+      </div>
+      <div class="config-field">
+        <label>Tags column</label>
+        <input id="tagsCol" type="text" value="tags" />
+      </div>
+      <button class="btn btn-primary" id="btnLoad">
+        <i class="fa fa-plug"></i> Connect
       </button>
+      <div class="config-field-hint" style="margin-top:8px">Credentials are stored only in this browser's local storage.</div>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- Studio-only sidebar section -->
+    <div id="sidebarStudioOnly">
+      <div class="sidebar-section-label">AI Provider</div>
+      <div class="config-field">
+        <label>Provider</label>
+        <select id="aiProvider">
+          <option value="puter" selected>Puter.js (no key needed)</option>
+          <option value="openrouter">OpenRouter (bring your own key)</option>
+        </select>
+      </div>
+      <div class="config-field" id="modelFieldPuter">
+        <label>Model via Puter.js</label>
+        <select id="aiModelPuter">
+          <option value="anthropic/claude-opus-4-8">Claude Opus 4.8</option>
+          <option value="anthropic/claude-sonnet-4-6" selected>Claude Sonnet 4.6</option>
+          <option value="openai/gpt-5.5">GPT-5.5</option>
+          <option value="google/gemini-3.5-flash">Gemini 3.5 Flash</option>
+          <option value="deepseek/deepseek-v4-pro">DeepSeek V4 Pro</option>
+        </select>
+      </div>
+      <div class="config-field" id="modelFieldOpenrouter" style="display:none">
+        <label>Model via OpenRouter</label>
+        <select id="aiModelOpenrouter">
+          <option value="~openai/gpt-latest" selected>GPT (latest)</option>
+          <option value="~anthropic/claude-sonnet-latest">Claude Sonnet (latest)</option>
+          <option value="anthropic/claude-opus-4.8">Claude Opus 4.8</option>
+          <option value="google/gemini-3.5-flash">Gemini 3.5 Flash</option>
+          <option value="deepseek/deepseek-v4-pro">DeepSeek V4 Pro</option>
+        </select>
+      </div>
+      <div class="config-field" id="keyFieldOpenrouter" style="display:none">
+        <label>OpenRouter API Key</label>
+        <input id="orKey" type="password" placeholder="sk-or-v1-..." autocomplete="off" />
+        <div class="config-field-hint">Stored only in this browser's local storage. Get a key at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>.</div>
+      </div>
+      <div class="config-field">
+        <label>Max tags per article</label>
+        <input id="maxTags" type="number" value="5" min="1" max="15" />
+      </div>
+      <hr class="divider" style="margin:14px 0" />
+      <div class="sidebar-section-label">Session Stats</div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-num" id="statTotal">&mdash;</div><div class="stat-label">Untagged</div></div>
+        <div class="stat-box"><div class="stat-num" id="statDone">0</div><div class="stat-label">Tagged</div></div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Progress</span><span id="progressPctStudio">0%</span></div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFillStudio"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Algo-only sidebar section -->
+    <div id="sidebarAlgoOnly" style="display:none">
+      <div class="sidebar-section-label">Playlists table</div>
+      <div class="config-field">
+        <label>Table name</label>
+        <input id="plTable" type="text" value="playlists" />
+      </div>
+      <div class="config-field">
+        <label>Junction table</label>
+        <input id="plItemsTable" type="text" value="playlist_items" />
+      </div>
+      <hr class="divider" style="margin:14px 0" />
+      <div class="sidebar-section-label">Session Stats</div>
+      <div class="stats-row four">
+        <div class="stat-box"><div class="stat-num" id="statTags">&mdash;</div><div class="stat-label">Tags found</div></div>
+        <div class="stat-box"><div class="stat-num" id="statNew">0</div><div class="stat-label">New libs</div></div>
+        <div class="stat-box"><div class="stat-num" id="statUpdated">0</div><div class="stat-label">Updated</div></div>
+        <div class="stat-box"><div class="stat-num" id="statArticles">&mdash;</div><div class="stat-label">Articles</div></div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Sync progress</span><span id="progressPctAlgo">0%</span></div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFillAlgo"></div></div>
+        </div>
+      </div>
+      <hr class="divider" style="margin:14px 0" />
+      <div style="font-size:12px;color:var(--muted);line-height:1.7">
+        <div style="color:var(--gold-dim);font-weight:600;margin-bottom:8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase">How it works</div>
+        Reads every article's tags, then for each unique tag creates or updates a library named <code style="color:var(--gold);background:var(--tag-bg);padding:1px 5px;border-radius:3px">algotag(name)</code>, adding only articles not already linked &mdash; no duplicates. Membership is checked at scan time, so tags that are already fully up to date land directly under "Already Synced" &mdash; you don't need to click Sync just to find out nothing was missing.
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- Tag Studio panel -->
+    <div class="tab-panel active" id="panelStudio">
+      <div class="main-toolbar">
+        <div class="toolbar-left">
+          <span class="queue-title">Tagging Queue</span>
+          <span class="queue-count" id="queueCountStudio">0 articles</span>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn btn-ghost" id="btnRefreshStudio" style="display:none">
+            <i class="fa fa-rotate-right"></i> Refresh
+          </button>
+          <button class="btn-run-all" id="btnTagAll" disabled>
+            <i class="fa fa-wand-magic-sparkles"></i> Tag All with AI
+          </button>
+        </div>
+      </div>
+      <div class="cards-container" id="cardsContainerStudio">
+        <div class="state-panel">
+          <div class="state-icon"><i class="fa fa-database"></i></div>
+          <div class="state-title">Connect to get started</div>
+          <div class="state-sub">Enter your Supabase credentials in the sidebar and click Connect to load untagged articles.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AlgoTag panel -->
+    <div class="tab-panel" id="panelAlgo">
+      <div class="main-toolbar">
+        <div class="toolbar-left">
+          <span class="queue-title">Tag Libraries</span>
+          <span class="queue-count" id="queueCountAlgo">&mdash;</span>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn btn-ghost" id="btnRefreshAlgo" style="display:none">
+            <i class="fa fa-magnifying-glass"></i> Rescan
+          </button>
+          <button class="btn-sync" id="btnSyncAll" disabled>
+            <i class="fa fa-arrows-rotate"></i> Sync All Tags
+          </button>
+        </div>
+      </div>
+      <div class="subtab-bar" id="algoSubtabBar" style="display:none">
+        <div class="tab-switch">
+          <button class="tab-btn active" id="subtabBtnUnsynced" data-subtab="unsynced"><i class="fa fa-arrows-rotate"></i> Needs Sync <span id="subtabCountUnsynced"></span></button>
+          <button class="tab-btn" id="subtabBtnSynced" data-subtab="synced"><i class="fa fa-check"></i> Already Synced <span id="subtabCountSynced"></span></button>
+        </div>
+      </div>
+      <div class="cards-container" id="cardsContainerAlgo">
+        <div class="state-panel">
+          <div class="state-icon"><i class="fa fa-tags"></i></div>
+          <div class="state-title">Connect first</div>
+          <div class="state-sub">Connect to Supabase in the sidebar, then this tab will scan for tags automatically.</div>
+        </div>
+      </div>
+      <div class="log-panel" id="logPanel"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Article list modal -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <div class="modal-title" id="modalTitle">Library</div>
+        <div class="modal-sub" id="modalSub">algotag(&hellip;)</div>
+      </div>
+      <button class="modal-close" id="modalClose"><i class="fa fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <div class="modal-loading"><i class="fa fa-spinner fa-spin"></i> Loading articles&hellip;</div>
     </div>
   </div>
 </div>
 
-<!-- Settings Popover -->
-<div class="settings-popover" id="settingsPopover">
-  <div class="sp-header">
-    <span class="sp-title">Settings</span>
-    <button class="sp-close" onclick="closeSettings()">×</button>
-  </div>
-  <div class="sp-section">
-    <div class="sp-label">Theme</div>
-    <div class="sp-row" id="sp-themes">
-      <button class="sp-pill" data-val="theme-dark">Dark</button>
-      <button class="sp-pill" data-val="theme-light">Light</button>
-    </div>
-  </div>
-  <div class="sp-section">
-    <div class="sp-label">Font</div>
-    <div class="sp-row" id="sp-fonts">
-      <button class="sp-pill" data-val="font-serif">Serif</button>
-      <button class="sp-pill" data-val="font-slab">Slab</button>
-      <button class="sp-pill" data-val="font-modern">Modern</button>
-    </div>
-  </div>
-</div>
+<div id="toast"></div>
 
-<!-- ══ PAGE BODY ══ -->
-<div class="page-body">
-  <!-- Creators strip -->
-  <div class="creators-strip" id="creatorsStrip"></div>
-  <!-- Masonry grid -->
-  <div class="masonry-grid" id="mainGrid"></div>
-  <!-- Load more -->
-  <div class="load-more-wrap" id="loadMoreWrap" style="display:none;">
-    <button class="btn-load-more" id="loadMoreBtn" onclick="loadMore()">
-      <i class="fas fa-chevron-down"></i> Load more
-    </button>
-  </div>
-</div>
-
-<!-- ══ FOOTER ══ -->
-<div class="footer-bar">
-  <button class="footer-btn active" onclick="location.href='index.html'">
-    <i class="fas fa-home"></i><span>Home</span>
-  </button>
-  <button class="footer-btn" onclick="location.href='https://patholytica.com/dailyfeed'">
-    <i class="fas fa-scroll"></i><span>Feed</span>
-  </button>
-  <button class="footer-btn" onclick="location.href='explore.html'">
-    <i class="fas fa-search"></i><span>Explore</span>
-  </button>
-  <button class="footer-btn" onclick="location.href='https://patholytica.com/space'">
-    <i class="fas fa-th-large"></i><span>Space</span>
-  </button>
-</div>
-
-<!-- ══ SCRIPTS ══ -->
-
-<!-- 1. Theme persistence -->
 <script>
-(function(){
-  const theme   = localStorage.getItem('pref_theme')   || 'theme-dark';
-  const fontFam = localStorage.getItem('pref_fontfam') || 'font-serif';
-  const safeTheme = (theme === 'theme-light') ? 'theme-light' : 'theme-dark';
-  document.body.className = [safeTheme, fontFam].filter(Boolean).join(' ');
-  const gif = document.getElementById('loadingGifImg');
-  if(gif) gif.src = safeTheme === 'theme-light' ? 'IMG_4856.gif' : 'IMG_4861.gif';
-})();
-</script>
+(function() {
+  // ══════════════════════════════════════════════════════════
+  // SHARED STATE
+  // ══════════════════════════════════════════════════════════
+  var sbClient = null;
+  var connected = false;
+  var activeTab = 'studio';
+  var toastTimer = null;
 
-<!-- 2. Settings -->
-<script>
-(function(){
-  const THEMES = ['theme-dark','theme-light'];
-  const FONTS  = ['font-serif','font-slab','font-modern'];
+  // Tag Studio state
+  var articles = [];
+  var taggedCount = 0;
+  var isTaggingAll = false;
+  var cardTags = {};
+  var OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 
-  function applyTheme(val){
-    THEMES.forEach(t=>document.body.classList.remove(t));
-    document.body.classList.add(val);
-    localStorage.setItem('pref_theme', val);
-    const gif = document.getElementById('loadingGifImg');
-    if(gif) gif.src = val === 'theme-light' ? 'IMG_4856.gif' : 'IMG_4861.gif';
-  }
-  function applyFont(val){
-    FONTS.forEach(f=>document.body.classList.remove(f));
-    document.body.classList.add(val);
-    localStorage.setItem('pref_fontfam', val);
-  }
-  function syncPills(){
-    const curT = THEMES.find(t=>document.body.classList.contains(t))||'theme-dark';
-    const curF = FONTS.find(f=>document.body.classList.contains(f))||'font-serif';
-    document.querySelectorAll('#sp-themes [data-val]').forEach(b=>b.classList.toggle('active',b.dataset.val===curT));
-    document.querySelectorAll('#sp-fonts  [data-val]').forEach(b=>b.classList.toggle('active',b.dataset.val===curF));
-  }
-  document.getElementById('sp-themes').addEventListener('click',e=>{
-    const b=e.target.closest('[data-val]');if(!b)return;applyTheme(b.dataset.val);syncPills();
-  });
-  document.getElementById('sp-fonts').addEventListener('click',e=>{
-    const b=e.target.closest('[data-val]');if(!b)return;applyFont(b.dataset.val);syncPills();
-  });
+  // AlgoTag state
+  var tagRows = [];
+  var syncedNew = 0, syncedUpd = 0, isSyncing = false;
+  var algoScanned = false;
+  var algoSubtab = 'unsynced'; // 'unsynced' | 'synced' — which bucket renderCardsAlgo() shows.
+                                // Purely a display filter over tagRows; never reorders it.
 
-  let _open=false;
-  window.closeSettings=function(){document.getElementById('settingsPopover').classList.remove('open');_open=false;};
-  window.toggleSettings=function(btn){
-    const pop=document.getElementById('settingsPopover');
-    _open=!_open;
-    if(_open){
-      const r=btn.getBoundingClientRect();
-      pop.style.top=(r.bottom+8)+'px';
-      pop.style.right=Math.max(8,window.innerWidth-r.right)+'px';
-      pop.style.left='auto';
-      pop.classList.add('open'); syncPills();
-      setTimeout(()=>document.addEventListener('click',function oc(e){
-        if(!pop.contains(e.target)&&e.target!==btn&&!btn.contains(e.target)){pop.classList.remove('open');_open=false;}
-        document.removeEventListener('click',oc);
-      },10));
-    } else pop.classList.remove('open');
-  };
-  document.addEventListener('DOMContentLoaded',syncPills);
-})();
-</script>
+  // ══════════════════════════════════════════════════════════
+  // BOOT
+  // ══════════════════════════════════════════════════════════
+  document.addEventListener('DOMContentLoaded', function() {
+    var savedUrl = localStorage.getItem('patholytica_sb_url');
+    if (savedUrl) document.getElementById('sbUrl').value = savedUrl;
+    var savedKey = localStorage.getItem('patholytica_sb_key');
+    if (savedKey) document.getElementById('sbKey').value = savedKey;
 
-<!-- 3. Helpers -->
-<script>
-window.showToast=function(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400);};
-window.showLoadingGif=function(){document.getElementById('loadingGifWrap').style.display='flex';};
-window.hideLoadingGif=function(){document.getElementById('loadingGifWrap').style.display='none';};
-</script>
+    var savedOrKey = localStorage.getItem('patholytica_or_key');
+    if (savedOrKey) document.getElementById('orKey').value = savedOrKey;
 
-<!-- 4. MAIN MODULE -->
-<script type="module">
-import { initializeApp }        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-const firebaseConfig={
-  apiKey:"AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
-  authDomain:"patholytica.firebaseapp.com",
-  databaseURL:"https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId:"patholytica",
-  storageBucket:"patholytica.firebasestorage.app",
-  messagingSenderId:"738430635282",
-  appId:"1:738430635282:web:8451ef380447c7611137cb"
-};
-const app  = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const supabase = window.supabase.createClient(
-  "https://vduqewqyvszfquntmark.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
-);
-
-const STOCK_POOL = [
-  { url:'https://images.unsplash.com/photo-1530026186672-2cd00ffc50fe?w=600&q=80', h:340 },
-  { url:'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=600&q=80', h:300 },
-  { url:'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=600&q=80', h:280 },
-  { url:'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=600&q=80', h:260 },
-  { url:'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=600&q=80', h:320 },
-  { url:'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=600&q=80', h:350 },
-  { url:'https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?w=600&q=80', h:380 },
-  { url:'https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=600&q=80', h:290 },
-  { url:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&q=80', h:310 },
-  { url:'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=600&q=80', h:270 },
-  { url:'https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=600&q=80', h:360 },
-  { url:'https://images.unsplash.com/photo-1518152006812-edab29b069ac?w=600&q=80', h:300 },
-];
-
-function stockFor(id){ return STOCK_POOL[id % STOCK_POOL.length]; }
-
-/* ── State ── */
-let currentUserData = null;
-let artOffset = 0, artHasMore = true, artLoading = false;
-const ART_BATCH = 18;
-let libOffset  = 0;
-const LIB_PER_BATCH = 4;
-
-function esc(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
-function isMCQ(c){ return typeof c==='string'&&c.trimStart().startsWith('❔'); }
-function trunc(s,n){ s=s||''; return s.length>n?s.slice(0,n)+'…':s; }
-function fmtNum(n){ if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return String(n||0); }
-
-/* ── Auth ── */
-onAuthStateChanged(auth, async user=>{
-  const chip=document.getElementById('authChip');
-  const chipText=document.getElementById('authChipText');
-  const chipIcon=document.getElementById('authChipIcon');
-  if(user){
-    const{data:ud}=await supabase.from('users').select('user_id,username').eq('firebase_uid',user.uid).single();
-    if(ud){
-      currentUserData=ud;
-      chip.classList.add('logged-in');
-      chipText.textContent=ud.username?'@'+ud.username:'Account';
-      chipIcon.className='fas fa-circle';chipIcon.style.fontSize='6px';
+    var savedProvider = localStorage.getItem('patholytica_ai_provider');
+    if (savedProvider === 'openrouter' || savedProvider === 'puter') {
+      document.getElementById('aiProvider').value = savedProvider;
     }
-  }else{
-    currentUserData=null;chip.classList.remove('logged-in');
-    chipText.textContent='Log in';chipIcon.className='fas fa-sign-in-alt';chipIcon.style.fontSize='';
-  }
-});
-window.handleAuthChip=function(){
-  if(currentUserData) location.href=`profile.html?username=${encodeURIComponent(currentUserData.username||'')}`;
-  else location.href='login.html';
-};
+    updateProviderVisibility();
 
-/* ══════════════════════════════════════════════
-   CREATORS STRIP
-══════════════════════════════════════════════ */
-async function loadCreators(){
-  const strip=document.getElementById('creatorsStrip');
-  try{
-    const{data:arts}=await supabase.from('articles').select('firebase_user_id');
-    if(!arts){strip.innerHTML='';return;}
-    const counts={};
-    arts.forEach(a=>{if(a.firebase_user_id)counts[a.firebase_user_id]=(counts[a.firebase_user_id]||0)+1;});
-    const topUids=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([u])=>u);
-    if(!topUids.length){strip.innerHTML='';return;}
-    const{data:users}=await supabase.from('users').select('firebase_uid,username,full_name,pfp').in('firebase_uid',topUids);
-    const um={};(users||[]).forEach(u=>{um[u.firebase_uid]=u;});
-    strip.innerHTML=topUids.map(uid=>{
-      const u=um[uid];
-      const name=u?.username?'@'+u.username:(u?.full_name||'?');
-      const init=(name.replace(/^@/,'')||'?')[0].toUpperCase();
-      const av=u?.pfp?`<img src="${u.pfp}" alt="${init}">`:`${init}`;
-      const pUrl=u?.username?`profile.html?username=${encodeURIComponent(u.username)}`:'#';
-      return`<div class="creator-pill" onclick="location.href='${pUrl}'">
-        <div class="creator-pill-avatar">${av}</div>
-        <div class="creator-pill-name">${esc(name)}</div>
-      </div>`;
+    document.getElementById('sbUrl').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_sb_url', e.target.value.trim());
+    });
+    document.getElementById('sbKey').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_sb_key', e.target.value.trim());
+    });
+    document.getElementById('orKey').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_or_key', e.target.value.trim());
+    });
+    document.getElementById('aiProvider').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_ai_provider', e.target.value);
+      updateProviderVisibility();
+    });
+
+    document.getElementById('btnLoad').addEventListener('click', connectAndLoad);
+    document.getElementById('btnRefreshStudio').addEventListener('click', loadArticlesStudio);
+    document.getElementById('btnTagAll').addEventListener('click', tagAll);
+    document.getElementById('btnRefreshAlgo').addEventListener('click', scanTags);
+    document.getElementById('btnSyncAll').addEventListener('click', syncAll);
+
+    document.getElementById('tabBtnStudio').addEventListener('click', function(){ switchTab('studio'); });
+    document.getElementById('tabBtnAlgo').addEventListener('click', function(){ switchTab('algo'); });
+
+    document.getElementById('subtabBtnUnsynced').addEventListener('click', function(){ switchAlgoSubtab('unsynced'); });
+    document.getElementById('subtabBtnSynced').addEventListener('click', function(){ switchAlgoSubtab('synced'); });
+
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('modalBackdrop').addEventListener('click', function(e){
+      if (e.target.id === 'modalBackdrop') closeModal();
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════
+  // TAB SWITCHING
+  // ══════════════════════════════════════════════════════════
+  function switchTab(tab) {
+    activeTab = tab;
+    document.getElementById('tabBtnStudio').classList.toggle('active', tab === 'studio');
+    document.getElementById('tabBtnAlgo').classList.toggle('active', tab === 'algo');
+    document.getElementById('panelStudio').classList.toggle('active', tab === 'studio');
+    document.getElementById('panelAlgo').classList.toggle('active', tab === 'algo');
+    document.getElementById('sidebarStudioOnly').style.display = tab === 'studio' ? 'block' : 'none';
+    document.getElementById('sidebarAlgoOnly').style.display = tab === 'algo' ? 'block' : 'none';
+
+    if (tab === 'algo' && connected && !algoScanned) {
+      scanTags();
+    }
+  }
+
+  // Switches which half of tagRows is visible (Needs Sync vs Already Synced).
+  // This ONLY changes what renderCardsAlgo() filters and draws — it never
+  // touches tagRows itself, so every card's data-idx keeps pointing at its
+  // real position in the array no matter which sub-tab is on screen.
+  function switchAlgoSubtab(sub) {
+    algoSubtab = sub;
+    renderCardsAlgo();
+  }
+
+  function updateProviderVisibility() {
+    var provider = document.getElementById('aiProvider').value;
+    var isOpenRouter = provider === 'openrouter';
+    document.getElementById('modelFieldPuter').style.display      = isOpenRouter ? 'none' : 'flex';
+    document.getElementById('modelFieldOpenrouter').style.display = isOpenRouter ? 'flex' : 'none';
+    document.getElementById('keyFieldOpenrouter').style.display   = isOpenRouter ? 'flex' : 'none';
+  }
+
+  function getActiveModel() {
+    var provider = document.getElementById('aiProvider').value;
+    return provider === 'openrouter'
+      ? document.getElementById('aiModelOpenrouter').value
+      : document.getElementById('aiModelPuter').value;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // SUPABASE CONNECTION (shared — URL + anon key only, no auth/uid)
+  // ══════════════════════════════════════════════════════════
+  function getClient() {
+    var url = document.getElementById('sbUrl').value.trim().replace(/\/$/, '');
+    var key = document.getElementById('sbKey').value.trim();
+    if (!url || !key) { showToast('Enter Supabase URL and key first', 'error'); return null; }
+    sbClient = window.supabase.createClient(url, key);
+    return sbClient;
+  }
+
+  async function connectAndLoad() {
+    var client = getClient();
+    if (!client) return;
+
+    var btnLoad = document.getElementById('btnLoad');
+    btnLoad.disabled = true;
+    btnLoad.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Connecting…';
+    setStatus('connecting');
+
+    try {
+      // lightweight ping — just try to select from articles table
+      var table = document.getElementById('sbTable').value.trim() || 'articles';
+      var ping = await client.from(table).select('id', { count: 'exact', head: true });
+      if (ping.error) throw ping.error;
+
+      connected = true;
+      setStatus('connected');
+      showToast('Connected to Supabase', 'success');
+
+      await loadArticlesStudio();
+      algoScanned = false;
+      if (activeTab === 'algo') await scanTags();
+    } catch (err) {
+      console.error(err);
+      connected = false;
+      setStatus('error');
+      showToast('Connection failed: ' + err.message, 'error');
+    } finally {
+      btnLoad.disabled = false;
+      btnLoad.innerHTML = '<i class="fa fa-plug"></i> Connect';
+    }
+  }
+
+  function setStatus(state) {
+    var dot = document.getElementById('statusDot');
+    var text = document.getElementById('statusText');
+    dot.className = 'status-dot';
+    if (state === 'connected') {
+      dot.classList.add('connected');
+      text.textContent = 'Connected';
+    } else if (state === 'connecting') {
+      text.textContent = 'Connecting…';
+    } else if (state === 'error') {
+      dot.classList.add('error');
+      text.textContent = 'Connection error';
+    } else {
+      text.textContent = 'Not connected';
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // TAG STUDIO
+  // ══════════════════════════════════════════════════════════
+  async function loadArticlesStudio() {
+    if (!sbClient) { showToast('Connect to Supabase first', 'error'); return; }
+
+    var table   = document.getElementById('sbTable').value.trim() || 'articles';
+    var tagsCol = document.getElementById('tagsCol').value.trim() || 'tags';
+
+    showSkeletonsStudio();
+
+    try {
+      var result = await sbClient
+        .from(table)
+        .select('*')
+        .or(tagsCol + '.is.null,' + tagsCol + '.eq.{}')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (result.error) throw result.error;
+
+      articles = result.data || [];
+      cardTags = {};
+      taggedCount = 0;
+      renderCardsStudio(articles);
+      updateStatsStudio(articles.length, 0);
+      document.getElementById('btnRefreshStudio').style.display = 'flex';
+      document.getElementById('btnTagAll').disabled = articles.length === 0;
+      showToast('Loaded ' + articles.length + ' untagged article' + (articles.length !== 1 ? 's' : ''), 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to load: ' + err.message, 'error');
+      showErrorStateStudio(err.message);
+    }
+  }
+
+  function renderCardsStudio(data) {
+    var container = document.getElementById('cardsContainerStudio');
+    document.getElementById('queueCountStudio').textContent = data.length + ' article' + (data.length !== 1 ? 's' : '');
+
+    if (data.length === 0) {
+      container.innerHTML = '<div class="state-panel"><div class="state-icon"><i class="fa fa-check-circle" style="color:var(--success)"></i></div><div class="state-title">All caught up!</div><div class="state-sub">No untagged articles found.</div></div>';
+      return;
+    }
+
+    container.innerHTML = data.map(function(article, i) {
+      var title   = article.title || article.name || article.heading || '(Untitled)';
+      var content = article.content || article.body || article.text || article.summary || article.excerpt || '';
+      var snippet = (typeof content === 'string' ? content : JSON.stringify(content)).slice(0, 220);
+      var id      = String(article.id);
+
+      return '<div class="article-card" id="card-' + id + '" data-id="' + id + '">' +
+        '<div class="card-header">' +
+          '<div class="card-index">' + String(i+1).padStart(2,'0') + '</div>' +
+          '<div class="card-meta">' +
+            '<div class="card-title">' + escHtml(title) + '</div>' +
+            (snippet ? '<div class="card-excerpt">' + escHtml(snippet) + '</div>' : '') +
+          '</div>' +
+          '<span class="card-badge badge-pending" id="badge-' + id + '">Untagged</span>' +
+        '</div>' +
+        '<div class="card-body">' +
+          '<div class="tag-area" id="tags-' + id + '"><span style="font-size:12px;color:var(--muted);font-style:italic">No tags yet</span></div>' +
+          '<div class="tag-input-wrap">' +
+            '<input class="tag-input" id="taginput-' + id + '" placeholder="Add tag manually…" data-card-id="' + id + '" />' +
+            '<button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" data-add-tag="' + id + '"><i class="fa fa-plus"></i></button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="card-footer">' +
+          '<div class="card-footer-left">' +
+            '<button class="btn-tag-ai" id="aibtn-' + id + '" data-ai-tag="' + id + '"><i class="fa fa-wand-magic-sparkles"></i> Tag with AI</button>' +
+          '</div>' +
+          '<button class="btn-save" id="savebtn-' + id + '" data-save="' + id + '"><i class="fa fa-floppy-disk"></i> Save Tags</button>' +
+        '</div>' +
+      '</div>';
     }).join('');
-  }catch(e){strip.innerHTML='';}
-}
 
-/* ══════════════════════════════════════════════
-   BUILD ARTICLE PIN
-══════════════════════════════════════════════ */
-function buildArticlePin(article, imageUrl){
-  const div=document.createElement('div');
-  div.className='pin-card';
-  const mcq=isMCQ(article.content);
-  const title=article.title||'Untitled';
-
-  let imgSrc = imageUrl;
-  let imgH   = null;
-  if(!imgSrc){
-    const stock = stockFor(article.id);
-    imgSrc = stock.url;
-    imgH   = stock.h;
+    container.removeEventListener('click', handleCardClickStudio);
+    container.removeEventListener('keydown', handleCardKeydownStudio);
+    container.addEventListener('click', handleCardClickStudio);
+    container.addEventListener('keydown', handleCardKeydownStudio);
   }
 
-  const imgStyle = imgH ? `height:${imgH}px;` : '';
+  function handleCardClickStudio(e) {
+    var aiBtn  = e.target.closest('[data-ai-tag]');
+    var addBtn = e.target.closest('[data-add-tag]');
+    var saveBtn= e.target.closest('[data-save]');
+    var rmBtn  = e.target.closest('[data-remove-tag]');
 
-  div.innerHTML=`
-    <img class="pin-card-img${imgH?' fixed-ratio':''}"
-         src="${esc(imgSrc)}"
-         alt="${esc(title)}"
-         loading="lazy"
-         style="${imgStyle}object-fit:cover;"
-         onerror="this.src='${stockFor(article.id).url}'">
-    <div class="pin-card-overlay">
-      <div class="pin-overlay-title">${esc(trunc(title,90))}</div>
-      <div class="pin-overlay-meta">
-        ${mcq
-          ? `<div class="pin-badge mcq-badge"><i class="fas fa-question-circle"></i> MCQ</div>`
-          : `<div class="pin-badge"><i class="fas fa-file-alt"></i> Article</div>`
+    if (aiBtn)   tagArticleWithAI(aiBtn.dataset.aiTag);
+    if (addBtn)  addManualTag(addBtn.dataset.addTag);
+    if (saveBtn) saveArticleTags(saveBtn.dataset.save);
+    if (rmBtn)   removeTag(rmBtn.dataset.removeTag, rmBtn.dataset.removeVal);
+  }
+
+  function handleCardKeydownStudio(e) {
+    if ((e.key === 'Enter' || e.key === ',') && e.target.dataset.cardId) {
+      e.preventDefault();
+      addManualTag(e.target.dataset.cardId);
+    }
+  }
+
+  function getTags(id) {
+    if (!cardTags[id]) cardTags[id] = [];
+    return cardTags[id];
+  }
+  function setTags(id, tags) {
+    cardTags[id] = Array.from(new Set(tags.map(function(t){ return t.trim().toLowerCase(); }).filter(Boolean)));
+    renderTagChips(id);
+  }
+  function renderTagChips(id) {
+    var area = document.getElementById('tags-' + id);
+    if (!area) return;
+    var tags = getTags(id);
+    if (tags.length === 0) {
+      area.innerHTML = '<span style="font-size:12px;color:var(--muted);font-style:italic">No tags yet</span>';
+    } else {
+      area.innerHTML = tags.map(function(t) {
+        return '<span class="tag-chip">' + escHtml(t) +
+          '<button class="remove-tag" data-remove-tag="' + id + '" data-remove-val="' + escHtml(t) + '" title="Remove">×</button>' +
+          '</span>';
+      }).join('');
+    }
+  }
+  function removeTag(id, tag) {
+    cardTags[id] = getTags(id).filter(function(t){ return t !== tag; });
+    renderTagChips(id);
+  }
+  function addManualTag(id) {
+    var inp = document.getElementById('taginput-' + id);
+    if (!inp) return;
+    var val = inp.value.trim().toLowerCase().replace(/,/g, '');
+    if (val) {
+      setTags(id, getTags(id).concat([val]));
+      inp.value = '';
+      inp.focus();
+    }
+  }
+
+  function buildTagPrompt(title, snippet, maxTags) {
+    return 'You are an algorithm content tagger for Patholytica, an adaptive learning/ reading platform.\n\n' +
+      'Article title: "' + title + '"\n' +
+      'Article content (excerpt): "' + snippet + '"\n\n' +
+      'Generate up to ' + maxTags + ' precise, lowercase, hyphenated tags for this article.\n' +
+      'tags should reflect the topics of relation to the article from extreme to modrate relation. or learning topic.\n' +
+      'Examples of good tags: nephrology, aki, fluid-overload, ecg-interpretation, pharmacology, type-2-diabetes\n\n' +
+      'Return ONLY a JSON array of tag strings — no explanation, no markdown. Example: ["nephrology","aki","fluid-management"]';
+  }
+
+  function extractTagArray(raw) {
+    var match = raw.match(/\[[\s\S]*?\]/);
+    if (!match) throw new Error('No JSON array in AI response');
+    var tags = JSON.parse(match[0]);
+    if (!Array.isArray(tags)) throw new Error('AI did not return an array');
+    return tags;
+  }
+
+  async function callPuter(prompt, model) {
+    var response = await puter.ai.chat(prompt, { model: model });
+    var raw = '';
+    if (typeof response === 'string') {
+      raw = response;
+    } else if (response && response.message && response.message.content) {
+      raw = Array.isArray(response.message.content)
+        ? response.message.content.map(function(c){ return c.text || ''; }).join('')
+        : response.message.content;
+    } else {
+      raw = JSON.stringify(response);
+    }
+    return raw;
+  }
+
+  async function callOpenRouter(prompt, model) {
+    var apiKey = document.getElementById('orKey').value.trim();
+    if (!apiKey) throw new Error('Enter an OpenRouter API key in the sidebar first');
+
+    var res = await fetch(OPENROUTER_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json',
+        'X-OpenRouter-Title': 'Patholytica Tag Studio'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 300
+      })
+    });
+
+    var data = await res.json();
+    if (!res.ok) {
+      var msg = (data && data.error && data.error.message) ? data.error.message : ('OpenRouter request failed (' + res.status + ')');
+      throw new Error(msg);
+    }
+    var content = data && data.choices && data.choices[0] && data.choices[0].message
+      ? data.choices[0].message.content
+      : null;
+    if (!content) throw new Error('OpenRouter returned no content');
+    return content;
+  }
+
+  async function tagArticleWithAI(id) {
+    var article = articles.find(function(a){ return String(a.id) === String(id); });
+    if (!article) return;
+
+    var provider = document.getElementById('aiProvider').value;
+    var model    = getActiveModel();
+    var maxTags  = parseInt(document.getElementById('maxTags').value) || 5;
+    var card     = document.getElementById('card-' + id);
+    var badge    = document.getElementById('badge-' + id);
+    var aibtn    = document.getElementById('aibtn-' + id);
+    var tagArea  = document.getElementById('tags-' + id);
+
+    if (provider === 'openrouter' && !document.getElementById('orKey').value.trim()) {
+      showToast('Enter an OpenRouter API key in the sidebar first', 'error');
+      return;
+    }
+
+    card.classList.add('tagging');
+    badge.className = 'card-badge badge-tagging';
+    badge.textContent = 'Tagging…';
+    aibtn.disabled = true;
+    tagArea.innerHTML = '<div class="thinking-pulse">AI is reading…</div>';
+
+    var title   = article.title || article.name || article.heading || '';
+    var content = article.content || article.body || article.text || article.summary || '';
+    var snippet = (typeof content === 'string' ? content : JSON.stringify(content)).slice(0, 1200);
+    var prompt  = buildTagPrompt(title, snippet, maxTags);
+
+    try {
+      var raw = provider === 'openrouter'
+        ? await callOpenRouter(prompt, model)
+        : await callPuter(prompt, model);
+
+      var tags = extractTagArray(raw);
+
+      setTags(id, tags);
+      card.classList.remove('tagging');
+      badge.className = 'card-badge badge-done';
+      badge.textContent = 'AI Tagged';
+    } catch (err) {
+      console.error('AI error:', err);
+      card.classList.remove('tagging');
+      card.classList.add('error');
+      badge.className = 'card-badge badge-error';
+      badge.textContent = 'Error';
+      tagArea.innerHTML = '<span style="font-size:12px;color:var(--danger)"><i class="fa fa-triangle-exclamation"></i> ' + escHtml(err.message) + '</span>';
+      showToast('AI error: ' + err.message, 'error');
+    } finally {
+      aibtn.disabled = false;
+    }
+  }
+
+  async function saveArticleTags(id) {
+    if (!sbClient) { showToast('Not connected to Supabase', 'error'); return; }
+
+    var table   = document.getElementById('sbTable').value.trim() || 'articles';
+    var tagsCol = document.getElementById('tagsCol').value.trim() || 'tags';
+    var tags    = getTags(id);
+    var savebtn = document.getElementById('savebtn-' + id);
+    var badge   = document.getElementById('badge-' + id);
+    var card    = document.getElementById('card-' + id);
+
+    if (tags.length === 0) { showToast('Add at least one tag before saving', 'error'); return; }
+
+    savebtn.disabled = true;
+    savebtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving…';
+
+    try {
+      var update = {};
+      update[tagsCol] = tags;
+      var result = await sbClient.from(table).update(update).eq('id', id);
+      if (result.error) throw result.error;
+
+      card.classList.remove('tagging', 'error');
+      card.classList.add('done');
+      badge.className = 'card-badge badge-done';
+      badge.textContent = 'Saved ✓';
+      savebtn.innerHTML = '<i class="fa fa-check"></i> Saved';
+      savebtn.disabled = true;
+
+      taggedCount++;
+      updateStatsStudio(articles.length, taggedCount);
+      var art = articles.find(function(a){ return String(a.id) === String(id); });
+      showToast('Saved ' + tags.length + ' tags for "' + (art ? escHtml(art.title || id) : id) + '"', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Save failed: ' + err.message, 'error');
+      savebtn.disabled = false;
+      savebtn.innerHTML = '<i class="fa fa-floppy-disk"></i> Save Tags';
+    }
+  }
+
+  async function tagAll() {
+    if (isTaggingAll) return;
+
+    var provider = document.getElementById('aiProvider').value;
+    if (provider === 'openrouter' && !document.getElementById('orKey').value.trim()) {
+      showToast('Enter an OpenRouter API key in the sidebar first', 'error');
+      return;
+    }
+
+    isTaggingAll = true;
+    var btn = document.getElementById('btnTagAll');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Tagging…';
+    var saved = 0;
+
+    for (var i = 0; i < articles.length; i++) {
+      var id = String(articles[i].id);
+      var badge = document.getElementById('badge-' + id);
+      if (badge && badge.textContent === 'Saved ✓') continue;
+
+      await tagArticleWithAI(id);
+      var tags = getTags(id);
+      if (tags.length > 0) {
+        await saveArticleTags(id);
+        saved++;
+      }
+      await new Promise(function(r){ setTimeout(r, 800); });
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-wand-magic-sparkles"></i> Tag All with AI';
+    isTaggingAll = false;
+    showToast('Done! Tagged and saved ' + saved + ' articles.', 'success');
+  }
+
+  function updateStatsStudio(total, done) {
+    document.getElementById('statTotal').textContent = total - done;
+    document.getElementById('statDone').textContent  = done;
+    var pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    document.getElementById('progressPctStudio').textContent  = pct + '%';
+    document.getElementById('progressFillStudio').style.width = pct + '%';
+  }
+
+  function showSkeletonsStudio() {
+    var html = '';
+    for (var i = 0; i < 4; i++) {
+      html += '<div class="skel-card"><div class="skel-line skeleton w80"></div><div class="skel-line skeleton w60" style="margin-top:6px"></div><div class="skel-line skeleton w40" style="margin-top:10px"></div></div>';
+    }
+    document.getElementById('cardsContainerStudio').innerHTML = html;
+  }
+
+  function showErrorStateStudio(msg) {
+    document.getElementById('cardsContainerStudio').innerHTML =
+      '<div class="state-panel"><div class="state-icon"><i class="fa fa-triangle-exclamation" style="color:var(--danger)"></i></div><div class="state-title">Load failed</div><div class="state-sub">' + escHtml(msg) + '</div></div>';
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // ALGOTAG SYNC
+  // ══════════════════════════════════════════════════════════
+  function algotagName(t){ return 'algotag(' + t + ')'; }
+
+  // Normalize a raw tags cell (postgres text[] array, JSON-stringified array, or comma string) into a clean lowercase list
+  function parseTagsCell(raw) {
+    if (raw == null) return [];
+    if (Array.isArray(raw)) {
+      return raw.map(function(t){ return String(t).trim().toLowerCase(); }).filter(Boolean);
+    }
+    var str = String(raw).trim();
+    if (!str) return [];
+    // postgres array literal like {a,b,c}
+    if (str.startsWith('{') && str.endsWith('}')) {
+      str = str.slice(1, -1);
+      return str.split(',').map(function(t){ return t.trim().replace(/^"|"$/g,'').toLowerCase(); }).filter(Boolean);
+    }
+    // JSON array string
+    if (str.startsWith('[')) {
+      try {
+        var arr = JSON.parse(str);
+        if (Array.isArray(arr)) return arr.map(function(t){ return String(t).trim().toLowerCase(); }).filter(Boolean);
+      } catch(e) { /* fall through */ }
+    }
+    // plain comma-separated
+    return str.split(',').map(function(t){ return t.trim().toLowerCase(); }).filter(Boolean);
+  }
+
+  async function scanTags() {
+    if (!sbClient) { showToast('Connect to Supabase first', 'error'); return; }
+
+    var articlesTable = document.getElementById('sbTable').value.trim() || 'articles';
+    var tagsCol       = document.getElementById('tagsCol').value.trim() || 'tags';
+    var plTable       = document.getElementById('plTable').value.trim() || 'playlists';
+    var plItemsTable  = document.getElementById('plItemsTable').value.trim() || 'playlist_items';
+
+    var btn = document.getElementById('btnRefreshAlgo');
+    var origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Scanning…';
+
+    syncedNew = 0; syncedUpd = 0;
+    algoSubtab = 'unsynced';
+    showSkeletonsAlgo();
+    clearLog(); showLog();
+
+    try {
+      appendLog('info', 'Loading articles with tags…');
+      var { data: arts, error: aE } = await sbClient
+        .from(articlesTable)
+        .select('id,title,' + tagsCol)
+        .not(tagsCol, 'is', null);
+      if (aE) throw aE;
+
+      var { count: tot } = await sbClient.from(articlesTable).select('id', { count: 'exact', head: true });
+      document.getElementById('statArticles').textContent = tot != null ? tot : arts.length;
+      appendLog('ok', 'Loaded ' + arts.length + ' articles with a tags value');
+
+      var tagMap = {}; // tag -> [article_id...]
+      var skippedEmpty = 0;
+      arts.forEach(function(a) {
+        var list = parseTagsCell(a[tagsCol]);
+        if (list.length === 0) { skippedEmpty++; return; }
+        list.forEach(function(t) {
+          if (!tagMap[t]) tagMap[t] = [];
+          if (tagMap[t].indexOf(a.id) === -1) tagMap[t].push(a.id);
+        });
+      });
+      if (skippedEmpty) appendLog('warn', skippedEmpty + ' article(s) had an empty tags value after parsing');
+
+      var uniq = Object.keys(tagMap).sort();
+      appendLog('info', uniq.length + ' unique tag(s) found');
+
+      var { data: pl, error: pE } = await sbClient
+        .from(plTable)
+        .select('id,name')
+        .like('name', 'algotag(%)');
+      if (pE) throw pE;
+
+      var exMap = {};
+      (pl || []).forEach(function(p) { exMap[p.name] = p; });
+      appendLog('ok', (pl || []).length + ' existing algotag librar' + ((pl||[]).length === 1 ? 'y' : 'ies') + ' found');
+
+      // ── Scan-time membership check ──
+      // This is the piece that was missing before: knowing whether a tag's
+      // library is ALREADY fully up to date, before the user ever clicks
+      // Sync. For every existing algotag library, batch-fetch all of its
+      // playlist_items rows in one paginated query (not one query per tag —
+      // that would mean N pagination reads per scan), then group by
+      // playlist_id client-side into a lookup of "article_id already linked".
+      var existingLibIds = (pl || []).map(function(p) { return p.id; });
+      var membershipByLib = {}; // playlist_id -> { article_id: true, ... }
+
+      if (existingLibIds.length > 0) {
+        appendLog('info', 'Checking existing library membership…');
+        var pageSize = 1000;
+        var from = 0;
+        while (true) {
+          var { data: items, error: mE } = await sbClient
+            .from(plItemsTable)
+            .select('playlist_id,article_id')
+            .in('playlist_id', existingLibIds)
+            .order('playlist_id', { ascending: true })
+            .range(from, from + pageSize - 1);
+          if (mE) throw mE;
+
+          (items || []).forEach(function(row) {
+            if (!membershipByLib[row.playlist_id]) membershipByLib[row.playlist_id] = {};
+            membershipByLib[row.playlist_id][row.article_id] = true;
+          });
+
+          if (!items || items.length < pageSize) break;
+          from += pageSize;
         }
-        <span class="pin-stat"><i class="fas fa-eye"></i>${fmtNum(article.views||0)}</span>
-        <span class="pin-stat"><i class="fas fa-heart"></i>${fmtNum(article.likes||0)}</span>
-      </div>
-    </div>`;
-
-  div.addEventListener('click',()=>{ location.href=`https://patholytica.com/dailyfeed?article=${article.id}`; });
-  return div;
-}
-
-/* ══════════════════════════════════════════════
-   BUILD LIBRARY PIN
-══════════════════════════════════════════════ */
-function buildLibraryPin(lib, articleCount){
-  const div=document.createElement('div');
-  div.className='pin-card';
-  const name=lib.name||'Untitled Library';
-
-  let imgSrc = lib.thumbnail_url;
-  let imgH   = null;
-  if(!imgSrc){
-    const stock = stockFor(lib.id + 500);
-    imgSrc = stock.url;
-    imgH   = stock.h;
-  }
-  const imgStyle = imgH ? `height:${imgH}px;` : '';
-
-  div.innerHTML=`
-    <img class="pin-card-img${imgH?' fixed-ratio':''}"
-         src="${esc(imgSrc)}"
-         alt="${esc(name)}"
-         loading="lazy"
-         style="${imgStyle}object-fit:cover;"
-         onerror="this.src='${stockFor(lib.id+500).url}'">
-    <div class="pin-card-overlay">
-      <div class="pin-overlay-title">${esc(trunc(name,70))}</div>
-      <div class="pin-overlay-meta">
-        <div class="pin-badge lib-badge"><i class="fas fa-layer-group"></i> Library</div>
-        <span class="pin-stat">${articleCount} article${articleCount!==1?'s':''}</span>
-      </div>
-    </div>`;
-
-  div.addEventListener('click',()=>{ location.href=`https://patholytica.com/dailyfeed?playlist=${lib.id}`; });
-  return div;
-}
-
-/* ══════════════════════════════════════════════
-   SKELETONS
-══════════════════════════════════════════════ */
-function injectSkeletons(n=8){
-  const grid=document.getElementById('mainGrid');
-  for(let i=0;i<n;i++){
-    const sk=document.createElement('div');sk.className='pin-skeleton';grid.appendChild(sk);
-  }
-}
-function clearSkeletons(){ document.querySelectorAll('.pin-skeleton').forEach(s=>s.remove()); }
-
-/* ══════════════════════════════════════════════
-   MAIN LOADER
-══════════════════════════════════════════════ */
-async function loadBatch(isInitial=true){
-  if(artLoading||(!isInitial&&!artHasMore))return;
-  artLoading=true;
-  const grid=document.getElementById('mainGrid');
-
-  if(isInitial){ showLoadingGif(); injectSkeletons(10); }
-
-  try{
-    const{data:arts,error:aErr}=await supabase
-      .from('articles').select('*')
-      .order('created_at',{ascending:false})
-      .range(artOffset, artOffset+ART_BATCH-1);
-    if(aErr)throw aErr;
-
-    if(!arts||arts.length===0){ artHasMore=false; }
-    else{
-      artOffset+=arts.length;
-      if(arts.length<ART_BATCH) artHasMore=false;
-
-      const artIds=arts.map(a=>a.id);
-      const{data:media}=await supabase.from('media').select('article_id,url,type')
-        .in('article_id',artIds).eq('type','image').order('display_order',{ascending:true});
-      const imgMap={};
-      (media||[]).forEach(m=>{if(!imgMap[m.article_id])imgMap[m.article_id]=m.url;});
-
-      const{data:libs}=await supabase.from('playlists').select('*')
-        .order('created_at',{ascending:false})
-        .range(libOffset, libOffset+LIB_PER_BATCH-1);
-      libOffset+=(libs||[]).length;
-
-      const libIds=(libs||[]).map(l=>l.id);
-      let libCountMap={};
-      if(libIds.length){
-        const{data:irows}=await supabase.from('playlist_items').select('playlist_id').in('playlist_id',libIds);
-        (irows||[]).forEach(r=>{libCountMap[r.playlist_id]=(libCountMap[r.playlist_id]||0)+1;});
+        appendLog('ok', 'Membership check complete');
       }
 
-      clearSkeletons();
-      hideLoadingGif();
+      tagRows = uniq.map(function(t) {
+        var lib = exMap[algotagName(t)] || null;
+        var libId = lib ? lib.id : null;
 
-      let libIdx=0;
-      arts.forEach((art,i)=>{
-        grid.appendChild(buildArticlePin(art, imgMap[art.id]||null));
-        if((i+1)%4===0 && libs && libIdx<libs.length){
-          const lib=libs[libIdx++];
-          grid.appendChild(buildLibraryPin(lib, libCountMap[lib.id]||0));
+        // A tag only counts as "already synced" when its library exists AND
+        // every one of its current articleIds is already linked to it. Brand
+        // new tags (no library yet) are never pre-marked synced — there's
+        // nothing to check membership against until the library is created.
+        var alreadySynced = false;
+        if (libId != null) {
+          var existingSet = membershipByLib[libId] || {};
+          alreadySynced = tagMap[t].every(function(articleId) {
+            return existingSet[articleId] === true;
+          });
         }
+
+        return {
+          tag: t,
+          libName: algotagName(t),
+          articleIds: tagMap[t],
+          existingLibId: libId,
+          status: alreadySynced ? 'done' : (lib ? 'update' : 'new'),
+          synced: alreadySynced,
+          error: null
+        };
       });
-      if(libs){ while(libIdx<libs.length){ const l=libs[libIdx++]; grid.appendChild(buildLibraryPin(l,libCountMap[l.id]||0)); } }
+
+      var preSyncedCount = tagRows.filter(function(r){ return r.synced; }).length;
+      if (preSyncedCount) appendLog('ok', preSyncedCount + ' tag(s) already fully synced — no action needed');
+
+      algoScanned = true;
+      renderCardsAlgo();
+      updateStatsAlgo();
+      document.getElementById('btnSyncAll').disabled = tagRows.every(function(r){ return r.synced; });
+      document.getElementById('btnRefreshAlgo').style.display = 'flex';
+      showToast('Found ' + uniq.length + ' tags across ' + arts.length + ' articles', 'success');
+    } catch (err) {
+      console.error(err);
+      appendLog('err', err.message);
+      showToast('Scan failed: ' + err.message, 'error');
+      document.getElementById('algoSubtabBar').style.display = 'none';
+      document.getElementById('cardsContainerAlgo').innerHTML =
+        '<div class="state-panel"><div class="state-icon"><i class="fa fa-triangle-exclamation" style="color:var(--danger)"></i></div><div class="state-title">Scan failed</div><div class="state-sub">' + escHtml(err.message) + '</div></div>';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
+
+  // Renders whichever sub-tab (Needs Sync / Already Synced) is active.
+  //
+  // Critical constraint carried over from planning: this filters tagRows
+  // for DISPLAY ONLY. It never reorders or mutates the underlying array,
+  // because syncTag(i) and the view-library modal both index into tagRows
+  // directly by position — reordering the array would make syncTag(i) act
+  // on the wrong row entirely. So we pair each row with its real index
+  // first, then filter the PAIRS into two buckets, and render each card
+  // with its real index baked into data-idx / element ids.
+  function renderCardsAlgo() {
+    var c = document.getElementById('cardsContainerAlgo');
+    var subtabBar = document.getElementById('algoSubtabBar');
+
+    if (!tagRows.length) {
+      subtabBar.style.display = 'none';
+      document.getElementById('queueCountAlgo').textContent = '0 tags';
+      c.innerHTML = '<div class="state-panel"><div class="state-icon"><i class="fa fa-check-circle" style="color:var(--success)"></i></div><div class="state-title">No tags found</div><div class="state-sub">Use Tag Studio to tag your articles first.</div></div>';
+      return;
     }
 
-    const lmw=document.getElementById('loadMoreWrap');
-    const lmb=document.getElementById('loadMoreBtn');
-    if(artHasMore){ lmw.style.display='block'; lmb.disabled=false; lmb.innerHTML='<i class="fas fa-chevron-down"></i> Load more'; }
-    else lmw.style.display='none';
+    var paired = tagRows.map(function(r, i) { return { r: r, i: i }; });
+    var unsyncedRows = paired.filter(function(p) { return !p.r.synced; });
+    var syncedRows   = paired.filter(function(p) { return p.r.synced; });
 
-  }catch(e){
-    console.error(e);
-    clearSkeletons(); hideLoadingGif();
-    grid.innerHTML+=`<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Failed to load</p></div>`;
-  }finally{
-    artLoading=false;
+    subtabBar.style.display = 'block';
+    document.getElementById('subtabCountUnsynced').textContent = '(' + unsyncedRows.length + ')';
+    document.getElementById('subtabCountSynced').textContent = '(' + syncedRows.length + ')';
+    document.getElementById('subtabBtnUnsynced').classList.toggle('active', algoSubtab === 'unsynced');
+    document.getElementById('subtabBtnSynced').classList.toggle('active', algoSubtab === 'synced');
+
+    var visible = algoSubtab === 'synced' ? syncedRows : unsyncedRows;
+    document.getElementById('queueCountAlgo').textContent = tagRows.length + ' tag' + (tagRows.length !== 1 ? 's' : '') + ' total';
+
+    if (visible.length === 0) {
+      var isSyncedTab = algoSubtab === 'synced';
+      var icon  = isSyncedTab ? 'fa-hourglass-half' : 'fa-check-circle';
+      var color = isSyncedTab ? 'var(--border2)' : 'var(--success)';
+      var title = isSyncedTab ? 'Nothing synced yet' : 'All tags are synced';
+      var sub   = isSyncedTab ? 'Sync a tag from "Needs Sync" and it will show up here.' : 'Every tag library is already up to date.';
+      c.innerHTML = '<div class="state-panel"><div class="state-icon" style="color:' + color + '"><i class="fa ' + icon + '"></i></div><div class="state-title">' + title + '</div><div class="state-sub">' + sub + '</div></div>';
+      return;
+    }
+
+    c.innerHTML = visible.map(function(p) {
+      var r = p.r, i = p.i;
+      var ic = r.status === 'new' ? 'fa-plus' : r.status === 'update' ? 'fa-pen-to-square' : 'fa-tags';
+      var bc = 'badge-' + (r.synced && r.status !== 'error' ? 'done' : r.status);
+      var bt = r.synced && r.status !== 'error' ? 'Synced' : r.status === 'new' ? 'New library' : r.status === 'update' ? 'Update' : r.status === 'error' ? 'Error' : r.status;
+      var ex = r.synced
+        ? '<span class="tag-meta-pill" style="color:var(--success)"><i class="fa fa-check" style="font-size:10px"></i> Fully synced — every tagged article is already in the library</span>'
+        : r.existingLibId
+        ? '<span class="tag-meta-pill" style="color:var(--warning)"><i class="fa fa-layer-group" style="font-size:10px"></i> Library exists &mdash; Sync will only add articles not already in it</span>'
+        : '<span class="tag-meta-pill" style="color:var(--success)"><i class="fa fa-sparkles" style="font-size:10px"></i> Will create new library</span>';
+
+      return '<div class="tag-card status-' + r.status + '" id="card-' + i + '"><div class="tag-card-inner">' +
+        '<div class="tag-icon"><i class="fa ' + ic + '"></i></div>' +
+        '<div class="tag-info"><div class="tag-name">' + escHtml(r.tag) + '</div><div class="tag-library-name">' + escHtml(r.libName) + '</div>' +
+        '<div class="tag-meta"><span class="tag-meta-pill"><i class="fa fa-file-medical" style="font-size:10px"></i> ' + r.articleIds.length + ' article(s) tagged</span>' + ex + '</div>' +
+        (r.error ? '<div style="font-size:11px;color:var(--danger);margin-top:5px">' + escHtml(r.error) + '</div>' : '') +
+        '</div>' +
+        '<span class="tag-status-badge ' + bc + '" id="badge-' + i + '">' + bt + '</span>' +
+        '<div class="tag-card-actions">' +
+          '<button class="tag-action-btn btn-view" data-view="' + i + '" title="View articles in this library"' + (r.existingLibId || r.synced ? '' : ' disabled') + '><i class="fa fa-eye"></i> View</button>' +
+          '<button class="tag-action-btn" id="sb-' + i + '" data-idx="' + i + '"' + (r.synced ? ' disabled' : '') + '>' +
+            (r.synced ? '<i class="fa fa-check"></i> Done' : '<i class="fa fa-arrows-rotate"></i> Sync') +
+          '</button>' +
+        '</div>' +
+      '</div></div>';
+    }).join('');
+
+    c.removeEventListener('click', onCardClickAlgo);
+    c.addEventListener('click', onCardClickAlgo);
   }
-}
 
-window.loadMore=async function(){
-  const btn=document.getElementById('loadMoreBtn');
-  btn.disabled=true; btn.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Loading…';
-  injectSkeletons(4);
-  await loadBatch(false);
-};
+  function onCardClickAlgo(e) {
+    var syncBtn = e.target.closest('[data-idx]');
+    var viewBtn = e.target.closest('[data-view]');
+    if (syncBtn) syncTag(+syncBtn.dataset.idx);
+    if (viewBtn && !viewBtn.disabled) openLibraryModal(+viewBtn.dataset.view);
+  }
 
-/* ── INIT ── */
-loadCreators();
-loadBatch(true);
+  async function syncTag(i) {
+    var r = tagRows[i];
+    if (!r || r.synced) return;
+
+    var plTable      = document.getElementById('plTable').value.trim() || 'playlists';
+    var plItemsTable = document.getElementById('plItemsTable').value.trim() || 'playlist_items';
+
+    // Cards can now genuinely be absent from the DOM while this runs — e.g.
+    // syncAll() looping over every unsynced tagRows entry while the user is
+    // looking at the "Already Synced" sub-tab, so card/badge/sb for a given
+    // i simply won't exist. Every DOM read below is null-guarded so that
+    // case degrades to "no in-place visual update for this row" instead of
+    // throwing on a null element and killing the rest of the batch.
+    var card  = document.getElementById('card-' + i);
+    var badge = document.getElementById('badge-' + i);
+    var sb    = document.getElementById('sb-' + i);
+
+    r.status = 'syncing';
+    if (card)  card.className = 'tag-card status-syncing';
+    if (badge) { badge.className = 'tag-status-badge badge-syncing'; badge.textContent = 'Syncing…'; }
+    if (sb)    { sb.disabled = true; sb.innerHTML = '<div class="thinking-pulse">Working</div>'; }
+
+    try {
+      var libId;
+
+      if (r.existingLibId) {
+        libId = r.existingLibId;
+        appendLog('info', '[' + r.tag + '] Library exists — adding via upsert (DB-level dedup)…');
+
+        // Previously this did a paginated SELECT of every existing article_id,
+        // built a JS Set, and inserted only what looked missing. That's a
+        // check-then-insert race: Postgres gives no ordering guarantee across
+        // separate paginated reads without an ORDER BY, and playlist_items has
+        // no unique constraint on (playlist_id, article_id) — so the JS check
+        // was the ONLY thing preventing duplicates, and any missed row in the
+        // read (skipped page boundary, RLS quirk, timing) meant an
+        // already-linked article silently got re-inserted.
+        //
+        // Fix: let Postgres itself enforce uniqueness via
+        // ON CONFLICT (playlist_id, article_id) DO NOTHING. This requires the
+        // unique constraint added by fix_playlist_items_dupes.sql — run that
+        // migration once before this code path will work.
+        var upsertRows = r.articleIds.map(function(id) { return { playlist_id: libId, article_id: id }; });
+        var { data: insertedRows, error: upE } = await sbClient
+          .from(plItemsTable)
+          .upsert(upsertRows, { onConflict: 'playlist_id,article_id', ignoreDuplicates: true })
+          .select('article_id');
+        if (upE) throw upE;
+
+        var addedCount = (insertedRows || []).length;
+        var skippedCount = upsertRows.length - addedCount;
+        if (addedCount) {
+          appendLog('ok', '[' + r.tag + '] Added ' + addedCount + ' new article(s), skipped ' + skippedCount + ' already present');
+        } else {
+          appendLog('warn', '[' + r.tag + '] All ' + upsertRows.length + ' article(s) already present — nothing to add');
+        }
+        syncedUpd++;
+        document.getElementById('statUpdated').textContent = syncedUpd;
+
+      } else {
+        appendLog('info', '[' + r.tag + '] Creating "' + r.libName + '"…');
+        var { data: nl, error: lE } = await sbClient
+          .from(plTable)
+          .insert([{ name: r.libName, description: 'Auto-generated library for tag: ' + r.tag }])
+          .select()
+          .single();
+        if (lE) throw lE;
+
+        libId = nl.id;
+        r.existingLibId = libId;
+        appendLog('ok', '[' + r.tag + '] Created library');
+
+        // Same upsert-based insert here too, so a double-click or a retried
+        // "Sync All" pass can never create duplicates for a brand-new library either.
+        var { error: itE } = await sbClient
+          .from(plItemsTable)
+          .upsert(r.articleIds.map(function(id) { return { playlist_id: libId, article_id: id }; }), { onConflict: 'playlist_id,article_id', ignoreDuplicates: true });
+        if (itE) throw itE;
+        appendLog('ok', '[' + r.tag + '] Added ' + r.articleIds.length + ' article(s)');
+
+        syncedNew++;
+        document.getElementById('statNew').textContent = syncedNew;
+      }
+
+      r.synced = true;
+      r.error = null;
+      r.status = 'done';
+
+      updateProgressAlgo();
+      // A newly-synced row needs to MOVE from "Needs Sync" to "Already
+      // Synced" — an in-place className/innerHTML patch on the existing
+      // card can't relocate it between sub-tabs, only a full
+      // renderCardsAlgo() pass can, since that's what decides which bucket
+      // each row lands in. This also means "Sync All" run from the wrong
+      // sub-tab still ends with every card in its correct final place.
+      renderCardsAlgo();
+      showToast('"' + r.libName + '" synced', 'success');
+    } catch (err) {
+      r.error = err.message;
+      r.status = 'error';
+      appendLog('err', '[' + r.tag + '] ' + err.message);
+      showToast('Error on ' + r.tag + ': ' + err.message, 'error');
+      renderCardsAlgo();
+    }
+  }
+
+  async function syncAll() {
+    if (isSyncing || !tagRows.length) return;
+    isSyncing = true;
+    var btn = document.getElementById('btnSyncAll');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Syncing…';
+
+    for (var i = 0; i < tagRows.length; i++) {
+      if (!tagRows[i].synced) {
+        await syncTag(i);
+        await new Promise(function(r) { setTimeout(r, 350); });
+      }
+    }
+
+    btn.innerHTML = '<i class="fa fa-arrows-rotate"></i> Sync All Tags';
+    btn.disabled = tagRows.every(function(r){ return r.synced; });
+    isSyncing = false;
+    showToast('Done! ' + syncedNew + ' new, ' + syncedUpd + ' updated.', 'success');
+  }
+
+  // ── Library contents modal ──
+  async function openLibraryModal(i) {
+    var r = tagRows[i];
+    if (!r || !r.existingLibId) return;
+
+    var plItemsTable  = document.getElementById('plItemsTable').value.trim() || 'playlist_items';
+    var articlesTable = document.getElementById('sbTable').value.trim() || 'articles';
+
+    document.getElementById('modalTitle').textContent = r.tag;
+    document.getElementById('modalSub').textContent = r.libName;
+    document.getElementById('modalBody').innerHTML = '<div class="modal-loading"><i class="fa fa-spinner fa-spin"></i> Loading articles…</div>';
+    document.getElementById('modalBackdrop').classList.add('show');
+
+    try {
+      var { data: items, error: iE } = await sbClient
+        .from(plItemsTable)
+        .select('article_id')
+        .eq('playlist_id', r.existingLibId);
+      if (iE) throw iE;
+
+      var ids = (items || []).map(function(x) { return x.article_id; });
+      if (ids.length === 0) {
+        document.getElementById('modalBody').innerHTML = '<div class="modal-empty">This library is empty.</div>';
+        return;
+      }
+
+      var { data: arts, error: aE } = await sbClient
+        .from(articlesTable)
+        .select('id,title')
+        .in('id', ids);
+      if (aE) throw aE;
+
+      var byId = {};
+      (arts || []).forEach(function(a) { byId[a.id] = a.title || a.name || ('Article #' + a.id); });
+
+      var rowsHtml = ids.map(function(id) {
+        var title = byId[id] || ('Article #' + id + ' (title unavailable)');
+        return '<div class="modal-article-row"><i class="fa fa-file-lines"></i><span>' + escHtml(title) + '</span></div>';
+      }).join('');
+
+      document.getElementById('modalBody').innerHTML = rowsHtml;
+    } catch (err) {
+      console.error(err);
+      document.getElementById('modalBody').innerHTML = '<div class="modal-empty" style="color:var(--danger)">Failed to load: ' + escHtml(err.message) + '</div>';
+    }
+  }
+
+  function closeModal() {
+    document.getElementById('modalBackdrop').classList.remove('show');
+  }
+
+  function updateStatsAlgo() {
+    document.getElementById('statTags').textContent = tagRows.length;
+    document.getElementById('statNew').textContent = syncedNew;
+    document.getElementById('statUpdated').textContent = syncedUpd;
+    updateProgressAlgo();
+  }
+  function updateProgressAlgo() {
+    var tot = tagRows.length, done = tagRows.filter(function(r) { return r.synced; }).length;
+    var p = tot > 0 ? Math.round(done / tot * 100) : 0;
+    document.getElementById('progressPctAlgo').textContent = p + '%';
+    document.getElementById('progressFillAlgo').style.width = p + '%';
+  }
+  function showSkeletonsAlgo() {
+    var h = '';
+    for (var i = 0; i < 5; i++) h += '<div class="skel-card"><div class="skel-icon skeleton"></div><div class="skel-body"><div class="skel-line skeleton" style="width:38%"></div><div class="skel-line skeleton" style="width:60%;margin-top:6px"></div></div></div>';
+    document.getElementById('cardsContainerAlgo').innerHTML = h;
+  }
+  function showLog() { document.getElementById('logPanel').classList.add('visible'); }
+  function clearLog() { document.getElementById('logPanel').innerHTML = ''; }
+  function appendLog(type, msg) {
+    var el = document.createElement('div');
+    el.className = 'log-entry ' + type;
+    el.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+    var p = document.getElementById('logPanel');
+    p.appendChild(el);
+    p.scrollTop = p.scrollHeight;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // SHARED UI HELPERS
+  // ══════════════════════════════════════════════════════════
+  function showToast(msg, type) {
+    var el = document.getElementById('toast');
+    var icon = type === 'success' ? '✓' : type === 'error' ? '⚠' : 'ℹ';
+    el.className = 'show ' + (type || '');
+    el.innerHTML = '<span>' + icon + '</span><span>' + escHtml(msg) + '</span>';
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { el.className = ''; }, 3200);
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+})();
 </script>
-
 </body>
 </html>
