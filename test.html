@@ -1032,13 +1032,13 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
       var bc = 'badge-' + (r.synced && r.status !== 'error' ? 'done' : r.status);
       var bt = r.synced && r.status !== 'error' ? 'Synced' : r.status === 'new' ? 'New library' : r.status === 'update' ? 'Update' : r.status === 'error' ? 'Error' : r.status;
       var ex = r.existingLibId
-        ? '<span class="tag-meta-pill" style="color:var(--warning)"><i class="fa fa-layer-group" style="font-size:10px"></i> Exists &mdash; adds only missing articles</span>'
+        ? '<span class="tag-meta-pill" style="color:var(--warning)"><i class="fa fa-layer-group" style="font-size:10px"></i> Library exists &mdash; Sync will only add articles not already in it</span>'
         : '<span class="tag-meta-pill" style="color:var(--success)"><i class="fa fa-sparkles" style="font-size:10px"></i> Will create new library</span>';
 
       return '<div class="tag-card status-' + r.status + '" id="card-' + i + '"><div class="tag-card-inner">' +
         '<div class="tag-icon"><i class="fa ' + ic + '"></i></div>' +
         '<div class="tag-info"><div class="tag-name">' + escHtml(r.tag) + '</div><div class="tag-library-name">' + escHtml(r.libName) + '</div>' +
-        '<div class="tag-meta"><span class="tag-meta-pill"><i class="fa fa-file-medical" style="font-size:10px"></i> ' + r.articleIds.length + ' art.</span>' + ex + '</div>' +
+        '<div class="tag-meta"><span class="tag-meta-pill"><i class="fa fa-file-medical" style="font-size:10px"></i> ' + r.articleIds.length + ' article(s) tagged</span>' + ex + '</div>' +
         (r.error ? '<div style="font-size:11px;color:var(--danger);margin-top:5px">' + escHtml(r.error) + '</div>' : '') +
         '</div>' +
         '<span class="tag-status-badge ' + bc + '" id="badge-' + i + '">' + bt + '</span>' +
@@ -1085,37 +1085,34 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
 
       if (r.existingLibId) {
         libId = r.existingLibId;
-        appendLog('info', '[' + r.tag + '] Library exists — checking for duplicates…');
+        appendLog('info', '[' + r.tag + '] Library exists — adding via upsert (DB-level dedup)…');
 
-        // Fetch ALL existing article_ids for this playlist (paginated to be safe on large libraries)
-        // IDs are normalized to strings before going into the Set — Supabase/postgrest can return
-        // article_id as a number while article.id elsewhere comes back as a string (or vice versa),
-        // and Set.has() is a strict-equality check, so 1 !== "1" would silently fail to match and
-        // the tool would think an article wasn't linked yet when it actually already was.
-        var had = new Set();
-        var pageSize = 1000, from = 0;
-        while (true) {
-          var { data: cur, error: cE } = await sbClient
-            .from(plItemsTable)
-            .select('article_id')
-            .eq('playlist_id', libId)
-            .range(from, from + pageSize - 1);
-          if (cE) throw cE;
-          (cur || []).forEach(function(x){ had.add(String(x.article_id)); });
-          if (!cur || cur.length < pageSize) break;
-          from += pageSize;
-        }
+        // Previously this did a paginated SELECT of every existing article_id,
+        // built a JS Set, and inserted only what looked missing. That's a
+        // check-then-insert race: Postgres gives no ordering guarantee across
+        // separate paginated reads without an ORDER BY, and playlist_items has
+        // no unique constraint on (playlist_id, article_id) — so the JS check
+        // was the ONLY thing preventing duplicates, and any missed row in the
+        // read (skipped page boundary, RLS quirk, timing) meant an
+        // already-linked article silently got re-inserted.
+        //
+        // Fix: let Postgres itself enforce uniqueness via
+        // ON CONFLICT (playlist_id, article_id) DO NOTHING. This requires the
+        // unique constraint added by fix_playlist_items_dupes.sql — run that
+        // migration once before this code path will work.
+        var upsertRows = r.articleIds.map(function(id) { return { playlist_id: libId, article_id: id }; });
+        var { data: insertedRows, error: upE } = await sbClient
+          .from(plItemsTable)
+          .upsert(upsertRows, { onConflict: 'playlist_id,article_id', ignoreDuplicates: true })
+          .select('article_id');
+        if (upE) throw upE;
 
-        var toAdd = r.articleIds.filter(function(id) { return !had.has(String(id)); });
-
-        if (toAdd.length) {
-          var { error: iE } = await sbClient
-            .from(plItemsTable)
-            .insert(toAdd.map(function(id) { return { playlist_id: libId, article_id: id }; }));
-          if (iE) throw iE;
-          appendLog('ok', '[' + r.tag + '] Added ' + toAdd.length + ' new article(s), skipped ' + (r.articleIds.length - toAdd.length) + ' already present');
+        var addedCount = (insertedRows || []).length;
+        var skippedCount = upsertRows.length - addedCount;
+        if (addedCount) {
+          appendLog('ok', '[' + r.tag + '] Added ' + addedCount + ' new article(s), skipped ' + skippedCount + ' already present');
         } else {
-          appendLog('warn', '[' + r.tag + '] All ' + r.articleIds.length + ' article(s) already present — nothing to add');
+          appendLog('warn', '[' + r.tag + '] All ' + upsertRows.length + ' article(s) already present — nothing to add');
         }
         syncedUpd++;
         document.getElementById('statUpdated').textContent = syncedUpd;
@@ -1133,9 +1130,11 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
         r.existingLibId = libId;
         appendLog('ok', '[' + r.tag + '] Created library');
 
+        // Same upsert-based insert here too, so a double-click or a retried
+        // "Sync All" pass can never create duplicates for a brand-new library either.
         var { error: itE } = await sbClient
           .from(plItemsTable)
-          .insert(r.articleIds.map(function(id) { return { playlist_id: libId, article_id: id }; }));
+          .upsert(r.articleIds.map(function(id) { return { playlist_id: libId, article_id: id }; }), { onConflict: 'playlist_id,article_id', ignoreDuplicates: true });
         if (itE) throw itE;
         appendLog('ok', '[' + r.tag + '] Added ' + r.articleIds.length + ' article(s)');
 
