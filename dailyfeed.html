@@ -79,7 +79,13 @@ body.fontsize-md { --font-size-base: 14px; --font-size-title: 20px; --font-size-
 body.fontsize-lg { --font-size-base: 16px; --font-size-title: 23px; --font-size-mcq: 21px; }
 body.fontsize-xl { --font-size-base: 18px; --font-size-title: 26px; --font-size-mcq: 24px; }
 
-/* ── EMOJI EFFECTS OFF ── */
+/* ── EMOJI EFFECTS OFF ──
+   Added font-family: inherit !important below — several .emo-* classes
+   set font-family (monospace for .emo-science/.emo-micro/.emo-robot,
+   var(--font-article) for .emo-book/.emo-temple) as part of their visual
+   styling, not just their color. Previously turning highlights off only
+   reset color/background/animation and left the font swap in place, so
+   text stayed monospace/serif even with "effects off". */
 body.no-emoji-effects .emo-fire,body.no-emoji-effects .emo-diamond,body.no-emoji-effects .emo-lightning,
 body.no-emoji-effects .emo-sparkle,body.no-emoji-effects .emo-rainbow,body.no-emoji-effects .emo-magic,
 body.no-emoji-effects .emo-earth,body.no-emoji-effects .emo-purple,body.no-emoji-effects .emo-idea,
@@ -109,6 +115,8 @@ body.no-emoji-effects .emo-money,body.no-emoji-effects .emo-warning {
   padding: 0 !important;
   font-style: normal !important;
   font-weight: inherit !important;
+  font-family: inherit !important;
+  letter-spacing: normal !important;
 }
 
 /* ══════════════════════════════════════════════
@@ -339,6 +347,16 @@ body {
   font-family: var(--font-article);
   transition: font-size 0.3s ease;
 }
+/* Clickable title styling — hover/active feedback before the redirect
+   fires, so the click reads as intentional rather than the title just
+   silently teleporting the user away. */
+.article-title-link, .mcq-question-link {
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.article-title-link:hover, .mcq-question-link:hover { color: var(--accent); }
+.article-title-link:active, .mcq-question-link:active { color: var(--accent-hover); }
+
 .article-stats {
   display: flex; align-items: center; gap: 14px;
   margin-bottom: 10px; flex-shrink: 0; padding: 0 18px;
@@ -742,13 +760,22 @@ body.theme-light .action-btn span {
   background: var(--bg-color);
   display: flex; flex-direction: column; overflow: hidden;
 }
+/* Entrance blur-in — mirrors the existing lp-card-exit treatment so
+   the picker card appearing and disappearing feel like a matched pair
+   rather than only having an exit animation. */
+@keyframes lp-card-enter {
+  0%{opacity:0; filter:blur(6px); transform:translateY(8px) scale(0.99);}
+  100%{opacity:1; filter:blur(0); transform:translateY(0) scale(1);}
+}
+.library-picker-card.entering { animation: lp-card-enter 0.45s cubic-bezier(0.2,0.8,0.2,1) forwards; }
+
 .lp-topbar {
   flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
   padding: calc(14px + env(safe-area-inset-top)) 18px 10px;
-  border-bottom: 1px solid var(--border-color);
 }
 .lp-topbar-logo { display: flex; align-items: center; gap: 7px; }
 .lp-topbar-logo img { height: 22px; }
+body.theme-light .lp-topbar-logo img { filter: invert(1) grayscale(1); }
 .lp-topbar-right { display: flex; align-items: center; gap: 8px; }
 .lp-login-chip {
   display: flex; align-items: center; gap: 6px;
@@ -815,27 +842,67 @@ body.theme-light .action-btn span {
 .lp-body::-webkit-scrollbar { width: 2px; }
 .lp-body::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
 .lp-section-label { font-size: 10px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); display: flex; align-items: center; gap: 6px; padding: 6px 18px; flex-shrink: 0; }
-.lp-shelf-wrap { overflow: visible; margin-bottom: 14px; }
-.lp-shelf { display: flex; gap: 12px; width: 100%; padding: 4px 18px 8px; overflow-x: auto; overflow-y: visible; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
-.lp-shelf::-webkit-scrollbar { height: 2px; }
-.lp-shelf::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
 
-.lp-movie-card { flex-shrink: 0; width: 110px; scroll-snap-align: start; cursor: pointer; position: relative; border-radius: 10px; overflow: visible; transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1); }
-.lp-movie-card:hover { transform: translateY(-4px) scale(1.02); z-index: 20; }
-.lp-movie-card.selected { transform: translateY(-4px) scale(1.04); z-index: 20; }
-.lp-movie-poster { width: 110px; aspect-ratio: 3/4; border-radius: 10px; overflow: hidden; position: relative; background: linear-gradient(135deg, var(--hover-bg), var(--bg-color)); border: 1px solid var(--border-color); box-shadow: 0 6px 20px rgba(0,0,0,0.5); transition: box-shadow 0.22s, border-color 0.22s; }
-.lp-movie-card.selected .lp-movie-poster { box-shadow: 0 0 0 2.5px var(--accent), 0 12px 32px var(--accent-glow); border-color: var(--accent); }
-.lp-movie-poster img { width: 100%; height: 100%; object-fit: cover; }
-.lp-poster-placeholder { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
-.lp-poster-letter { font-size: 24px; font-weight: 800; color: rgba(200,169,110,0.18); font-family: var(--font-article); }
-.lp-poster-icon { font-size: 16px; color: rgba(200,169,110,0.12); }
-.lp-movie-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(10,8,5,0.95) 0%, rgba(10,8,5,0.3) 50%, transparent 80%); display: flex; flex-direction: column; justify-content: flex-end; padding: 8px; }
-.lp-movie-count { display: inline-flex; align-items: center; gap: 3px; background: rgba(200,169,110,0.18); border: 1px solid rgba(200,169,110,0.25); backdrop-filter: blur(4px); border-radius: 5px; padding: 2px 6px; font-size: 9px; font-weight: 700; color: var(--accent); align-self: flex-start; margin-bottom: 4px; }
-.lp-movie-poster-name { font-size: 11px; font-weight: 700; color: #f5f0e8; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
-.lp-selected-badge { position: absolute; top: 7px; right: 7px; background: var(--accent); border-radius: 50%; width: 20px; height: 20px; display: none; align-items: center; justify-content: center; font-size: 10px; color: #0f0e0b; font-weight: 800; z-index: 5; }
-.lp-movie-card.selected .lp-selected-badge { display: flex; }
-.lp-movie-info { padding: 5px 2px 0; }
-.lp-movie-meta { font-size: 9px; color: var(--text-secondary); }
+/* Library rows — matches explore.html's .result-item list pattern */
+.lib-row-list { display: flex; flex-direction: column; padding: 0 18px; margin-bottom: 10px; }
+.lib-row {
+  display: flex; align-items: center; gap: 13px;
+  padding: 14px 0; border-bottom: 1px solid var(--border-color);
+  cursor: pointer; transition: background 0.15s, padding 0.15s, margin 0.15s;
+  position: relative;
+}
+.lib-row:hover { background: var(--hover-bg); margin: 0 -12px; padding: 14px 12px; border-radius: 10px; border-bottom-color: transparent; }
+.lib-row:last-child { border-bottom: none; }
+.lib-row.selected { background: var(--accent-soft); border-radius: 10px; margin: 0 -12px; padding: 14px 12px; border-bottom-color: transparent; }
+.lib-avatar {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+  background: rgba(106,159,207,0.12); border: 1.5px solid rgba(106,159,207,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 700; color: #6a9fcf;
+}
+.lib-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.lib-content { flex: 1; min-width: 0; }
+.lib-title { font-size: 14px; font-weight: 700; color: var(--text-primary); font-family: var(--font-article); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+.lib-subtitle { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
+.lib-badge {
+  padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0;
+  background: rgba(106,159,207,0.1); color: #6a9fcf; border: 1px solid rgba(106,159,207,0.2);
+}
+.lib-selected-check {
+  width: 20px; height: 20px; border-radius: 50%; background: var(--accent);
+  display: none; align-items: center; justify-content: center; font-size: 10px;
+  color: #0f0e0b; font-weight: 800; flex-shrink: 0; margin-left: 4px;
+}
+.lib-row.selected .lib-selected-check { display: flex; }
+
+/* Picks preview rows — read-only, same visual language as .lib-row but
+   with a rank number instead of a selectable badge/checkmark, and a
+   different accent tint so it reads as "your current feed order",
+   distinct from the selectable libraries above it. */
+.picks-row-list { display: flex; flex-direction: column; padding: 0 18px; margin-bottom: 10px; }
+.picks-row {
+  display: flex; align-items: center; gap: 13px;
+  padding: 12px 0; border-bottom: 1px solid var(--border-color);
+}
+.picks-row:last-child { border-bottom: none; }
+.picks-rank {
+  width: 26px; flex-shrink: 0; text-align: center;
+  font-family: var(--mono, 'DM Sans', sans-serif); font-size: 13px; font-weight: 700;
+  color: var(--accent);
+}
+.picks-avatar {
+  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+  background: rgba(106,191,133,0.12); border: 1.5px solid rgba(106,191,133,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: #6abf85;
+}
+.picks-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.picks-content { flex: 1; min-width: 0; }
+.picks-title { font-size: 13px; font-weight: 700; color: var(--text-primary); font-family: var(--font-article); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.picks-empty-note {
+  padding: 16px 18px 4px; font-size: 12px; color: var(--text-secondary); line-height: 1.6;
+}
 
 .lp-action-footer {
   flex-shrink: 0; padding: 10px 18px;
@@ -845,6 +912,13 @@ body.theme-light .action-btn span {
   display: flex; gap: 8px; align-items: center;
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  /* Sticky rather than relying on flex flow to naturally land above the
+     fixed tab bar — a long libraries/picks list could otherwise push
+     this element below the viewport, where the tab bar's z-index:100
+     would sit visually on top of it, blocking taps. */
+  position: sticky;
+  bottom: 0;
+  z-index: 60;
 }
 .lp-action-footer.visible { transform: translateY(0); }
 .lp-begin-btn {
@@ -871,6 +945,33 @@ body.theme-light .action-btn span {
 }
 .library-picker-card.exiting { animation: lp-card-exit 0.35s cubic-bezier(0.4,0,0.2,1) forwards; pointer-events: none; }
 .lp-loading { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 12px; padding: 30px 0; }
+
+/* ══════════════════════════════════════════════
+   END-OF-FEED CARD ("caught up" / "not personalized yet")
+   Four gradient variants, one picked at random each time this card
+   renders, so repeat visits to the end of the feed don't look identical.
+══════════════════════════════════════════════ */
+.end-feed-card {
+  position: relative; height: 100vh;
+  scroll-snap-align: start; scroll-snap-stop: always;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 40px 32px;
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+}
+.end-feed-variant-1 { background: radial-gradient(circle at 30% 20%, rgba(200,169,110,0.14), transparent 60%), var(--bg-color); }
+.end-feed-variant-2 { background: radial-gradient(circle at 70% 80%, rgba(106,191,133,0.12), transparent 55%), var(--bg-color); }
+.end-feed-variant-3 { background: linear-gradient(160deg, rgba(200,169,110,0.1), transparent 45%), var(--bg-color); }
+.end-feed-variant-4 { background: radial-gradient(circle at 50% 15%, rgba(106,159,207,0.12), transparent 60%), var(--bg-color); }
+.end-feed-icon {
+  font-size: 40px; color: var(--accent); margin-bottom: 18px; opacity: 0.85;
+}
+.end-feed-title {
+  font-family: var(--font-article); font-size: 22px; font-weight: 800;
+  color: var(--text-primary); margin-bottom: 10px; letter-spacing: -0.01em;
+}
+.end-feed-sub {
+  font-size: 13px; color: var(--text-secondary); max-width: 280px; line-height: 1.6;
+}
 
 /* ══════════════════════════════════════════════
    TERM POPUP
@@ -952,6 +1053,14 @@ body.theme-light .action-btn span {
 .emo-happy { color: #e0c050; display: inline-block; }
 .emo-calm { color: var(--accent); }
 .emo-surprised { color: #d4a86a; display: inline-block; }
+
+/* ── Light-mode overrides: three emoji styles hardcode dark-mode-only
+   backgrounds/text colors that go low-contrast or invisible against
+   the cream light background — these give them light-appropriate
+   equivalents so they stay readable in both themes. ── */
+body.theme-light .emo-dark { color: #4a4438; background: rgba(0,0,0,0.06); }
+body.theme-light .emo-cool { background: rgba(160,120,64,0.08); color: var(--accent); border-color: rgba(160,120,64,0.2); }
+body.theme-light .emo-lock { color: #8a7d68; background: rgba(160,120,64,0.08); border-color: var(--border-color); }
 
   </style>
 </head>
@@ -1293,7 +1402,24 @@ function renderEmojiText(text,applyTerms=true){const re=buildEmojiPattern();let 
 
 <!-- 8. Audio -->
 <script>
+window._loadedAudioIds=window._loadedAudioIds||new Set();
+window.loadAudioIfNeeded=function(audioId){
+  if(window._loadedAudioIds.has(audioId))return;
+  const audio=document.getElementById(audioId);
+  if(!audio)return;
+  const realSrc=audio.dataset.src;
+  if(!realSrc)return;
+  audio.src=realSrc;
+  audio.load();
+  window._loadedAudioIds.add(audioId);
+  audio.addEventListener('loadedmetadata',()=>{
+    const dur=Math.floor(audio.duration);
+    const dEl=audio.closest('.custom-audio-player')?.querySelector('.duration');
+    if(dEl)dEl.textContent=`${Math.floor(dur/60)}:${(dur%60).toString().padStart(2,'0')}`;
+  });
+};
 window.toggleAudio=function(btn,audioId){
+  window.loadAudioIfNeeded(audioId);
   const player=btn.closest('.custom-audio-player'),audio=document.getElementById(audioId),icon=btn.querySelector('i');
   if(audio.paused){
     audio.play();icon.className='fas fa-pause';
@@ -1309,8 +1435,12 @@ window.seekAudio=function(event,container,audioId){const audio=document.getEleme
 window.shareArticle=function(articleId,title){
   const url=`${location.origin}/dailyfeed?article=${articleId}`;
   function showToast(msg){const t=document.getElementById('shareToast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
-  if(navigator.share){navigator.share({title:title||'Patholytica Article',url}).catch(()=>{});}
-  else{navigator.clipboard.writeText(url).then(()=>showToast('🔗 Link copied!')).catch(()=>showToast('🔗 '+url));}
+  if(navigator.share){
+    navigator.share({title:title||'Patholytica Article',url}).catch(()=>{});
+  }else{
+    navigator.clipboard.writeText(url).then(()=>showToast('🔗 Link copied!')).catch(()=>showToast('🔗 '+url));
+  }
+  window._recordShareInteraction(articleId);
 };
 function showFeedToast(msg){const t=document.getElementById('shareToast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2500);}
 </script>
@@ -1340,11 +1470,24 @@ window._supabase=supabase;
 // ── State ── (unified currentUser pattern from reference)
 let articles=[],userLikes=new Set(),userFollowing=new Set(),userFavLibs=new Set();
 let currentArticleId=null,isLoading=false,hasMore=true,offset=0;
+let usingPicksFeed=null; // null = not yet decided, true = feed is picks-driven, false = fell back to latest
+let sawAnyPicks=false;   // did we EVER successfully show a picks-driven card this session?
 const LIMIT=5;
 // currentUser = enriched object with { user_id, firebase_uid, username, ... } OR null
 let currentUser=null;
 let currentFirebaseUser=null; // raw Firebase user
+
+// Resolves once, the first time onAuthStateChanged fires (Firebase always
+// calls it at least once on load, even with a null user). Used to hold
+// the very first loadArticles(true) call until we actually know whether
+// currentUser exists — previously that first call could race ahead of
+// auth resolving and fall back to latest-first for the opening cards,
+// which is why picks appeared to "kick in late".
+let _resolveAuthReady;
+const authReady = new Promise(res=>{ _resolveAuthReady = res; });
+
 let viewTimers={},viewedArticles=new Set();
+let audioLoadTimers={};
 let filteredArticleIds=null,anchorArticleId=null;
 let _dsCurrentArticleId=null;
 const _lpSelected=new Set();
@@ -1412,6 +1555,7 @@ onAuthStateChanged(auth,async firebaseUser=>{
       await Promise.all([loadUserLikes(),loadUserFollowing(),loadUserFavLibs()]);
       document.querySelectorAll('.lp-login-chip').forEach(c=>{c.classList.add('logged-in');c.innerHTML=`<i class="fas fa-circle" style="font-size:6px;"></i>${ud.username?'@'+ud.username:'Logged in'}`;});
       const ai=document.getElementById('dsAuthInfo');if(ai)ai.textContent=ud.username?'@'+ud.username:firebaseUser.email;
+      refreshAuthorHeaders();
     }
   }else{
     currentUser=null;
@@ -1419,6 +1563,10 @@ onAuthStateChanged(auth,async firebaseUser=>{
     document.querySelectorAll('.lp-login-chip').forEach(c=>{c.classList.remove('logged-in');c.innerHTML=`<i class="fas fa-sign-in-alt"></i>Log in`;});
     const ai=document.getElementById('dsAuthInfo');if(ai)ai.textContent='Not logged in';
   }
+  // Signal that auth state is known — resolves exactly once, on whichever
+  // branch above ran first (logged-in or logged-out), regardless of
+  // which happens on a given page load.
+  if(_resolveAuthReady){_resolveAuthReady();_resolveAuthReady=null;}
 });
 
 async function loadUserLikes(){
@@ -1447,6 +1595,16 @@ async function loadUserFavLibs(){
 function updateLikeButtons(){document.querySelectorAll('.like-btn').forEach(btn=>btn.classList.toggle('liked',userLikes.has(String(btn.dataset.id))));}
 function updateFollowButtons(){document.querySelectorAll('.follow-btn[data-supa-uid]').forEach(btn=>btn.classList.toggle('following',userFollowing.has(String(btn.dataset.supaUid))));}
 
+function refreshAuthorHeaders(){
+  document.querySelectorAll('.article-card,.mcq-card').forEach(card=>{
+    const articleId=card.dataset.articleId;
+    const article=articles.find(a=>String(a.id)===String(articleId));
+    if(!article)return;
+    const headerEl=card.querySelector('.article-header');
+    if(headerEl)headerEl.innerHTML=buildAuthorHeader(article);
+  });
+}
+
 // ── Helpers ──
 function isMCQ(c){return typeof c==='string'&&c.trimStart().startsWith('❔');}
 function parseMCQ(c){const lines=c.trim().split('\n').map(l=>l.trim()).filter(Boolean);const q=lines[0].replace(/^❔/,'').trim();const opts=lines.slice(1).map(l=>({label:l.replace(/^✅/,'').trim(),correct:l.startsWith('✅')}));for(let i=opts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]];}return{question:q,options:opts};}
@@ -1459,13 +1617,27 @@ function skeletonCardHTML(){return`<div class="skeleton-header"><div class="skel
 function injectInitialSkeletons(count=3){const w=document.getElementById('postsWrapper');for(let i=0;i<count;i++){const sk=document.createElement('div');sk.className='skeleton-card';sk.innerHTML=skeletonCardHTML();w.appendChild(sk);}showLoadingGif();}
 function clearSkeletons(){document.querySelectorAll('.skeleton-card').forEach(s=>s.remove());hideLoadingGif();}
 
+function escHtmlLP(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function commentsSkeletonHTML(){
+  return `<div style="display:flex;flex-direction:column;gap:14px;padding:4px 0;">
+    ${[1,2,3].map(()=>`<div style="display:flex;gap:10px;">
+      <div style="width:30px;height:30px;border-radius:50%;background:var(--hover-bg);flex-shrink:0;"></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+        <div style="height:11px;width:90px;background:var(--hover-bg);border-radius:4px;"></div>
+        <div style="height:12px;width:80%;background:var(--hover-bg);border-radius:4px;"></div>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
 // ── Author header ──
 function buildAuthorHeader(article){
   const avatarContent=getAvatarContent(article);
   const aSupaId=article.authorSupaUserId||'',aFbUid=article.firebase_user_id||'',aUser=article.authorUsername||'';
   const profileUrl=aUser?`profile.html?username=${encodeURIComponent(aUser)}`:(aFbUid?`profile.html?id=${encodeURIComponent(aFbUid)}`:'#');
   const isFollowing=aSupaId&&userFollowing.has(String(aSupaId));
-  const showFollow=aSupaId&&(!currentUser||String(currentUser.user_id)!==String(aSupaId));
+  const showFollow=aSupaId&&currentUser&&String(currentUser.user_id)!==String(aSupaId);
   const showEdit=isOwnArticle(article);
   const followBtn=showFollow?`<button class="follow-btn${isFollowing?' following':''}" data-supa-uid="${aSupaId}" onclick="handleFollow(event,'${aFbUid}','${aSupaId}')"><svg class="icon-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><svg class="icon-bell" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>`:'';
   const editBtn=showEdit?`<button class="card-edit-btn" title="Edit article" onclick="location.href='https://patholytica.com/create?article=${article.id}'"><i class="fas fa-pen"></i></button>`:'';
@@ -1491,8 +1663,7 @@ function createMediaElement(m,forArticleContent=false){
     d.className='media-embed';
     const aid='audio_'+Math.random().toString(36).substr(2,9);
     const bars=Array(15).fill(0).map(()=>`<div class="waveform-bar" style="height:${Math.random()*60+20}%"></div>`).join('');
-    d.innerHTML=`<div class="custom-audio-player"><button class="play-btn" onclick="toggleAudio(this,'${aid}')"><i class="fas fa-play"></i></button><div class="audio-info"><div class="audio-title">${m.caption||'Audio'}</div><div class="waveform-container" onclick="seekAudio(event,this,'${aid}')"><div class="waveform-progress"></div><div class="waveform-bars">${bars}</div></div><div class="audio-time"><span class="current-time">0:00</span><span class="duration">0:00</span></div></div><audio id="${aid}" src="${m.url}" style="display:none;"></audio></div>`;
-    setTimeout(()=>{const a=document.getElementById(aid);if(a)a.addEventListener('loadedmetadata',()=>{const dur=Math.floor(a.duration);const dEl=a.closest('.custom-audio-player')?.querySelector('.duration');if(dEl)dEl.textContent=`${Math.floor(dur/60)}:${(dur%60).toString().padStart(2,'0')}`;});},100);
+    d.innerHTML=`<div class="custom-audio-player"><button class="play-btn" onclick="toggleAudio(this,'${aid}')"><i class="fas fa-play"></i></button><div class="audio-info"><div class="audio-title">${m.caption||'Audio'}</div><div class="waveform-container" onclick="seekAudio(event,this,'${aid}')"><div class="waveform-progress"></div><div class="waveform-bars">${bars}</div></div><div class="audio-time"><span class="current-time">0:00</span><span class="duration">0:00</span></div></div><audio id="${aid}" data-src="${m.url}" style="display:none;"></audio></div>`;
   }else if(m.type==='pdf'){
     d.className='media-embed';
     d.innerHTML=`<div style="background:var(--hover-bg);border:1px solid var(--border-color);border-radius:12px;overflow:hidden;"><div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border-color);"><i class="fas fa-file-pdf" style="color:#c97a5a;font-size:16px;flex-shrink:0;"></i><span style="font-size:12px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-primary);">${m.caption||'Document'}</span><a href="${m.url}" target="_blank" rel="noopener" style="font-size:10px;font-weight:700;color:var(--accent);background:var(--accent-soft);border:1px solid rgba(200,169,110,0.25);border-radius:7px;padding:3px 9px;text-decoration:none;white-space:nowrap;flex-shrink:0;">Open PDF</a></div><iframe src="${m.url}" style="width:100%;height:200px;border:none;display:block;"></iframe></div>`;
@@ -1504,7 +1675,7 @@ function createMediaElement(m,forArticleContent=false){
 function buildArticleCard(article,index){
   const div=document.createElement('div');div.className='article-card';div.dataset.index=index;div.dataset.articleId=article.id;
   const isLiked=userLikes.has(String(article.id));
-  div.innerHTML=`<div class="article-header">${buildAuthorHeader(article)}</div><div class="article-title">${renderEmojiText(article.title||'Untitled')}</div><div class="article-stats"><div class="stat-item views"><i class="fas fa-eye"></i><span>${formatNumber(article.views||0)}</span></div><div class="stat-item likes"><i class="fas fa-heart"></i><span>${formatNumber(article.likes||0)}</span></div></div><div class="action-buttons"><button class="action-btn like-btn${isLiked?' liked':''}" data-id="${article.id}"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg><span class="like-count">${formatNumber(article.likes||0)}</span></button><button class="action-btn comment-btn" data-id="${article.id}"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg><span class="comment-count">0</span></button><button class="action-btn share-btn" data-id="${article.id}" data-title="${(article.title||'').replace(/"/g,'&quot;')}"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg><span>Share</span></button></div>`;
+  div.innerHTML=`<div class="article-header">${buildAuthorHeader(article)}</div><div class="article-title article-title-link" onclick="location.href='https://patholytica.com/article?id=${article.id}'">${renderEmojiText(article.title||'Untitled')}</div><div class="article-stats"><div class="stat-item views"><i class="fas fa-eye"></i><span>${formatNumber(article.views||0)}</span></div><div class="stat-item likes"><i class="fas fa-heart"></i><span>${formatNumber(article.likes||0)}</span></div></div><div class="action-buttons"><button class="action-btn like-btn${isLiked?' liked':''}" data-id="${article.id}"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg><span class="like-count">${formatNumber(article.likes||0)}</span></button><button class="action-btn comment-btn" data-id="${article.id}"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg><span class="comment-count">0</span></button><button class="action-btn share-btn" data-id="${article.id}" data-title="${(article.title||'').replace(/"/g,'&quot;')}"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg><span>Share</span></button></div>`;
   const contentDiv=document.createElement('div');contentDiv.className='article-content';
   const paragraphs=(article.content||'').split('\n\n');
   let firstTextEmitted=false;
@@ -1526,7 +1697,7 @@ function buildMCQCard(article,index){
   const isLiked=userLikes.has(String(article.id));
   const letters=['A','B','C','D','E','F'];
   const card=document.createElement('div');card.className='mcq-card';card.dataset.index=index;card.dataset.articleId=article.id;
-  card.innerHTML=`<div class="article-header">${buildAuthorHeader(article)}</div><div class="mcq-badge">❔ Quick Question</div><div class="mcq-question">${renderEmojiText(question)}</div><div class="mcq-media" id="mcq-media-${article.id}"></div><div class="mcq-scroll-area"><div class="mcq-options" id="mcq-opts-${article.id}"></div><div class="mcq-result-msg" id="mcq-msg-${article.id}"></div></div><div class="action-buttons"><button class="action-btn like-btn${isLiked?' liked':''}" data-id="${article.id}"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg><span class="like-count">${formatNumber(article.likes||0)}</span></button><button class="action-btn comment-btn" data-id="${article.id}"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg><span class="comment-count">0</span></button><button class="action-btn share-btn" data-id="${article.id}"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg><span>Share</span></button></div>`;
+  card.innerHTML=`<div class="article-header">${buildAuthorHeader(article)}</div><div class="mcq-badge">❔ Quick Question</div><div class="mcq-question mcq-question-link" onclick="location.href='https://patholytica.com/article?id=${article.id}'">${renderEmojiText(question)}</div><div class="mcq-media" id="mcq-media-${article.id}"></div><div class="mcq-scroll-area"><div class="mcq-options" id="mcq-opts-${article.id}"></div><div class="mcq-result-msg" id="mcq-msg-${article.id}"></div></div><div class="action-buttons"><button class="action-btn like-btn${isLiked?' liked':''}" data-id="${article.id}"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg><span class="like-count">${formatNumber(article.likes||0)}</span></button><button class="action-btn comment-btn" data-id="${article.id}"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg><span class="comment-count">0</span></button><button class="action-btn share-btn" data-id="${article.id}"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg><span>Share</span></button></div>`;
   if(article.media?.length){const mc=card.querySelector(`#mcq-media-${article.id}`);article.media.forEach(m=>mc.appendChild(createMediaElement(m,false)));}
   const optsContainer=card.querySelector(`#mcq-opts-${article.id}`),msgEl=card.querySelector(`#mcq-msg-${article.id}`);
   let answered=false;
@@ -1535,8 +1706,14 @@ function buildMCQCard(article,index){
     btn.innerHTML=`<span class="opt-letter">${letters[i]||i+1}</span><span class="opt-text">${renderEmojiText(opt.label)}</span>`;
     btn.addEventListener('click',()=>{
       if(answered)return;answered=true;optsContainer.querySelectorAll('.mcq-option').forEach(b=>b.disabled=true);
-      if(opt.correct){btn.classList.add('selected-correct');msgEl.textContent='✓ Correct!';msgEl.className='mcq-result-msg correct';window.launchConfetti(btn);}
-      else{btn.classList.add('selected-wrong');msgEl.className='mcq-result-msg wrong';const ci=options.findIndex(o=>o.correct);if(ci!==-1){optsContainer.querySelectorAll('.mcq-option')[ci].classList.add('reveal-correct');msgEl.textContent=`✗ The answer was: ${options[ci].label}`;}else msgEl.textContent='✗ Incorrect';}
+      if(opt.correct){
+        btn.classList.add('selected-correct');msgEl.textContent='✓ Correct!';msgEl.className='mcq-result-msg correct';window.launchConfetti(btn);
+        if(currentUser){supabase.rpc('record_article_interaction',{p_user_id:currentUser.user_id,p_article_id:parseInt(article.id),p_interaction_type:'view'}).then(({error})=>{if(error)console.error('[record_article_interaction mcq-correct]',error);});}
+      }
+      else{
+        btn.classList.add('selected-wrong');msgEl.className='mcq-result-msg wrong';const ci=options.findIndex(o=>o.correct);if(ci!==-1){optsContainer.querySelectorAll('.mcq-option')[ci].classList.add('reveal-correct');msgEl.textContent=`✗ The answer was: ${options[ci].label}`;}else msgEl.textContent='✗ Incorrect';
+        if(currentUser){supabase.rpc('record_article_interaction',{p_user_id:currentUser.user_id,p_article_id:parseInt(article.id),p_interaction_type:'comment'}).then(({error})=>{if(error)console.error('[record_article_interaction mcq-wrong]',error);});}
+      }
     });
     optsContainer.appendChild(btn);
   });
@@ -1580,7 +1757,6 @@ async function handleLike(e){
   const prevCount=artIdx!==-1?(articles[artIdx].likes||0):0;
   const newCount=wasLiked?Math.max(0,prevCount-1):prevCount+1;
 
-  // Optimistic update
   if(wasLiked){userLikes.delete(id);btn.classList.remove('liked');}
   else{userLikes.add(id);btn.classList.add('liked');}
   countSpan.textContent=formatNumber(newCount);
@@ -1606,10 +1782,10 @@ async function handleLike(e){
         const{data:fresh}=await supabase.from('articles').select('likes').eq('id',id).single();
         await supabase.from('articles').update({likes:(fresh?.likes||0)+1}).eq('id',id);
       }
+      supabase.rpc('record_article_interaction',{p_user_id:currentUser.user_id,p_article_id:parseInt(id),p_interaction_type:'like'}).then(({error})=>{if(error)console.error('[record_article_interaction like]',error);});
     }
   }catch(err){
     console.error('[handleLike exception]',err);
-    // Rollback
     if(wasLiked){userLikes.add(id);btn.classList.add('liked');}
     else{userLikes.delete(id);btn.classList.remove('liked');}
     countSpan.textContent=formatNumber(prevCount);
@@ -1639,6 +1815,13 @@ window.handleFollow=async function(e,aFbUid,aSupaId){
 
 // ── Library Picker ──
 async function initLibraryPicker(){
+  // Wait for auth to resolve before the very first article load — this
+  // is the fix for item 4: previously loadArticles(true) fired here
+  // immediately, racing ahead of onAuthStateChanged, so currentUser was
+  // still null when the personalized branch was checked and the opening
+  // cards fell back to latest-first every time.
+  await authReady;
+
   if(anchorArticleId!==null){injectInitialSkeletons(3);loadArticles(true);return;}
   if(window._urlPlaylistId){
     injectInitialSkeletons(3);
@@ -1648,6 +1831,8 @@ async function initLibraryPicker(){
   const wrapper=document.getElementById('postsWrapper');
   const pickerCard=buildPickerCard();
   wrapper.insertBefore(pickerCard,wrapper.firstChild);
+  // Entrance blur-in, mirroring the existing exit animation.
+  requestAnimationFrame(()=>pickerCard.classList.add('entering'));
   injectInitialSkeletons(3);
   loadArticles(true);
   requestAnimationFrame(()=>{const first=wrapper.querySelector('.skeleton-card');if(first)wrapper.scrollTop=first.offsetTop;});
@@ -1668,12 +1853,35 @@ function buildPickerCard(){
   footer.innerHTML=`<button class="lp-all-btn" onclick="lpStartFeedAll()">Browse All</button><button class="lp-begin-btn" id="lpBeginBtn" onclick="lpStartFeedSelected()"><i class="fas fa-play"></i> Begin <span id="lpSelLabel"></span></button>`;
   card.appendChild(footer);
   loadPickerLibraries(body);
+  loadPicksPreview(body);
   return card;
+}
+
+function makeLibRow(lib,count){
+  const row=document.createElement('div');row.className='lib-row';row.dataset.id=lib.id;
+  const letter=(lib.name||'?')[0].toUpperCase();
+  const av=document.createElement('div');av.className='lib-avatar';
+  if(lib.thumbnail_url){const img=document.createElement('img');img.src=lib.thumbnail_url;img.alt=lib.name||'';img.loading='lazy';av.appendChild(img);}
+  else av.textContent=letter;
+  const ct=document.createElement('div');ct.className='lib-content';
+  ct.innerHTML=`<div class="lib-title">${escHtmlLP(lib.name||'Untitled')}</div><div class="lib-subtitle">${count} article${count!==1?'s':''}</div>`;
+  const badge=document.createElement('span');badge.className='lib-badge';badge.textContent='Library';
+  const check=document.createElement('div');check.className='lib-selected-check';check.textContent='✓';
+  row.appendChild(av);row.appendChild(ct);row.appendChild(badge);row.appendChild(check);
+  row.addEventListener('click',()=>{
+    const id=String(lib.id);
+    if(_lpSelected.has(id)){_lpSelected.delete(id);row.classList.remove('selected');}
+    else{if(_lpSelected.size>=5)return;_lpSelected.add(id);row.classList.add('selected');}
+    const actionFooter=document.getElementById('lpActionFooter'),scrollHint=document.getElementById('lpScrollHint'),selLabel=document.getElementById('lpSelLabel'),n=_lpSelected.size;
+    if(n>0){actionFooter?.classList.add('visible');if(scrollHint)scrollHint.style.display='none';if(selLabel)selLabel.textContent=`(${n} selected)`;}
+    else{actionFooter?.classList.remove('visible');if(scrollHint)scrollHint.style.display='';if(selLabel)selLabel.textContent='';}
+  });
+  return row;
 }
 
 async function loadPickerLibraries(body){
   try{
-    const{data:libs}=await supabase.from('playlists').select('id,name,description,thumbnail_url').order('name',{ascending:true});
+    const{data:libs}=await supabase.from('playlists').select('id,name,description,thumbnail_url').not('name','like','algotag(%').order('name',{ascending:true});
     const{data:countRows}=await supabase.from('playlist_items').select('playlist_id');
     const countMap={};(countRows||[]).forEach(r=>{countMap[r.playlist_id]=(countMap[r.playlist_id]||0)+1;});
     const filteredLibs=(libs||[]).filter(l=>(countMap[l.id]||0)>0);
@@ -1681,38 +1889,66 @@ async function loadPickerLibraries(body){
     const favedLibs=filteredLibs.filter(l=>userFavLibs.has(String(l.id))).sort((a,b)=>(countMap[b.id]||0)-(countMap[a.id]||0));
     const otherLibs=filteredLibs.filter(l=>!userFavLibs.has(String(l.id))).sort((a,b)=>(countMap[b.id]||0)-(countMap[a.id]||0));
     body.innerHTML='';
-    function addShelf(label,libs2){
+    function addSection(label,libs2){
       const lbl=document.createElement('div');lbl.className='lp-section-label';lbl.innerHTML=`<i class="fas fa-book-open"></i>${label}`;body.appendChild(lbl);
-      const shelfWrap=document.createElement('div');shelfWrap.className='lp-shelf-wrap';
-      const shelf=document.createElement('div');shelf.className='lp-shelf';
-      libs2.forEach(lib=>shelf.appendChild(makeMovieCard(lib,countMap[lib.id]||0)));
-      shelfWrap.appendChild(shelf);body.appendChild(shelfWrap);
+      const list=document.createElement('div');list.className='lib-row-list';
+      libs2.forEach(lib=>list.appendChild(makeLibRow(lib,countMap[lib.id]||0)));
+      body.appendChild(list);
     }
-    if(favedLibs.length)addShelf('Saved',favedLibs);
-    addShelf(favedLibs.length?'All Libraries':'Libraries',otherLibs);
-  }catch(e){body.innerHTML=`<div style="padding:20px;font-size:12px;color:var(--text-secondary);">Failed to load</div>`;}
+    if(favedLibs.length)addSection('Saved',favedLibs);
+    addSection(favedLibs.length?'All Libraries':'Libraries',otherLibs);
+  }catch(e){
+    const errDiv=document.createElement('div');errDiv.style.cssText='padding:20px;font-size:12px;color:var(--text-secondary);';errDiv.textContent='Failed to load';body.appendChild(errDiv);
+  }
 }
 
-function makeMovieCard(lib,count){
-  const card=document.createElement('div');card.className='lp-movie-card';card.dataset.id=lib.id;
-  const letter=(lib.name||'?')[0].toUpperCase();
-  const posterEl=document.createElement('div');posterEl.className='lp-movie-poster';
-  if(lib.thumbnail_url){const img=document.createElement('img');img.src=lib.thumbnail_url;img.alt=lib.name||'';img.loading='lazy';posterEl.appendChild(img);}
-  else{const ph=document.createElement('div');ph.className='lp-poster-placeholder';ph.innerHTML=`<div class="lp-poster-letter">${letter}</div><div class="lp-poster-icon"><i class="fas fa-book-open"></i></div>`;posterEl.appendChild(ph);}
-  const overlay=document.createElement('div');overlay.className='lp-movie-overlay';
-  overlay.innerHTML=`<div class="lp-movie-count"><i class="fas fa-layer-group"></i> ${count}</div><div class="lp-movie-poster-name">${lib.name||'Untitled'}</div>`;
-  posterEl.appendChild(overlay);
-  const badge=document.createElement('div');badge.className='lp-selected-badge';badge.textContent='✓';posterEl.appendChild(badge);
-  card.appendChild(posterEl);
-  const meta=document.createElement('div');meta.className='lp-movie-info';meta.innerHTML=`<div class="lp-movie-meta">${count} article${count!==1?'s':''}</div>`;card.appendChild(meta);
-  card.addEventListener('click',()=>{
-    const id=String(lib.id);
-    if(_lpSelected.has(id)){_lpSelected.delete(id);card.classList.remove('selected');}else{if(_lpSelected.size>=5)return;_lpSelected.add(id);card.classList.add('selected');}
-    const actionFooter=document.getElementById('lpActionFooter'),scrollHint=document.getElementById('lpScrollHint'),selLabel=document.getElementById('lpSelLabel'),n=_lpSelected.size;
-    if(n>0){actionFooter?.classList.add('visible');if(scrollHint)scrollHint.style.display='none';if(selLabel)selLabel.textContent=`(${n} selected)`;}
-    else{actionFooter?.classList.remove('visible');if(scrollHint)scrollHint.style.display='';if(selLabel)selLabel.textContent='';}
-  });
-  return card;
+// Read-only preview of the user's current picks, appended below the
+// libraries list, in the order they'll actually appear in the feed.
+async function loadPicksPreview(body){
+  const lbl=document.createElement('div');lbl.className='lp-section-label';lbl.innerHTML=`<i class="fas fa-wand-magic-sparkles"></i>Your feed right now`;
+  body.appendChild(lbl);
+
+  if(!currentUser){
+    const note=document.createElement('div');note.className='picks-empty-note';
+    note.textContent='Log in to see your personalized picks build up here as you interact with articles.';
+    body.appendChild(note);
+    return;
+  }
+
+  try{
+    const{data:picksRow}=await supabase.from('picks').select('id').eq('user_id',currentUser.user_id).maybeSingle();
+    if(!picksRow){
+      const note=document.createElement('div');note.className='picks-empty-note';
+      note.textContent='Your feed isn\'t personalized yet — like, comment, share, or spend time on articles to start building it.';
+      body.appendChild(note);
+      return;
+    }
+    const{data:items,error}=await supabase
+      .from('pick_items')
+      .select('article_id, position, articles!fk_pick_items_article(title)')
+      .eq('picks_id',picksRow.id)
+      .order('position',{ascending:true})
+      .limit(50);
+    if(error||!items?.length){
+      const note=document.createElement('div');note.className='picks-empty-note';
+      note.textContent='Your feed isn\'t personalized yet — like, comment, share, or spend time on articles to start building it.';
+      body.appendChild(note);
+      return;
+    }
+    const list=document.createElement('div');list.className='picks-row-list';
+    items.forEach((item,idx)=>{
+      const title=item.articles?.title&&item.articles.title.trim()?item.articles.title:('Article #'+item.article_id);
+      const row=document.createElement('div');row.className='picks-row';
+      const letter=(title||'?')[0].toUpperCase();
+      row.innerHTML=`<div class="picks-rank">${idx+1}</div><div class="picks-avatar">${escHtmlLP(letter)}</div><div class="picks-content"><div class="picks-title">${escHtmlLP(title)}</div></div>`;
+      list.appendChild(row);
+    });
+    body.appendChild(list);
+  }catch(e){
+    const note=document.createElement('div');note.className='picks-empty-note';
+    note.textContent='Could not load your picks preview right now.';
+    body.appendChild(note);
+  }
 }
 
 window.lpStartFeedAll=function(){filteredArticleIds=null;animatePickerOut(()=>{articles=[];offset=0;hasMore=true;isLoading=false;clearSkeletons();loadArticles(true);});};
@@ -1728,8 +1964,46 @@ window.lpStartFeedSelected=async function(){
 
 function animatePickerOut(cb){
   const p=document.getElementById('libraryPickerCard');if(!p){cb();return;}
+  p.classList.remove('entering');
   p.classList.add('exiting');
   p.addEventListener('animationend',()=>{const sk=document.createElement('div');sk.className='skeleton-card';sk.innerHTML=skeletonCardHTML();p.replaceWith(sk);cb();},{once:true});
+}
+
+// Pulls one user's personalized feed from picks → pick_items → articles,
+// in position order (rank 1 first). Returns [] if the user has no picks
+// row yet, or no items in it — callers fall back to latest-first in
+// that case. Errors are logged rather than silently swallowed.
+async function loadUserPicks(userId,rangeFrom,rangeTo){
+  const{data:picksRow,error:picksErr}=await supabase.from('picks').select('id').eq('user_id',userId).maybeSingle();
+  if(picksErr){console.error('[loadUserPicks] picks lookup failed:',picksErr);return[];}
+  if(!picksRow)return[];
+  const{data:items,error}=await supabase
+    .from('pick_items')
+    .select('article_id, position, articles!fk_pick_items_article(*)')
+    .eq('picks_id',picksRow.id)
+    .order('position',{ascending:true})
+    .range(rangeFrom,rangeTo);
+  if(error){console.error('[loadUserPicks] pick_items query failed:',error);return[];}
+  if(!items?.length)return[];
+  return items.filter(it=>it.articles).map(it=>it.articles);
+}
+
+// Builds the end-of-feed card (item 6). isExhausted = true means the
+// user DID have picks and just ran out of them (the "caught up" case);
+// false means picks were never generated for them at all yet (the
+// "not personalized" case). Picks one of four background gradient
+// variants at random each time it's built.
+function buildEndFeedCard(hasSeenAnyPicks){
+  const variants=['end-feed-variant-1','end-feed-variant-2','end-feed-variant-3','end-feed-variant-4'];
+  const chosen=variants[Math.floor(Math.random()*variants.length)];
+  const div=document.createElement('div');
+  div.className=`end-feed-card ${chosen}`;
+  if(hasSeenAnyPicks){
+    div.innerHTML=`<div class="end-feed-icon"><i class="fas fa-champagne-glasses"></i></div><div class="end-feed-title">You've caught up on your feed</div><div class="end-feed-sub">Keep exploring, liking, and commenting — new picks will keep building for you.</div>`;
+  }else{
+    div.innerHTML=`<div class="end-feed-icon"><i class="fas fa-wand-magic-sparkles"></i></div><div class="end-feed-title">Your feed isn't personalized yet</div><div class="end-feed-sub">Interact with a few articles — like, comment, share, or just read — and your feed will start tailoring itself to you.</div>`;
+  }
+  return div;
 }
 
 // ── Article loading ──
@@ -1741,6 +2015,27 @@ async function loadArticles(isInitial=true){
       if(!error&&anchor){const{data:rest}=await supabase.from('articles').select('*').order('created_at',{ascending:false}).lt('created_at',anchor.created_at).limit(LIMIT-1);await enrichAndRender([anchor,...(rest||[])],isInitial);offset=LIMIT;isLoading=false;return;}
       anchorArticleId=null;
     }
+
+    if(currentUser&&filteredArticleIds===null&&usingPicksFeed!==false){
+      const pickedArticles=await loadUserPicks(currentUser.user_id,offset,offset+LIMIT-1);
+      if(pickedArticles.length){
+        usingPicksFeed=true;
+        sawAnyPicks=true;
+        if(pickedArticles.length<LIMIT)hasMore=false;
+        offset+=pickedArticles.length;
+        await enrichAndRender(pickedArticles,isInitial);isLoading=false;
+        // If picks just ran out (fewer than a full page came back), append
+        // the "caught up" end-of-feed card right after these results.
+        if(!hasMore)appendEndFeedCardIfNeeded();
+        return;
+      }
+      usingPicksFeed=false;
+      // First-ever load returned no picks at all — show the
+      // "not personalized yet" version once, then fall through to
+      // latest-first for the rest of the session.
+      if(isInitial&&!sawAnyPicks)appendEndFeedCardIfNeeded(true);
+    }
+
     let query=supabase.from('articles').select('*').order('created_at',{ascending:false}).range(offset,offset+LIMIT-1);
     if(filteredArticleIds!==null){if(!filteredArticleIds.length){clearSkeletons();isLoading=false;return;}query=query.in('id',filteredArticleIds);}
     const{data:data2,error}=await query;if(error)throw error;
@@ -1749,6 +2044,15 @@ async function loadArticles(isInitial=true){
     offset+=data2.length;
     await enrichAndRender(data2,isInitial);isLoading=false;
   }catch(e){console.error(e);clearSkeletons();isLoading=false;}
+}
+
+let _endFeedCardShown=false;
+function appendEndFeedCardIfNeeded(forceNotPersonalized){
+  if(_endFeedCardShown)return;
+  _endFeedCardShown=true;
+  const wrapper=document.getElementById('postsWrapper');
+  const card=buildEndFeedCard(forceNotPersonalized?false:sawAnyPicks);
+  wrapper.appendChild(card);
 }
 
 async function enrichAndRender(data2,isInitial){
@@ -1779,14 +2083,39 @@ function renderArticles(isInitial=true){
 
 function handleScroll(e){const c=e.target;if(c.scrollTop+c.clientHeight>=c.scrollHeight*0.8&&hasMore&&!isLoading)loadArticles(false);}
 function setupIntersectionObserver(){
-  const obs=new IntersectionObserver(entries=>{entries.forEach(entry=>{const id=entry.target.dataset.articleId;if(!id)return;if(entry.isIntersecting&&entry.intersectionRatio>=0.75)startViewTimer(id);else clearViewTimer(id);});},{threshold:[0.75]});
+  const obs=new IntersectionObserver(entries=>{entries.forEach(entry=>{const id=entry.target.dataset.articleId;if(!id)return;if(entry.isIntersecting&&entry.intersectionRatio>=0.75){startViewTimer(id);startAudioLoadTimer(id);}else{clearViewTimer(id);clearAudioLoadTimer(id);}});},{threshold:[0.75]});
   document.querySelectorAll('.article-card,.mcq-card').forEach(c=>{if(c.dataset.articleId)obs.observe(c);});
 }
 function startViewTimer(id){if(viewedArticles.has(id)||viewTimers[id])return;viewTimers[id]=setTimeout(async()=>await incrementView(id),5000);}
 function clearViewTimer(id){if(viewTimers[id]){clearTimeout(viewTimers[id]);delete viewTimers[id];}}
+
+function startAudioLoadTimer(articleId){
+  if(audioLoadTimers[articleId])return;
+  const card=document.querySelector(`.article-card[data-article-id="${articleId}"],.mcq-card[data-article-id="${articleId}"]`);
+  if(!card)return;
+  const audioEls=card.querySelectorAll('audio[data-src]');
+  if(!audioEls.length)return;
+  audioLoadTimers[articleId]=setTimeout(()=>{
+    audioEls.forEach(a=>window.loadAudioIfNeeded(a.id));
+  },10000);
+}
+function clearAudioLoadTimer(articleId){
+  if(audioLoadTimers[articleId]){clearTimeout(audioLoadTimers[articleId]);delete audioLoadTimers[articleId];}
+}
+
 async function incrementView(id){
   if(viewedArticles.has(id))return;viewedArticles.add(id);
-  try{const{data:a}=await supabase.from('articles').select('views').eq('id',id).single();const nv=(a?.views||0)+1;await supabase.from('articles').update({views:nv}).eq('id',id);const idx=articles.findIndex(x=>x.id===id);if(idx!==-1)articles[idx].views=nv;const card=document.querySelector(`.article-card[data-article-id="${id}"],.mcq-card[data-article-id="${id}"]`);if(card){const s=card.querySelector('.stat-item.views span');if(s)s.textContent=formatNumber(nv);}}catch(e){viewedArticles.delete(id);}
+  try{
+    const{data:a}=await supabase.from('articles').select('views').eq('id',id).single();
+    const nv=(a?.views||0)+1;
+    await supabase.from('articles').update({views:nv}).eq('id',id);
+    const idx=articles.findIndex(x=>x.id===id);if(idx!==-1)articles[idx].views=nv;
+    const card=document.querySelector(`.article-card[data-article-id="${id}"],.mcq-card[data-article-id="${id}"]`);
+    if(card){const s=card.querySelector('.stat-item.views span');if(s)s.textContent=formatNumber(nv);}
+    if(currentUser){
+      supabase.rpc('record_article_interaction',{p_user_id:currentUser.user_id,p_article_id:parseInt(id),p_interaction_type:'view'}).then(({error})=>{if(error)console.error('[record_article_interaction view]',error);});
+    }
+  }catch(e){viewedArticles.delete(id);}
 }
 
 // ── Comment counts ──
@@ -1808,7 +2137,6 @@ window.hideDsComments=function(){
 };
 async function loadDsComments(articleId){
   const list=document.getElementById('dsCommentsList');
-  list.innerHTML='<div style="display:flex;align-items:center;justify-content:center;padding:24px;color:var(--text-secondary);font-size:12px;gap:8px;"><div class="spinner" style="width:20px;height:20px;border-width:2px;"></div></div>';
   try{
     const{data:comments}=await supabase.from('comments').select('*').eq('article_id',articleId).order('created_at',{ascending:true});
     if(!comments?.length){list.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:80px;color:var(--text-secondary);gap:8px;font-size:12px;"><i class="fas fa-comments" style="font-size:24px;opacity:0.2;"></i>No comments yet</div>';return;}
@@ -1836,6 +2164,7 @@ window.sendDsComment=async function(){
     await ensureSupabaseAuth();
     const{data:nc}=await supabase.from('comments').insert([{article_id:parseInt(_dsCurrentArticleId),user_id:currentUser.user_id,comment_text:text}]).select().single();
     const el=document.getElementById(tempId);if(el){const t=el.querySelector('.comment-time');if(t){t.className='comment-time';t.textContent=formatDate(new Date(nc?.created_at||Date.now()));}}
+    supabase.rpc('record_article_interaction',{p_user_id:currentUser.user_id,p_article_id:parseInt(_dsCurrentArticleId),p_interaction_type:'comment'}).then(({error})=>{if(error)console.error('[record_article_interaction comment]',error);});
   }catch(e){
     const el=document.getElementById(tempId);if(el){const t=el.querySelector('.comment-time');if(t){t.className='comment-time upload-error';t.textContent='Failed to send';}}
     if(cb){const cs=cb.querySelector('.comment-count');cs.textContent=Math.max(0,parseInt(cs.textContent)-1);}
@@ -1847,13 +2176,21 @@ document.getElementById('dsCommentInput')?.addEventListener('keypress',e=>{if(e.
 async function handleComments(e){
   const articleId=e.currentTarget.dataset.id;
   currentArticleId=articleId;
-  if(isDesktop()){showDsComments(articleId);}
-  else{await loadMobileComments(articleId);openComments();}
+  if(isDesktop()){
+    _dsCurrentArticleId=articleId;
+    document.getElementById('dsCommentsPanel').style.display='flex';
+    document.getElementById('dsSettingsPanel').style.display='none';
+    document.getElementById('dsCommentsList').innerHTML=commentsSkeletonHTML();
+    loadDsComments(articleId);
+  }else{
+    document.getElementById('commentsList').innerHTML=commentsSkeletonHTML();
+    openComments();
+    loadMobileComments(articleId);
+  }
 }
 
 async function loadMobileComments(articleId){
   const list=document.getElementById('commentsList');
-  list.innerHTML='<div class="loading-container"><div class="spinner" style="width:28px;height:28px;border-width:2px;"></div></div>';
   try{
     const{data:comments}=await supabase.from('comments').select('*').eq('article_id',articleId).order('created_at',{ascending:true});
     if(!comments?.length){list.innerHTML=`<div class="no-comments"><i class="fas fa-comments"></i><div>No comments yet</div><div style="font-size:11px;">Be the first to comment!</div></div>`;return;}
@@ -1889,6 +2226,7 @@ window.sendComment=async function(){
     await ensureSupabaseAuth();
     await supabase.from('comments').insert([{article_id:parseInt(currentArticleId),user_id:currentUser.user_id,comment_text:text}]);
     const tempEl=document.getElementById(tempId);if(tempEl){const timeEl=tempEl.querySelector('.comment-time');if(timeEl){timeEl.className='comment-time';timeEl.textContent='Just now';}}
+    supabase.rpc('record_article_interaction',{p_user_id:currentUser.user_id,p_article_id:parseInt(currentArticleId),p_interaction_type:'comment'}).then(({error})=>{if(error)console.error('[record_article_interaction comment]',error);});
   }catch(e){
     const tempEl=document.getElementById(tempId);if(tempEl){const timeEl=tempEl.querySelector('.comment-time');if(timeEl){timeEl.className='comment-time upload-error';timeEl.textContent='Failed to send';}}
     if(cb){const cs=cb.querySelector('.comment-count');cs.textContent=Math.max(0,parseInt(cs.textContent)-1);}
