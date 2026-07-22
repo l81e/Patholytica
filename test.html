@@ -1307,7 +1307,6 @@ window.seekAudio=function(event,container,audioId){const audio=document.getEleme
 <!-- 9. Share + toast -->
 <script>
 window.shareArticle=function(articleId,title){
-  window._recordShareInteraction(articleId);
   const url=`${location.origin}/dailyfeed?article=${articleId}`;
   function showToast(msg){const t=document.getElementById('shareToast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
   if(navigator.share){navigator.share({title:title||'Patholytica Article',url}).catch(()=>{});}
@@ -1341,7 +1340,6 @@ window._supabase=supabase;
 // ── State ── (unified currentUser pattern from reference)
 let articles=[],userLikes=new Set(),userFollowing=new Set(),userFavLibs=new Set();
 let currentArticleId=null,isLoading=false,hasMore=true,offset=0;
-let usingPicksFeed=null; // null = not yet decided, true = feed is picks-driven, false = fell back to latest
 const LIMIT=5;
 // currentUser = enriched object with { user_id, firebase_uid, username, ... } OR null
 let currentUser=null;
@@ -1608,8 +1606,6 @@ async function handleLike(e){
         const{data:fresh}=await supabase.from('articles').select('likes').eq('id',id).single();
         await supabase.from('articles').update({likes:(fresh?.likes||0)+1}).eq('id',id);
       }
-      // Feed personalization: fire-and-forget, never blocks the like itself
-      supabase.rpc('record_article_interaction',{p_user_id:currentUser.user_id,p_article_id:parseInt(id),p_interaction_type:'like'}).then(({error})=>{if(error)console.error('[record_article_interaction like]',error);});
     }
   }catch(err){
     console.error('[handleLike exception]',err);
@@ -1677,7 +1673,7 @@ function buildPickerCard(){
 
 async function loadPickerLibraries(body){
   try{
-    const{data:libs}=await supabase.from('playlists').select('id,name,description,thumbnail_url').not('name','like','algotag(%').order('name',{ascending:true});
+    const{data:libs}=await supabase.from('playlists').select('id,name,description,thumbnail_url').order('name',{ascending:true});
     const{data:countRows}=await supabase.from('playlist_items').select('playlist_id');
     const countMap={};(countRows||[]).forEach(r=>{countMap[r.playlist_id]=(countMap[r.playlist_id]||0)+1;});
     const filteredLibs=(libs||[]).filter(l=>(countMap[l.id]||0)>0);
@@ -1736,26 +1732,6 @@ function animatePickerOut(cb){
   p.addEventListener('animationend',()=>{const sk=document.createElement('div');sk.className='skeleton-card';sk.innerHTML=skeletonCardHTML();p.replaceWith(sk);cb();},{once:true});
 }
 
-// Pulls one user's personalized feed from picks → pick_items → articles,
-// in position order (rank 1 first). Returns [] if the user has no picks
-// row yet, or no items in it — callers fall back to latest-first in
-// that case rather than showing an empty screen.
-async function loadUserPicks(userId,rangeFrom,rangeTo){
-  const{data:picksRow}=await supabase.from('picks').select('id').eq('user_id',userId).maybeSingle();
-  if(!picksRow)return[];
-  const{data:items,error}=await supabase
-    .from('pick_items')
-    .select('article_id, position, articles(*)')
-    .eq('picks_id',picksRow.id)
-    .order('position',{ascending:true})
-    .range(rangeFrom,rangeTo);
-  if(error||!items?.length)return[];
-  // articles(*) comes back nested under item.articles — flatten so the
-  // rest of the pipeline (enrichAndRender etc.) sees the same shape it
-  // already expects from a plain `.from('articles').select('*')` call.
-  return items.filter(it=>it.articles).map(it=>it.articles);
-}
-
 // ── Article loading ──
 async function loadArticles(isInitial=true){
   if(isLoading||(!isInitial&&!hasMore))return;isLoading=true;
@@ -1765,23 +1741,6 @@ async function loadArticles(isInitial=true){
       if(!error&&anchor){const{data:rest}=await supabase.from('articles').select('*').order('created_at',{ascending:false}).lt('created_at',anchor.created_at).limit(LIMIT-1);await enrichAndRender([anchor,...(rest||[])],isInitial);offset=LIMIT;isLoading=false;return;}
       anchorArticleId=null;
     }
-
-    // Personalized path: only when a logged-in user has no active
-    // library filter (filteredArticleIds) and we haven't already
-    // exhausted their picks (usingPicksFeed flag, set below).
-    if(currentUser&&filteredArticleIds===null&&usingPicksFeed!==false){
-      const pickedArticles=await loadUserPicks(currentUser.user_id,offset,offset+LIMIT-1);
-      if(pickedArticles.length){
-        usingPicksFeed=true;
-        if(pickedArticles.length<LIMIT)hasMore=false;
-        offset+=pickedArticles.length;
-        await enrichAndRender(pickedArticles,isInitial);isLoading=false;return;
-      }
-      // No picks (new user, or picks exhausted) — fall through to
-      // latest-first below, and remember not to retry picks this session.
-      usingPicksFeed=false;
-    }
-
     let query=supabase.from('articles').select('*').order('created_at',{ascending:false}).range(offset,offset+LIMIT-1);
     if(filteredArticleIds!==null){if(!filteredArticleIds.length){clearSkeletons();isLoading=false;return;}query=query.in('id',filteredArticleIds);}
     const{data:data2,error}=await query;if(error)throw error;
@@ -1827,17 +1786,7 @@ function startViewTimer(id){if(viewedArticles.has(id)||viewTimers[id])return;vie
 function clearViewTimer(id){if(viewTimers[id]){clearTimeout(viewTimers[id]);delete viewTimers[id];}}
 async function incrementView(id){
   if(viewedArticles.has(id))return;viewedArticles.add(id);
-  try{
-    const{data:a}=await supabase.from('articles').select('views').eq('id',id).single();
-    const nv=(a?.views||0)+1;
-    await supabase.from('articles').update({views:nv}).eq('id',id);
-    const idx=articles.findIndex(x=>x.id===id);if(idx!==-1)articles[idx].views=nv;
-    const card=document.querySelector(`.article-card[data-article-id="${id}"],.mcq-card[data-article-id="${id}"]`);
-    if(card){const s=card.querySelector('.stat-item.views span');if(s)s.textContent=formatNumber(nv);}
-    if(currentUser){
-      supabase.rpc('record_article_interaction',{p_user_id:currentUser.user_id,p_article_id:parseInt(id),p_interaction_type:'view'}).then(({error})=>{if(error)console.error('[record_article_interaction view]',error);});
-    }
-  }catch(e){viewedArticles.delete(id);}
+  try{const{data:a}=await supabase.from('articles').select('views').eq('id',id).single();const nv=(a?.views||0)+1;await supabase.from('articles').update({views:nv}).eq('id',id);const idx=articles.findIndex(x=>x.id===id);if(idx!==-1)articles[idx].views=nv;const card=document.querySelector(`.article-card[data-article-id="${id}"],.mcq-card[data-article-id="${id}"]`);if(card){const s=card.querySelector('.stat-item.views span');if(s)s.textContent=formatNumber(nv);}}catch(e){viewedArticles.delete(id);}
 }
 
 // ── Comment counts ──
@@ -1887,7 +1836,6 @@ window.sendDsComment=async function(){
     await ensureSupabaseAuth();
     const{data:nc}=await supabase.from('comments').insert([{article_id:parseInt(_dsCurrentArticleId),user_id:currentUser.user_id,comment_text:text}]).select().single();
     const el=document.getElementById(tempId);if(el){const t=el.querySelector('.comment-time');if(t){t.className='comment-time';t.textContent=formatDate(new Date(nc?.created_at||Date.now()));}}
-    supabase.rpc('record_article_interaction',{p_user_id:currentUser.user_id,p_article_id:parseInt(_dsCurrentArticleId),p_interaction_type:'comment'}).then(({error})=>{if(error)console.error('[record_article_interaction comment]',error);});
   }catch(e){
     const el=document.getElementById(tempId);if(el){const t=el.querySelector('.comment-time');if(t){t.className='comment-time upload-error';t.textContent='Failed to send';}}
     if(cb){const cs=cb.querySelector('.comment-count');cs.textContent=Math.max(0,parseInt(cs.textContent)-1);}
@@ -1941,7 +1889,6 @@ window.sendComment=async function(){
     await ensureSupabaseAuth();
     await supabase.from('comments').insert([{article_id:parseInt(currentArticleId),user_id:currentUser.user_id,comment_text:text}]);
     const tempEl=document.getElementById(tempId);if(tempEl){const timeEl=tempEl.querySelector('.comment-time');if(timeEl){timeEl.className='comment-time';timeEl.textContent='Just now';}}
-    supabase.rpc('record_article_interaction',{p_user_id:currentUser.user_id,p_article_id:parseInt(currentArticleId),p_interaction_type:'comment'}).then(({error})=>{if(error)console.error('[record_article_interaction comment]',error);});
   }catch(e){
     const tempEl=document.getElementById(tempId);if(tempEl){const timeEl=tempEl.querySelector('.comment-time');if(timeEl){timeEl.className='comment-time upload-error';timeEl.textContent='Failed to send';}}
     if(cb){const cs=cb.querySelector('.comment-count');cs.textContent=Math.max(0,parseInt(cs.textContent)-1);}
