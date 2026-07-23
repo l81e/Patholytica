@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
@@ -79,13 +80,7 @@ body.fontsize-md { --font-size-base: 14px; --font-size-title: 20px; --font-size-
 body.fontsize-lg { --font-size-base: 16px; --font-size-title: 23px; --font-size-mcq: 21px; }
 body.fontsize-xl { --font-size-base: 18px; --font-size-title: 26px; --font-size-mcq: 24px; }
 
-/* ── EMOJI EFFECTS OFF ──
-   Added font-family: inherit !important below — several .emo-* classes
-   set font-family (monospace for .emo-science/.emo-micro/.emo-robot,
-   var(--font-article) for .emo-book/.emo-temple) as part of their visual
-   styling, not just their color. Previously turning highlights off only
-   reset color/background/animation and left the font swap in place, so
-   text stayed monospace/serif even with "effects off". */
+/* ── EMOJI EFFECTS OFF ── */
 body.no-emoji-effects .emo-fire,body.no-emoji-effects .emo-diamond,body.no-emoji-effects .emo-lightning,
 body.no-emoji-effects .emo-sparkle,body.no-emoji-effects .emo-rainbow,body.no-emoji-effects .emo-magic,
 body.no-emoji-effects .emo-earth,body.no-emoji-effects .emo-purple,body.no-emoji-effects .emo-idea,
@@ -161,6 +156,15 @@ body {
   scrollbar-width: none;
 }
 .posts-wrapper::-webkit-scrollbar { display: none; }
+
+/* Item 1 fix: while the feed hasn't finished its very first paint,
+   nothing in the wrapper should be visible at all. JS removes this
+   class only once the first article/MCQ card is in the DOM AND the
+   scroll position has already been snapped past the picker, so the
+   user's very first frame is the article, never the picker. */
+.posts-wrapper.pre-reveal {
+  visibility: hidden;
+}
 
 /* ── DESKTOP LAYOUT ── */
 .desktop-sidebar { display: none; }
@@ -245,7 +249,14 @@ body {
   }
   .ds-collapse-btn:hover { color: var(--accent); background: var(--accent-soft); }
 
+  /* Issue 3b fix: on desktop the mobile footer is hidden, so the
+     picker's Begin/Browse-All actions must live somewhere visible.
+     They render inside this in-card bar instead, only on desktop. */
   .footer-bar { display: none !important; }
+
+  .lp-desktop-actionbar {
+    display: flex !important;
+  }
 }
 
 /* On mobile, restore single-column layout */
@@ -347,9 +358,6 @@ body {
   font-family: var(--font-article);
   transition: font-size 0.3s ease;
 }
-/* Clickable title styling — hover/active feedback before the redirect
-   fires, so the click reads as intentional rather than the title just
-   silently teleporting the user away. */
 .article-title-link, .mcq-question-link {
   cursor: pointer;
   transition: color 0.15s ease;
@@ -721,7 +729,8 @@ body.theme-light .action-btn span {
 .skeleton-line.w90{width:90%}.skeleton-line.w75{width:75%}.skeleton-line.w80{width:80%}.skeleton-line.w65{width:65%}.skeleton-line.w95{width:95%}
 
 /* ══════════════════════════════════════════════
-   FOOTER BAR
+   FOOTER BAR — now dynamically swaps between default
+   nav (4 buttons) and picker actions (2 buttons) via JS
 ══════════════════════════════════════════════ */
 .footer-bar {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
@@ -737,12 +746,39 @@ body.theme-light .action-btn span {
 .footer-btn {
   display: flex; flex-direction: column; align-items: center; gap: 3px;
   background: none; border: none; color: #8a8070;
-  cursor: pointer; transition: color 0.2s ease; padding: 6px 12px;
+  cursor: pointer; transition: color 0.2s ease, opacity 0.2s ease, transform 0.2s ease; padding: 6px 12px;
 }
 .footer-btn:hover { color: #f5f0e8; }
 .footer-btn.active { color: #c8a96e; }
 .footer-btn i { font-size: 19px; }
 .footer-btn span { font-size: 10px; font-weight: 600; }
+
+/* Picker-mode footer content — replaces the 4 nav buttons while
+   libraries are selected in the picker card (mobile). */
+.footer-picker-actions {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  animation: footerSwapIn 0.25s cubic-bezier(0.2,0.8,0.2,1);
+}
+@keyframes footerSwapIn {
+  0%{opacity:0; transform:translateY(6px);}
+  100%{opacity:1; transform:translateY(0);}
+}
+.footer-picker-browseall {
+  flex-shrink: 0; padding: 11px 16px; border-radius: 12px;
+  background: var(--hover-bg); border: 1px solid var(--border-color);
+  color: var(--text-secondary); font-size: 12.5px; font-weight: 700; cursor: pointer;
+  font-family: var(--font-ui); transition: border-color 0.15s, color 0.15s;
+}
+.footer-picker-browseall:hover { border-color: var(--accent); color: var(--accent); }
+.footer-picker-begin {
+  flex: 1; padding: 11px; border-radius: 12px;
+  background: var(--accent); color: #0f0e0b;
+  font-size: 13px; font-weight: 800; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  box-shadow: 0 4px 16px var(--accent-glow);
+  font-family: var(--font-ui); transition: background 0.15s;
+}
+.footer-picker-begin:hover { background: var(--accent-hover); }
 
 @media (max-width: 768px) {
   .footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
@@ -750,6 +786,17 @@ body.theme-light .action-btn span {
   .footer-btn i { font-size: 17px; }
   .footer-btn span { font-size: 9px; }
 }
+
+/* Issue 3b fix: desktop-only in-card action bar for the picker, since
+   .footer-bar is display:none on desktop and can't host these buttons. */
+.lp-desktop-actionbar {
+  display: none;
+  align-items: center; gap: 10px;
+  padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+.lp-desktop-actionbar.visible { animation: footerSwapIn 0.25s cubic-bezier(0.2,0.8,0.2,1); }
 
 /* ══════════════════════════════════════════════
    LIBRARY PICKER CARD
@@ -760,14 +807,6 @@ body.theme-light .action-btn span {
   background: var(--bg-color);
   display: flex; flex-direction: column; overflow: hidden;
 }
-/* Entrance blur-in — mirrors the existing lp-card-exit treatment so
-   the picker card appearing and disappearing feel like a matched pair
-   rather than only having an exit animation. */
-@keyframes lp-card-enter {
-  0%{opacity:0; filter:blur(6px); transform:translateY(8px) scale(0.99);}
-  100%{opacity:1; filter:blur(0); transform:translateY(0) scale(1);}
-}
-.library-picker-card.entering { animation: lp-card-enter 0.45s cubic-bezier(0.2,0.8,0.2,1) forwards; }
 
 .lp-topbar {
   flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
@@ -777,21 +816,13 @@ body.theme-light .action-btn span {
 .lp-topbar-logo img { height: 22px; }
 body.theme-light .lp-topbar-logo img { filter: invert(1) grayscale(1); }
 .lp-topbar-right { display: flex; align-items: center; gap: 8px; }
-.lp-login-chip {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 11px; font-weight: 600; color: var(--text-secondary);
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-radius: 20px; padding: 4px 10px; cursor: pointer; transition: border-color 0.15s;
-}
-.lp-login-chip.logged-in { color: var(--accent); border-color: rgba(200,169,110,0.3); background: var(--accent-soft); }
-.lp-login-chip i { font-size: 10px; }
-.lp-settings-btn {
+.lp-settings-btn, .lp-picks-btn {
   width: 32px; height: 32px; border-radius: 50%;
   background: var(--hover-bg); border: 1px solid var(--border-color);
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   font-size: 13px; color: var(--text-secondary); transition: border-color 0.15s, color 0.15s;
 }
-.lp-settings-btn:hover { border-color: var(--accent); color: var(--accent); }
+.lp-settings-btn:hover, .lp-picks-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 .lp-settings-popover {
   position: fixed; z-index: 500;
@@ -876,11 +907,74 @@ body.theme-light .lp-topbar-logo img { filter: invert(1) grayscale(1); }
 }
 .lib-row.selected .lib-selected-check { display: flex; }
 
-/* Picks preview rows — read-only, same visual language as .lib-row but
-   with a rank number instead of a selectable badge/checkmark, and a
-   different accent tint so it reads as "your current feed order",
-   distinct from the selectable libraries above it. */
-.picks-row-list { display: flex; flex-direction: column; padding: 0 18px; margin-bottom: 10px; }
+.lp-scroll-hint { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11px; color: var(--text-secondary); font-weight: 500; padding: 12px 18px calc(12px + env(safe-area-inset-bottom) + 72px); flex-shrink: 0; }
+
+.lp-loading { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 12px; padding: 30px 0; }
+
+/* ══════════════════════════════════════════════
+   UNIFIED FADE/BLUR FEED TRANSITION
+   One single mechanism used for: initial Begin from
+   the picker, Browse All, Browse-a-random-feed, and
+   any future full-feed swap. It fades opacity, adds a
+   gentle blur, and drops/lifts slightly — matching the
+   feel of the reference page's lp-card-exit animation,
+   but implemented as an explicit, always-unambiguous
+   class so it can never silently collide with any other
+   animation class an element might still be carrying.
+══════════════════════════════════════════════ */
+.feed-fade-exit {
+  animation: feedFadeOut 0.35s cubic-bezier(0.4,0,0.2,1) forwards !important;
+  pointer-events: none !important;
+}
+@keyframes feedFadeOut {
+  0%   { opacity: 1; filter: blur(0px); transform: translateY(0) scale(1); }
+  100% { opacity: 0; filter: blur(10px); transform: translateY(-18px) scale(0.97); }
+}
+.feed-fade-enter {
+  animation: feedFadeIn 0.4s cubic-bezier(0.2,0.8,0.2,1) forwards !important;
+}
+@keyframes feedFadeIn {
+  0%   { opacity: 0; filter: blur(10px); transform: translateY(10px) scale(0.99); }
+  100% { opacity: 1; filter: blur(0px); transform: translateY(0) scale(1); }
+}
+
+/* ══════════════════════════════════════════════
+   PICKS PREVIEW PANEL
+══════════════════════════════════════════════ */
+.picks-panel-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 399;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+}
+.picks-panel-overlay.open { opacity: 1; pointer-events: all; }
+.picks-panel {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(340px, 86vw);
+  background: var(--bg-color); z-index: 400;
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 0.3s cubic-bezier(0.2,0.8,0.2,1), visibility 0s linear 0.3s;
+  display: flex; flex-direction: column;
+}
+.picks-panel.open {
+  transform: translateX(0);
+  visibility: visible;
+  transition: transform 0.3s cubic-bezier(0.2,0.8,0.2,1), visibility 0s linear 0s;
+  box-shadow: -12px 0 40px rgba(0,0,0,0.4);
+}
+.picks-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: calc(16px + env(safe-area-inset-top)) 18px 14px;
+  border-bottom: 1px solid var(--border-color); flex-shrink: 0;
+}
+.picks-panel-title { font-size: 14px; font-weight: 800; color: var(--text-primary); font-family: var(--font-article); }
+.picks-panel-close {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--hover-bg);
+  border: 1px solid var(--border-color); color: var(--text-secondary);
+  cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.picks-panel-close:hover { border-color: var(--accent); color: var(--accent); }
+.picks-panel-body { flex: 1; overflow-y: auto; padding: 10px 0; }
+.picks-row-list { display: flex; flex-direction: column; padding: 0 18px; }
 .picks-row {
   display: flex; align-items: center; gap: 13px;
   padding: 12px 0; border-bottom: 1px solid var(--border-color);
@@ -888,7 +982,7 @@ body.theme-light .lp-topbar-logo img { filter: invert(1) grayscale(1); }
 .picks-row:last-child { border-bottom: none; }
 .picks-rank {
   width: 26px; flex-shrink: 0; text-align: center;
-  font-family: var(--mono, 'DM Sans', sans-serif); font-size: 13px; font-weight: 700;
+  font-family: var(--font-ui); font-size: 13px; font-weight: 700;
   color: var(--accent);
 }
 .picks-avatar {
@@ -901,55 +995,11 @@ body.theme-light .lp-topbar-logo img { filter: invert(1) grayscale(1); }
 .picks-content { flex: 1; min-width: 0; }
 .picks-title { font-size: 13px; font-weight: 700; color: var(--text-primary); font-family: var(--font-article); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .picks-empty-note {
-  padding: 16px 18px 4px; font-size: 12px; color: var(--text-secondary); line-height: 1.6;
+  padding: 20px 18px; font-size: 12.5px; color: var(--text-secondary); line-height: 1.6;
 }
-
-.lp-action-footer {
-  flex-shrink: 0; padding: 10px 18px;
-  padding-bottom: calc(10px + env(safe-area-inset-bottom) + 72px);
-  border-top: 1px solid var(--border-color);
-  background: var(--bg-color);
-  display: flex; gap: 8px; align-items: center;
-  transform: translateY(100%);
-  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
-  /* Sticky rather than relying on flex flow to naturally land above the
-     fixed tab bar — a long libraries/picks list could otherwise push
-     this element below the viewport, where the tab bar's z-index:100
-     would sit visually on top of it, blocking taps. */
-  position: sticky;
-  bottom: 0;
-  z-index: 60;
-}
-.lp-action-footer.visible { transform: translateY(0); }
-.lp-begin-btn {
-  flex: 1; padding: 13px; border-radius: 12px;
-  background: var(--accent); color: #0f0e0b;
-  font-size: 14px; font-weight: 800; border: none; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 7px;
-  box-shadow: 0 4px 20px var(--accent-glow);
-  font-family: var(--font-ui); transition: background 0.15s;
-}
-.lp-begin-btn:hover { background: var(--accent-hover); }
-.lp-all-btn {
-  padding: 13px 14px; border-radius: 12px;
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  color: var(--text-secondary); font-size: 12px; font-weight: 700; cursor: pointer;
-  font-family: var(--font-ui); transition: border-color 0.15s, color 0.15s;
-}
-.lp-all-btn:hover { border-color: var(--accent); color: var(--accent); }
-.lp-scroll-hint { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11px; color: var(--text-secondary); font-weight: 500; padding: 12px 18px; padding-bottom: calc(12px + env(safe-area-inset-bottom) + 72px); flex-shrink: 0; }
-
-@keyframes lp-card-exit {
-  0%{opacity:1;transform:translateY(0) scale(1)}
-  100%{opacity:0;transform:translateY(-24px) scale(0.97)}
-}
-.library-picker-card.exiting { animation: lp-card-exit 0.35s cubic-bezier(0.4,0,0.2,1) forwards; pointer-events: none; }
-.lp-loading { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 12px; padding: 30px 0; }
 
 /* ══════════════════════════════════════════════
-   END-OF-FEED CARD ("caught up" / "not personalized yet")
-   Four gradient variants, one picked at random each time this card
-   renders, so repeat visits to the end of the feed don't look identical.
+   END-OF-FEED CARD
 ══════════════════════════════════════════════ */
 .end-feed-card {
   position: relative; height: 100vh;
@@ -957,11 +1007,8 @@ body.theme-light .lp-topbar-logo img { filter: invert(1) grayscale(1); }
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   text-align: center; padding: 40px 32px;
   padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  background: var(--bg-color);
 }
-.end-feed-variant-1 { background: radial-gradient(circle at 30% 20%, rgba(200,169,110,0.14), transparent 60%), var(--bg-color); }
-.end-feed-variant-2 { background: radial-gradient(circle at 70% 80%, rgba(106,191,133,0.12), transparent 55%), var(--bg-color); }
-.end-feed-variant-3 { background: linear-gradient(160deg, rgba(200,169,110,0.1), transparent 45%), var(--bg-color); }
-.end-feed-variant-4 { background: radial-gradient(circle at 50% 15%, rgba(106,159,207,0.12), transparent 60%), var(--bg-color); }
 .end-feed-icon {
   font-size: 40px; color: var(--accent); margin-bottom: 18px; opacity: 0.85;
 }
@@ -970,8 +1017,16 @@ body.theme-light .lp-topbar-logo img { filter: invert(1) grayscale(1); }
   color: var(--text-primary); margin-bottom: 10px; letter-spacing: -0.01em;
 }
 .end-feed-sub {
-  font-size: 13px; color: var(--text-secondary); max-width: 280px; line-height: 1.6;
+  font-size: 13px; color: var(--text-secondary); max-width: 280px; line-height: 1.6; margin-bottom: 22px;
 }
+.end-feed-random-btn {
+  padding: 12px 22px; border-radius: 12px;
+  background: var(--hover-bg); border: 1px solid var(--border-color);
+  color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer;
+  font-family: var(--font-ui); transition: border-color 0.15s, color 0.15s;
+  display: flex; align-items: center; gap: 8px;
+}
+.end-feed-random-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ══════════════════════════════════════════════
    TERM POPUP
@@ -1056,8 +1111,7 @@ body.theme-light .lp-topbar-logo img { filter: invert(1) grayscale(1); }
 
 /* ── Light-mode overrides: three emoji styles hardcode dark-mode-only
    backgrounds/text colors that go low-contrast or invisible against
-   the cream light background — these give them light-appropriate
-   equivalents so they stay readable in both themes. ── */
+   the cream light background. ── */
 body.theme-light .emo-dark { color: #4a4438; background: rgba(0,0,0,0.06); }
 body.theme-light .emo-cool { background: rgba(160,120,64,0.08); color: var(--accent); border-color: rgba(160,120,64,0.2); }
 body.theme-light .emo-lock { color: #8a7d68; background: rgba(160,120,64,0.08); border-color: var(--border-color); }
@@ -1070,7 +1124,7 @@ body.theme-light .emo-lock { color: #8a7d68; background: rgba(160,120,64,0.08); 
 
 <div class="app-container" id="appContainer">
   <div class="scroller-container">
-    <div class="posts-wrapper" id="postsWrapper"></div>
+    <div class="posts-wrapper pre-reveal" id="postsWrapper"></div>
   </div>
 
   <!-- Desktop Sidebar -->
@@ -1204,14 +1258,26 @@ body.theme-light .emo-lock { color: #8a7d68; background: rgba(160,120,64,0.08); 
   </div>
 </div>
 
+<!-- Picks preview panel -->
+<div class="picks-panel-overlay" id="picksPanelOverlay" onclick="closePicksPanel()"></div>
+<div class="picks-panel" id="picksPanel">
+  <div class="picks-panel-header">
+    <span class="picks-panel-title">Your feed right now</span>
+    <button class="picks-panel-close" onclick="closePicksPanel()"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="picks-panel-body" id="picksPanelBody"></div>
+</div>
+
 <div class="share-toast" id="shareToast"></div>
 
 <!-- Footer -->
 <div class="footer-bar" id="footerBar">
-  <button class="footer-btn" onclick="location.href='index.html'"><i class="fas fa-home"></i><span>Home</span></button>
-  <button class="footer-btn active" onclick="location.href='https://patholytica.com/dailyfeed'"><i class="fas fa-scroll"></i><span>Feed</span></button>
-  <button class="footer-btn" onclick="location.href='explore.html'"><i class="fas fa-search"></i><span>Explore</span></button>
-  <button class="footer-btn" onclick="location.href='https://patholytica.com/space'"><i class="fas fa-th-large"></i><span>Space</span></button>
+  <div class="footer-default-actions" id="footerDefaultActions" style="display:flex;justify-content:space-around;align-items:center;width:100%;">
+    <button class="footer-btn" onclick="location.href='index.html'"><i class="fas fa-home"></i><span>Home</span></button>
+    <button class="footer-btn active" onclick="location.href='https://patholytica.com/dailyfeed'"><i class="fas fa-scroll"></i><span>Feed</span></button>
+    <button class="footer-btn" onclick="location.href='explore.html'"><i class="fas fa-search"></i><span>Explore</span></button>
+    <button class="footer-btn" onclick="location.href='https://patholytica.com/space'"><i class="fas fa-th-large"></i><span>Space</span></button>
+  </div>
 </div>
 
 <!-- ══ SCRIPTS ══ -->
@@ -1467,22 +1533,16 @@ const supabase=window.supabase.createClient(
 );
 window._supabase=supabase;
 
-// ── State ── (unified currentUser pattern from reference)
+// ── State ──
 let articles=[],userLikes=new Set(),userFollowing=new Set(),userFavLibs=new Set();
 let currentArticleId=null,isLoading=false,hasMore=true,offset=0;
-let usingPicksFeed=null; // null = not yet decided, true = feed is picks-driven, false = fell back to latest
-let sawAnyPicks=false;   // did we EVER successfully show a picks-driven card this session?
+let usingPicksFeed=null;
+let sawAnyPicks=false;
+let randomModeForced=false;
 const LIMIT=5;
-// currentUser = enriched object with { user_id, firebase_uid, username, ... } OR null
 let currentUser=null;
-let currentFirebaseUser=null; // raw Firebase user
+let currentFirebaseUser=null;
 
-// Resolves once, the first time onAuthStateChanged fires (Firebase always
-// calls it at least once on load, even with a null user). Used to hold
-// the very first loadArticles(true) call until we actually know whether
-// currentUser exists — previously that first call could race ahead of
-// auth resolving and fall back to latest-first for the opening cards,
-// which is why picks appeared to "kick in late".
 let _resolveAuthReady;
 const authReady = new Promise(res=>{ _resolveAuthReady = res; });
 
@@ -1493,9 +1553,20 @@ let _dsCurrentArticleId=null;
 const _lpSelected=new Set();
 let _loadingGifEl=null;
 
+// Item 3 fix: explicit "already shown" tracking, independent of numeric
+// offset, so pagination survives picks rows being inserted mid-session.
+const shownArticleIds=new Set();
+
+// Issue 1 fix: tracks whether the very first paint has already happened.
+// Until this flips true, the posts-wrapper stays visibility:hidden via
+// the .pre-reveal class, so nothing — not the picker, not a skeleton,
+// not a flash of anything — is shown to the user. The very first thing
+// unhidden is always the first real article/MCQ card, scrolled into
+// place with zero animation, in the same paint.
+let _firstPaintRevealed=false;
+
 function isDesktop(){return window.innerWidth>=769;}
 
-// ── Auth helper: must be called before every Supabase write ──
 async function ensureSupabaseAuth(){
   if(!currentFirebaseUser) return false;
   try{
@@ -1505,7 +1576,6 @@ async function ensureSupabaseAuth(){
   }catch(e){console.error('[RLS] set_current_user exception:',e);return false;}
 }
 
-// ── Loading GIF helpers ──
 function showLoadingGif(){
   if(_loadingGifEl)return;
   const isLight=document.body.classList.contains('theme-light');
@@ -1520,7 +1590,6 @@ function hideLoadingGif(){
   const el=document.getElementById('loadingGifWrap');if(el)el.remove();
 }
 
-// ── URL params ──
 (function(){
   const p=new URLSearchParams(location.search);
   const ap=p.get('article'),pp=p.get('playlist');
@@ -1528,7 +1597,6 @@ function hideLoadingGif(){
   else if(pp){window._urlPlaylistId=parseInt(pp);}
 })();
 
-// ── OG meta ──
 async function populateOGMeta(articleId){
   try{
     const{data:art}=await supabase.from('articles').select('id,title,content').eq('id',articleId).single();
@@ -1544,7 +1612,6 @@ async function populateOGMeta(articleId){
 }
 if(anchorArticleId!==null)populateOGMeta(anchorArticleId);
 
-// ── Auth ──
 onAuthStateChanged(auth,async firebaseUser=>{
   currentFirebaseUser=firebaseUser;
   if(firebaseUser){
@@ -1553,19 +1620,12 @@ onAuthStateChanged(auth,async firebaseUser=>{
     if(ud){
       currentUser=ud;
       await Promise.all([loadUserLikes(),loadUserFollowing(),loadUserFavLibs()]);
-      document.querySelectorAll('.lp-login-chip').forEach(c=>{c.classList.add('logged-in');c.innerHTML=`<i class="fas fa-circle" style="font-size:6px;"></i>${ud.username?'@'+ud.username:'Logged in'}`;});
-      const ai=document.getElementById('dsAuthInfo');if(ai)ai.textContent=ud.username?'@'+ud.username:firebaseUser.email;
       refreshAuthorHeaders();
     }
   }else{
     currentUser=null;
     userLikes.clear();userFollowing.clear();userFavLibs.clear();
-    document.querySelectorAll('.lp-login-chip').forEach(c=>{c.classList.remove('logged-in');c.innerHTML=`<i class="fas fa-sign-in-alt"></i>Log in`;});
-    const ai=document.getElementById('dsAuthInfo');if(ai)ai.textContent='Not logged in';
   }
-  // Signal that auth state is known — resolves exactly once, on whichever
-  // branch above ran first (logged-in or logged-out), regardless of
-  // which happens on a given page load.
   if(_resolveAuthReady){_resolveAuthReady();_resolveAuthReady=null;}
 });
 
@@ -1605,7 +1665,6 @@ function refreshAuthorHeaders(){
   });
 }
 
-// ── Helpers ──
 function isMCQ(c){return typeof c==='string'&&c.trimStart().startsWith('❔');}
 function parseMCQ(c){const lines=c.trim().split('\n').map(l=>l.trim()).filter(Boolean);const q=lines[0].replace(/^❔/,'').trim();const opts=lines.slice(1).map(l=>({label:l.replace(/^✅/,'').trim(),correct:l.startsWith('✅')}));for(let i=opts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]];}return{question:q,options:opts};}
 function formatNumber(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return(n||0).toString();}
@@ -1631,7 +1690,6 @@ function commentsSkeletonHTML(){
   </div>`;
 }
 
-// ── Author header ──
 function buildAuthorHeader(article){
   const avatarContent=getAvatarContent(article);
   const aSupaId=article.authorSupaUserId||'',aFbUid=article.firebase_user_id||'',aUser=article.authorUsername||'';
@@ -1644,7 +1702,6 @@ function buildAuthorHeader(article){
   return`<div class="author-avatar" onclick="location.href='${profileUrl}'">${avatarContent}</div><div class="author-info"><div class="author-name" onclick="location.href='${profileUrl}'">${article.author}</div><div class="article-date">${formatDate(new Date(article.created_at))}</div></div>${followBtn}${editBtn}`;
 }
 
-// ── Media ──
 function createMediaElement(m,forArticleContent=false){
   const d=document.createElement('div');
   if(m.type==='image'){
@@ -1671,7 +1728,6 @@ function createMediaElement(m,forArticleContent=false){
   return d;
 }
 
-// ── Article card ──
 function buildArticleCard(article,index){
   const div=document.createElement('div');div.className='article-card';div.dataset.index=index;div.dataset.articleId=article.id;
   const isLiked=userLikes.has(String(article.id));
@@ -1691,7 +1747,6 @@ function buildArticleCard(article,index){
   return div;
 }
 
-// ── MCQ card ──
 function buildMCQCard(article,index){
   const{question,options}=parseMCQ(article.content);
   const isLiked=userLikes.has(String(article.id));
@@ -1720,7 +1775,6 @@ function buildMCQCard(article,index){
   return card;
 }
 
-// ── Card listeners ──
 function attachCardListeners(card,article){
   card.querySelector('.like-btn')?.addEventListener('click',handleLike);
   card.querySelector('.comment-btn')?.addEventListener('click',handleComments);
@@ -1744,7 +1798,6 @@ function setupDoubleTap(card,articleId){
 }
 function triggerDoubleTapLike(card,articleId,x,y){const likeBtn=card.querySelector('.like-btn');if(!likeBtn)return;if(!likeBtn.classList.contains('liked'))likeBtn.click();window.spawnHeartBurst(x,y);}
 
-// ── Like (reference pattern: ensureSupabaseAuth before every write) ──
 async function handleLike(e){
   const btn=e.currentTarget,id=String(btn.dataset.id),countSpan=btn.querySelector('.like-count');
   if(!currentFirebaseUser){location.href='https://patholytica.com/login';return;}
@@ -1794,7 +1847,6 @@ async function handleLike(e){
   }finally{btn.dataset.processing='false';}
 }
 
-// ── Follow ──
 window.handleFollow=async function(e,aFbUid,aSupaId){
   e.stopPropagation();
   if(!currentFirebaseUser){location.href='https://patholytica.com/login';return;}
@@ -1813,35 +1865,132 @@ window.handleFollow=async function(e,aFbUid,aSupaId){
   }finally{btn.dataset.processing='false';}
 };
 
-// ── Library Picker ──
-async function initLibraryPicker(){
-  // Wait for auth to resolve before the very first article load — this
-  // is the fix for item 4: previously loadArticles(true) fired here
-  // immediately, racing ahead of onAuthStateChanged, so currentUser was
-  // still null when the personalized branch was checked and the opening
-  // cards fell back to latest-first every time.
-  await authReady;
-
-  if(anchorArticleId!==null){injectInitialSkeletons(3);loadArticles(true);return;}
-  if(window._urlPlaylistId){
-    injectInitialSkeletons(3);
-    try{const{data:items}=await supabase.from('playlist_items').select('article_id').eq('playlist_id',window._urlPlaylistId);filteredArticleIds=[...new Set((items||[]).map(r=>r.article_id))];}catch(e){filteredArticleIds=null;}
-    loadArticles(true);return;
+// ── Footer / desktop-actionbar swap: default nav ⇄ picker
+// actions, on whichever surface is actually visible for the viewport. ──
+function showPickerActionSurface(){
+  if(isDesktop()){
+    let bar=document.getElementById('lpDesktopActionbar');
+    if(!bar)return;
+    bar.innerHTML=`<button class="footer-picker-browseall" onclick="lpStartFeedAll()">Browse All</button>
+      <button class="footer-picker-begin" id="footerBeginBtn" onclick="lpStartFeedSelected()"><i class="fas fa-play"></i> Begin <span id="footerSelLabel"></span></button>`;
+    bar.classList.add('visible');
+    bar.style.display='flex';
+  }else{
+    const bar=document.getElementById('footerBar');
+    bar.innerHTML=`<div class="footer-picker-actions">
+      <button class="footer-picker-browseall" onclick="lpStartFeedAll()">Browse All</button>
+      <button class="footer-picker-begin" id="footerBeginBtn" onclick="lpStartFeedSelected()"><i class="fas fa-play"></i> Begin <span id="footerSelLabel"></span></button>
+    </div>`;
   }
+}
+function restorePickerActionSurface(){
+  if(isDesktop()){
+    const bar=document.getElementById('lpDesktopActionbar');
+    if(bar){bar.classList.remove('visible');bar.style.display='none';bar.innerHTML='';}
+  }else{
+    restoreFooterDefaultActions();
+  }
+}
+function restoreFooterDefaultActions(){
+  const bar=document.getElementById('footerBar');
+  bar.innerHTML=`<div class="footer-default-actions" id="footerDefaultActions" style="display:flex;justify-content:space-around;align-items:center;width:100%;">
+    <button class="footer-btn" onclick="location.href='index.html'"><i class="fas fa-home"></i><span>Home</span></button>
+    <button class="footer-btn active" onclick="location.href='https://patholytica.com/dailyfeed'"><i class="fas fa-scroll"></i><span>Feed</span></button>
+    <button class="footer-btn" onclick="location.href='explore.html'"><i class="fas fa-search"></i><span>Explore</span></button>
+    <button class="footer-btn" onclick="location.href='https://patholytica.com/space'"><i class="fas fa-th-large"></i><span>Space</span></button>
+  </div>`;
+}
+function updateFooterSelLabel(n){
+  const lbl=document.getElementById('footerSelLabel');
+  if(lbl)lbl.textContent=n>0?`(${n})`:'';
+}
+
+// ── Library Picker ──
+// Issue 1 fix (core of the rewrite): the picker card is now built and
+// its data fetched entirely in the background (invisible, since
+// #postsWrapper carries .pre-reveal from the very first line of HTML).
+// It is inserted above the feed in the DOM, but NOTHING is shown to the
+// user until the first batch of real feed cards has also been built
+// and appended, and the scroll position has already been jumped past
+// the picker to the first card. Only then does revealFeed() remove
+// .pre-reveal — so the very first pixel the user ever sees is the
+// first article, never the picker, never a skeleton, never a flash.
+//
+// LOADING-STATE FIX: the previous version never actually called
+// injectInitialSkeletons(), so the loading GIF (which is position:fixed
+// on <body>, not a child of #postsWrapper, and therefore NOT hidden by
+// pre-reveal) never appeared, and the wrapper sat blank during the
+// fetch. That call is added below, right before the fetch begins, so
+// the GIF is visible on top of the still-hidden wrapper for as long as
+// loadArticles() takes. pre-reveal itself is untouched — it still gates
+// the picker card exactly as before, and the skeleton cards it also
+// inserts stay invisible until reveal, same as everything else in the
+// wrapper.
+async function initLibraryPicker(){
+  if(anchorArticleId!==null){
+    showLoadingGif();
+    await authReady;
+    await loadArticles(true);
+    revealFeed();
+    return;
+  }
+  if(window._urlPlaylistId){
+    showLoadingGif();
+    await authReady;
+    try{const{data:items}=await supabase.from('playlist_items').select('article_id').eq('playlist_id',window._urlPlaylistId);filteredArticleIds=[...new Set((items||[]).map(r=>r.article_id))];}catch(e){filteredArticleIds=null;}
+    await loadArticles(true);
+    revealFeed();
+    return;
+  }
+
   const wrapper=document.getElementById('postsWrapper');
   const pickerCard=buildPickerCard();
-  wrapper.insertBefore(pickerCard,wrapper.firstChild);
-  // Entrance blur-in, mirroring the existing exit animation.
-  requestAnimationFrame(()=>pickerCard.classList.add('entering'));
-  injectInitialSkeletons(3);
-  loadArticles(true);
-  requestAnimationFrame(()=>{const first=wrapper.querySelector('.skeleton-card');if(first)wrapper.scrollTop=first.offsetTop;});
+  wrapper.appendChild(pickerCard);
+
+  // Show the loading indicator now: the picker card just went into the
+  // DOM but is still visibility:hidden via pre-reveal on the wrapper,
+  // and the GIF itself lives on <body> so it renders regardless. This
+  // is the visible cue while authReady + loadArticles resolve below.
+  showLoadingGif();
+
+  await authReady;
+  await loadArticles(true);
+
+  // At this point the first batch of real feed cards is already in the
+  // DOM (appended after the picker card by renderArticles). Jump the
+  // scroll position straight to the first feed card BEFORE anything is
+  // revealed, so that when .pre-reveal comes off there is no visible
+  // scroll jump either — the user's first frame already shows the
+  // first card sitting at scrollTop 0 of the viewport.
+  snapToFirstFeedCard();
+  revealFeed();
+}
+
+function revealFeed(){
+  if(_firstPaintRevealed)return;
+  _firstPaintRevealed=true;
+  const wrapper=document.getElementById('postsWrapper');
+  wrapper.classList.remove('pre-reveal');
+  // The loading GIF has served its purpose the moment real content is
+  // about to be shown — hide it here as a safety net in case
+  // loadArticles()'s own clearSkeletons()/hideLoadingGif() call, deep
+  // inside renderArticles(), was skipped on some code path (e.g. the
+  // filteredArticleIds-empty early return in loadArticles).
+  hideLoadingGif();
+}
+
+function snapToFirstFeedCard(){
+  const wrapper=document.getElementById('postsWrapper');
+  const firstCard=wrapper.querySelector('.article-card,.mcq-card');
+  if(firstCard)wrapper.scrollTop=firstCard.offsetTop;
 }
 
 function buildPickerCard(){
   const card=document.createElement('div');card.className='library-picker-card';card.id='libraryPickerCard';
   const topbar=document.createElement('div');topbar.className='lp-topbar';
-  topbar.innerHTML=`<div class="lp-topbar-logo"><img src="IMG_3220.png" alt="Patholytica"></div><div class="lp-topbar-right"><div class="lp-login-chip" id="lpLoginChip" onclick="location.href='https://patholytica.com/login'"><i class="fas fa-sign-in-alt"></i>Log in</div><button class="lp-settings-btn" id="lpSettingsBtn" onclick="toggleSettingsPopover(this)"><i class="fas fa-sliders-h"></i></button></div>`;
+  // Issue 2 fix: login chip / username button removed entirely from the
+  // picker topbar. Only the logo and the picks/settings buttons remain.
+  topbar.innerHTML=`<div class="lp-topbar-logo"><img src="IMG_3220.png" alt="Patholytica"></div><div class="lp-topbar-right"><button class="lp-picks-btn" id="lpPicksBtn" onclick="openPicksPanel()" title="Your feed right now"><i class="fas fa-list-ol"></i></button><button class="lp-settings-btn" id="lpSettingsBtn" onclick="toggleSettingsPopover(this)"><i class="fas fa-sliders-h"></i></button></div>`;
   card.appendChild(topbar);
   const body=document.createElement('div');body.className='lp-body';body.id='lpBody';
   body.innerHTML=`<div class="lp-loading"><div class="spinner" style="width:24px;height:24px;border-width:2px;"></div><div>Loading libraries…</div></div>`;
@@ -1849,11 +1998,9 @@ function buildPickerCard(){
   const hint=document.createElement('div');hint.className='lp-scroll-hint';hint.id='lpScrollHint';
   hint.innerHTML=`<i class="fas fa-arrow-down"></i> Scroll down to browse everything`;
   card.appendChild(hint);
-  const footer=document.createElement('div');footer.className='lp-action-footer';footer.id='lpActionFooter';
-  footer.innerHTML=`<button class="lp-all-btn" onclick="lpStartFeedAll()">Browse All</button><button class="lp-begin-btn" id="lpBeginBtn" onclick="lpStartFeedSelected()"><i class="fas fa-play"></i> Begin <span id="lpSelLabel"></span></button>`;
-  card.appendChild(footer);
+  const desktopBar=document.createElement('div');desktopBar.className='lp-desktop-actionbar';desktopBar.id='lpDesktopActionbar';
+  card.appendChild(desktopBar);
   loadPickerLibraries(body);
-  loadPicksPreview(body);
   return card;
 }
 
@@ -1872,9 +2019,15 @@ function makeLibRow(lib,count){
     const id=String(lib.id);
     if(_lpSelected.has(id)){_lpSelected.delete(id);row.classList.remove('selected');}
     else{if(_lpSelected.size>=5)return;_lpSelected.add(id);row.classList.add('selected');}
-    const actionFooter=document.getElementById('lpActionFooter'),scrollHint=document.getElementById('lpScrollHint'),selLabel=document.getElementById('lpSelLabel'),n=_lpSelected.size;
-    if(n>0){actionFooter?.classList.add('visible');if(scrollHint)scrollHint.style.display='none';if(selLabel)selLabel.textContent=`(${n} selected)`;}
-    else{actionFooter?.classList.remove('visible');if(scrollHint)scrollHint.style.display='';if(selLabel)selLabel.textContent='';}
+    const n=_lpSelected.size;
+    if(n>0){
+      if(document.getElementById('footerBeginBtn')===null)showPickerActionSurface();
+      updateFooterSelLabel(n);
+      const hint=document.getElementById('lpScrollHint');if(hint)hint.style.display='none';
+    }else{
+      restorePickerActionSurface();
+      const hint=document.getElementById('lpScrollHint');if(hint)hint.style.display='';
+    }
   });
   return row;
 }
@@ -1902,25 +2055,21 @@ async function loadPickerLibraries(body){
   }
 }
 
-// Read-only preview of the user's current picks, appended below the
-// libraries list, in the order they'll actually appear in the feed.
-async function loadPicksPreview(body){
-  const lbl=document.createElement('div');lbl.className='lp-section-label';lbl.innerHTML=`<i class="fas fa-wand-magic-sparkles"></i>Your feed right now`;
-  body.appendChild(lbl);
+// ── Picks preview panel ──
+window.openPicksPanel=async function(){
+  document.getElementById('picksPanelOverlay').classList.add('open');
+  document.getElementById('picksPanel').classList.add('open');
+  const body=document.getElementById('picksPanelBody');
+  body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;padding:40px 0;"><div class="spinner" style="width:24px;height:24px;border-width:2px;"></div></div>`;
 
   if(!currentUser){
-    const note=document.createElement('div');note.className='picks-empty-note';
-    note.textContent='Log in to see your personalized picks build up here as you interact with articles.';
-    body.appendChild(note);
+    body.innerHTML=`<div class="picks-empty-note">Log in to see your personalized picks build up here as you interact with articles.</div>`;
     return;
   }
-
   try{
     const{data:picksRow}=await supabase.from('picks').select('id').eq('user_id',currentUser.user_id).maybeSingle();
     if(!picksRow){
-      const note=document.createElement('div');note.className='picks-empty-note';
-      note.textContent='Your feed isn\'t personalized yet — like, comment, share, or spend time on articles to start building it.';
-      body.appendChild(note);
+      body.innerHTML=`<div class="picks-empty-note">Your feed isn't personalized yet — like, comment, share, or spend time on articles to start building it.</div>`;
       return;
     }
     const{data:items,error}=await supabase
@@ -1930,109 +2079,170 @@ async function loadPicksPreview(body){
       .order('position',{ascending:true})
       .limit(50);
     if(error||!items?.length){
-      const note=document.createElement('div');note.className='picks-empty-note';
-      note.textContent='Your feed isn\'t personalized yet — like, comment, share, or spend time on articles to start building it.';
-      body.appendChild(note);
+      body.innerHTML=`<div class="picks-empty-note">Your feed isn't personalized yet — like, comment, share, or spend time on articles to start building it.</div>`;
       return;
     }
     const list=document.createElement('div');list.className='picks-row-list';
     items.forEach((item,idx)=>{
       const title=item.articles?.title&&item.articles.title.trim()?item.articles.title:('Article #'+item.article_id);
-      const row=document.createElement('div');row.className='picks-row';
       const letter=(title||'?')[0].toUpperCase();
+      const row=document.createElement('div');row.className='picks-row';
       row.innerHTML=`<div class="picks-rank">${idx+1}</div><div class="picks-avatar">${escHtmlLP(letter)}</div><div class="picks-content"><div class="picks-title">${escHtmlLP(title)}</div></div>`;
       list.appendChild(row);
     });
+    body.innerHTML='';
     body.appendChild(list);
   }catch(e){
-    const note=document.createElement('div');note.className='picks-empty-note';
-    note.textContent='Could not load your picks preview right now.';
-    body.appendChild(note);
+    body.innerHTML=`<div class="picks-empty-note">Could not load your picks preview right now.</div>`;
   }
-}
+};
+window.closePicksPanel=function(){
+  document.getElementById('picksPanelOverlay').classList.remove('open');
+  document.getElementById('picksPanel').classList.remove('open');
+};
 
-window.lpStartFeedAll=function(){filteredArticleIds=null;animatePickerOut(()=>{articles=[];offset=0;hasMore=true;isLoading=false;clearSkeletons();loadArticles(true);});};
+window.lpStartFeedAll=function(){
+  filteredArticleIds=null;
+  _lpSelected.clear();
+  restorePickerActionSurface();
+  transitionToNewFeed(()=>loadArticles(true));
+};
 window.lpStartFeedSelected=async function(){
   if(!_lpSelected.size)return;
-  const btn=document.getElementById('lpBeginBtn');if(btn){btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Loading…';btn.disabled=true;}
+  const beginBtn=document.getElementById('footerBeginBtn');
+  if(beginBtn){beginBtn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Loading…';beginBtn.disabled=true;}
   const ids=[..._lpSelected].map(Number);
   const{data:items}=await supabase.from('playlist_items').select('article_id').in('playlist_id',ids);
   const articleIds=[...new Set((items||[]).map(r=>r.article_id))];
   filteredArticleIds=articleIds.length?articleIds:null;
-  animatePickerOut(()=>{articles=[];offset=0;hasMore=true;isLoading=false;clearSkeletons();loadArticles(true);});
+  _lpSelected.clear();
+  restorePickerActionSurface();
+  transitionToNewFeed(()=>loadArticles(true));
 };
 
-function animatePickerOut(cb){
-  const p=document.getElementById('libraryPickerCard');if(!p){cb();return;}
-  p.classList.remove('entering');
-  p.classList.add('exiting');
-  p.addEventListener('animationend',()=>{const sk=document.createElement('div');sk.className='skeleton-card';sk.innerHTML=skeletonCardHTML();p.replaceWith(sk);cb();},{once:true});
+function clearFeedAndShowSkeletons(){
+  articles=[];offset=0;hasMore=true;isLoading=false;
+  shownArticleIds.clear();
+  const wrapper=document.getElementById('postsWrapper');
+  wrapper.querySelectorAll('.article-card,.mcq-card,.end-feed-card').forEach(c=>c.remove());
+  _endFeedCardShown=false;
+  injectInitialSkeletons(3);
 }
 
-// Pulls one user's personalized feed from picks → pick_items → articles,
-// in position order (rank 1 first). Returns [] if the user has no picks
-// row yet, or no items in it — callers fall back to latest-first in
-// that case. Errors are logged rather than silently swallowed.
-async function loadUserPicks(userId,rangeFrom,rangeTo){
+// ── Unified fade/blur transition ──
+// One single helper used by "Begin" (from the picker), "Browse All",
+// and "Browse a random feed instead", so all three transitions look
+// and behave identically: the card currently on screen fades + blurs
+// out via the explicit .feed-fade-exit class (which always wins, since
+// it's the only animation-bearing class ever added at that moment —
+// any stale animation class from a previous transition is stripped
+// first), then the new feed's cards fade + blur in via .feed-fade-enter
+// once they've rendered.
+function transitionToNewFeed(loadFn){
+  const wrapper=document.getElementById('postsWrapper');
+  const visibleCard=wrapper.querySelector('.library-picker-card, .article-card, .mcq-card, .end-feed-card');
+  if(!visibleCard){clearFeedAndShowSkeletons();loadFn();return;}
+
+  // Strip any leftover transition classes so the new one is never
+  // fighting a class it doesn't know about.
+  visibleCard.classList.remove('feed-fade-exit','feed-fade-enter');
+  // Force a reflow so re-adding the class always restarts the animation
+  // even if this exact element was faded before.
+  void visibleCard.offsetWidth;
+  visibleCard.classList.add('feed-fade-exit');
+
+  let done=false;
+  const finish=()=>{
+    if(done)return;done=true;
+    visibleCard.removeEventListener('animationend',finish);
+    visibleCard.remove();
+    clearFeedAndShowSkeletons();
+    loadFn().then(()=>{
+      fadeInNewFeedCards();
+    });
+  };
+  visibleCard.addEventListener('animationend',finish,{once:true});
+  // Safety net: if for any reason animationend never fires (e.g. the
+  // element was already removed from the DOM elsewhere), don't leave
+  // the user stuck looking at a faded-out card forever.
+  setTimeout(finish,450);
+}
+
+function fadeInNewFeedCards(){
+  const wrapper=document.getElementById('postsWrapper');
+  const cards=wrapper.querySelectorAll('.article-card,.mcq-card,.end-feed-card');
+  cards.forEach(c=>{
+    c.classList.remove('feed-fade-enter');
+    void c.offsetWidth;
+    c.classList.add('feed-fade-enter');
+    c.addEventListener('animationend',()=>c.classList.remove('feed-fade-enter'),{once:true});
+  });
+}
+
+// Item 3 fix: exclude already-shown article IDs explicitly rather than
+// trusting a numeric offset, since inserts into pick_items during the
+// session (from ongoing interactions) shift what a positional offset
+// window actually contains.
+async function loadUserPicks(userId,excludeIds,limit){
   const{data:picksRow,error:picksErr}=await supabase.from('picks').select('id').eq('user_id',userId).maybeSingle();
   if(picksErr){console.error('[loadUserPicks] picks lookup failed:',picksErr);return[];}
   if(!picksRow)return[];
-  const{data:items,error}=await supabase
+  let query=supabase
     .from('pick_items')
     .select('article_id, position, articles!fk_pick_items_article(*)')
     .eq('picks_id',picksRow.id)
     .order('position',{ascending:true})
-    .range(rangeFrom,rangeTo);
+    .limit(limit);
+  if(excludeIds.size>0){
+    query=query.not('article_id','in',`(${[...excludeIds].join(',')})`);
+  }
+  const{data:items,error}=await query;
   if(error){console.error('[loadUserPicks] pick_items query failed:',error);return[];}
   if(!items?.length)return[];
   return items.filter(it=>it.articles).map(it=>it.articles);
 }
 
-// Builds the end-of-feed card (item 6). isExhausted = true means the
-// user DID have picks and just ran out of them (the "caught up" case);
-// false means picks were never generated for them at all yet (the
-// "not personalized" case). Picks one of four background gradient
-// variants at random each time it's built.
 function buildEndFeedCard(hasSeenAnyPicks){
-  const variants=['end-feed-variant-1','end-feed-variant-2','end-feed-variant-3','end-feed-variant-4'];
-  const chosen=variants[Math.floor(Math.random()*variants.length)];
   const div=document.createElement('div');
-  div.className=`end-feed-card ${chosen}`;
+  div.className='end-feed-card';
   if(hasSeenAnyPicks){
-    div.innerHTML=`<div class="end-feed-icon"><i class="fas fa-champagne-glasses"></i></div><div class="end-feed-title">You've caught up on your feed</div><div class="end-feed-sub">Keep exploring, liking, and commenting — new picks will keep building for you.</div>`;
+    div.innerHTML=`<div class="end-feed-icon"><i class="fas fa-champagne-glasses"></i></div><div class="end-feed-title">You've caught up on your feed</div><div class="end-feed-sub">Keep exploring, liking, and commenting — new picks will keep building for you.</div><button class="end-feed-random-btn" onclick="startRandomFeed()"><i class="fas fa-shuffle"></i> Browse a random feed instead</button>`;
   }else{
-    div.innerHTML=`<div class="end-feed-icon"><i class="fas fa-wand-magic-sparkles"></i></div><div class="end-feed-title">Your feed isn't personalized yet</div><div class="end-feed-sub">Interact with a few articles — like, comment, share, or just read — and your feed will start tailoring itself to you.</div>`;
+    div.innerHTML=`<div class="end-feed-icon"><i class="fas fa-wand-magic-sparkles"></i></div><div class="end-feed-title">Your feed isn't personalized yet</div><div class="end-feed-sub">Interact with a few articles — like, comment, share, or just read — and your feed will start tailoring itself to you.</div><button class="end-feed-random-btn" onclick="startRandomFeed()"><i class="fas fa-shuffle"></i> Browse a random feed instead</button>`;
   }
   return div;
 }
 
-// ── Article loading ──
+// Issue 4 fix: routed through the same transitionToNewFeed helper as
+// Begin/Browse All, so the random feed also fades+blurs identically
+// rather than swapping instantly.
+window.startRandomFeed=function(){
+  randomModeForced=true;
+  filteredArticleIds=null;
+  transitionToNewFeed(()=>loadArticles(true));
+};
+
 async function loadArticles(isInitial=true){
   if(isLoading||(!isInitial&&!hasMore))return;isLoading=true;
   try{
     if(isInitial&&anchorArticleId!==null){
       const{data:anchor,error}=await supabase.from('articles').select('*').eq('id',anchorArticleId).single();
-      if(!error&&anchor){const{data:rest}=await supabase.from('articles').select('*').order('created_at',{ascending:false}).lt('created_at',anchor.created_at).limit(LIMIT-1);await enrichAndRender([anchor,...(rest||[])],isInitial);offset=LIMIT;isLoading=false;return;}
+      if(!error&&anchor){const{data:rest}=await supabase.from('articles').select('*').order('created_at',{ascending:false}).lt('created_at',anchor.created_at).limit(LIMIT-1);await enrichAndRender([anchor,...(rest||[])],isInitial);isLoading=false;return;}
       anchorArticleId=null;
     }
 
-    if(currentUser&&filteredArticleIds===null&&usingPicksFeed!==false){
-      const pickedArticles=await loadUserPicks(currentUser.user_id,offset,offset+LIMIT-1);
+    if(currentUser&&filteredArticleIds===null&&usingPicksFeed!==false&&!randomModeForced){
+      const pickedArticles=await loadUserPicks(currentUser.user_id,shownArticleIds,LIMIT);
       if(pickedArticles.length){
         usingPicksFeed=true;
         sawAnyPicks=true;
+        pickedArticles.forEach(a=>shownArticleIds.add(a.id));
         if(pickedArticles.length<LIMIT)hasMore=false;
-        offset+=pickedArticles.length;
         await enrichAndRender(pickedArticles,isInitial);isLoading=false;
-        // If picks just ran out (fewer than a full page came back), append
-        // the "caught up" end-of-feed card right after these results.
         if(!hasMore)appendEndFeedCardIfNeeded();
         return;
       }
       usingPicksFeed=false;
-      // First-ever load returned no picks at all — show the
-      // "not personalized yet" version once, then fall through to
-      // latest-first for the rest of the session.
       if(isInitial&&!sawAnyPicks)appendEndFeedCardIfNeeded(true);
     }
 
@@ -2042,6 +2252,7 @@ async function loadArticles(isInitial=true){
     if(!data2?.length){clearSkeletons();hasMore=false;isLoading=false;return;}
     if(data2.length<LIMIT)hasMore=false;
     offset+=data2.length;
+    data2.forEach(a=>shownArticleIds.add(a.id));
     await enrichAndRender(data2,isInitial);isLoading=false;
   }catch(e){console.error(e);clearSkeletons();isLoading=false;}
 }
@@ -2118,12 +2329,10 @@ async function incrementView(id){
   }catch(e){viewedArticles.delete(id);}
 }
 
-// ── Comment counts ──
 async function loadCommentCounts(){
   try{const{data}=await supabase.from('comments').select('article_id');const counts={};(data||[]).forEach(c=>{counts[c.article_id]=(counts[c.article_id]||0)+1;});document.querySelectorAll('.comment-btn').forEach(btn=>{btn.querySelector('.comment-count').textContent=counts[btn.dataset.id]||0;});}catch(e){}
 }
 
-// ── Desktop sidebar comments ──
 function showDsComments(articleId){
   _dsCurrentArticleId=articleId;
   document.getElementById('dsCommentsPanel').style.display='flex';
@@ -2151,7 +2360,9 @@ async function loadDsComments(articleId){
 }
 window.sendDsComment=async function(){
   const input=document.getElementById('dsCommentInput'),text=input.value.trim();
-  if(!text||!_dsCurrentArticleId||!currentFirebaseUser||!currentUser)return;
+  if(!text||!_dsCurrentArticleId)return;
+  if(!currentFirebaseUser){location.href='https://patholytica.com/login';return;}
+  if(!currentUser)return;
   const btn=document.getElementById('dsSendBtn');btn.disabled=true;
   const list=document.getElementById('dsCommentsList');
   const av=(currentUser.username||'A')[0].toUpperCase();
@@ -2172,7 +2383,6 @@ window.sendDsComment=async function(){
 };
 document.getElementById('dsCommentInput')?.addEventListener('keypress',e=>{if(e.key==='Enter')window.sendDsComment();});
 
-// ── Mobile comments ──
 async function handleComments(e){
   const articleId=e.currentTarget.dataset.id;
   currentArticleId=articleId;
