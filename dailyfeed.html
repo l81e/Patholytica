@@ -1616,7 +1616,7 @@ onAuthStateChanged(auth,async firebaseUser=>{
   currentFirebaseUser=firebaseUser;
   if(firebaseUser){
     await ensureSupabaseAuth();
-    const{data:ud}=await supabase.from('users').select('id, username, pfp, full_name, bio').eq('firebase_uid',firebaseUser.uid).single();
+    const{data:ud}=await supabase.from('users').select('user_id:id, username, pfp, full_name, bio').eq('firebase_uid',firebaseUser.uid).single();
     if(ud){
       currentUser=ud;
       await Promise.all([loadUserLikes(),loadUserFollowing(),loadUserFavLibs()]);
@@ -1640,7 +1640,7 @@ async function loadUserLikes(){
 async function loadUserFollowing(){
   if(!currentUser)return;
   try{
-    const{data}=await supabase.from('subscriptions').select('author_id').eq('subscriber_id',currentUser.user_id);
+    const{data}=await supabase.from('subscriptions').select('author_id').eq('follower_id',currentUser.user_id);
     userFollowing.clear();(data||[]).forEach(r=>userFollowing.add(String(r.author_id)));
     updateFollowButtons();
   }catch(e){console.error('[loadUserFollowing]',e);}
@@ -1859,9 +1859,9 @@ window.handleFollow=async function(e,aFbUid,aSupaId){
   try{
     await ensureSupabaseAuth();
     if(wasFollowing){await supabase.from('subscriptions').delete().eq('subscriber_id',currentUser.user_id).eq('author_id',parseInt(aSupaId));}
-    else{await supabase.from('subscriptions').insert([{subscriber_id:currentUser.user_id,author_id:parseInt(aSupaId)}]);}
+    else{await supabase.from('subscriptions').insert([{follower_id:currentUser.user_id,author_id:parseInt(aSupaId)}]);}
   }catch(err){
-    if(wasFollowing)userFollowing.add(supaUid);else userFollowing.delete(supaUid);updateFollowButtons();
+    if(wasFollowing){await supabase.from('subscriptions').delete().eq('follower_id',currentUser.user_id).eq('author_id',parseInt(aSupaId));}
   }finally{btn.dataset.processing='false';}
 };
 
@@ -2405,7 +2405,7 @@ async function loadMobileComments(articleId){
     const{data:comments}=await supabase.from('comments').select('*').eq('article_id',articleId).order('created_at',{ascending:true});
     if(!comments?.length){list.innerHTML=`<div class="no-comments"><i class="fas fa-comments"></i><div>No comments yet</div><div style="font-size:11px;">Be the first to comment!</div></div>`;return;}
     const uids=[...new Set(comments.map(c=>c.user_id).filter(Boolean))];let usersMap={};
-    if(uids.length){const{data:users}=await supabase.from('users').select('id, username, pfp, full_name, bio').in('user_id',uids);if(users)users.forEach(u=>{usersMap[u.user_id]=u;});}
+    if(uids.length){const{data:users}=await supabase.from('users').select('user_id:id, username, pfp, full_name, bio').in('id',uids);if(users)users.forEach(u=>{usersMap[u.user_id]=u;});}
     list.innerHTML=comments.map(c=>{
       const u=usersMap[c.user_id],author=u?.username?`@${u.username}`:(u?.full_name||'Anonymous');
       const av=u?.pfp?`<img src="${u.pfp}" alt="">`:(u?.username||'A')[0].toUpperCase();
