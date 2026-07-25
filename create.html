@@ -1183,7 +1183,6 @@ if(mode==='article'){
   if(!content){showToast('Add some content','error');return;}
   btn.disabled=true;btn.innerHTML='<div class="spinner"></div>';
   try{
-    await window._ensureSupabaseAuth();
     let artId;
     if(isEditing){
       const{error}=await window._supabase.from('articles').update({title,content}).eq('id',window._editingArticleId);
@@ -1191,7 +1190,7 @@ if(mode==='article'){
       artId=window._editingArticleId;
       await window._supabase.from('media').delete().eq('article_id',artId);
     } else {
-      const{data:art,error}=await window._supabase.from('articles').insert([{title,content,firebase_user_id:window._currentUser.uid,views:0,likes:0}]).select().single();
+      const{data:art,error}=await window._supabase.rpc('insert_article',{p_firebase_uid:window._currentUser.uid,p_title:title,p_content:content});
       if(error)throw error;artId=art.id;
     }
     const mediaBlocks=blocks.filter(b=>b.type!=='text');
