@@ -754,8 +754,9 @@
         const auth = getAuth(app);
 
         const supabase = window.supabase.createClient(
-            "https://vduqewqyvszfquntmark.supabase.co",
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXFld3F5dnN6ZnF1bnRtYXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTg3MjgsImV4cCI6MjA4NTE5NDcyOH0.V2JellFmUGgYhKfW-D4CBdcBHyPztOlcgLCBdhnXj7c"
+            "https://ltxgafwywkdcxdlobcah.supabase.co",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0eGdhZnd5d2tkY3hkbG9iY2FoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5MjU3NzUsImV4cCI6MjEwMDUwMTc3NX0.CR-FvlL1HODWjsD7VrZkWQvg_pEasIhPQBXbSHbbNoE"
+
         );
 
         let currentUser = null;
@@ -780,7 +781,7 @@
                 
                 const { data: userData, error } = await supabase
                     .from('users')
-                    .select('user_id, firebase_uid, username, full_name, pfp')
+                    .select('user_id:id, firebase_uid, username, full_name, pfp')
                     .eq('firebase_uid', firebaseUser.uid)
                     .single();
                 
@@ -826,41 +827,24 @@
         }
 
         async function incrementView(articleId) {
-            if (hasIncrementedView) return;
-            
-            try {
-                hasIncrementedView = true;
-                
-                const { data: article, error: fetchError } = await supabase
-                    .from('articles')
-                    .select('views')
-                    .eq('id', articleId)
-                    .single();
-                
-                if (fetchError) throw fetchError;
-                
-                const newViews = (article.views || 0) + 1;
-                
-                const { error: updateError } = await supabase
-                    .from('articles')
-                    .update({ views: newViews })
-                    .eq('id', articleId);
-                
-                if (updateError) throw updateError;
-                
-                if (currentArticle) {
-                    currentArticle.views = newViews;
-                    document.getElementById('viewCount').textContent = formatNumber(newViews);
-                }
-
-                if (currentUser) {
-                    supabase.rpc('record_article_interaction', { p_user_id: currentUser.user_id, p_article_id: parseInt(articleId), p_interaction_type: 'view' }).then(({ error }) => { if (error) console.error('[record_article_interaction view]', error); });
-                }
-            } catch (error) {
-                console.error('Error incrementing view:', error);
-                hasIncrementedView = false;
-            }
+    if (hasIncrementedView) return;
+    try {
+        hasIncrementedView = true;
+        const { data: nv, error } = await supabase.rpc('increment_views', { p_article_id: parseInt(articleId) });
+        if (error) throw error;
+        if (currentArticle) {
+            currentArticle.views = nv;
+            document.getElementById('viewCount').textContent = formatNumber(nv);
         }
+        if (currentUser) {
+            supabase.rpc('record_article_interaction', { p_user_id: currentUser.user_id, p_article_id: parseInt(articleId), p_interaction_type: 'view' }).then(({ error }) => { if (error) console.error('[record_article_interaction view]', error); });
+        }
+    } catch (error) {
+        console.error('Error incrementing view:', error);
+        hasIncrementedView = false;
+    }
+}
+
 
         function formatNumber(num) {
             if (num >= 1000000) {
