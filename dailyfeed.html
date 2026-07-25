@@ -1858,10 +1858,9 @@ window.handleFollow=async function(e,aFbUid,aSupaId){
   if(!wasFollowing){setTimeout(()=>{btn.classList.add('ringing');btn.addEventListener('animationend',()=>btn.classList.remove('ringing'),{once:true});},260);}
   try{
     await ensureSupabaseAuth();
-    if(wasFollowing){await supabase.from('subscriptions').delete().eq('subscriber_id',currentUser.user_id).eq('author_id',parseInt(aSupaId));}
+    if(wasFollowing){await supabase.from('subscriptions').delete().eq('follower_id',currentUser.user_id).eq('author_id',parseInt(aSupaId));}
     else{await supabase.from('subscriptions').insert([{follower_id:currentUser.user_id,author_id:parseInt(aSupaId)}]);}
   }catch(err){
-    if(wasFollowing){await supabase.from('subscriptions').delete().eq('follower_id',currentUser.user_id).eq('author_id',parseInt(aSupaId));}
   }finally{btn.dataset.processing='false';}
 };
 
@@ -2269,7 +2268,7 @@ function appendEndFeedCardIfNeeded(forceNotPersonalized){
 async function enrichAndRender(data2,isInitial){
   const uids=[...new Set(data2.map(a=>a.firebase_user_id).filter(Boolean))];
   let usersData=[];
-  if(uids.length){const{data:u}=await supabase.from('users').select('firebase_uid,username,full_name,pfp,user_id').in('firebase_uid',uids);usersData=u||[];}
+  if(uids.length){const{data:u}=await supabase.from('users').select('firebase_uid,username,full_name,pfp,user_id:id').in('firebase_uid',uids);usersData=u||[];}
   const artIds=data2.map(a=>a.id);
   const{data:mediaData}=await supabase.from('media').select('*').in('article_id',artIds).order('display_order',{ascending:true});
   const newArts=data2.map(a=>{const u=usersData.find(x=>x.firebase_uid===a.firebase_user_id);return{...a,author:u?.username?`@${u.username}`:(u?.full_name||'Anonymous'),authorPfp:u?.pfp||null,authorUsername:u?.username||null,authorSupaUserId:u?.user_id||null,media:(mediaData||[]).filter(m=>m.article_id===a.id)};});
