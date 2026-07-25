@@ -1194,16 +1194,29 @@ if(mode==='article'){
       if(error)throw error;artId=art.id;
     }
     const mediaBlocks=blocks.filter(b=>b.type!=='text');
-    if(mediaBlocks.length>0){
-      let lastTextIdx=0;const textIdxMap={};let tc=0;
-      blocks.forEach(b=>{if(b.type==='text'){textIdxMap[b.id]=tc++;}});
-      const inserts=[];
-      blocks.forEach(b=>{
-        if(b.type==='text')lastTextIdx=textIdxMap[b.id]??lastTextIdx;
-        else inserts.push({article_id:artId,type:b.type,url:b.dataUrl||b.url||'',caption:b.caption||null,display_order:lastTextIdx});
-      });
-      await window._supabase.from('media').insert(inserts);
+if(mediaBlocks.length>0){
+  let lastTextIdx=0;const textIdxMap={};let tc=0;
+  blocks.forEach(b=>{if(b.type==='text'){textIdxMap[b.id]=tc++;}});
+  const inserts=[];
+  for(const b of blocks){
+    if(b.type==='text'){lastTextIdx=textIdxMap[b.id]??lastTextIdx;continue;}
+    let mediaUrl=b.url||'';
+    if(b.dataUrl&&b.dataUrl.startsWith('data:')){
+      try{
+        const res=await fetch(b.dataUrl);
+        const blob=await res.blob();
+        const ext=b.type==='audio'?'mp3':b.type==='image'?'jpg':'bin';
+        const path=`${artId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        const{error:upErr}=await window._supabase.storage.from('article-media').upload(path,blob,{contentType:blob.type,upsert:true});
+        if(upErr)throw upErr;
+        const{data:{publicUrl}}=window._supabase.storage.from('article-media').getPublicUrl(path);
+        mediaUrl=publicUrl;
+      }catch(upEx){console.error('[media upload]',upEx);mediaUrl='';}
     }
+    if(mediaUrl)inserts.push({article_id:artId,type:b.type,url:mediaUrl,caption:b.caption||null,display_order:lastTextIdx});
+  }
+  if(inserts.length)await window._supabase.from('media').insert(inserts);
+}
     if(!isEditing&&selectedLibraryId){await window._supabase.from('playlist_items').insert([{playlist_id:selectedLibraryId,article_id:artId}]);}
     showToast(isEditing?'Saved!':'Published!','success');
     setTimeout(()=>location.href=`https://patholytica.com/dailyfeed.html?article=${artId}`,1000);
