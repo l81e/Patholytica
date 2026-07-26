@@ -1131,16 +1131,22 @@ window.publishWithLibrary=async function(){
   setProgress('Creating library…',libName,90);
   try{
     const libDesc=document.getElementById('libDesc').value.trim();
-    /* Use currentUserData.id (bigint PK) as user_id, matching playlists FK */
-    const{data:library,error:libErr}=await supabase
-      .from('playlists')
-      .insert([{name:libName,description:libDesc||null,user_id:currentUserData.id}])
-      .select().single();
+    /* Use currentUserData.id (bigint PK) as user_id, via SECURITY DEFINER RPC to bypass RLS */
+    const{data:libraryId,error:libErr}=await supabase.rpc('insert_playlist',{
+      p_user_id:currentUserData.id,
+      p_name:libName,
+      p_description:libDesc||null
+    });
     if(libErr)throw libErr;
     setProgress('Adding to library…',`${results.ids.length} items`,95);
-    const playlistItems=results.ids.map(article_id=>({playlist_id:library.id,article_id}));
-    const{error:itemsErr}=await supabase.from('playlist_items').insert(playlistItems);
-    if(itemsErr)throw itemsErr;
+    for(let pos=0;pos<results.ids.length;pos++){
+      const{error:itemErr}=await supabase.rpc('insert_playlist_item',{
+        p_playlist_id:libraryId,
+        p_article_id:results.ids[pos],
+        p_position:pos
+      });
+      if(itemErr)throw itemErr;
+    }
     setProgress('Done!','',100);
     await new Promise(r=>setTimeout(r,600));
     unlockUI();
