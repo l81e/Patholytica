@@ -945,8 +945,8 @@ async function loadProfile(loggedInUser){
 
     const[{data:arts},{data:libs},{count:followerCount}]=await Promise.all([
       supabase.from('articles').select('*').eq('firebase_user_id',userFirebaseId).order('created_at',{ascending:false}),
-      supabase.from('playlists').select('*').eq('user_id',ud.user_id).order('name',{ascending:true}),
-      supabase.from('subscriptions').select('*',{count:'exact',head:true}).eq('author_id',ud.user_id),
+      supabase.from('playlists').select('*').eq('user_id',ud.id).order('name',{ascending:true}),
+      supabase.from('subscriptions').select('*',{count:'exact',head:true}).eq('author_id',ud.id),
     ]);
 
     articles=arts||[];
@@ -1284,7 +1284,11 @@ window.saveArticle=async function(){
   if(!title){showNotif('Title required','warning');return;}
   const btn=document.getElementById('saveArticleBtn');btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>';
   try{
-    const{error}=await supabase.from('articles').update({title,content}).eq('id',editingArticleId);
+    const{error}=await supabase.rpc('update_article',{
+      p_article_id:editingArticleId,
+      p_title:title,
+      p_content:content
+    });
     if(error)throw error;
     const idx=articles.findIndex(x=>x.id===editingArticleId);
     if(idx!==-1){articles[idx].title=title;articles[idx].content=content;}
@@ -1356,7 +1360,12 @@ window.saveLibrary=async function(){
       const{data:{publicUrl}}=supabase.storage.from('media').getPublicUrl(data.path);
       thumbUrl=publicUrl;
     }
-    const{error}=await supabase.from('playlists').update({name,description:desc||null,thumbnail_url:thumbUrl||null}).eq('id',editingLibraryId);
+    const{error}=await supabase.rpc('update_playlist',{
+      p_playlist_id:editingLibraryId,
+      p_name:name,
+      p_description:desc||null,
+      p_thumbnail_url:thumbUrl||null
+    });
     if(error)throw error;
     const idx=libraries.findIndex(x=>x.id===editingLibraryId);
     if(idx!==-1){libraries[idx].name=name;libraries[idx].description=desc;libraries[idx].thumbnail_url=thumbUrl||null;}
@@ -1392,15 +1401,19 @@ window.saveProfile=async function(){
   if(!currentUser||!isOwnProfile)return;
   const btn=document.getElementById('saveProfileBtn');btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>';
   try{
-    const updateData={bio:document.getElementById('bioInputEdit').value.trim()};
-    if(selectedAvatarDataUrl!==null)updateData.pfp=selectedAvatarDataUrl||null;
-    const{error}=await supabase.from('users').update(updateData).eq('firebase_uid',currentUser.uid);
+    const bio=document.getElementById('bioInputEdit').value.trim();
+    const pfpProvided=selectedAvatarDataUrl!==null;
+    const{error}=await supabase.rpc('update_user_profile',{
+      p_firebase_uid:currentUser.uid,
+      p_bio:bio,
+      p_pfp:pfpProvided?(selectedAvatarDataUrl||null):null,
+      p_pfp_provided:pfpProvided
+    });
     if(error)throw error;
     const{data:refreshed}=await supabase.from('users').select('*').eq('firebase_uid',currentUser.uid).single();
     if(refreshed){currentUserData=refreshed;viewingUserData=refreshed;}
     closeEditProfile();
-    // Re-fetch follower count for accurate re-render
-    const{count:fc}=await supabase.from('subscriptions').select('*',{count:'exact',head:true}).eq('author_id',currentUserData.user_id);
+    const{count:fc}=await supabase.from('subscriptions').select('*',{count:'exact',head:true}).eq('author_id',currentUserData.id);
     renderHero(currentUserData,fc||0);
     showNotif('Profile updated','success');
   }catch(err){showNotif('Failed to save','error');}
