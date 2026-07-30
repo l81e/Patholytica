@@ -1,1 +1,656 @@
-done for now
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Patholytica · Picks Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#111721;--bg3:#161d29;--bg-hover:#1b2432;
+  --border:#232c3a;--border2:#2e3a4c;
+  --accent:#4fb2e8;--accent-dim:#2d6d92;--accent-glow:rgba(79,178,232,0.12);
+  --text:#dbe4f0;--muted:#7286a0;--faint:#4a5a72;
+  --danger:#e05a5a;--danger-dim:#7a3838;--danger-glow:rgba(224,90,90,0.12);
+  --success:#4fca8f;--success-glow:rgba(79,202,143,0.12);
+  --warning:#e0a94f;--warning-glow:rgba(224,169,79,0.12);
+  --mono:'IBM Plex Mono',monospace;--sans:'Inter',sans-serif;
+}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;font-size:14px}
+::selection{background:var(--accent-glow);color:var(--text)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:5px}
+::-webkit-scrollbar-thumb:hover{background:var(--faint)}
+
+/* ── header ── */
+.header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:200;gap:20px;flex-wrap:wrap}
+.header-left{display:flex;align-items:center;gap:14px}
+.header-logo{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--accent);letter-spacing:.01em;display:flex;align-items:center;gap:9px}
+.header-logo i{font-size:15px}
+.header-logo span{color:var(--muted);font-weight:400;font-size:12px;margin-left:2px}
+.header-status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);font-family:var(--mono)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--faint);transition:background .3s,box-shadow .3s;flex-shrink:0}
+.status-dot.connected{background:var(--success);box-shadow:0 0 6px var(--success)}
+.status-dot.error{background:var(--danger);box-shadow:0 0 6px var(--danger)}
+.header-right{display:flex;align-items:center;gap:10px}
+.pill-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:6px;background:transparent;border:1px solid var(--border2);color:var(--muted);font-size:12px;font-family:var(--sans);cursor:pointer;transition:all .15s}
+.pill-btn:hover{border-color:var(--accent-dim);color:var(--accent)}
+
+/* ── layout ── */
+.layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 53px)}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:53px;height:calc(100vh - 53px);overflow-y:auto}
+.sidebar-conn{padding:16px 16px 14px;border-bottom:1px solid var(--border)}
+.conn-field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.conn-field label{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:600}
+.conn-field input{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 9px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;width:100%;transition:border-color .2s}
+.conn-field input:focus{border-color:var(--accent-dim)}
+.conn-field input::placeholder{color:var(--faint)}
+.btn-connect{width:100%;background:var(--accent);color:#04141d;border:none;border-radius:6px;padding:8px;font-size:13px;font-weight:600;font-family:var(--sans);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn-connect:hover{background:#67c0ef}
+.btn-connect:disabled{opacity:.4;cursor:not-allowed}
+.conn-hint{font-size:10.5px;color:var(--faint);line-height:1.5;margin-top:8px}
+
+.sidebar-section-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:14px 16px 6px;font-weight:600;display:flex;align-items:center;justify-content:space-between}
+.user-nav{display:flex;flex-direction:column;padding:0 8px 12px}
+.user-nav-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;color:var(--muted);font-size:13px;transition:all .12s;border:1px solid transparent}
+.user-nav-item:hover{background:var(--bg-hover);color:var(--text)}
+.user-nav-item.active{background:var(--accent-glow);color:var(--accent);border-color:rgba(79,178,232,.25)}
+.user-nav-item-left{display:flex;align-items:center;gap:9px;min-width:0}
+.user-nav-item-left i{font-size:11px;width:13px;text-align:center;flex-shrink:0;color:var(--faint)}
+.user-nav-item.active .user-nav-item-left i{color:var(--accent)}
+.user-nav-item-name{font-family:var(--mono);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-nav-count{font-family:var(--mono);font-size:10.5px;color:var(--faint);background:var(--bg3);border-radius:99px;padding:1px 7px;flex-shrink:0}
+.user-nav-item.active .user-nav-count{color:var(--accent);background:rgba(79,178,232,.14)}
+.sidebar-empty{padding:16px;font-size:12px;color:var(--faint);line-height:1.6}
+.sidebar-refresh-btn{background:transparent;border:none;color:var(--faint);cursor:pointer;font-size:11px;padding:2px 4px}
+.sidebar-refresh-btn:hover{color:var(--accent)}
+
+/* ── main ── */
+.main{display:flex;flex-direction:column;min-width:0}
+.main-toolbar{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-bottom:1px solid var(--border);gap:14px;flex-wrap:wrap}
+.toolbar-left{display:flex;align-items:center;gap:12px;min-width:0}
+.toolbar-title{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--text)}
+.toolbar-sub{font-size:12px;color:var(--muted)}
+.toolbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn-icon{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:6px;background:transparent;border:1px solid var(--border2);color:var(--muted);font-size:12.5px;font-family:var(--sans);font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-icon:hover{border-color:var(--accent-dim);color:var(--accent)}
+.btn-icon:disabled{opacity:.35;cursor:not-allowed}
+
+.content-scroll{flex:1;overflow:auto}
+.content-grid{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:start}
+@media (max-width:980px){.content-grid{grid-template-columns:1fr}}
+
+/* ── feed / rank list ── */
+.feed-pane{padding:18px 22px;border-right:1px solid var(--border);min-width:0}
+.feed-pane-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;gap:10px}
+.feed-pane-title{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:600}
+.feed-pane-count{font-family:var(--mono);font-size:11px;color:var(--faint)}
+
+.rank-row{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:12px;padding:11px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:7px;background:var(--bg2);transition:transform .35s cubic-bezier(.2,.8,.2,1),background .3s,border-color .3s}
+.rank-row.flash{background:var(--accent-glow);border-color:rgba(79,178,232,.35)}
+.rank-num{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--faint);text-align:center}
+.rank-row:nth-child(-n+3) .rank-num{color:var(--accent)}
+.rank-body{min-width:0;display:flex;flex-direction:column;gap:2px}
+.rank-article-title{font-size:13px;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank-meta{font-family:var(--mono);font-size:10.5px;color:var(--faint);display:flex;gap:10px;flex-wrap:wrap}
+.rank-meta .tag-chip{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:0 5px}
+.rank-side{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.rank-pos-val{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+.rank-remove-btn{background:transparent;border:none;color:var(--faint);cursor:pointer;padding:4px 6px;border-radius:5px;font-size:11px;transition:all .12s}
+.rank-remove-btn:hover{color:var(--danger);background:var(--danger-glow)}
+
+.state-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:70px 40px;text-align:center;gap:12px}
+.state-icon{font-size:30px;color:var(--border2)}
+.state-title{font-family:var(--mono);font-size:14px;color:var(--muted);font-weight:600}
+.state-sub{font-size:12.5px;color:var(--faint);max-width:340px;line-height:1.6}
+
+/* ── simulator pane ── */
+.sim-pane{padding:18px 20px;display:flex;flex-direction:column;gap:16px}
+.sim-block{border:1px solid var(--border);border-radius:10px;background:var(--bg2);padding:14px}
+.sim-block-title{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:11px;display:flex;align-items:center;gap:7px}
+.sim-block-title i{color:var(--accent)}
+.sim-field{display:flex;flex-direction:column;gap:5px;margin-bottom:11px}
+.sim-field label{font-size:11px;font-weight:600;color:var(--muted);font-family:var(--mono)}
+.sim-field select,.sim-field input{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 9px;color:var(--text);font-family:var(--mono);font-size:12.5px;outline:none;width:100%;transition:border-color .2s}
+.sim-field select:focus,.sim-field input:focus{border-color:var(--accent-dim)}
+.sim-field-hint{font-size:10.5px;color:var(--faint);line-height:1.5}
+
+.interaction-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:4px}
+.interaction-btn{display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 6px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);cursor:pointer;font-family:var(--sans);font-size:11.5px;font-weight:500;transition:all .15s}
+.interaction-btn i{font-size:14px}
+.interaction-btn:hover{border-color:var(--accent-dim);color:var(--accent)}
+.interaction-btn:disabled{opacity:.35;cursor:not-allowed}
+.interaction-btn.view:hover{border-color:var(--accent-dim);color:var(--accent)}
+.interaction-btn.like:hover{border-color:var(--danger-dim);color:var(--danger)}
+.interaction-btn.share:hover{border-color:var(--success);color:var(--success)}
+.interaction-btn.comment:hover{border-color:var(--warning);color:var(--warning)}
+
+.policy-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10.5px}
+.policy-table td{padding:4px 0;color:var(--muted);border-bottom:1px solid var(--border)}
+.policy-table td:first-child{color:var(--text);font-weight:600}
+.policy-table td:last-child{text-align:right;color:var(--faint)}
+.policy-table tr:last-child td{border-bottom:none}
+
+.log-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto}
+.log-entry{font-family:var(--mono);font-size:11px;padding:8px 9px;border-radius:6px;background:var(--bg3);border-left:2px solid var(--border2);line-height:1.5}
+.log-entry.ok{border-left-color:var(--success)}
+.log-entry.err{border-left-color:var(--danger)}
+.log-entry .log-time{color:var(--faint);font-size:9.5px;display:block;margin-bottom:2px}
+.log-empty{font-size:11.5px;color:var(--faint);text-align:center;padding:14px 0}
+
+#toast{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:11px 16px;border-radius:8px;font-size:12.5px;box-shadow:0 8px 28px rgba(0,0,0,.5);display:none;align-items:center;gap:9px;z-index:999;max-width:360px;font-family:var(--sans)}
+#toast.show{display:flex;animation:slideUp .2s ease}
+#toast.success{border-left:3px solid var(--success)}
+#toast.error{border-left:3px solid var(--danger)}
+@keyframes slideUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.skel-row{height:52px;background:linear-gradient(90deg,var(--bg2) 25%,var(--bg3) 50%,var(--bg2) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px;margin-bottom:7px}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+
+@media (max-width:860px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:static;height:auto}
+  .header{padding:12px 16px}
+  .main-toolbar{padding:12px 16px}
+  .feed-pane{border-right:none;border-bottom:1px solid var(--border)}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="header-logo"><i class="fa-solid fa-list-ol"></i>Patholytica <span>Picks Tracker</span></div>
+  </div>
+  <div class="header-status">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Not connected</span>
+  </div>
+  <div class="header-right">
+    <button class="pill-btn" id="btnDisconnect" style="display:none"><i class="fa-solid fa-plug-circle-xmark"></i> Disconnect</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-conn">
+      <div class="conn-field">
+        <label>Project URL</label>
+        <input id="sbUrl" type="text" placeholder="https://xxx.supabase.co" />
+      </div>
+      <div class="conn-field">
+        <label>Anon Key</label>
+        <input id="sbKey" type="password" placeholder="eyJ..." />
+      </div>
+      <button class="btn-connect" id="btnConnect"><i class="fa-solid fa-plug"></i> Connect</button>
+      <div class="conn-hint">Stored only in this browser's local storage. Uses the anon key and RLS exactly as configured on your project — this tool grants no extra access.</div>
+    </div>
+    <div class="sidebar-section-label">
+      <span>Users</span>
+      <button class="sidebar-refresh-btn" id="btnRefreshUsers" title="Refresh user list"><i class="fa-solid fa-rotate-right"></i></button>
+    </div>
+    <div class="user-nav" id="userNav">
+      <div class="sidebar-empty">Connect to load users.</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="main-toolbar" id="mainToolbar" style="display:none">
+      <div class="toolbar-left">
+        <span class="toolbar-title" id="toolbarTitle">—</span>
+        <span class="toolbar-sub" id="toolbarSub"></span>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn-icon" id="btnRefreshPicks"><i class="fa-solid fa-rotate-right"></i> Refresh picks</button>
+      </div>
+    </div>
+
+    <div class="content-scroll">
+      <div class="content-grid" id="contentGrid" style="display:none">
+        <div class="feed-pane">
+          <div class="feed-pane-header">
+            <span class="feed-pane-title">Feed order — lowest position number shows first</span>
+            <span class="feed-pane-count" id="feedCount">—</span>
+          </div>
+          <div id="rankList"></div>
+        </div>
+
+        <div class="sim-pane">
+          <div class="sim-block">
+            <div class="sim-block-title"><i class="fa-solid fa-hand-pointer"></i> Simulate an interaction</div>
+            <div class="sim-field">
+              <label>Article the user interacts with</label>
+              <select id="simArticleSelect"><option value="">Loading articles…</option></select>
+            </div>
+            <div class="interaction-grid">
+              <button class="interaction-btn view" data-interaction="view"><i class="fa-solid fa-eye"></i>View</button>
+              <button class="interaction-btn like" data-interaction="like"><i class="fa-solid fa-heart"></i>Like</button>
+              <button class="interaction-btn share" data-interaction="share"><i class="fa-solid fa-share-nodes"></i>Share</button>
+              <button class="interaction-btn comment" data-interaction="comment"><i class="fa-solid fa-comment"></i>Comment</button>
+            </div>
+            <div class="sim-field-hint">Sends the interaction to <code>record_article_interaction()</code>, which finds sibling articles from the same algotag librar(y/ies) and inserts them into this user's picks at the ranks configured for that interaction type below.</div>
+          </div>
+
+          <div class="sim-block">
+            <div class="sim-block-title"><i class="fa-solid fa-sliders"></i> Trigger policy (in the DB function)</div>
+            <table class="policy-table">
+              <tr><td>view</td><td>1 pick → rank 15</td></tr>
+              <tr><td>like</td><td>2 picks → ranks 3, 12</td></tr>
+              <tr><td>comment</td><td>2 picks → ranks 2, 10</td></tr>
+              <tr><td>share</td><td>3 picks → ranks 1, 8, 15</td></tr>
+            </table>
+          </div>
+
+          <div class="sim-block">
+            <div class="sim-block-title"><i class="fa-solid fa-terminal"></i> Call log</div>
+            <div class="log-list" id="logList"><div class="log-empty">No calls yet this session.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="state-panel" id="emptyState">
+        <div class="state-icon"><i class="fa-solid fa-user-check"></i></div>
+        <div class="state-title">No user selected</div>
+        <div class="state-sub">Enter your Supabase project URL and anon key, click Connect, then choose a user from the sidebar to view their picks.</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function() {
+  // ══════════════════════════════════════════════════════════
+  // STATE
+  // ══════════════════════════════════════════════════════════
+  var sbClient = null;
+  var connected = false;
+  var toastTimer = null;
+
+  var activeUserId = null;
+  var pickItems = [];        // joined pick_items + articles for the active user's picks row
+  var activePicksId = null;  // picks.id for the active user (or null if none exists yet)
+  var articleOptions = [];   // articles available in the simulator dropdown
+
+  // ══════════════════════════════════════════════════════════
+  // BOOT
+  // ══════════════════════════════════════════════════════════
+  document.addEventListener('DOMContentLoaded', function() {
+    var savedUrl = localStorage.getItem('patholytica_db_url');
+    if (savedUrl) document.getElementById('sbUrl').value = savedUrl;
+    var savedKey = localStorage.getItem('patholytica_db_key');
+    if (savedKey) document.getElementById('sbKey').value = savedKey;
+
+    document.getElementById('sbUrl').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_db_url', e.target.value.trim());
+    });
+    document.getElementById('sbKey').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_db_key', e.target.value.trim());
+    });
+
+    document.getElementById('btnConnect').addEventListener('click', connect);
+    document.getElementById('btnDisconnect').addEventListener('click', disconnect);
+    document.getElementById('btnRefreshUsers').addEventListener('click', loadUserList);
+    document.getElementById('btnRefreshPicks').addEventListener('click', function() { loadPicksForUser(activeUserId, true); });
+
+    document.querySelectorAll('.interaction-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { runInteraction(btn.dataset.interaction); });
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════
+  // CONNECTION
+  // ══════════════════════════════════════════════════════════
+  async function connect() {
+    var url = document.getElementById('sbUrl').value.trim().replace(/\/$/, '');
+    var key = document.getElementById('sbKey').value.trim();
+    if (!url || !key) { showToast('Enter both the project URL and anon key', 'error'); return; }
+
+    var btn = document.getElementById('btnConnect');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connecting…';
+    setStatus('connecting');
+
+    try {
+      sbClient = window.supabase.createClient(url, key);
+      var ping = await sbClient.from('users').select('id', { count: 'exact', head: true });
+      if (ping.error) throw ping.error;
+
+      connected = true;
+      setStatus('connected');
+      document.getElementById('btnDisconnect').style.display = 'inline-flex';
+      showToast('Connected to Supabase', 'success');
+
+      await loadUserList();
+      await loadArticleOptions();
+    } catch (err) {
+      console.error(err);
+      connected = false;
+      setStatus('error');
+      showToast('Connection failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-plug"></i> Connect';
+    }
+  }
+
+  function disconnect() {
+    sbClient = null;
+    connected = false;
+    activeUserId = null;
+    activePicksId = null;
+    pickItems = [];
+    setStatus('idle');
+    document.getElementById('btnDisconnect').style.display = 'none';
+    document.getElementById('mainToolbar').style.display = 'none';
+    document.getElementById('contentGrid').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'flex';
+    document.getElementById('userNav').innerHTML = '<div class="sidebar-empty">Connect to load users.</div>';
+    showToast('Disconnected', 'success');
+  }
+
+  function setStatus(state) {
+    var dot = document.getElementById('statusDot');
+    var text = document.getElementById('statusText');
+    dot.className = 'status-dot';
+    if (state === 'connected') { dot.classList.add('connected'); text.textContent = 'Connected'; }
+    else if (state === 'connecting') { text.textContent = 'Connecting…'; }
+    else if (state === 'error') { dot.classList.add('error'); text.textContent = 'Connection error'; }
+    else { text.textContent = 'Not connected'; }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // SIDEBAR / USER LIST
+  // ══════════════════════════════════════════════════════════
+  async function loadUserList() {
+    if (!sbClient) return;
+    var nav = document.getElementById('userNav');
+    nav.innerHTML = '<div class="sidebar-empty">Loading…</div>';
+    try {
+      // full_name + username identify the person; users.id is what picks.user_id
+      // (and every other FK into users) actually points to.
+      var result = await sbClient.from('users').select('id, username, full_name').order('id', { ascending: true }).limit(200);
+      if (result.error) throw result.error;
+
+      var usersList = result.data || [];
+      if (usersList.length === 0) {
+        nav.innerHTML = '<div class="sidebar-empty">No users in this project yet.</div>';
+        return;
+      }
+
+      // A user only has picks once at least one interaction has been
+      // recorded for them — show that count next to each name so it's
+      // obvious at a glance who already has a personalized feed forming.
+      var picksCountResult = await sbClient.from('picks').select('user_id');
+      var picksUserIds = {};
+      if (!picksCountResult.error) {
+        (picksCountResult.data || []).forEach(function(p) { picksUserIds[p.user_id] = true; });
+      }
+
+      nav.innerHTML = usersList.map(function(u) {
+        var label = u.full_name || u.username || ('user ' + u.id);
+        var hasPicks = !!picksUserIds[u.id];
+        return '<div class="user-nav-item" data-userid="' + u.id + '" id="navitem-user-' + u.id + '">' +
+          '<div class="user-nav-item-left"><i class="fa-solid fa-user"></i><span class="user-nav-item-name">' + escHtml(label) + '</span></div>' +
+          '<span class="user-nav-count">' + (hasPicks ? '●' : '—') + '</span>' +
+        '</div>';
+      }).join('');
+
+      nav.querySelectorAll('.user-nav-item').forEach(function(el) {
+        el.addEventListener('click', function() { selectUser(+el.dataset.userid); });
+      });
+    } catch (err) {
+      console.error(err);
+      nav.innerHTML = '<div class="sidebar-empty">Could not load users: ' + escHtml(err.message) + '</div>';
+    }
+  }
+
+  async function loadArticleOptions() {
+    if (!sbClient) return;
+    try {
+      // Requires articles.tags to be text[] — record_article_interaction()
+      // unnest()s it server-side, so a scalar text column will break both
+      // that RPC call and the tag-chip rendering below.
+      var result = await sbClient.from('articles').select('id, title, tags').order('id', { ascending: false }).limit(100);
+      if (result.error) throw result.error;
+      articleOptions = result.data || [];
+      var sel = document.getElementById('simArticleSelect');
+      if (articleOptions.length === 0) {
+        sel.innerHTML = '<option value="">No articles in this project yet</option>';
+        return;
+      }
+      sel.innerHTML = articleOptions.map(function(a) {
+        var titlePart = a.title && a.title.trim() ? a.title : ('article ' + a.id);
+        var tagPart = (a.tags && a.tags.length) ? (' [' + a.tags.slice(0, 2).join(', ') + ']') : '';
+        return '<option value="' + a.id + '">#' + a.id + ' — ' + escHtml(titlePart) + escHtml(tagPart) + '</option>';
+      }).join('');
+    } catch (err) {
+      console.error(err);
+      document.getElementById('simArticleSelect').innerHTML = '<option value="">Failed to load articles</option>';
+    }
+  }
+
+  function selectUser(userId) {
+    activeUserId = userId;
+    document.querySelectorAll('.user-nav-item').forEach(function(el) {
+      el.classList.toggle('active', +el.dataset.userid === userId);
+    });
+
+    document.getElementById('mainToolbar').style.display = 'flex';
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('contentGrid').style.display = 'grid';
+
+    var label = document.getElementById('navitem-user-' + userId);
+    var name = label ? label.querySelector('.user-nav-item-name').textContent : ('user ' + userId);
+    document.getElementById('toolbarTitle').textContent = name;
+    document.getElementById('toolbarSub').textContent = 'user_id ' + userId;
+
+    clearLog();
+    loadPicksForUser(userId, false);
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // PICKS LOADING
+  // ══════════════════════════════════════════════════════════
+  async function loadPicksForUser(userId, isManualRefresh) {
+    if (!sbClient || !userId) return;
+    showSkeletonRows();
+
+    try {
+      var picksResult = await sbClient.from('picks').select('id').eq('user_id', userId).maybeSingle();
+      if (picksResult.error) throw picksResult.error;
+
+      if (!picksResult.data) {
+        activePicksId = null;
+        pickItems = [];
+        renderRankList();
+        if (isManualRefresh) showToast('Refreshed', 'success');
+        return;
+      }
+
+      activePicksId = picksResult.data.id;
+
+      // pick_items only stores article_id + position; join articles here
+      // so the feed pane can show a real title and tags rather than a
+      // bare id, without denormalizing that data into pick_items itself.
+      var itemsResult = await sbClient
+        .from('pick_items')
+        .select('id, article_id, position, added_at, articles(title, tags)')
+        .eq('picks_id', activePicksId)
+        .order('position', { ascending: true });
+      if (itemsResult.error) throw itemsResult.error;
+
+      pickItems = itemsResult.data || [];
+      renderRankList();
+      if (isManualRefresh) showToast('Refreshed picks', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to load picks: ' + err.message, 'error');
+      showErrorState(err.message);
+    }
+  }
+
+  function renderRankList(flashArticleId) {
+    var wrap = document.getElementById('rankList');
+    document.getElementById('feedCount').textContent = pickItems.length + ' / 50';
+
+    if (pickItems.length === 0) {
+      wrap.innerHTML = '<div class="state-panel" style="padding:40px 10px">' +
+        '<div class="state-icon"><i class="fa-solid fa-inbox"></i></div>' +
+        '<div class="state-title">No picks yet</div>' +
+        '<div class="state-sub">This user has no personalized picks. Simulate an interaction on the right to generate the first ones.</div>' +
+      '</div>';
+      return;
+    }
+
+    wrap.innerHTML = pickItems.map(function(item, idx) {
+      var art = item.articles || {};
+      var title = art.title && art.title.trim() ? art.title : ('article ' + item.article_id);
+      var tags = (art.tags || []).slice(0, 3);
+      var isFlash = flashArticleId && item.article_id === flashArticleId;
+      return '<div class="rank-row' + (isFlash ? ' flash' : '') + '" data-itemid="' + item.id + '">' +
+        '<div class="rank-num">' + (idx + 1) + '</div>' +
+        '<div class="rank-body">' +
+          '<div class="rank-article-title">' + escHtml(title) + '</div>' +
+          '<div class="rank-meta">' +
+            '<span>#' + item.article_id + '</span>' +
+            tags.map(function(t) { return '<span class="tag-chip">' + escHtml(t) + '</span>'; }).join('') +
+          '</div>' +
+        '</div>' +
+        '<div class="rank-side">' +
+          '<span class="rank-pos-val">pos ' + item.position + '</span>' +
+          '<button class="rank-remove-btn" data-removeitem="' + item.id + '" title="Remove from picks"><i class="fa-solid fa-xmark"></i></button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    wrap.querySelectorAll('[data-removeitem]').forEach(function(btn) {
+      btn.addEventListener('click', function() { removePickItem(+btn.dataset.removeitem); });
+    });
+
+    if (flashArticleId) {
+      setTimeout(function() {
+        wrap.querySelectorAll('.rank-row.flash').forEach(function(el) { el.classList.remove('flash'); });
+      }, 1400);
+    }
+  }
+
+  async function removePickItem(itemId) {
+    try {
+      var result = await sbClient.from('pick_items').delete().eq('id', itemId);
+      if (result.error) throw result.error;
+      pickItems = pickItems.filter(function(p) { return p.id !== itemId; });
+      renderRankList();
+      showToast('Removed from picks', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Could not remove: ' + err.message, 'error');
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // INTERACTION SIMULATOR
+  // ══════════════════════════════════════════════════════════
+  async function runInteraction(interactionType) {
+    if (!activeUserId) { showToast('Select a user first', 'error'); return; }
+    var articleId = +document.getElementById('simArticleSelect').value;
+    if (!articleId) { showToast('Select an article to interact with', 'error'); return; }
+
+    var btns = document.querySelectorAll('.interaction-btn');
+    btns.forEach(function(b) { b.disabled = true; });
+
+    try {
+      // record_article_interaction is the single DB entrypoint: it looks
+      // up (or creates) the user's picks row, finds sibling articles from
+      // the same algotag librar(y/ies) as articleId, and calls
+      // insert_pick_at_rank for each one per the policy table shown in
+      // this pane. The client never touches insert_pick_at_rank directly.
+      var result = await sbClient.rpc('record_article_interaction', {
+        p_user_id: activeUserId,
+        p_article_id: articleId,
+        p_interaction_type: interactionType
+      });
+      if (result.error) throw result.error;
+
+      var summary = result.data;
+      logCall(interactionType, articleId, summary, null);
+      showToast(capitalize(interactionType) + ' recorded', 'success');
+      await loadPicksForUser(activeUserId, false);
+      renderRankList(articleId);
+    } catch (err) {
+      console.error(err);
+      logCall(interactionType, articleId, null, err.message);
+      showToast('Interaction failed: ' + err.message, 'error');
+    } finally {
+      btns.forEach(function(b) { b.disabled = false; });
+    }
+  }
+
+  function logCall(interactionType, articleId, summary, errMsg) {
+    var list = document.getElementById('logList');
+    if (list.querySelector('.log-empty')) list.innerHTML = '';
+
+    var time = new Date().toLocaleTimeString();
+    var entry = document.createElement('div');
+    entry.className = 'log-entry ' + (errMsg ? 'err' : 'ok');
+
+    var bodyText;
+    if (errMsg) {
+      bodyText = capitalize(interactionType) + ' on #' + articleId + ' — failed: ' + escHtml(errMsg);
+    } else {
+      var inserted = summary && summary.inserted_count != null ? summary.inserted_count : '?';
+      bodyText = capitalize(interactionType) + ' on #' + articleId + ' — inserted ' + inserted + ' pick(s)';
+    }
+
+    entry.innerHTML = '<span class="log-time">' + time + '</span>' + bodyText;
+    list.insertBefore(entry, list.firstChild);
+  }
+
+  function clearLog() {
+    document.getElementById('logList').innerHTML = '<div class="log-empty">No calls yet this session.</div>';
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // SKELETON / ERROR STATES
+  // ══════════════════════════════════════════════════════════
+  function showSkeletonRows() {
+    var wrap = document.getElementById('rankList');
+    var html = '';
+    for (var i = 0; i < 6; i++) html += '<div class="skel-row"></div>';
+    wrap.innerHTML = html;
+  }
+
+  function showErrorState(msg) {
+    document.getElementById('rankList').innerHTML =
+      '<div class="state-panel" style="padding:40px 10px"><div class="state-icon"><i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i></div><div class="state-title">Could not load picks</div><div class="state-sub">' + escHtml(msg) + '</div></div>';
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // SHARED HELPERS
+  // ══════════════════════════════════════════════════════════
+  function showToast(msg, type) {
+    var el = document.getElementById('toast');
+    var icon = type === 'success' ? '<i class="fa-solid fa-circle-check" style="color:var(--success)"></i>' : type === 'error' ? '<i class="fa-solid fa-circle-exclamation" style="color:var(--danger)"></i>' : '<i class="fa-solid fa-circle-info"></i>';
+    el.className = 'show ' + (type || '');
+    el.innerHTML = icon + '<span>' + escHtml(msg) + '</span>';
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { el.className = ''; }, 3400);
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+})();
+</script>
+</body>
+</html>
