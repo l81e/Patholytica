@@ -393,14 +393,12 @@ async function createUserInSupabase(firebaseUser, fullName, username) {
       await supabase.from('users').update({ firebase_uid: firebaseUser.uid, updated_at: new Date().toISOString() }).eq('email', firebaseUser.email);
       return existingByEmail;
     }
-    const { data, error } = await supabase.from('users').insert([{
-      firebase_uid: firebaseUser.uid,
-      email: firebaseUser.email,
-      username: username || firebaseUser.email.split('@')[0],
-      full_name: fullName || firebaseUser.displayName || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }]).select();
+        const { data, error } = await supabase.rpc('insert_user', {
+      p_firebase_uid: firebaseUser.uid,
+      p_email: firebaseUser.email,
+      p_username: username || firebaseUser.email.split('@')[0],
+      p_full_name: fullName || firebaseUser.displayName || null
+    });
     if (error) throw error;
     return data[0];
   } catch (err) {
