@@ -381,10 +381,10 @@ async function setSupabaseUser(firebaseUser) {
 
 async function createUserInSupabase(firebaseUser, fullName, username) {
   try {
-    const { data: existingByUid } = await supabase
+        const { data: existingByUid } = await supabase
       .from('users').select('*').eq('firebase_uid', firebaseUser.uid).maybeSingle();
     if (existingByUid) {
-      await supabase.from('users').update({ updated_at: new Date().toISOString() }).eq('firebase_uid', firebaseUser.uid);
+      await supabase.rpc('update_user_last_active', { p_firebase_uid: firebaseUser.uid });
       return existingByUid;
     }
     const { data: existingByEmail } = await supabase
@@ -407,7 +407,7 @@ async function createUserInSupabase(firebaseUser, fullName, username) {
 }
 
 async function updateUserInSupabase(uid) {
-  await supabase.from('users').update({ updated_at: new Date().toISOString() }).eq('firebase_uid', uid);
+  await supabase.rpc('update_user_last_active', { p_firebase_uid: uid });
 }
 
 function getErrorMessage(code) {
