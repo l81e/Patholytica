@@ -1816,25 +1816,14 @@ async function handleLike(e){
   if(artIdx!==-1)articles[artIdx].likes=newCount;
   const card=btn.closest('.article-card,.mcq-card');
   if(card){const s=card.querySelector('.stat-item.likes span');if(s)s.textContent=formatNumber(newCount);}
-
-  try{
+    try{
     await ensureSupabaseAuth();
     if(wasLiked){
-      const{error:delErr}=await supabase.from('likes').delete().eq('article_id',parseInt(id)).eq('user_id',currentUser.user_id);
-      if(delErr)console.error('[handleLike delete]',delErr);
-      const{error:rpcErr}=await supabase.rpc('decrement_likes',{article_id:parseInt(id)});
-      if(rpcErr){
-        const{data:fresh}=await supabase.from('articles').select('likes').eq('id',id).single();
-        await supabase.from('articles').update({likes:Math.max(0,(fresh?.likes||1)-1)}).eq('id',id);
-      }
+      const{error}=await supabase.rpc('unlike_article',{p_article_id:parseInt(id),p_firebase_uid:currentFirebaseUser.uid});
+      if(error)throw error;
     }else{
-      const{error:insErr}=await supabase.from('likes').insert([{article_id:parseInt(id),user_id:currentUser.user_id}]);
-      if(insErr&&insErr.code!=='23505')console.error('[handleLike insert]',insErr);
-      const{error:rpcErr}=await supabase.rpc('increment_likes',{article_id:parseInt(id)});
-      if(rpcErr){
-        const{data:fresh}=await supabase.from('articles').select('likes').eq('id',id).single();
-        await supabase.from('articles').update({likes:(fresh?.likes||0)+1}).eq('id',id);
-      }
+      const{error}=await supabase.rpc('like_article',{p_article_id:parseInt(id),p_firebase_uid:currentFirebaseUser.uid});
+      if(error)throw error;
       supabase.rpc('record_article_interaction',{p_user_id:currentUser.user_id,p_article_id:parseInt(id),p_interaction_type:'like'}).then(({error})=>{if(error)console.error('[record_article_interaction like]',error);});
     }
   }catch(err){
@@ -2371,7 +2360,9 @@ window.sendDsComment=async function(){
   const cb=document.querySelector(`.comment-btn[data-id="${_dsCurrentArticleId}"]`);if(cb){const cs=cb.querySelector('.comment-count');cs.textContent=parseInt(cs.textContent)+1;}
   try{
     await ensureSupabaseAuth();
-    const{data:nc}=await supabase.from('comments').insert([{article_id:parseInt(_dsCurrentArticleId),user_id:currentUser.user_id,comment_text:text}]).select().single();
+    const{data:ncArr,error:ncErr}=await supabase.rpc('insert_comment',{p_article_id:parseInt(_dsCurrentArticleId),p_firebase_uid:currentFirebaseUser.uid,p_comment_text:text});
+       if(ncErr)throw ncErr;
+       const nc=ncArr?.[0];
     const el=document.getElementById(tempId);if(el){const t=el.querySelector('.comment-time');if(t){t.className='comment-time';t.textContent=formatDate(new Date(nc?.created_at||Date.now()));}}
     supabase.rpc('record_article_interaction',{p_user_id:currentUser.user_id,p_article_id:parseInt(_dsCurrentArticleId),p_interaction_type:'comment'}).then(({error})=>{if(error)console.error('[record_article_interaction comment]',error);});
   }catch(e){
@@ -2432,7 +2423,8 @@ window.sendComment=async function(){
   const cb=document.querySelector(`.comment-btn[data-id="${currentArticleId}"]`);if(cb){const cs=cb.querySelector('.comment-count');cs.textContent=parseInt(cs.textContent)+1;}
   try{
     await ensureSupabaseAuth();
-    await supabase.from('comments').insert([{article_id:parseInt(currentArticleId),user_id:currentUser.user_id,comment_text:text}]);
+    const{error}=await supabase.rpc('insert_comment',{p_article_id:parseInt(currentArticleId),p_firebase_uid:currentFirebaseUser.uid,p_comment_text:text});
+     if(error)throw error;
     const tempEl=document.getElementById(tempId);if(tempEl){const timeEl=tempEl.querySelector('.comment-time');if(timeEl){timeEl.className='comment-time';timeEl.textContent='Just now';}}
     supabase.rpc('record_article_interaction',{p_user_id:currentUser.user_id,p_article_id:parseInt(currentArticleId),p_interaction_type:'comment'}).then(({error})=>{if(error)console.error('[record_article_interaction comment]',error);});
   }catch(e){
