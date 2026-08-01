@@ -1189,7 +1189,7 @@ if(mode==='article'){
       const{error}=await window._supabase.rpc('update_article_owned',{p_article_id:window._editingArticleId,p_firebase_uid:window._currentUser.uid,p_title:title,p_content:content});
       if(error)throw error;
       artId=window._editingArticleId;
-      await window._supabase.from('media').delete().eq('article_id',artId);
+      await window._supabase.rpc('delete_media_owned',{p_article_id:artId,p_firebase_uid:window._currentUser.uid});
     } else {
       const{data:art,error}=await window._supabase.rpc('insert_article',{p_firebase_uid:window._currentUser.uid,p_title:title,p_content:content});
       if(error)throw error;artId=art.id;
@@ -1216,9 +1216,13 @@ if(mediaBlocks.length>0){
     }
     if(mediaUrl)inserts.push({article_id:artId,type:b.type,url:mediaUrl,caption:b.caption||null,display_order:lastTextIdx});
   }
-  if(inserts.length)await window._supabase.from('media').insert(inserts);
+  if(inserts.length){
+    for(const ins of inserts){
+      await window._supabase.rpc('insert_media_owned',{p_article_id:ins.article_id,p_firebase_uid:window._currentUser.uid,p_type:ins.type,p_url:ins.url,p_caption:ins.caption,p_display_order:ins.display_order});
+    }
+  }
 }
-    if(!isEditing&&selectedLibraryId){await window._supabase.from('playlist_items').insert([{playlist_id:selectedLibraryId,article_id:artId}]);}
+    if(!isEditing&&selectedLibraryId){await window._supabase.rpc('insert_playlist_item_owned',{p_playlist_id:selectedLibraryId,p_firebase_uid:window._currentUser.uid,p_article_id:artId});}
     showToast(isEditing?'Saved!':'Published!','success');
     setTimeout(()=>location.href=`https://patholytica.com/dailyfeed.html?article=${artId}`,1000);
   }catch(e){showToast('Error: '+e.message,'error');btn.disabled=false;btn.innerHTML=isEditing?'Save':'Publish';}
@@ -1234,7 +1238,7 @@ if(mediaBlocks.length>0){
     await window._ensureSupabaseAuth();
     let artId;
     if(isEditing){const{error}=await window._supabase.rpc('update_article_owned',{p_article_id:window._editingArticleId,p_firebase_uid:window._currentUser.uid,p_title:question,p_content:content});if(error)throw error;artId=window._editingArticleId;}
-    else{const{data:art,error}=await window._supabase.rpc('insert_article',{p_firebase_uid:window._currentUser.uid,p_title:question,p_content:content});if(error)throw error;artId=art?.id??art;if(selectedLibraryId)await window._supabase.from('playlist_items').insert([{playlist_id:selectedLibraryId,article_id:artId}]);}
+    else{const{data:art,error}=await window._supabase.rpc('insert_article',{p_firebase_uid:window._currentUser.uid,p_title:question,p_content:content});if(error)throw error;artId=art?.id??art;if(selectedLibraryId)await window._supabase.rpc('insert_playlist_item_owned',{p_playlist_id:selectedLibraryId,p_firebase_uid:window._currentUser.uid,p_article_id:artId});}
     console.log('[publish] artId:',artId);
     showToast(isEditing?'Saved!':'Published!','success');
     setTimeout(()=>location.href=`https://patholytica.com/dailyfeed.html?article=${artId}`,1000);
