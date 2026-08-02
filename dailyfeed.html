@@ -1847,9 +1847,17 @@ window.handleFollow=async function(e,aFbUid,aSupaId){
   if(!wasFollowing){setTimeout(()=>{btn.classList.add('ringing');btn.addEventListener('animationend',()=>btn.classList.remove('ringing'),{once:true});},260);}
   try{
     await ensureSupabaseAuth();
-    if(wasFollowing){await supabase.from('subscriptions').delete().eq('follower_id',currentUser.user_id).eq('author_id',parseInt(aSupaId));}
-    else{await supabase.from('subscriptions').insert([{follower_id:currentUser.user_id,author_id:parseInt(aSupaId)}]);}
+    if(wasFollowing){
+      const{error}=await supabase.rpc('unfollow_user',{p_author_id:parseInt(aSupaId),p_firebase_uid:currentFirebaseUser.uid});
+      if(error)throw error;
+    }else{
+      const{error}=await supabase.rpc('follow_user',{p_author_id:parseInt(aSupaId),p_firebase_uid:currentFirebaseUser.uid});
+      if(error)throw error;
+    }
   }catch(err){
+    console.error('[handleFollow]',err);
+    if(wasFollowing){userFollowing.add(supaUid);}else{userFollowing.delete(supaUid);}
+    updateFollowButtons();
   }finally{btn.dataset.processing='false';}
 };
 
