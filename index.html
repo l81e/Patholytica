@@ -1211,7 +1211,9 @@ window._handleNotif=async function(el){
   const badge=document.getElementById('stripNotifBadge');
   if(unread===0) badge.classList.remove('show');
   else{badge.textContent=unread>9?'9+':unread;}
-  try{await supabase.from('notifications').update({is_read:true}).eq('id',id);}catch(e){}
+  try{
+    if(currentSupaUser) await supabase.rpc('mark_notification_read',{p_notification_id:parseInt(id),p_firebase_uid:currentSupaUser.firebase_uid});
+  }catch(e){}
   if(target&&target!=='#') window.location.href=target;
 };
 
@@ -1220,10 +1222,7 @@ document.getElementById('notifMarkAll').addEventListener('click',async function(
   document.querySelectorAll('.notif-item.unread').forEach(el=>el.classList.remove('unread'));
   document.getElementById('stripNotifBadge').classList.remove('show');
   try{
-    await supabase.from('notifications')
-      .update({is_read:true})
-      .eq('recipient_id', currentSupaUser.user_id)
-      .eq('is_read',false);
+    await supabase.rpc('mark_all_notifications_read',{p_firebase_uid:currentSupaUser.firebase_uid});
   }catch(e){}
 });
 
