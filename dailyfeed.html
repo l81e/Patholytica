@@ -2063,21 +2063,15 @@ window.openPicksPanel=async function(){
     return;
   }
   try{
-    const{data:picksRow}=await supabase.from('picks').select('id').eq('user_id',currentUser.user_id).maybeSingle();
-    if(!picksRow){
+    const{data:pickRows,error}=await supabase.rpc('get_user_picks',{p_firebase_uid:currentSupaUser.firebase_uid});
+    if(error||!pickRows?.length){
       body.innerHTML=`<div class="picks-empty-note">Your feed isn't personalized yet — like, comment, share, or spend time on articles to start building it.</div>`;
       return;
     }
-    const{data:items,error}=await supabase
-      .from('pick_items')
-      .select('article_id, position, articles!fk_pick_items_article(title)')
-      .eq('picks_id',picksRow.id)
-      .order('position',{ascending:true})
-      .limit(50);
-    if(error||!items?.length){
-      body.innerHTML=`<div class="picks-empty-note">Your feed isn't personalized yet — like, comment, share, or spend time on articles to start building it.</div>`;
-      return;
-    }
+    const articleIds=pickRows.slice(0,50).map(r=>r.article_id);
+    const{data:artData}=await supabase.from('articles').select('id,title').in('id',articleIds);
+    const titleMap={};(artData||[]).forEach(a=>{titleMap[a.id]=a.title;});
+    const items=pickRows.slice(0,50).map(r=>({article_id:r.article_id,articles:{title:titleMap[r.article_id]}}));
     const list=document.createElement('div');list.className='picks-row-list';
     items.forEach((item,idx)=>{
       const title=item.articles?.title&&item.articles.title.trim()?item.articles.title:('Article #'+item.article_id);
@@ -2180,22 +2174,19 @@ function fadeInNewFeedCards(){
 // session (from ongoing interactions) shift what a positional offset
 // window actually contains.
 async function loadUserPicks(userId,excludeIds,limit){
-  const{data:picksRow,error:picksErr}=await supabase.from('picks').select('id').eq('user_id',userId).maybeSingle();
-  if(picksErr){console.error('[loadUserPicks] picks lookup failed:',picksErr);return[];}
-  if(!picksRow)return[];
-  let query=supabase
-    .from('pick_items')
-    .select('article_id, position, articles!fk_pick_items_article(*)')
-    .eq('picks_id',picksRow.id)
-    .order('position',{ascending:true})
-    .limit(limit);
+  const{data:pickRows,error}=await supabase.rpc('get_user_picks',{p_firebase_uid:currentFirebaseUser.uid});
+  if(error){console.error('[loadUserPicks] RPC failed:',error);return[];}
+  if(!pickRows?.length)return[];
+  let articleIds=pickRows.map(r=>r.article_id);
   if(excludeIds.size>0){
-    query=query.not('article_id','in',`(${[...excludeIds].join(',')})`);
+    articleIds=articleIds.filter(id=>!excludeIds.has(id));
   }
-  const{data:items,error}=await query;
-  if(error){console.error('[loadUserPicks] pick_items query failed:',error);return[];}
-  if(!items?.length)return[];
-  return items.filter(it=>it.articles).map(it=>it.articles);
+  articleIds=articleIds.slice(0,limit);
+  if(!articleIds.length)return[];
+  const{data:articlesData,error:artErr}=await supabase.from('articles').select('*').in('id',articleIds);
+  if(artErr){console.error('[loadUserPicks] articles fetch failed:',artErr);return[];}
+  const orderMap={};articleIds.forEach((id,i)=>{orderMap[id]=i;});
+  return(articlesData||[]).sort((a,b)=>orderMap[a.id]-orderMap[b.id]);
 }
 
 function buildEndFeedCard(hasSeenAnyPicks){
