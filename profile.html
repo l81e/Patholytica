@@ -1203,33 +1203,31 @@ window.confirmDeleteArticle=function(e,id){
   const a=articles.find(x=>x.id===id);
   openConfirmSheet('Delete Article',`"${(a?.title||'').slice(0,60)}" will be permanently deleted.`,async()=>{
     try{
-      await supabase.from('media').delete().eq('article_id',id);
-      await supabase.from('comments').delete().eq('article_id',id);
-      await supabase.from('likes').delete().eq('article_id',id);
-      await supabase.from('playlist_items').delete().eq('article_id',id);
-      const{error}=await supabase.from('articles').delete().eq('id',id);
+      const{data:success,error}=await supabase.rpc('delete_article_owned',{p_article_id:id,p_firebase_uid:currentUser.uid});
       if(error)throw error;
+      if(!success){showNotif('Could not delete — not your article','error');return;}
       articles=articles.filter(x=>x.id!==id);
       renderArticlesList();renderHero(viewingUserData,0);
       showNotif('Article deleted','success');
     }catch(err){showNotif('Failed to delete','error');}
   });
 };
+
 window.confirmBulkDeleteArticles=function(){
   if(!selectedArticles.size){showNotif('None selected','warning');return;}
   const n=selectedArticles.size;
   openConfirmSheet(`Delete ${n} Article${n>1?'s':''}`,`${n} article${n>1?'s':''} will be permanently deleted.`,async()=>{
     try{
       const ids=[...selectedArticles];
-      await supabase.from('media').delete().in('article_id',ids);
-      await supabase.from('comments').delete().in('article_id',ids);
-      await supabase.from('likes').delete().in('article_id',ids);
-      await supabase.from('playlist_items').delete().in('article_id',ids);
-      const{error}=await supabase.from('articles').delete().in('id',ids);
+      const{data:deletedCount,error}=await supabase.rpc('delete_articles_owned',{p_article_ids:ids,p_firebase_uid:currentUser.uid});
       if(error)throw error;
       articles=articles.filter(x=>!ids.includes(x.id));
       exitSelectionModeArticles();renderArticlesList();renderHero(viewingUserData,0);
-      showNotif(`${n} article${n>1?'s':''} deleted`,'success');
+      if(deletedCount<n){
+        showNotif(`${deletedCount} of ${n} deleted`,'warning');
+      }else{
+        showNotif(`${n} article${n>1?'s':''} deleted`,'success');
+      }
     }catch(err){showNotif('Failed to delete','error');}
   });
 };
