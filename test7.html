@@ -1,225 +1,1288 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Patholytica — Feed Mockup E (pills anywhere, no images)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500&family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Patholytica · PDF to Library</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://js.puter.com/v2/"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 <style>
-  :root{
-    --bg:#0f0e0b;
-    --text:#f5f0e8;
-    --muted:#8a8070;
-    --gold:#c8a96e;
-    --gold-hover:#b8935a;
-    --hover-bg:#1a1810;
-    --border:#2a2518;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    background:var(--bg);
-    color:var(--text);
-    font-family:'DM Sans', sans-serif;
-    line-height:1.8;
-    -webkit-font-smoothing:antialiased;
-  }
-  .slider-note{
-    text-align:center;
-    padding:14px 20px 12px;
-    border-bottom:1px dashed rgba(255,255,255,.08);
-  }
-  .slider-note span{
-    font-family:'Caveat', cursive;
-    font-size:1.05rem;
-    color:var(--muted);
-  }
-  .controls{
-    max-width:640px;
-    margin:0 auto;
-    padding:18px 22px 0;
-    display:flex;
-    gap:10px;
-  }
-  .toggle{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    background:rgba(255,255,255,.04);
-    border:1px solid var(--border);
-    border-radius:20px;
-    padding:7px 14px;
-    font-size:.82rem;
-    color:var(--muted);
-    cursor:pointer;
-    user-select:none;
-  }
-  .toggle input{ accent-color:var(--gold); }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0e0b;--bg2:#161410;--bg3:#1c1a14;--border:#2a2518;--border2:#352e1e;
+  --gold:#c8a96e;--gold-dim:#8a7249;--gold-glow:rgba(200,169,110,0.12);
+  --text:#e8e0cc;--muted:#7a7060;--danger:#c0624a;--success:#5a9e72;--warning:#c8943e;
+  --tag-bg:rgba(200,169,110,0.1);
+}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;font-size:15px}
 
-  main{
-    max-width:640px;
-    margin:0 auto;
-    padding:26px 22px 90px;
-    font-size:1.02rem;
-  }
-  main.justify{
-    text-align:justify;
-    text-justify:inter-word;
-    hyphens:auto;
-    -webkit-hyphens:auto;
-    text-wrap:pretty;
-  }
+/* ── header ── */
+.header{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:100;gap:20px;flex-wrap:wrap}
+.header-left{display:flex;align-items:center;gap:22px}
+.header-logo{font-family:'Merriweather',serif;font-size:18px;font-weight:700;color:var(--gold);letter-spacing:.03em}
+.header-logo span{color:var(--muted);font-weight:300;font-size:14px;margin-left:10px;font-family:'DM Sans',sans-serif}
+.header-status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s,box-shadow .3s}
+.status-dot.connected{background:var(--success);box-shadow:0 0 6px var(--success)}
+.status-dot.error{background:var(--danger);box-shadow:0 0 6px var(--danger)}
 
-  .entry{
-    display:inline;
-    cursor:pointer;
-    border-radius:3px;
-    transition:background-color .15s ease;
-  }
-  .entry:hover{ background-color:rgba(200,169,110,.06); }
-  .entry:focus-visible{
-    outline:1px solid var(--gold);
-    outline-offset:2px;
-  }
-  .handle{ color:var(--gold); font-weight:600; }
-  .title{ font-family:'DM Serif Display', serif; }
-  .views{ color:var(--muted); font-size:.85em; }
-  .colon{ color:var(--muted); }
+/* ── layout ── */
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 61px)}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:24px 20px;display:flex;flex-direction:column;gap:24px;position:sticky;top:61px;height:calc(100vh - 61px);overflow-y:auto}
+.sidebar-section-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.config-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.config-field label{font-size:12px;color:var(--muted)}
+.config-field input,.config-field select{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%;transition:border-color .2s}
+.config-field input:focus,.config-field select:focus{border-color:var(--gold-dim)}
+.config-field input::placeholder{color:var(--muted)}
+.config-field-hint{font-size:11px;color:var(--muted);line-height:1.5}
+.config-field-hint a{color:var(--gold-dim)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 16px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .2s}
+.btn-primary{background:var(--gold);color:#0f0e0b;width:100%}
+.btn-primary:hover{background:#d4b87a}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text)}
+.divider{border:none;border-top:1px solid var(--border)}
+.admin-key-warning{background:rgba(192,98,74,.08);border:1px solid rgba(192,98,74,.3);border-radius:7px;padding:9px 11px;font-size:11px;color:var(--danger);line-height:1.6;margin-top:8px;display:flex;gap:8px;align-items:flex-start}
+.admin-key-warning i{margin-top:1px;flex-shrink:0}
 
-  /* ── inline pill audio player — can sit anywhere in the line ── */
-  .audio-pill{
-    display:inline-flex;
-    align-items:center;
-    gap:7px;
-    vertical-align:middle;
-    background:var(--hover-bg);
-    border:1px solid var(--border);
-    border-radius:999px;
-    padding:3px 10px 3px 4px;
-    margin:0 3px;
-    white-space:nowrap;
-    line-height:1;
-  }
-  .audio-pill .play-dot{
-    width:20px; height:20px;
-    border-radius:50%;
-    background:var(--gold);
-    display:flex; align-items:center; justify-content:center;
-    flex-shrink:0;
-    cursor:pointer;
-    transition:background-color .15s ease;
-  }
-  .audio-pill .play-dot:hover{ background:var(--gold-hover); }
-  .audio-pill .play-dot svg{
-    width:9px; height:9px;
-    fill:#0f0e0b;
-  }
-  .audio-pill .mini-wave{
-    display:flex;
-    align-items:center;
-    gap:1.5px;
-    height:12px;
-  }
-  .audio-pill .mini-wave span{
-    width:2px;
-    background:var(--muted);
-    border-radius:1px;
-    opacity:.6;
-  }
-  .audio-pill .pill-label{
-    font-size:.72rem;
-    color:var(--muted);
-    font-weight:500;
-    max-width:90px;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-  }
+/* ── main / steps ── */
+.main{display:flex;flex-direction:column}
+.steps-bar{display:flex;align-items:center;gap:0;padding:18px 32px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.step-pill{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--muted);padding:6px 14px 6px 6px;border-radius:20px}
+.step-pill .step-num{width:22px;height:22px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--muted);flex-shrink:0}
+.step-pill.active{color:var(--gold)}
+.step-pill.active .step-num{background:var(--gold);border-color:var(--gold);color:#0f0e0b}
+.step-pill.done{color:var(--success)}
+.step-pill.done .step-num{background:var(--success);border-color:var(--success);color:#fff}
+.step-connector{width:28px;height:1px;background:var(--border2);margin:0 2px}
 
-  @media (prefers-reduced-motion: reduce){
-    .entry{ transition:none; }
-  }
+.step-panel{display:none;flex-direction:column;flex:1;padding:32px}
+.step-panel.active{display:flex}
+
+/* ── step 1: upload ── */
+.upload-zone{border:2px dashed var(--border2);border-radius:16px;padding:60px 30px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;cursor:pointer;transition:all .2s;max-width:560px;margin:0 auto;width:100%}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--gold-dim);background:var(--gold-glow)}
+.upload-zone i{font-size:34px;color:var(--gold-dim)}
+.upload-zone .uz-title{font-family:'Merriweather',serif;font-size:18px;color:var(--text)}
+.upload-zone .uz-sub{font-size:13px;color:var(--muted)}
+.upload-zone input{display:none}
+.file-chip{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;max-width:560px;margin:0 auto;width:100%}
+.file-chip i.fa-file-pdf{color:var(--danger);font-size:18px;flex-shrink:0}
+.file-chip .fc-info{flex:1;min-width:0}
+.file-chip .fc-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-chip .fc-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.file-chip .fc-remove{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:6px;border-radius:6px}
+.file-chip .fc-remove:hover{color:var(--danger);background:rgba(192,98,74,.08)}
+.extract-progress{max-width:560px;margin:18px auto 0;width:100%}
+.extract-status{font-size:12px;color:var(--gold-dim);text-align:center;margin-bottom:8px}
+.step-actions{max-width:560px;margin:24px auto 0;width:100%;display:flex;justify-content:flex-end}
+
+/* ── step 2: AI structuring ── */
+.structure-panel{max-width:640px;margin:0 auto;width:100%;display:flex;flex-direction:column;align-items:center;gap:18px;padding:40px 0}
+.structure-panel .sp-icon{width:56px;height:56px;border-radius:16px;background:var(--gold-glow);border:1px solid var(--gold-dim);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--gold)}
+.structure-panel .sp-icon.thinking{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.5;transform:scale(.94)}50%{opacity:1;transform:scale(1)}}
+.structure-panel .sp-title{font-family:'Merriweather',serif;font-size:17px;text-align:center}
+.structure-panel .sp-sub{font-size:13px;color:var(--muted);text-align:center;max-width:400px;line-height:1.6}
+.structure-config{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+.structure-config .config-field{margin-bottom:0}
+
+/* ── step 3: review ── */
+.review-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:22px;flex-wrap:wrap}
+.review-lib-field{flex:1;min-width:260px}
+.review-lib-field label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:7px}
+.lib-name-input{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:9px;padding:11px 14px;color:var(--gold);font-family:'Merriweather',serif;font-size:16px;font-weight:700;outline:none;transition:border-color .2s}
+.lib-name-input:focus{border-color:var(--gold-dim)}
+.lib-desc-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:9px 14px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;margin-top:8px;resize:none;line-height:1.5}
+.lib-desc-input:focus{border-color:var(--gold-dim);color:var(--text)}
+.review-summary{display:flex;gap:10px;flex-shrink:0}
+.summary-chip{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;min-width:70px}
+.summary-chip .sc-num{font-family:'Merriweather',serif;font-size:20px;font-weight:700;color:var(--gold);line-height:1}
+.summary-chip .sc-label{font-size:10px;color:var(--muted);margin-top:3px}
+
+.add-article-btn{display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px dashed var(--border2);border-radius:12px;padding:14px;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;margin-bottom:16px;background:transparent;width:100%;font-family:'DM Sans',sans-serif}
+.add-article-btn:hover{border-color:var(--gold-dim);color:var(--gold)}
+
+.review-list{display:flex;flex-direction:column;gap:14px}
+.review-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .2s}
+.review-card:hover{border-color:var(--border2)}
+.review-card.removed{opacity:.4}
+.rc-header{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+.rc-header .rc-drag{color:var(--border2);font-size:13px;cursor:grab;flex-shrink:0}
+.rc-header .rc-index{font-family:'Merriweather',serif;font-size:11px;color:var(--muted);min-width:20px;flex-shrink:0}
+.rc-header .rc-title-preview{flex:1;min-width:0;font-family:'Merriweather',serif;font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc-header .rc-chevron{color:var(--muted);font-size:12px;transition:transform .2s;flex-shrink:0}
+.rc-header .rc-chevron.open{transform:rotate(180deg)}
+.rc-remove-btn{background:transparent;border:none;color:var(--muted);cursor:pointer;padding:5px 8px;border-radius:6px;font-size:12px;flex-shrink:0}
+.rc-remove-btn:hover{color:var(--danger);background:rgba(192,98,74,.08)}
+.rc-body{padding:16px 18px;display:none;flex-direction:column;gap:12px}
+.rc-body.open{display:flex}
+.rc-field label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px}
+.rc-title-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:'Merriweather',serif;font-size:14px;font-weight:700;outline:none}
+.rc-title-input:focus{border-color:var(--gold-dim)}
+.rc-content-textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.65;outline:none;resize:vertical;min-height:120px}
+.rc-content-textarea:focus{border-color:var(--gold-dim)}
+.rc-meta-row{display:flex;gap:14px;font-size:11px;color:var(--muted)}
+
+/* image section within review card */
+.rc-image-section{border-top:1px solid var(--border);padding-top:12px;margin-top:2px}
+.rc-image-preview{width:100%;max-height:180px;border-radius:8px;overflow:hidden;background:var(--bg3);display:none;position:relative;margin-bottom:10px}
+.rc-image-preview.has-img{display:block}
+.rc-image-preview img{width:100%;max-height:180px;object-fit:cover;display:block}
+.rc-image-remove{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:rgba(10,9,6,.75);border:none;color:#fff;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center}
+.rc-image-remove:hover{background:rgba(192,98,74,.85)}
+.rc-image-credit{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(10,9,6,.85));padding:16px 10px 6px;font-size:10px;color:rgba(255,255,255,.75)}
+.rc-image-credit a{color:rgba(255,255,255,.9)}
+.rc-image-toolbar{display:flex;gap:8px;flex-wrap:wrap}
+.img-tool-btn{display:flex;align-items:center;gap:7px;background:transparent;border:1px solid var(--border2);color:var(--muted);border-radius:7px;padding:7px 13px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.img-tool-btn:hover{border-color:var(--gold-dim);color:var(--gold)}
+.img-tool-btn:disabled{opacity:.4;cursor:not-allowed}
+.img-tool-btn input[type=file]{display:none}
+.img-search-row{display:flex;gap:8px;margin-top:8px}
+.img-search-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px 11px;color:var(--text);font-size:12px;outline:none}
+.img-search-input:focus{border-color:var(--gold-dim)}
+.img-results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin-top:10px;max-height:220px;overflow-y:auto}
+.img-result-thumb{position:relative;border-radius:7px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .15s;aspect-ratio:1;background:var(--bg3)}
+.img-result-thumb:hover{border-color:var(--gold-dim)}
+.img-result-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.img-results-empty{font-size:12px;color:var(--muted);padding:10px 2px;grid-column:1/-1}
+
+.review-footer{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--border);padding:16px 32px;display:flex;justify-content:space-between;align-items:center;gap:14px;margin:24px -32px -32px}
+.review-footer-left{font-size:12px;color:var(--muted)}
+.review-footer-right{display:flex;gap:10px}
+.btn-back{background:transparent;border:1px solid var(--border2);color:var(--muted);padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif}
+.btn-back:hover{color:var(--text);border-color:var(--border2)}
+.btn-publish{background:var(--gold);color:#0f0e0b;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;display:flex;align-items:center;gap:8px;font-family:'DM Sans',sans-serif}
+.btn-publish:hover{background:#d4b87a}
+.btn-publish:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── step 4: publishing / done ── */
+.publish-panel{max-width:520px;margin:0 auto;width:100%;display:flex;flex-direction:column;align-items:center;gap:18px;padding:50px 0}
+.publish-log{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;max-height:260px;overflow-y:auto;font-size:12px;font-family:'Courier New',monospace}
+.log-entry{padding:3px 0;line-height:1.6;color:var(--muted)}
+.log-entry.ok{color:var(--success)}.log-entry.warn{color:var(--warning)}.log-entry.err{color:var(--danger)}.log-entry.info{color:var(--gold-dim)}
+.publish-progress-wrap{width:100%;background:var(--border);border-radius:99px;height:6px;overflow:hidden}
+.publish-progress-fill{height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));border-radius:99px;transition:width .4s ease;width:0%}
+.done-icon{width:64px;height:64px;border-radius:50%;background:rgba(90,158,114,.12);border:1px solid rgba(90,158,114,.4);display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--success)}
+.done-actions{display:flex;gap:10px;margin-top:6px}
+
+/* ── shared ── */
+.thinking-pulse{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--gold-dim);font-style:italic}
+.thinking-pulse::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 1s ease-in-out infinite;flex-shrink:0}
+.progress-bar-bg{background:var(--border);border-radius:99px;height:5px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));border-radius:99px;transition:width .5s ease;width:0%}
+#toast{position:fixed;bottom:28px;right:28px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:12px 18px;border-radius:9px;font-size:13px;box-shadow:0 8px 28px rgba(0,0,0,.5);display:none;align-items:center;gap:9px;z-index:999;max-width:360px}
+#toast.show{display:flex;animation:slideUp .25s ease}
+#toast.success{border-left:3px solid var(--success)}
+#toast.error{border-left:3px solid var(--danger)}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.spinner-ring{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media (max-width:768px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}
+  .header{padding:14px 18px}
+  .step-panel{padding:20px 16px}
+  .steps-bar{padding:14px 16px}
+  .review-footer{margin:24px -16px -20px;padding:14px 16px}
+}
 </style>
 </head>
 <body>
 
-<div class="slider-note"><span>— profile slider lives above this line —</span></div>
+<header class="header">
+  <div class="header-left">
+    <div class="header-logo">Patholytica <span>PDF → Library</span></div>
+  </div>
+  <div class="header-status">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Not connected</span>
+  </div>
+</header>
 
-<div class="controls">
-  <label class="toggle">
-    <input type="checkbox" id="justifyCheck">
-    <span>Justify text</span>
-  </label>
+<div class="layout">
+  <aside class="sidebar">
+    <div>
+      <div class="sidebar-section-label">Supabase Config</div>
+      <div class="config-field">
+        <label>Project URL</label>
+        <input id="sbUrl" type="text" placeholder="https://xxx.supabase.co" />
+      </div>
+      <div class="config-field">
+        <label>Service Role Key (admin only — do not share)</label>
+        <input id="sbKey" type="password" placeholder="eyJ..." />
+      </div>
+      <div class="config-field">
+        <label>Articles table</label>
+        <input id="sbTable" type="text" value="articles" />
+      </div>
+      <div class="config-field">
+        <label>Playlists table</label>
+        <input id="plTable" type="text" value="playlists" />
+      </div>
+      <div class="config-field">
+        <label>Playlist items table</label>
+        <input id="plItemsTable" type="text" value="playlist_items" />
+      </div>
+      <div class="config-field">
+        <label>Media table</label>
+        <input id="mediaTable" type="text" value="media" />
+      </div>
+      <div class="config-field">
+        <label>Media storage bucket</label>
+        <input id="mediaBucket" type="text" value="article-media" />
+      </div>
+      <button class="btn btn-primary" id="btnConnect">
+        <i class="fa fa-plug"></i> Connect
+      </button>
+      <div class="config-field-hint" style="margin-top:8px">Credentials are stored only in this browser's local storage.</div>
+      <div class="admin-key-warning"><i class="fa fa-triangle-exclamation"></i><span>This field takes the Supabase <strong>service role key</strong>, not the anon key. It bypasses row-level security entirely on every table. Local, trusted-admin use only — never deploy this page publicly or share this key.</span></div>
+    </div>
+
+    <hr class="divider" />
+
+    <div>
+      <div class="sidebar-section-label">AI Provider</div>
+      <div class="config-field">
+        <label>Provider</label>
+        <select id="aiProvider">
+          <option value="puter" selected>Puter.js (no key needed)</option>
+          <option value="openrouter">OpenRouter (bring your own key)</option>
+        </select>
+      </div>
+      <div class="config-field" id="modelFieldPuter">
+        <label>Model via Puter.js</label>
+        <select id="aiModelPuter">
+          <option value="anthropic/claude-opus-4-8">Claude Opus 4.8</option>
+          <option value="anthropic/claude-sonnet-4-6" selected>Claude Sonnet 4.6</option>
+          <option value="openai/gpt-5.5">GPT-5.5</option>
+          <option value="google/gemini-3.5-flash">Gemini 3.5 Flash</option>
+          <option value="deepseek/deepseek-v4-pro">DeepSeek V4 Pro</option>
+        </select>
+      </div>
+      <div class="config-field" id="modelFieldOpenrouter" style="display:none">
+        <label>Model via OpenRouter</label>
+        <select id="aiModelOpenrouter">
+          <option value="~openai/gpt-latest" selected>GPT (latest)</option>
+          <option value="~anthropic/claude-sonnet-latest">Claude Sonnet (latest)</option>
+          <option value="anthropic/claude-opus-4.8">Claude Opus 4.8</option>
+          <option value="google/gemini-3.5-flash">Gemini 3.5 Flash</option>
+          <option value="deepseek/deepseek-v4-pro">DeepSeek V4 Pro</option>
+        </select>
+      </div>
+      <div class="config-field" id="keyFieldOpenrouter" style="display:none">
+        <label>OpenRouter API Key</label>
+        <input id="orKey" type="password" placeholder="sk-or-v1-..." autocomplete="off" />
+        <div class="config-field-hint">Stored only in this browser's local storage. Get a key at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>.</div>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <div>
+      <div class="sidebar-section-label">About images</div>
+      <div class="config-field-hint" style="line-height:1.7">
+        "Auto-fetch" searches Wikimedia Commons — public domain / openly licensed images only, no key required. You can also upload your own image per article at any time.
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="steps-bar" id="stepsBar">
+      <div class="step-pill active" data-step="1"><span class="step-num">1</span> Upload PDF</div>
+      <div class="step-connector"></div>
+      <div class="step-pill" data-step="2"><span class="step-num">2</span> AI structuring</div>
+      <div class="step-connector"></div>
+      <div class="step-pill" data-step="3"><span class="step-num">3</span> Review & images</div>
+      <div class="step-connector"></div>
+      <div class="step-pill" data-step="4"><span class="step-num">4</span> Publish</div>
+    </div>
+
+    <!-- STEP 1 — upload -->
+    <div class="step-panel active" id="panel1">
+      <div class="upload-zone" id="uploadZone">
+        <i class="fa fa-file-arrow-up"></i>
+        <div class="uz-title">Drop a PDF here, or click to choose one</div>
+        <div class="uz-sub">Text is extracted entirely in your browser — nothing is uploaded until you publish</div>
+        <input type="file" id="pdfInput" accept="application/pdf" />
+      </div>
+      <div id="fileChipWrap"></div>
+      <div class="extract-progress" id="extractProgress" style="display:none">
+        <div class="extract-status" id="extractStatus">Reading file…</div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="extractProgressFill"></div></div>
+      </div>
+      <div class="step-actions">
+        <button class="btn btn-primary" id="btnToStep2" style="width:auto;padding:10px 22px" disabled>
+          Continue <i class="fa fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2 — AI structuring -->
+    <div class="step-panel" id="panel2">
+      <div class="structure-panel">
+        <div class="sp-icon" id="spIcon"><i class="fa fa-wand-magic-sparkles"></i></div>
+        <div class="sp-title" id="spTitle">Ready to structure this PDF</div>
+        <div class="sp-sub" id="spSub">The AI will read the extracted text and propose a set of articles plus a library name. You can edit everything afterward.</div>
+
+        <div class="structure-config">
+          <div class="config-field">
+            <label>Target article length</label>
+            <select id="articleLength">
+              <option value="short">Short — bite-sized (favor more, shorter articles)</option>
+              <option value="medium" selected>Medium — balanced</option>
+              <option value="long">Long — fewer, more comprehensive articles</option>
+            </select>
+          </div>
+          <div class="config-field" style="margin-bottom:0">
+            <label>Extra instructions <span style="opacity:.5;text-transform:none;letter-spacing:0">— optional</span></label>
+            <input id="structureNotes" type="text" placeholder="e.g. focus on clinical relevance, keep terminology simple…" />
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="btnStructure" style="width:auto;padding:11px 24px">
+          <i class="fa fa-wand-magic-sparkles"></i> Structure with AI
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 3 — review -->
+    <div class="step-panel" id="panel3">
+      <div class="review-header">
+        <div class="review-lib-field">
+          <label>Library name</label>
+          <input class="lib-name-input" id="libNameInput" placeholder="Library name…" />
+          <textarea class="lib-desc-input" id="libDescInput" rows="2" placeholder="Library description (optional)…"></textarea>
+        </div>
+        <div class="review-summary">
+          <div class="summary-chip"><div class="sc-num" id="scArticles">0</div><div class="sc-label">Articles</div></div>
+          <div class="summary-chip"><div class="sc-num" id="scImages">0</div><div class="sc-label">Images</div></div>
+        </div>
+      </div>
+
+      <button class="add-article-btn" id="btnAddArticle"><i class="fa fa-plus"></i> Add another article</button>
+
+      <div class="review-list" id="reviewList"></div>
+
+      <div class="review-footer">
+        <div class="review-footer-left" id="reviewFooterNote">Review titles and content, attach images, then publish.</div>
+        <div class="review-footer-right">
+          <button class="btn-back" id="btnBackTo2"><i class="fa fa-arrow-left"></i> Back</button>
+          <button class="btn-publish" id="btnPublish"><i class="fa fa-paper-plane"></i> Publish Library</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4 — publish / done -->
+    <div class="step-panel" id="panel4">
+      <div class="publish-panel" id="publishPanel">
+        <div class="sp-icon thinking"><i class="fa fa-cloud-arrow-up"></i></div>
+        <div class="sp-title">Publishing…</div>
+        <div class="publish-progress-wrap"><div class="publish-progress-fill" id="publishProgressFill"></div></div>
+        <div class="publish-log" id="publishLog"></div>
+      </div>
+    </div>
+  </main>
 </div>
 
-<main id="feed">
-
-<span class="entry" tabindex="0" role="link" data-title="Frank–Starling and why preload isn't optional">
-  <span class="handle">@clara.mbbs</span> <span class="title">Frank–Starling and why preload isn't optional</span> <span class="views">· 2.4k views</span><span class="colon">:</span>
-  The ventricle doesn't know it's failing until it's already compensating.
-  <span class="audio-pill" onclick="event.stopPropagation()">
-    <span class="play-dot" onclick="alert('would play: PV loop walkthrough')"><svg viewBox="0 0 10 10"><polygon points="1,0 10,5 1,10"/></svg></span>
-    <span class="mini-wave">
-      <span style="height:40%"></span><span style="height:80%"></span><span style="height:55%"></span><span style="height:95%"></span><span style="height:35%"></span>
-    </span>
-    <span class="pill-label">PV loop · 4:12</span>
-  </span>
-  Stretch the sarcomere past its optimum and contractility drops even as filling pressure climbs — exactly the trap in decompensated heart failure. Stroke volume is still climbing on the loop even as the myocardium quietly loses efficiency.
-</span>
-<span class="entry" tabindex="0" role="link" data-title="Beta-lactams don't fail quietly">
-  <span class="handle">@path.noor</span> <span class="title">Beta-lactams don't fail quietly</span> <span class="views">· 891 views</span><span class="colon">:</span>
-  Resistance isn't one mechanism wearing different hats. Beta-lactamase, altered PBPs, and efflux pumps solve the same problem three different ways, and a regimen accounting for only one is waiting to fail. Extended-spectrum beta-lactamases have a habit of quietly outrunning empiric coverage before a screening panel catches it
-  <span class="audio-pill" onclick="event.stopPropagation()">
-    <span class="play-dot" onclick="alert('would play: ESBL detection walkthrough')"><svg viewBox="0 0 10 10"><polygon points="1,0 10,5 1,10"/></svg></span>
-    <span class="mini-wave">
-      <span style="height:55%"></span><span style="height:30%"></span><span style="height:75%"></span><span style="height:50%"></span><span style="height:85%"></span>
-    </span>
-    <span class="pill-label">ESBL detection · 3:05</span>
-  </span>
-  — that gap between screening and confirmatory testing is exactly where empiric regimens quietly fail.
-</span>
-<span class="entry" tabindex="0" role="link" data-title="The loop diuretic paradox">
-  <span class="handle">@renal.reza</span> <span class="title">The loop diuretic paradox</span> <span class="views">· 6.1k views</span><span class="colon">:</span>
-  Blocking NKCC2 in the thick ascending limb should, on paper, be straightforward. In practice the nephron adapts within days, and the dose that produced 2L of diuresis last week barely moves the needle now — the distal nephron upregulates sodium reabsorption to compensate, which is why sequential nephron blockade with a thiazide restores effect where raising the loop dose stalls out.
-  <span class="audio-pill" onclick="event.stopPropagation()">
-    <span class="play-dot" onclick="alert('would play: braking phenomenon explainer')"><svg viewBox="0 0 10 10"><polygon points="1,0 10,5 1,10"/></svg></span>
-    <span class="mini-wave">
-      <span style="height:60%"></span><span style="height:35%"></span><span style="height:90%"></span><span style="height:45%"></span><span style="height:70%"></span>
-    </span>
-    <span class="pill-label">Braking phenomenon · 6:48</span>
-  </span>
-</span>
-<span class="entry" tabindex="0" role="link" data-title="Localizing before the scan comes back">
-  <span class="handle">@strokefellow</span> <span class="title">Localizing before the scan comes back</span> <span class="views">· 340 views</span><span class="colon">:</span>
-  A pure motor deficit with no sensory loss and no cortical signs is buying you time you don't have to waste
-  <span class="audio-pill" onclick="event.stopPropagation()">
-    <span class="play-dot" onclick="alert('would play: capsule localization pearls')"><svg viewBox="0 0 10 10"><polygon points="1,0 10,5 1,10"/></svg></span>
-    <span class="mini-wave">
-      <span style="height:45%"></span><span style="height:85%"></span><span style="height:40%"></span><span style="height:65%"></span><span style="height:50%"></span>
-    </span>
-    <span class="pill-label">Capsule pearls · 2:30</span>
-  </span>
-  — that pattern alone should move your hand toward the internal capsule, not the cortex. Cortical involvement tends to announce itself: neglect, aphasia, a visual field cut. Their absence is doing real localizing work here.
-</span>
-
-</main>
+<div id="toast"></div>
 
 <script>
-document.getElementById('justifyCheck').addEventListener('change', (e) => {
-  document.getElementById('feed').classList.toggle('justify', e.target.checked);
-});
+(function() {
+  // ══════════════════════════════════════════════════════════
+  // STATE
+  // ══════════════════════════════════════════════════════════
+  var sbClient = null;
+  var connected = false;
+  var toastTimer = null;
+  var currentStep = 1;
 
-document.querySelectorAll('.entry').forEach(entry => {
-  entry.addEventListener('click', () => {
-    alert('→ would navigate to full article page for "' + entry.dataset.title + '"');
+  var pdfFile = null;
+  var extractedText = '';
+  var extractedPageCount = 0;
+
+  var libraryName = '';
+  var libraryDesc = '';
+  var reviewArticles = []; // { id, title, content, image: {url, credit, creditUrl, file, dataUrl} | null }
+  var articleIdCounter = 0;
+
+  var OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
+  var WIKIMEDIA_ENDPOINT = 'https://commons.wikimedia.org/w/api.php';
+
+  // ══════════════════════════════════════════════════════════
+  // BOOT
+  // ══════════════════════════════════════════════════════════
+  document.addEventListener('DOMContentLoaded', function() {
+    var savedUrl = localStorage.getItem('patholytica_sb_url');
+    if (savedUrl) document.getElementById('sbUrl').value = savedUrl;
+    var savedKey = localStorage.getItem('patholytica_sb_key');
+    if (savedKey) document.getElementById('sbKey').value = savedKey;
+    var savedOrKey = localStorage.getItem('patholytica_or_key');
+    if (savedOrKey) document.getElementById('orKey').value = savedOrKey;
+    var savedProvider = localStorage.getItem('patholytica_ai_provider');
+    if (savedProvider === 'openrouter' || savedProvider === 'puter') {
+      document.getElementById('aiProvider').value = savedProvider;
+    }
+    updateProviderVisibility();
+
+    document.getElementById('sbUrl').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_sb_url', e.target.value.trim());
+    });
+    document.getElementById('sbKey').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_sb_key', e.target.value.trim());
+    });
+    document.getElementById('orKey').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_or_key', e.target.value.trim());
+    });
+    document.getElementById('aiProvider').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_ai_provider', e.target.value);
+      updateProviderVisibility();
+    });
+
+    document.getElementById('btnConnect').addEventListener('click', connectSupabase);
+
+    var uploadZone = document.getElementById('uploadZone');
+    var pdfInput = document.getElementById('pdfInput');
+    uploadZone.addEventListener('click', function(){ pdfInput.click(); });
+    uploadZone.addEventListener('dragover', function(e){ e.preventDefault(); uploadZone.classList.add('drag'); });
+    uploadZone.addEventListener('dragleave', function(){ uploadZone.classList.remove('drag'); });
+    uploadZone.addEventListener('drop', function(e){
+      e.preventDefault(); uploadZone.classList.remove('drag');
+      if (e.dataTransfer.files.length) handlePdfFile(e.dataTransfer.files[0]);
+    });
+    pdfInput.addEventListener('change', function(e){
+      if (e.target.files.length) handlePdfFile(e.target.files[0]);
+    });
+
+    document.getElementById('btnToStep2').addEventListener('click', function(){ goToStep(2); });
+    document.getElementById('btnStructure').addEventListener('click', structureWithAI);
+    document.getElementById('btnBackTo2').addEventListener('click', function(){ goToStep(2); });
+    document.getElementById('btnAddArticle').addEventListener('click', addBlankArticle);
+    document.getElementById('btnPublish').addEventListener('click', publishLibrary);
+
+    document.getElementById('libNameInput').addEventListener('input', function(e){ libraryName = e.target.value; });
+    document.getElementById('libDescInput').addEventListener('input', function(e){ libraryDesc = e.target.value; });
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   });
-  entry.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); entry.click(); }
-  });
-});
+
+  function updateProviderVisibility() {
+    var provider = document.getElementById('aiProvider').value;
+    var isOpenRouter = provider === 'openrouter';
+    document.getElementById('modelFieldPuter').style.display      = isOpenRouter ? 'none' : 'flex';
+    document.getElementById('modelFieldOpenrouter').style.display = isOpenRouter ? 'flex' : 'none';
+    document.getElementById('keyFieldOpenrouter').style.display   = isOpenRouter ? 'flex' : 'none';
+  }
+
+  function getActiveModel() {
+    var provider = document.getElementById('aiProvider').value;
+    return provider === 'openrouter'
+      ? document.getElementById('aiModelOpenrouter').value
+      : document.getElementById('aiModelPuter').value;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // SUPABASE CONNECTION
+  // ══════════════════════════════════════════════════════════
+  function getClient() {
+    var url = document.getElementById('sbUrl').value.trim().replace(/\/$/, '');
+    var key = document.getElementById('sbKey').value.trim();
+    if (!url || !key) { showToast('Enter Supabase URL and service role key first', 'error'); return null; }
+    sbClient = window.supabase.createClient(url, key);
+    return sbClient;
+  }
+
+  async function connectSupabase() {
+    var client = getClient();
+    if (!client) return;
+
+    var btn = document.getElementById('btnConnect');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Connecting…';
+    setStatus('connecting');
+
+    try {
+      var table = document.getElementById('sbTable').value.trim() || 'articles';
+      var ping = await client.from(table).select('id', { count: 'exact', head: true });
+      if (ping.error) throw ping.error;
+
+      connected = true;
+      setStatus('connected');
+      showToast('Connected to Supabase', 'success');
+    } catch (err) {
+      console.error(err);
+      connected = false;
+      setStatus('error');
+      showToast('Connection failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-plug"></i> Connect';
+    }
+  }
+
+  function setStatus(state) {
+    var dot = document.getElementById('statusDot');
+    var text = document.getElementById('statusText');
+    dot.className = 'status-dot';
+    if (state === 'connected') { dot.classList.add('connected'); text.textContent = 'Connected'; }
+    else if (state === 'connecting') { text.textContent = 'Connecting…'; }
+    else if (state === 'error') { dot.classList.add('error'); text.textContent = 'Connection error'; }
+    else { text.textContent = 'Not connected'; }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // STEP NAVIGATION
+  // ══════════════════════════════════════════════════════════
+  function goToStep(n) {
+    currentStep = n;
+    for (var i = 1; i <= 4; i++) {
+      document.getElementById('panel' + i).classList.toggle('active', i === n);
+    }
+    var pills = document.querySelectorAll('.step-pill');
+    pills.forEach(function(p) {
+      var s = parseInt(p.dataset.step, 10);
+      p.classList.toggle('active', s === n);
+      p.classList.toggle('done', s < n);
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // STEP 1 — PDF UPLOAD + EXTRACTION
+  // ══════════════════════════════════════════════════════════
+  async function handlePdfFile(file) {
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      showToast('That file doesn\'t look like a PDF', 'error');
+      return;
+    }
+    pdfFile = file;
+    renderFileChip();
+    document.getElementById('btnToStep2').disabled = true;
+
+    var progressWrap = document.getElementById('extractProgress');
+    var statusEl = document.getElementById('extractStatus');
+    var fillEl = document.getElementById('extractProgressFill');
+    progressWrap.style.display = 'block';
+    fillEl.style.width = '0%';
+    statusEl.textContent = 'Reading file…';
+
+    try {
+      var buffer = await file.arrayBuffer();
+      statusEl.textContent = 'Parsing PDF…';
+      var pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+      var numPages = pdf.numPages;
+      var fullText = '';
+
+      for (var i = 1; i <= numPages; i++) {
+        var page = await pdf.getPage(i);
+        var content = await page.getTextContent();
+        var pageText = content.items.map(function(item){ return item.str; }).join(' ');
+        fullText += pageText.trim() + '\n\n';
+        fillEl.style.width = Math.round((i / numPages) * 100) + '%';
+        statusEl.textContent = 'Extracting page ' + i + ' of ' + numPages + '…';
+      }
+
+      fullText = fullText.trim();
+      if (!fullText) {
+        statusEl.textContent = 'No extractable text found — this PDF may be scanned images without a text layer.';
+        showToast('No extractable text found in this PDF', 'error');
+        progressWrap.style.display = 'none';
+        return;
+      }
+
+      extractedText = fullText;
+      extractedPageCount = numPages;
+      var wordCount = fullText.split(/\s+/).filter(Boolean).length;
+      statusEl.textContent = 'Extracted ' + numPages + ' page' + (numPages !== 1 ? 's' : '') + ' · ~' + wordCount.toLocaleString() + ' words';
+      progressWrap.style.display = 'block';
+      document.getElementById('btnToStep2').disabled = false;
+      updateFileChipMeta(numPages, wordCount);
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = 'Could not read this PDF. It may be corrupted, encrypted, or password-protected.';
+      showToast('PDF extraction failed: ' + err.message, 'error');
+      progressWrap.style.display = 'none';
+    }
+  }
+
+  function renderFileChip() {
+    var wrap = document.getElementById('fileChipWrap');
+    if (!pdfFile) { wrap.innerHTML = ''; return; }
+    var sizeKb = Math.round(pdfFile.size / 1024);
+    var sizeStr = sizeKb > 1024 ? (sizeKb / 1024).toFixed(1) + ' MB' : sizeKb + ' KB';
+    wrap.innerHTML = '<div class="file-chip" style="margin-top:18px">' +
+      '<i class="fa fa-file-pdf"></i>' +
+      '<div class="fc-info"><div class="fc-name">' + escHtml(pdfFile.name) + '</div><div class="fc-meta" id="fcMeta">' + sizeStr + '</div></div>' +
+      '<button class="fc-remove" id="fcRemove"><i class="fa fa-times"></i></button>' +
+    '</div>';
+    document.getElementById('fcRemove').addEventListener('click', function() {
+      pdfFile = null; extractedText = ''; extractedPageCount = 0;
+      wrap.innerHTML = '';
+      document.getElementById('extractProgress').style.display = 'none';
+      document.getElementById('btnToStep2').disabled = true;
+      document.getElementById('pdfInput').value = '';
+    });
+  }
+
+  function updateFileChipMeta(pages, words) {
+    var meta = document.getElementById('fcMeta');
+    if (meta) meta.textContent = pages + ' page' + (pages !== 1 ? 's' : '') + ' · ~' + words.toLocaleString() + ' words';
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // STEP 2 — AI STRUCTURING
+  // ══════════════════════════════════════════════════════════
+  function buildStructurePrompt(text, lengthPref, notes) {
+    var lengthGuide = lengthPref === 'short'
+      ? 'Favor MORE, SHORTER articles — split by distinct sub-topic wherever the source supports it.'
+      : lengthPref === 'long'
+      ? 'Favor FEWER, LONGER, more comprehensive articles — only split where topics are clearly distinct.'
+      : 'Balance article count and length — split where a natural topic boundary exists in the source.';
+
+    return 'You are a content editor for Patholytica, a medical education platform with a mobile bite-sized article feed.\n\n' +
+      'You are given the extracted text of a PDF (lecture notes, textbook excerpt, or similar). Your job:\n' +
+      '1. Propose a short, descriptive library name for this content (e.g. "Renal Physiology Basics", "Cardiac Pharmacology Week 3").\n' +
+      '2. Split the text into one or more standalone articles. Each article needs a clear title and well-written content in plain prose (not copied verbatim — rewrite for clarity and flow, but preserve all factual/clinical content and terminology accurately). Do not fabricate facts not present in the source.\n' +
+      '3. ' + lengthGuide + '\n' +
+      (notes ? '4. Additional instructions from the editor: ' + notes + '\n' : '') +
+      '\nFormat each article\'s content as plain paragraphs separated by a blank line (double newline). Do not use markdown headers or bullet lists — write in flowing educational prose suitable for a reading feed.\n\n' +
+      'For each article, also suggest 2-4 short, specific image search terms (for finding a relevant, real, public-domain illustration on Wikimedia Commons — e.g. "nephron anatomy diagram", "ECG normal sinus rhythm") — plain visual/medical subject terms only, no article title text.\n\n' +
+      'Return ONLY valid JSON, no markdown fences, no explanation, in exactly this shape:\n' +
+      '{\n' +
+      '  "libraryName": "string",\n' +
+      '  "libraryDescription": "one sentence description",\n' +
+      '  "articles": [\n' +
+      '    { "title": "string", "content": "string with \\n\\n paragraph breaks", "imageSearchTerms": ["term1","term2"] }\n' +
+      '  ]\n' +
+      '}\n\n' +
+      'SOURCE TEXT:\n"""\n' + text + '\n"""';
+  }
+
+  function extractStructureJSON(raw) {
+    var cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+    var match = cleaned.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('No JSON object found in AI response');
+    var parsed = JSON.parse(match[0]);
+    if (!parsed.articles || !Array.isArray(parsed.articles) || parsed.articles.length === 0) {
+      throw new Error('AI response did not include any articles');
+    }
+    return parsed;
+  }
+
+  async function callPuter(prompt, model) {
+    var response = await puter.ai.chat(prompt, { model: model });
+    var raw = '';
+    if (typeof response === 'string') {
+      raw = response;
+    } else if (response && response.message && response.message.content) {
+      raw = Array.isArray(response.message.content)
+        ? response.message.content.map(function(c){ return c.text || ''; }).join('')
+        : response.message.content;
+    } else {
+      raw = JSON.stringify(response);
+    }
+    return raw;
+  }
+
+  async function callOpenRouter(prompt, model) {
+    var apiKey = document.getElementById('orKey').value.trim();
+    if (!apiKey) throw new Error('Enter an OpenRouter API key in the sidebar first');
+
+    var res = await fetch(OPENROUTER_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json',
+        'X-OpenRouter-Title': 'Patholytica PDF to Library'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 8000
+      })
+    });
+
+    var data = await res.json();
+    if (!res.ok) {
+      var msg = (data && data.error && data.error.message) ? data.error.message : ('OpenRouter request failed (' + res.status + ')');
+      throw new Error(msg);
+    }
+    var content = data && data.choices && data.choices[0] && data.choices[0].message
+      ? data.choices[0].message.content
+      : null;
+    if (!content) throw new Error('OpenRouter returned no content');
+    return content;
+  }
+
+  async function structureWithAI() {
+    if (!extractedText) { showToast('No extracted text to work with', 'error'); return; }
+
+    var provider = document.getElementById('aiProvider').value;
+    if (provider === 'openrouter' && !document.getElementById('orKey').value.trim()) {
+      showToast('Enter an OpenRouter API key in the sidebar first', 'error');
+      return;
+    }
+
+    var model = getActiveModel();
+    var lengthPref = document.getElementById('articleLength').value;
+    var notes = document.getElementById('structureNotes').value.trim();
+    var btn = document.getElementById('btnStructure');
+    var icon = document.getElementById('spIcon');
+    var title = document.getElementById('spTitle');
+    var sub = document.getElementById('spSub');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Structuring…';
+    icon.classList.add('thinking');
+    title.textContent = 'Reading and structuring…';
+    sub.textContent = 'This can take a moment on longer documents.';
+
+    // Cap very long PDFs so the prompt stays within reasonable model context —
+    // this is a client-side page with no chunking/map-reduce pipeline, so a
+    // single extremely long source is truncated with a clear notice rather
+    // than silently failing on a context-length error from the provider.
+    var MAX_CHARS = 60000;
+    var textForPrompt = extractedText;
+    var wasTruncated = false;
+    if (textForPrompt.length > MAX_CHARS) {
+      textForPrompt = textForPrompt.slice(0, MAX_CHARS);
+      wasTruncated = true;
+    }
+
+    var prompt = buildStructurePrompt(textForPrompt, lengthPref, notes);
+
+    try {
+      var raw = provider === 'openrouter'
+        ? await callOpenRouter(prompt, model)
+        : await callPuter(prompt, model);
+
+      var parsed = extractStructureJSON(raw);
+
+      libraryName = parsed.libraryName || 'Untitled Library';
+      libraryDesc = parsed.libraryDescription || '';
+      reviewArticles = parsed.articles.map(function(a) {
+        return {
+          id: 'art_' + (articleIdCounter++),
+          title: a.title || '(untitled)',
+          content: a.content || '',
+          imageSearchTerms: Array.isArray(a.imageSearchTerms) ? a.imageSearchTerms : [],
+          image: null
+        };
+      });
+
+      if (wasTruncated) {
+        showToast('Note: PDF text was long and was truncated for this pass — review carefully', 'warning');
+      }
+      showToast('Structured into ' + reviewArticles.length + ' article' + (reviewArticles.length !== 1 ? 's' : ''), 'success');
+      renderReviewStep();
+      goToStep(3);
+    } catch (err) {
+      console.error(err);
+      showToast('AI structuring failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-wand-magic-sparkles"></i> Structure with AI';
+      icon.classList.remove('thinking');
+      title.textContent = 'Ready to structure this PDF';
+      sub.textContent = 'The AI will read the extracted text and propose a set of articles plus a library name. You can edit everything afterward.';
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // STEP 3 — REVIEW
+  // ══════════════════════════════════════════════════════════
+  function renderReviewStep() {
+    document.getElementById('libNameInput').value = libraryName;
+    document.getElementById('libDescInput').value = libraryDesc;
+    renderReviewList();
+  }
+
+  function updateSummaryChips() {
+    document.getElementById('scArticles').textContent = reviewArticles.length;
+    var imgCount = reviewArticles.filter(function(a){ return !!a.image; }).length;
+    document.getElementById('scImages').textContent = imgCount;
+  }
+
+  function renderReviewList() {
+    var list = document.getElementById('reviewList');
+    updateSummaryChips();
+
+    if (reviewArticles.length === 0) {
+      list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:30px 10px">No articles yet — add one, or go back and structure the PDF again.</div>';
+      document.getElementById('btnPublish').disabled = true;
+      return;
+    }
+    document.getElementById('btnPublish').disabled = false;
+
+    list.innerHTML = reviewArticles.map(function(a, i) {
+      return renderReviewCard(a, i);
+    }).join('');
+
+    list.removeEventListener('click', onReviewListClick);
+    list.removeEventListener('input', onReviewListInput);
+    list.addEventListener('click', onReviewListClick);
+    list.addEventListener('input', onReviewListInput);
+  }
+
+  function renderReviewCard(a, i) {
+    var titlePreview = a.title || '(untitled article)';
+    var wordCount = (a.content || '').split(/\s+/).filter(Boolean).length;
+
+    var imagePreviewHtml = a.image
+      ? '<div class="rc-image-preview has-img"><img src="' + escHtml(a.image.dataUrl || a.image.url) + '" alt="">' +
+        '<button class="rc-image-remove" data-remove-image="' + a.id + '"><i class="fa fa-times"></i></button>' +
+        (a.image.credit ? '<div class="rc-image-credit">' + a.image.credit + '</div>' : '') +
+        '</div>'
+      : '<div class="rc-image-preview" id="imgprev-' + a.id + '"></div>';
+
+    return '<div class="review-card" id="revcard-' + a.id + '" data-article-id="' + a.id + '">' +
+      '<div class="rc-header" data-toggle-open="' + a.id + '">' +
+        '<i class="fa fa-grip-vertical rc-drag"></i>' +
+        '<div class="rc-index">' + String(i + 1).padStart(2, '0') + '</div>' +
+        '<div class="rc-title-preview">' + escHtml(titlePreview) + '</div>' +
+        '<button class="rc-remove-btn" data-remove-article="' + a.id + '" title="Remove"><i class="fa fa-trash"></i></button>' +
+        '<i class="fa fa-chevron-down rc-chevron" id="chev-' + a.id + '"></i>' +
+      '</div>' +
+      '<div class="rc-body" id="rcbody-' + a.id + '">' +
+        '<div class="rc-field">' +
+          '<label>Title</label>' +
+          '<input class="rc-title-input" data-edit-title="' + a.id + '" value="' + escHtml(a.title) + '" placeholder="Article title…" />' +
+        '</div>' +
+        '<div class="rc-field">' +
+          '<label>Content</label>' +
+          '<textarea class="rc-content-textarea" data-edit-content="' + a.id + '" placeholder="Article content…">' + escHtml(a.content) + '</textarea>' +
+        '</div>' +
+        '<div class="rc-meta-row"><span><i class="fa fa-align-left" style="margin-right:4px"></i> ~' + wordCount + ' words</span></div>' +
+        '<div class="rc-image-section">' +
+          '<label style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px">Image</label>' +
+          imagePreviewHtml +
+          '<div class="rc-image-toolbar">' +
+            '<button class="img-tool-btn" data-autofetch="' + a.id + '"><i class="fa fa-magnifying-glass"></i> Auto-fetch (Wikimedia)</button>' +
+            '<label class="img-tool-btn"><i class="fa fa-upload"></i> Upload<input type="file" accept="image/*" data-upload-image="' + a.id + '" /></label>' +
+          '</div>' +
+          '<div class="img-search-row" id="imgsearchrow-' + a.id + '" style="display:none">' +
+            '<input class="img-search-input" id="imgsearchinput-' + a.id + '" placeholder="Search Wikimedia Commons…" value="' + escHtml((a.imageSearchTerms && a.imageSearchTerms[0]) || a.title || '') + '" />' +
+            '<button class="img-tool-btn" data-run-search="' + a.id + '"><i class="fa fa-search"></i></button>' +
+          '</div>' +
+          '<div class="img-results-grid" id="imgresults-' + a.id + '"></div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function onReviewListClick(e) {
+    var toggleHead = e.target.closest('[data-toggle-open]');
+    var removeArt = e.target.closest('[data-remove-article]');
+    var removeImg = e.target.closest('[data-remove-image]');
+    var autofetch = e.target.closest('[data-autofetch]');
+    var runSearch = e.target.closest('[data-run-search]');
+    var resultThumb = e.target.closest('[data-pick-image]');
+
+    // Don't toggle open/close when the click is on an inner control
+    if (toggleHead && !e.target.closest('.rc-remove-btn')) {
+      var id = toggleHead.dataset.toggleOpen;
+      toggleCard(id);
+    }
+    if (removeArt) { e.stopPropagation(); removeArticle(removeArt.dataset.removeArticle); }
+    if (removeImg) { removeArticleImage(removeImg.dataset.removeImage); }
+    if (autofetch) { openImageSearch(autofetch.dataset.autofetch); }
+    if (runSearch) { runImageSearch(runSearch.dataset.runSearch); }
+    if (resultThumb) { pickImageResult(resultThumb.dataset.pickImage, resultThumb.dataset.imgUrl, resultThumb.dataset.imgCredit, resultThumb.dataset.imgCreditUrl); }
+  }
+
+  function onReviewListInput(e) {
+    var titleEl = e.target.closest('[data-edit-title]');
+    var contentEl = e.target.closest('[data-edit-content]');
+    var uploadEl = e.target.closest('[data-upload-image]');
+
+    if (titleEl) {
+      var a1 = findArticle(titleEl.dataset.editTitle);
+      if (a1) {
+        a1.title = titleEl.value;
+        var preview = document.querySelector('#revcard-' + a1.id + ' .rc-title-preview');
+        if (preview) preview.textContent = a1.title || '(untitled article)';
+      }
+    }
+    if (contentEl) {
+      var a2 = findArticle(contentEl.dataset.editContent);
+      if (a2) a2.content = contentEl.value;
+    }
+    if (uploadEl && uploadEl.files && uploadEl.files[0]) {
+      handleManualImageUpload(uploadEl.dataset.uploadImage, uploadEl.files[0]);
+    }
+  }
+
+  function findArticle(id) {
+    return reviewArticles.find(function(a){ return a.id === id; });
+  }
+
+  function toggleCard(id) {
+    var body = document.getElementById('rcbody-' + id);
+    var chev = document.getElementById('chev-' + id);
+    if (!body) return;
+    var willOpen = !body.classList.contains('open');
+    body.classList.toggle('open', willOpen);
+    if (chev) chev.classList.toggle('open', willOpen);
+  }
+
+  function removeArticle(id) {
+    reviewArticles = reviewArticles.filter(function(a){ return a.id !== id; });
+    renderReviewList();
+  }
+
+  function addBlankArticle() {
+    var a = { id: 'art_' + (articleIdCounter++), title: '', content: '', imageSearchTerms: [], image: null };
+    reviewArticles.push(a);
+    renderReviewList();
+    // Open the newly added card for immediate editing
+    setTimeout(function(){ toggleCard(a.id); }, 30);
+  }
+
+  // ── Image: manual upload ──
+  function handleManualImageUpload(id, file) {
+    var a = findArticle(id);
+    if (!a) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      a.image = { dataUrl: e.target.result, url: e.target.result, file: file, credit: 'Uploaded image', creditUrl: null, source: 'upload' };
+      renderReviewList();
+      // Re-open the card that was just edited
+      setTimeout(function(){ toggleCard(id); }, 30);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeArticleImage(id) {
+    var a = findArticle(id);
+    if (!a) return;
+    a.image = null;
+    renderReviewList();
+    setTimeout(function(){ toggleCard(id); }, 30);
+  }
+
+  // ── Image: Wikimedia Commons auto-fetch ──
+  function openImageSearch(id) {
+    var row = document.getElementById('imgsearchrow-' + id);
+    if (!row) return;
+    var isHidden = row.style.display === 'none';
+    row.style.display = isHidden ? 'flex' : 'none';
+    if (isHidden) runImageSearch(id);
+  }
+
+  async function runImageSearch(id) {
+    var a = findArticle(id);
+    var input = document.getElementById('imgsearchinput-' + id);
+    var resultsGrid = document.getElementById('imgresults-' + id);
+    if (!a || !input || !resultsGrid) return;
+
+    var query = input.value.trim();
+    if (!query) { showToast('Enter a search term', 'error'); return; }
+
+    resultsGrid.innerHTML = '<div class="img-results-empty"><i class="fa fa-spinner fa-spin"></i> Searching Wikimedia Commons…</div>';
+
+    try {
+      var results = await searchWikimedia(query);
+      if (results.length === 0) {
+        resultsGrid.innerHTML = '<div class="img-results-empty">No results — try a different, more general search term.</div>';
+        return;
+      }
+      resultsGrid.innerHTML = results.map(function(r) {
+        return '<div class="img-result-thumb" data-pick-image="' + id + '" data-img-url="' + escHtml(r.imageUrl) + '" data-img-credit="' + escHtml(r.creditHtml) + '" data-img-credit-url="' + escHtml(r.pageUrl) + '">' +
+          '<img src="' + escHtml(r.thumbUrl) + '" alt="' + escHtml(r.title) + '" loading="lazy">' +
+        '</div>';
+      }).join('');
+    } catch (err) {
+      console.error(err);
+      resultsGrid.innerHTML = '<div class="img-results-empty" style="color:var(--danger)">Search failed: ' + escHtml(err.message) + '</div>';
+    }
+  }
+
+  // Wikimedia Commons is used specifically because its public API is
+  // browser-callable with no key, and generatorsearch over file namespace
+  // returns openly-licensed / public-domain media by the nature of what's
+  // hosted there — this is the one "public source" an AI-driven client page
+  // can honestly pull images from without a server-side proxy or paid API.
+  async function searchWikimedia(query) {
+    var params = new URLSearchParams({
+      action: 'query',
+      generator: 'search',
+      gsrsearch: 'filetype:bitmap ' + query,
+      gsrnamespace: '6',
+      gsrlimit: '12',
+      prop: 'imageinfo',
+      iiprop: 'url|extmetadata',
+      iiurlwidth: '400',
+      format: 'json',
+      origin: '*'
+    });
+
+    var res = await fetch(WIKIMEDIA_ENDPOINT + '?' + params.toString());
+    if (!res.ok) throw new Error('Wikimedia request failed (' + res.status + ')');
+    var data = await res.json();
+    var pages = data && data.query && data.query.pages ? data.query.pages : {};
+
+    var results = [];
+    Object.keys(pages).forEach(function(k) {
+      var p = pages[k];
+      var info = p.imageinfo && p.imageinfo[0];
+      if (!info) return;
+      var meta = info.extmetadata || {};
+      var artist = meta.Artist ? stripHtml(meta.Artist.value) : '';
+      var licenseShort = meta.LicenseShortName ? meta.LicenseShortName.value : '';
+      var creditHtml = 'Wikimedia Commons' + (artist ? ' · ' + escHtml(artist) : '') + (licenseShort ? ' · ' + escHtml(licenseShort) : '');
+      results.push({
+        title: p.title || '',
+        thumbUrl: info.thumburl || info.url,
+        imageUrl: info.url,
+        pageUrl: info.descriptionurl || '',
+        creditHtml: creditHtml
+      });
+    });
+    return results;
+  }
+
+  function stripHtml(html) {
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  }
+
+  async function pickImageResult(id, imgUrl, creditHtml, creditUrl) {
+    var a = findArticle(id);
+    if (!a) return;
+
+    var resultsGrid = document.getElementById('imgresults-' + id);
+    if (resultsGrid) resultsGrid.innerHTML = '<div class="img-results-empty"><i class="fa fa-spinner fa-spin"></i> Loading image…</div>';
+
+    try {
+      // Fetch as blob and convert to a data URL so the preview + eventual
+      // Supabase upload behave exactly like the manual-upload path — one
+      // single upload code path handles both image sources at publish time.
+      var res = await fetch(imgUrl);
+      var blob = await res.blob();
+      var dataUrl = await blobToDataUrl(blob);
+
+      var credit = creditHtml + (creditUrl ? ' · <a href="' + escHtml(creditUrl) + '" target="_blank" rel="noopener">source</a>' : '');
+      a.image = { dataUrl: dataUrl, url: imgUrl, file: null, credit: credit, creditUrl: creditUrl, source: 'wikimedia' };
+      renderReviewList();
+      setTimeout(function(){ toggleCard(id); }, 30);
+    } catch (err) {
+      console.error(err);
+      showToast('Could not load that image (it may be blocked by CORS) — try another result', 'error');
+      if (resultsGrid) resultsGrid.innerHTML = '<div class="img-results-empty" style="color:var(--danger)">Could not load — try a different image.</div>';
+    }
+  }
+
+  function blobToDataUrl(blob) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function(){ resolve(reader.result); };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // STEP 4 — PUBLISH
+  // ══════════════════════════════════════════════════════════
+  async function publishLibrary() {
+    if (!connected || !sbClient) { showToast('Connect to Supabase first', 'error'); return; }
+    if (reviewArticles.length === 0) { showToast('Add at least one article first', 'error'); return; }
+    if (!libraryName.trim()) { showToast('Enter a library name first', 'error'); return; }
+
+    // Validate every article has a title and content before we start writing
+    var invalid = reviewArticles.find(function(a){ return !a.title.trim() || !a.content.trim(); });
+    if (invalid) {
+      showToast('Every article needs a title and content before publishing', 'error');
+      return;
+    }
+
+    goToStep(4);
+    clearPublishLog();
+    setPublishProgress(0);
+    appendPublishLog('info', 'Starting publish of "' + libraryName + '" (' + reviewArticles.length + ' articles)…');
+
+    var articlesTable = document.getElementById('sbTable').value.trim() || 'articles';
+    var plTable = document.getElementById('plTable').value.trim() || 'playlists';
+    var plItemsTable = document.getElementById('plItemsTable').value.trim() || 'playlist_items';
+    var mediaTable = document.getElementById('mediaTable').value.trim() || 'media';
+    var mediaBucket = document.getElementById('mediaBucket').value.trim() || 'article-media';
+
+    var createdArticleIds = [];
+    var failedCount = 0;
+    var totalSteps = reviewArticles.length + 1; // + 1 for the library creation itself
+    var doneSteps = 0;
+
+    try {
+      for (var i = 0; i < reviewArticles.length; i++) {
+        var a = reviewArticles[i];
+        appendPublishLog('info', 'Publishing article ' + (i + 1) + '/' + reviewArticles.length + ': "' + a.title + '"…');
+
+        try {
+          var insertRes = await sbClient
+            .from(articlesTable)
+            .insert([{ title: a.title, content: a.content }])
+            .select()
+            .single();
+          if (insertRes.error) throw insertRes.error;
+          var artId = insertRes.data.id;
+          createdArticleIds.push(artId);
+          appendPublishLog('ok', '  Article created (id ' + artId + ')');
+
+          if (a.image && a.image.dataUrl) {
+            try {
+              var blob = await (await fetch(a.image.dataUrl)).blob();
+              var ext = (blob.type && blob.type.indexOf('png') !== -1) ? 'png' : 'jpg';
+              var path = artId + '/' + Date.now() + '_cover.' + ext;
+              var upRes = await sbClient.storage.from(mediaBucket).upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: true });
+              if (upRes.error) throw upRes.error;
+              var pub = sbClient.storage.from(mediaBucket).getPublicUrl(path);
+              var publicUrl = pub.data.publicUrl;
+
+              var captionText = a.image.source === 'wikimedia' ? stripHtml(a.image.credit || '') : null;
+              var mediaRes = await sbClient.from(mediaTable).insert([{
+                article_id: artId, type: 'image', url: publicUrl, caption: captionText, display_order: 0
+              }]);
+              if (mediaRes.error) throw mediaRes.error;
+              appendPublishLog('ok', '  Image uploaded and attached');
+            } catch (imgErr) {
+              console.error(imgErr);
+              appendPublishLog('warn', '  Image upload failed (article still published without it): ' + imgErr.message);
+            }
+          }
+        } catch (artErr) {
+          console.error(artErr);
+          appendPublishLog('err', '  Failed to publish "' + a.title + '": ' + artErr.message);
+          failedCount++;
+        }
+
+        doneSteps++;
+        setPublishProgress(Math.round((doneSteps / totalSteps) * 100));
+      }
+
+      if (createdArticleIds.length === 0) {
+        appendPublishLog('err', 'No articles were published — skipping library creation.');
+        setPublishProgress(100);
+        showPublishDone(false, 'Nothing was published', 'All articles failed — check the log above and try again.');
+        return;
+      }
+
+      appendPublishLog('info', 'Creating library "' + libraryName + '"…');
+      var libRes = await sbClient
+        .from(plTable)
+        .insert([{ name: libraryName, description: libraryDesc || null }])
+        .select()
+        .single();
+      if (libRes.error) throw libRes.error;
+      var libId = libRes.data.id;
+      appendPublishLog('ok', 'Library created (id ' + libId + ')');
+
+      appendPublishLog('info', 'Linking ' + createdArticleIds.length + ' article(s) to the library…');
+      var itemRows = createdArticleIds.map(function(articleId, pos) {
+        return { playlist_id: libId, article_id: articleId, position: pos };
+      });
+      var itemsRes = await sbClient.from(plItemsTable).insert(itemRows);
+      if (itemsRes.error) throw itemsRes.error;
+      appendPublishLog('ok', 'All articles linked');
+
+      doneSteps++;
+      setPublishProgress(100);
+
+      var summary = createdArticleIds.length + ' article' + (createdArticleIds.length !== 1 ? 's' : '') + ' published' +
+        (failedCount > 0 ? ', ' + failedCount + ' failed' : '') + '.';
+      showPublishDone(true, 'Library published', summary);
+      showToast(summary, failedCount > 0 ? 'warning' : 'success');
+    } catch (err) {
+      console.error(err);
+      appendPublishLog('err', 'Publish failed: ' + err.message);
+      setPublishProgress(100);
+      showPublishDone(false, 'Publish failed', err.message);
+    }
+  }
+
+  function showPublishDone(success, title, sub) {
+    var panel = document.getElementById('publishPanel');
+    var iconHtml = success
+      ? '<div class="done-icon"><i class="fa fa-check"></i></div>'
+      : '<div class="done-icon" style="background:rgba(192,98,74,.12);border-color:rgba(192,98,74,.4);color:var(--danger)"><i class="fa fa-triangle-exclamation"></i></div>';
+
+    var existingLog = document.getElementById('publishLog').outerHTML;
+
+    panel.innerHTML = iconHtml +
+      '<div class="sp-title">' + escHtml(title) + '</div>' +
+      '<div class="sp-sub">' + escHtml(sub) + '</div>' +
+      existingLog +
+      '<div class="done-actions">' +
+        '<button class="btn-back" id="btnStartOver"><i class="fa fa-rotate-left"></i> Start over</button>' +
+      '</div>';
+
+    document.getElementById('btnStartOver').addEventListener('click', resetTool);
+  }
+
+  function resetTool() {
+    pdfFile = null; extractedText = ''; extractedPageCount = 0;
+    libraryName = ''; libraryDesc = ''; reviewArticles = [];
+    document.getElementById('pdfInput').value = '';
+    document.getElementById('fileChipWrap').innerHTML = '';
+    document.getElementById('extractProgress').style.display = 'none';
+    document.getElementById('btnToStep2').disabled = true;
+    document.getElementById('structureNotes').value = '';
+    document.getElementById('libNameInput').value = '';
+    document.getElementById('libDescInput').value = '';
+    goToStep(1);
+  }
+
+  function clearPublishLog() {
+    var log = document.getElementById('publishLog');
+    if (log) log.innerHTML = '';
+    // Reset the panel back to its in-progress markup in case a previous
+    // run replaced it with the done-state markup via showPublishDone().
+    document.getElementById('publishPanel').innerHTML =
+      '<div class="sp-icon thinking"><i class="fa fa-cloud-arrow-up"></i></div>' +
+      '<div class="sp-title">Publishing…</div>' +
+      '<div class="publish-progress-wrap"><div class="publish-progress-fill" id="publishProgressFill"></div></div>' +
+      '<div class="publish-log" id="publishLog"></div>';
+  }
+
+  function setPublishProgress(pct) {
+    var fill = document.getElementById('publishProgressFill');
+    if (fill) fill.style.width = pct + '%';
+  }
+
+  function appendPublishLog(type, msg) {
+    var log = document.getElementById('publishLog');
+    if (!log) return;
+    var el = document.createElement('div');
+    el.className = 'log-entry ' + type;
+    el.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // SHARED UI HELPERS
+  // ══════════════════════════════════════════════════════════
+  function showToast(msg, type) {
+    var el = document.getElementById('toast');
+    var icon = type === 'success' ? '✓' : type === 'error' ? '⚠' : type === 'warning' ? '!' : 'ℹ';
+    el.className = 'show ' + (type || '');
+    el.innerHTML = '<span>' + icon + '</span><span>' + escHtml(msg) + '</span>';
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { el.className = ''; }, 3600);
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+})();
 </script>
-
 </body>
 </html>
