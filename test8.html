@@ -1,1941 +1,1288 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <title>Patholytica — Home</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@400;700&family=Caveat:wght@500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Patholytica · PDF to Library</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://js.puter.com/v2/"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0e0b;--bg2:#161410;--bg3:#1c1a14;--border:#2a2518;--border2:#352e1e;
+  --gold:#c8a96e;--gold-dim:#8a7249;--gold-glow:rgba(200,169,110,0.12);
+  --text:#e8e0cc;--muted:#7a7060;--danger:#c0624a;--success:#5a9e72;--warning:#c8943e;
+  --tag-bg:rgba(200,169,110,0.1);
+}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;font-size:15px}
 
-:root {
-  --bg-color: #0f0e0b;
-  --text-primary: #f5f0e8;
-  --text-secondary: #8a8070;
-  --hover-bg: #1a1810;
-  --border-color: #2a2518;
-  --accent: #c8a96e;
-  --accent-hover: #b8935a;
-  --accent-glow: rgba(200,169,110,0.25);
-  --accent-soft: rgba(200,169,110,0.12);
-  --font-article: 'Merriweather', serif;
-  --font-ui: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-body.theme-dark {
-  --bg-color: #0f0e0b; --text-primary: #f5f0e8; --text-secondary: #8a8070;
-  --hover-bg: #1a1810; --border-color: #2a2518;
-  --accent: #c8a96e; --accent-hover: #b8935a;
-  --accent-glow: rgba(200,169,110,0.25); --accent-soft: rgba(200,169,110,0.12);
-}
-body.theme-light {
-  --bg-color: #faf6ee; --text-primary: #1a1710; --text-secondary: #706050;
-  --hover-bg: #f0ebe0; --border-color: #e0d8c8;
-  --accent: #a07840; --accent-hover: #8a6430;
-  --accent-glow: rgba(160,120,64,0.2); --accent-soft: rgba(160,120,64,0.08);
-}
-body.font-serif  { --font-article: 'Merriweather', serif; }
-body.font-slab   { --font-article: 'Source Serif 4', serif; }
-body.font-modern { --font-article: 'Inter', sans-serif; }
+/* ── header ── */
+.header{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:100;gap:20px;flex-wrap:wrap}
+.header-left{display:flex;align-items:center;gap:22px}
+.header-logo{font-family:'Merriweather',serif;font-size:18px;font-weight:700;color:var(--gold);letter-spacing:.03em}
+.header-logo span{color:var(--muted);font-weight:300;font-size:14px;margin-left:10px;font-family:'DM Sans',sans-serif}
+.header-status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s,box-shadow .3s}
+.status-dot.connected{background:var(--success);box-shadow:0 0 6px var(--success)}
+.status-dot.error{background:var(--danger);box-shadow:0 0 6px var(--danger)}
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { min-height: 100%; }
-body {
-  font-family: var(--font-ui);
-  background: var(--bg-color);
-  color: var(--text-primary);
-  overflow-x: hidden;
-  transition: background 0.2s ease, color 0.2s ease;
-}
+/* ── layout ── */
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 61px)}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:24px 20px;display:flex;flex-direction:column;gap:24px;position:sticky;top:61px;height:calc(100vh - 61px);overflow-y:auto}
+.sidebar-section-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.config-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.config-field label{font-size:12px;color:var(--muted)}
+.config-field input,.config-field select{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%;transition:border-color .2s}
+.config-field input:focus,.config-field select:focus{border-color:var(--gold-dim)}
+.config-field input::placeholder{color:var(--muted)}
+.config-field-hint{font-size:11px;color:var(--muted);line-height:1.5}
+.config-field-hint a{color:var(--gold-dim)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 16px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .2s}
+.btn-primary{background:var(--gold);color:#0f0e0b;width:100%}
+.btn-primary:hover{background:#d4b87a}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text)}
+.divider{border:none;border-top:1px solid var(--border)}
+.admin-key-warning{background:rgba(192,98,74,.08);border:1px solid rgba(192,98,74,.3);border-radius:7px;padding:9px 11px;font-size:11px;color:var(--danger);line-height:1.6;margin-top:8px;display:flex;gap:8px;align-items:flex-start}
+.admin-key-warning i{margin-top:1px;flex-shrink:0}
 
-.static-header {
-  background: var(--bg-color);
-  padding-top: env(safe-area-inset-top);
-  transition: background 0.2s ease;
-}
-.static-header-inner {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 18px 6px; max-width: 1200px; margin: 0 auto;
-}
-.header-logo { display: flex; align-items: center; cursor: pointer; }
-.header-logo img {
-  height: 28px; width: auto;
-  transition: filter 0.2s ease;
-}
-body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
+/* ── main / steps ── */
+.main{display:flex;flex-direction:column}
+.steps-bar{display:flex;align-items:center;gap:0;padding:18px 32px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.step-pill{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--muted);padding:6px 14px 6px 6px;border-radius:20px}
+.step-pill .step-num{width:22px;height:22px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--muted);flex-shrink:0}
+.step-pill.active{color:var(--gold)}
+.step-pill.active .step-num{background:var(--gold);border-color:var(--gold);color:#0f0e0b}
+.step-pill.done{color:var(--success)}
+.step-pill.done .step-num{background:var(--success);border-color:var(--success);color:#fff}
+.step-connector{width:28px;height:1px;background:var(--border2);margin:0 2px}
 
-.header-actions { display: flex; align-items: center; gap: 4px; }
-.header-icon-btn {
-  width: 36px; height: 36px; border-radius: 50%;
-  background: none; border: none; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; color: var(--text-secondary);
-  transition: color 0.2s, background 0.2s;
-  margin-right: 4px;
-}
-.header-icon-btn:hover { color: var(--accent); background: var(--accent-soft); }
-.header-icon-btn.active { color: var(--accent); }
+.step-panel{display:none;flex-direction:column;flex:1;padding:32px}
+.step-panel.active{display:flex}
 
-.notif-panel {
-  display: none; flex-direction: column;
-  position: fixed; z-index: 500;
-  width: 310px; max-width: calc(100vw - 24px); max-height: 460px;
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-radius: 16px; box-shadow: 0 16px 48px rgba(0,0,0,0.7);
-  overflow: hidden;
-}
-.notif-panel.open { display: flex; }
-.notif-panel-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 13px 16px 10px; border-bottom: 1px solid var(--border-color); flex-shrink: 0;
-}
-.notif-panel-title { font-size: 13px; font-weight: 700; }
-.notif-mark-all {
-  font-size: 11px; font-weight: 600; color: var(--accent);
-  background: none; border: none; cursor: pointer; font-family: var(--font-ui);
-  transition: opacity 0.2s;
-}
-.notif-mark-all:hover { opacity: 0.7; }
-.notif-list { flex: 1; overflow-y: auto; }
-.notif-list::-webkit-scrollbar { width: 2px; }
-.notif-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
-.notif-item {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 11px 16px; border-bottom: 1px solid rgba(42,37,24,0.6);
-  cursor: pointer; transition: background 0.15s; position: relative;
-}
-.notif-item:hover { background: var(--hover-bg); }
-.notif-item.unread { background: rgba(200,169,110,0.04); }
-.notif-item.unread::before {
-  content: ''; position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
-  width: 4px; height: 4px; border-radius: 50%; background: var(--accent);
-}
-.notif-icon {
-  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center; font-size: 12px;
-}
-.notif-icon.like    { background: rgba(196,106,78,0.15); color: #c46a4e; }
-.notif-icon.comment { background: rgba(138,160,192,0.15); color: #8aa0c0; }
-.notif-icon.follow  { background: var(--accent-soft); color: var(--accent); }
-.notif-icon.article { background: rgba(106,191,133,0.15); color: #6abf85; }
-.notif-icon.discord { background: rgba(88,101,242,0.15); color: #7289da; }
-.notif-icon.insta   { background: rgba(225,48,108,0.12); color: #e1306c; }
-.notif-text { flex: 1; min-width: 0; }
-.notif-msg  { font-size: 12px; line-height: 1.4; color: var(--text-primary); }
-.notif-time { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
-.notif-empty {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 10px; padding: 40px 20px; color: var(--text-secondary);
-}
-.notif-empty i { font-size: 28px; opacity: 0.25; color: var(--accent); }
-.notif-empty p { font-size: 12px; opacity: 0.6; margin: 0; text-align: center; }
-.notif-empty a {
-  font-size: 12px; font-weight: 700; color: var(--accent);
-  text-decoration: none; margin-top: 4px;
-  background: var(--accent-soft); border: 1px solid rgba(200,169,110,0.3);
-  border-radius: 20px; padding: 6px 16px; display: inline-block;
-  transition: background 0.15s;
-}
-.notif-empty a:hover { background: rgba(200,169,110,0.2); }
-.notif-spinner-wrap { padding: 24px; display: flex; justify-content: center; }
-.notif-spinner {
-  width: 22px; height: 22px;
-  border: 2px solid var(--border-color); border-top-color: var(--accent);
-  border-radius: 50%; animation: spin 0.9s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
+/* ── step 1: upload ── */
+.upload-zone{border:2px dashed var(--border2);border-radius:16px;padding:60px 30px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;cursor:pointer;transition:all .2s;max-width:560px;margin:0 auto;width:100%}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--gold-dim);background:var(--gold-glow)}
+.upload-zone i{font-size:34px;color:var(--gold-dim)}
+.upload-zone .uz-title{font-family:'Merriweather',serif;font-size:18px;color:var(--text)}
+.upload-zone .uz-sub{font-size:13px;color:var(--muted)}
+.upload-zone input{display:none}
+.file-chip{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;max-width:560px;margin:0 auto;width:100%}
+.file-chip i.fa-file-pdf{color:var(--danger);font-size:18px;flex-shrink:0}
+.file-chip .fc-info{flex:1;min-width:0}
+.file-chip .fc-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-chip .fc-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.file-chip .fc-remove{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:6px;border-radius:6px}
+.file-chip .fc-remove:hover{color:var(--danger);background:rgba(192,98,74,.08)}
+.extract-progress{max-width:560px;margin:18px auto 0;width:100%}
+.extract-status{font-size:12px;color:var(--gold-dim);text-align:center;margin-bottom:8px}
+.step-actions{max-width:560px;margin:24px auto 0;width:100%;display:flex;justify-content:flex-end}
 
-.settings-popover {
-  position: fixed; z-index: 500;
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-radius: 16px; padding: 0; width: 230px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
-  opacity: 0; pointer-events: none;
-  transform: translateY(-8px) scale(0.97);
-  transition: opacity 0.2s, transform 0.2s;
-  overflow: hidden;
-}
-.settings-popover.open { opacity: 1; pointer-events: all; transform: translateY(0) scale(1); }
-.sp-profile {
-  padding: 14px 14px 12px;
-  border-bottom: 1px solid var(--border-color);
-  display: flex; align-items: center; gap: 10px;
-  cursor: pointer; transition: background 0.15s;
-}
-.sp-profile:hover { background: rgba(200,169,110,0.06); }
-.sp-profile-avatar {
-  width: 36px; height: 36px; border-radius: 50%;
-  background: var(--accent-soft); border: 1.5px solid rgba(200,169,110,0.3);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 700; color: var(--accent);
-  overflow: hidden; flex-shrink: 0;
-}
-.sp-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.sp-profile-info { flex: 1; min-width: 0; }
-.sp-profile-name {
-  font-size: 13px; font-weight: 700; color: var(--text-primary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.sp-profile-status { font-size: 10px; margin-top: 1px; }
-.sp-profile-status.online { color: #6abf85; }
-.sp-profile-status.guest  { color: var(--text-secondary); }
-.sp-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 12px; }
-.sp-label {
-  font-size: 9px; font-weight: 800; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--text-secondary); margin-bottom: 7px;
-}
-.sp-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.sp-pill {
-  padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
-  border: 1px solid var(--border-color); background: var(--bg-color);
-  color: var(--text-secondary); cursor: pointer; transition: all 0.15s;
-  font-family: var(--font-ui);
-}
-.sp-pill.active { background: var(--accent); color: #0f0e0b; border-color: var(--accent); }
-.sp-pill:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
-.sp-toggle-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 2px 1px;
-}
-.sp-toggle-label { font-size: 12px; font-weight: 600; color: var(--text-primary); }
-.sp-switch {
-  position: relative; width: 36px; height: 20px; flex-shrink: 0;
-  cursor: pointer;
-}
-.sp-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
-.sp-switch-track {
-  position: absolute; inset: 0; border-radius: 20px;
-  background: var(--bg-color); border: 1px solid var(--border-color);
-  transition: background 0.18s, border-color 0.18s;
-}
-.sp-switch-thumb {
-  position: absolute; top: 2px; left: 2px;
-  width: 14px; height: 14px; border-radius: 50%;
-  background: var(--text-secondary);
-  transition: transform 0.18s, background 0.18s;
-}
-.sp-switch input:checked ~ .sp-switch-track { background: var(--accent-soft); border-color: var(--accent); }
-.sp-switch input:checked ~ .sp-switch-thumb { transform: translateX(16px); background: var(--accent); }
-.sp-logout {
-  width: 100%; padding: 9px 12px; border-radius: 10px;
-  background: rgba(196,106,78,0.08); border: 1px solid rgba(196,106,78,0.22);
-  color: #c46a4e; font-size: 12px; font-weight: 700;
-  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
-  font-family: var(--font-ui); transition: background 0.15s; margin-top: 4px;
-}
-.sp-logout:hover { background: rgba(196,106,78,0.16); }
-.sp-login {
-  width: 100%; padding: 9px 12px; border-radius: 10px;
-  background: var(--accent-soft); border: 1px solid rgba(200,169,110,0.3);
-  color: var(--accent); font-size: 12px; font-weight: 700;
-  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
-  font-family: var(--font-ui); transition: background 0.15s; margin-top: 4px;
-}
-.sp-login:hover { background: rgba(200,169,110,0.2); }
+/* ── step 2: AI structuring ── */
+.structure-panel{max-width:640px;margin:0 auto;width:100%;display:flex;flex-direction:column;align-items:center;gap:18px;padding:40px 0}
+.structure-panel .sp-icon{width:56px;height:56px;border-radius:16px;background:var(--gold-glow);border:1px solid var(--gold-dim);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--gold)}
+.structure-panel .sp-icon.thinking{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.5;transform:scale(.94)}50%{opacity:1;transform:scale(1)}}
+.structure-panel .sp-title{font-family:'Merriweather',serif;font-size:17px;text-align:center}
+.structure-panel .sp-sub{font-size:13px;color:var(--muted);text-align:center;max-width:400px;line-height:1.6}
+.structure-config{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+.structure-config .config-field{margin-bottom:0}
 
-.float-overlay {
-  position: fixed; inset: 0; z-index: 400;
-  background: rgba(0,0,0,0.65); backdrop-filter: blur(5px);
-  display: none; align-items: center; justify-content: center;
-  padding: 20px;
-}
-.float-overlay.open { display: flex; }
+/* ── step 3: review ── */
+.review-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:22px;flex-wrap:wrap}
+.review-lib-field{flex:1;min-width:260px}
+.review-lib-field label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:7px}
+.lib-name-input{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:9px;padding:11px 14px;color:var(--gold);font-family:'Merriweather',serif;font-size:16px;font-weight:700;outline:none;transition:border-color .2s}
+.lib-name-input:focus{border-color:var(--gold-dim)}
+.lib-desc-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:9px 14px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;margin-top:8px;resize:none;line-height:1.5}
+.lib-desc-input:focus{border-color:var(--gold-dim);color:var(--text)}
+.review-summary{display:flex;gap:10px;flex-shrink:0}
+.summary-chip{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;min-width:70px}
+.summary-chip .sc-num{font-family:'Merriweather',serif;font-size:20px;font-weight:700;color:var(--gold);line-height:1}
+.summary-chip .sc-label{font-size:10px;color:var(--muted);margin-top:3px}
 
-.user-float-card {
-  width: 100%; max-width: 360px;
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-radius: 20px;
-  padding: 22px 20px 20px;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.75);
-  animation: floatIn 0.22s cubic-bezier(0.34,1.26,0.64,1);
-  max-height: 90vh; overflow-y: auto;
-}
-@keyframes floatIn {
-  from { opacity:0; transform: scale(0.93) translateY(8px); }
-  to   { opacity:1; transform: scale(1)    translateY(0);   }
-}
-.float-close {
-  position: absolute; top: 14px; right: 14px;
-  width: 28px; height: 28px; border-radius: 50%;
-  background: var(--bg-color); border: 1px solid var(--border-color);
-  color: var(--text-secondary); font-size: 11px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: color 0.15s, border-color 0.15s;
-}
-.float-close:hover { color: var(--accent); border-color: var(--accent); }
+.add-article-btn{display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px dashed var(--border2);border-radius:12px;padding:14px;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;margin-bottom:16px;background:transparent;width:100%;font-family:'DM Sans',sans-serif}
+.add-article-btn:hover{border-color:var(--gold-dim);color:var(--gold)}
 
-.user-float-card .user-popup-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
-.user-float-card .user-popup-avatar {
-  width: 58px; height: 58px; border-radius: 50%;
-  background: var(--accent-soft); border: 2px solid rgba(200,169,110,0.3);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px; font-weight: 700; color: var(--accent);
-  overflow: hidden; flex-shrink: 0;
-}
-.user-float-card .user-popup-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.user-float-card .user-popup-identity { flex: 1; min-width: 0; }
-.user-float-card .user-popup-name {
-  font-size: 16px; font-weight: 800; color: var(--text-primary);
-  font-family: var(--font-article); margin-bottom: 2px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.user-float-card .user-popup-handle-txt { font-size: 12px; color: var(--text-secondary); }
-.user-float-card .user-popup-stats {
-  display: flex; border: 1px solid var(--border-color);
-  border-radius: 12px; overflow: hidden; margin-bottom: 14px;
-}
-.user-float-card .user-popup-stat {
-  flex: 1; display: flex; flex-direction: column; align-items: center;
-  padding: 10px 6px; position: relative;
-}
-.user-float-card .user-popup-stat + .user-popup-stat::before {
-  content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
-  width: 1px; background: var(--border-color);
-}
-.user-float-card .user-popup-stat-val {
-  font-size: 16px; font-weight: 800; color: var(--text-primary);
-  font-family: var(--font-article); line-height: 1;
-}
-.user-float-card .user-popup-stat-label {
-  font-size: 9px; font-weight: 600; color: var(--text-secondary);
-  margin-top: 3px; text-transform: uppercase; letter-spacing: 0.04em;
-}
-.user-float-card .user-popup-bio { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px; }
-.user-float-card .user-popup-btn {
-  width: 100%; padding: 11px; border-radius: 10px;
-  background: var(--accent); color: #0f0e0b;
-  font-size: 13px; font-weight: 700; border: none; cursor: pointer;
-  font-family: var(--font-ui); transition: background 0.15s;
-  display: flex; align-items: center; justify-content: center; gap: 7px;
-}
-.user-float-card .user-popup-btn:hover { background: var(--accent-hover); }
+.review-list{display:flex;flex-direction:column;gap:14px}
+.review-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .2s}
+.review-card:hover{border-color:var(--border2)}
+.review-card.removed{opacity:.4}
+.rc-header{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+.rc-header .rc-drag{color:var(--border2);font-size:13px;cursor:grab;flex-shrink:0}
+.rc-header .rc-index{font-family:'Merriweather',serif;font-size:11px;color:var(--muted);min-width:20px;flex-shrink:0}
+.rc-header .rc-title-preview{flex:1;min-width:0;font-family:'Merriweather',serif;font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc-header .rc-chevron{color:var(--muted);font-size:12px;transition:transform .2s;flex-shrink:0}
+.rc-header .rc-chevron.open{transform:rotate(180deg)}
+.rc-remove-btn{background:transparent;border:none;color:var(--muted);cursor:pointer;padding:5px 8px;border-radius:6px;font-size:12px;flex-shrink:0}
+.rc-remove-btn:hover{color:var(--danger);background:rgba(192,98,74,.08)}
+.rc-body{padding:16px 18px;display:none;flex-direction:column;gap:12px}
+.rc-body.open{display:flex}
+.rc-field label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px}
+.rc-title-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:'Merriweather',serif;font-size:14px;font-weight:700;outline:none}
+.rc-title-input:focus{border-color:var(--gold-dim)}
+.rc-content-textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.65;outline:none;resize:vertical;min-height:120px}
+.rc-content-textarea:focus{border-color:var(--gold-dim)}
+.rc-meta-row{display:flex;gap:14px;font-size:11px;color:var(--muted)}
 
-@keyframes skelShimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position:  400px 0; }
-}
-.skel-line {
-  border-radius: 6px;
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--hover-bg) 50%, var(--border-color) 75%);
-  background-size: 400px 100%;
-  animation: skelShimmer 1.4s ease infinite;
-}
-.skel-circle {
-  border-radius: 50%;
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--hover-bg) 50%, var(--border-color) 75%);
-  background-size: 400px 100%;
-  animation: skelShimmer 1.4s ease infinite;
-}
+/* image section within review card */
+.rc-image-section{border-top:1px solid var(--border);padding-top:12px;margin-top:2px}
+.rc-image-preview{width:100%;max-height:180px;border-radius:8px;overflow:hidden;background:var(--bg3);display:none;position:relative;margin-bottom:10px}
+.rc-image-preview.has-img{display:block}
+.rc-image-preview img{width:100%;max-height:180px;object-fit:cover;display:block}
+.rc-image-remove{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:rgba(10,9,6,.75);border:none;color:#fff;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center}
+.rc-image-remove:hover{background:rgba(192,98,74,.85)}
+.rc-image-credit{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(10,9,6,.85));padding:16px 10px 6px;font-size:10px;color:rgba(255,255,255,.75)}
+.rc-image-credit a{color:rgba(255,255,255,.9)}
+.rc-image-toolbar{display:flex;gap:8px;flex-wrap:wrap}
+.img-tool-btn{display:flex;align-items:center;gap:7px;background:transparent;border:1px solid var(--border2);color:var(--muted);border-radius:7px;padding:7px 13px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.img-tool-btn:hover{border-color:var(--gold-dim);color:var(--gold)}
+.img-tool-btn:disabled{opacity:.4;cursor:not-allowed}
+.img-tool-btn input[type=file]{display:none}
+.img-search-row{display:flex;gap:8px;margin-top:8px}
+.img-search-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px 11px;color:var(--text);font-size:12px;outline:none}
+.img-search-input:focus{border-color:var(--gold-dim)}
+.img-results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin-top:10px;max-height:220px;overflow-y:auto}
+.img-result-thumb{position:relative;border-radius:7px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .15s;aspect-ratio:1;background:var(--bg3)}
+.img-result-thumb:hover{border-color:var(--gold-dim)}
+.img-result-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.img-results-empty{font-size:12px;color:var(--muted);padding:10px 2px;grid-column:1/-1}
 
-.card-float-card {
-  width: 100%; max-width: 460px;
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-radius: 20px;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.75);
-  animation: floatIn 0.22s cubic-bezier(0.34,1.26,0.64,1);
-  max-height: 90vh; display: flex; flex-direction: column;
-  position: relative;
-}
-.card-float-inner {
-  flex: 1; overflow-y: auto; padding: 22px 20px 20px;
-}
-.card-float-inner::-webkit-scrollbar { width: 2px; }
-.card-float-inner::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+.review-footer{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--border);padding:16px 32px;display:flex;justify-content:space-between;align-items:center;gap:14px;margin:24px -32px -32px}
+.review-footer-left{font-size:12px;color:var(--muted)}
+.review-footer-right{display:flex;gap:10px}
+.btn-back{background:transparent;border:1px solid var(--border2);color:var(--muted);padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif}
+.btn-back:hover{color:var(--text);border-color:var(--border2)}
+.btn-publish{background:var(--gold);color:#0f0e0b;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;display:flex;align-items:center;gap:8px;font-family:'DM Sans',sans-serif}
+.btn-publish:hover{background:#d4b87a}
+.btn-publish:disabled{opacity:.4;cursor:not-allowed}
 
-.saved-panel {
-  display: none; flex-direction: column;
-  position: fixed; z-index: 500;
-  width: 320px; max-width: calc(100vw - 24px); max-height: 480px;
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-radius: 16px; box-shadow: 0 16px 48px rgba(0,0,0,0.7);
-  overflow: hidden;
-}
-.saved-panel.open { display: flex; }
-.saved-panel-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 13px 16px 10px; border-bottom: 1px solid var(--border-color); flex-shrink: 0;
-}
-.saved-panel-title { font-size: 13px; font-weight: 700; }
-.saved-list { flex: 1; overflow-y: auto; }
-.saved-list::-webkit-scrollbar { width: 2px; }
-.saved-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
-.saved-item {
-  display: flex; align-items: center; gap: 11px;
-  padding: 11px 16px; border-bottom: 1px solid rgba(42,37,24,0.6);
-  cursor: pointer; transition: background 0.15s;
-}
-.saved-item:hover { background: rgba(200,169,110,0.05); }
-.saved-item-thumb {
-  width: 44px; height: 44px; border-radius: 9px; flex-shrink: 0;
-  background: var(--accent-soft); overflow: hidden;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--accent); font-size: 16px;
-}
-.saved-item-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.saved-item-info { flex: 1; min-width: 0; }
-.saved-item-name {
-  font-size: 13px; font-weight: 700; color: var(--text-primary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.saved-item-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
-.saved-item-remove {
-  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--text-secondary); font-size: 11px; background: none; border: none;
-  cursor: pointer; transition: color 0.15s, background 0.15s;
-}
-.saved-item-remove:hover { color: #c46a4e; background: rgba(196,106,78,0.1); }
-.saved-empty {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 10px; padding: 40px 20px; color: var(--text-secondary);
-}
-.saved-empty i { font-size: 28px; opacity: 0.25; color: var(--accent); }
-.saved-empty p { font-size: 12px; opacity: 0.6; margin: 0; text-align: center; }
+/* ── step 4: publishing / done ── */
+.publish-panel{max-width:520px;margin:0 auto;width:100%;display:flex;flex-direction:column;align-items:center;gap:18px;padding:50px 0}
+.publish-log{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;max-height:260px;overflow-y:auto;font-size:12px;font-family:'Courier New',monospace}
+.log-entry{padding:3px 0;line-height:1.6;color:var(--muted)}
+.log-entry.ok{color:var(--success)}.log-entry.warn{color:var(--warning)}.log-entry.err{color:var(--danger)}.log-entry.info{color:var(--gold-dim)}
+.publish-progress-wrap{width:100%;background:var(--border);border-radius:99px;height:6px;overflow:hidden}
+.publish-progress-fill{height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));border-radius:99px;transition:width .4s ease;width:0%}
+.done-icon{width:64px;height:64px;border-radius:50%;background:rgba(90,158,114,.12);border:1px solid rgba(90,158,114,.4);display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--success)}
+.done-actions{display:flex;gap:10px;margin-top:6px}
 
-.cp-type-badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
-  border-radius: 5px; padding: 3px 8px; margin-bottom: 10px;
-}
-.cp-type-badge.article { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(200,169,110,0.3); }
-.cp-type-badge.mcq     { background: rgba(106,191,133,0.12); color: #a0d8b0; border: 1px solid rgba(106,191,133,0.25); }
-.cp-type-badge.library { background: rgba(106,159,207,0.12); color: #a8c8e8; border: 1px solid rgba(106,159,207,0.25); }
-.cp-title { font-size: 17px; font-weight: 800; line-height: 1.3; color: var(--text-primary); font-family: var(--font-article); margin-bottom: 10px; }
-.cp-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
-.cp-meta-item { font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
-.cp-meta-item i { font-size: 10px; }
-.cp-excerpt { font-size: 14px; line-height: 1.7; color: var(--text-secondary); margin-bottom: 18px; }
-.cp-mcq-q { font-size: 15px; font-weight: 700; color: var(--text-primary); font-family: var(--font-article); line-height: 1.4; margin-bottom: 12px; }
-.cp-mcq-opts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
-.cp-mcq-opt {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 13px; border-radius: 10px;
-  border: 1px solid var(--border-color); background: var(--bg-color);
-  font-size: 13px; color: var(--text-primary); cursor: pointer;
-  transition: border-color 0.15s, background 0.15s; text-align: left; width: 100%;
-  font-family: var(--font-ui);
-}
-.cp-mcq-opt:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
-.cp-mcq-opt:disabled { cursor: default; }
-.cp-mcq-opt .opt-l {
-  width: 24px; height: 24px; border-radius: 50%;
-  border: 1.5px solid var(--border-color);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 9px; font-weight: 800; flex-shrink: 0; color: var(--text-secondary);
-}
-.cp-mcq-opt.correct { border-color: #6abf85; background: rgba(106,191,133,0.08); }
-.cp-mcq-opt.correct .opt-l { background: #6abf85; border-color: #6abf85; color: #0f0e0b; }
-.cp-mcq-opt.wrong   { border-color: #c46a4e; background: rgba(196,106,78,0.07); }
-.cp-mcq-opt.wrong   .opt-l { background: #c46a4e; border-color: #c46a4e; color: #fff; }
-.cp-mcq-opt.reveal  { border-color: rgba(106,191,133,0.5); }
-.cp-mcq-opt.reveal  .opt-l { border-color: #6abf85; color: #6abf85; }
-.cp-mcq-result { font-size: 13px; font-weight: 700; margin-bottom: 14px; }
-.cp-mcq-result.correct { color: #6abf85; }
-.cp-mcq-result.wrong   { color: #c46a4e; }
-.cp-lib-desc { font-size: 14px; line-height: 1.7; color: var(--text-secondary); margin-bottom: 16px; }
-.cp-lib-save-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
-.cp-save-btn {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700;
-  border: 1px solid var(--border-color); background: none; color: var(--text-secondary);
-  cursor: pointer; font-family: var(--font-ui); transition: all 0.15s;
-}
-.cp-save-btn:hover { border-color: var(--accent); color: var(--accent); }
-.cp-save-btn.saved { border-color: rgba(200,169,110,0.4); color: var(--accent); background: var(--accent-soft); }
-.cp-save-btn i { font-size: 12px; }
-.cp-actions { display: flex; gap: 8px; }
-.cp-btn-primary {
-  flex: 1; padding: 11px; border-radius: 10px;
-  background: var(--accent); color: #0f0e0b;
-  font-size: 13px; font-weight: 700; border: none; cursor: pointer;
-  font-family: var(--font-ui); transition: background 0.15s;
-  display: flex; align-items: center; justify-content: center; gap: 7px;
-}
-.cp-btn-primary:hover { background: var(--accent-hover); }
-.cp-loading { display: flex; align-items: center; justify-content: center; padding: 40px; }
-.cp-loading-ring {
-  width: 26px; height: 26px;
-  border: 2px solid var(--border-color); border-top-color: var(--accent);
-  border-radius: 50%; animation: spin 0.9s linear infinite;
-}
+/* ── shared ── */
+.thinking-pulse{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--gold-dim);font-style:italic}
+.thinking-pulse::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 1s ease-in-out infinite;flex-shrink:0}
+.progress-bar-bg{background:var(--border);border-radius:99px;height:5px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));border-radius:99px;transition:width .5s ease;width:0%}
+#toast{position:fixed;bottom:28px;right:28px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:12px 18px;border-radius:9px;font-size:13px;box-shadow:0 8px 28px rgba(0,0,0,.5);display:none;align-items:center;gap:9px;z-index:999;max-width:360px}
+#toast.show{display:flex;animation:slideUp .25s ease}
+#toast.success{border-left:3px solid var(--success)}
+#toast.error{border-left:3px solid var(--danger)}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.spinner-ring{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-.page-body {
-  max-width: 1200px; margin: 0 auto;
-  padding: 10px 12px;
-  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+@media (max-width:768px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}
+  .header{padding:14px 18px}
+  .step-panel{padding:20px 16px}
+  .steps-bar{padding:14px 16px}
+  .review-footer{margin:24px -16px -20px;padding:14px 16px}
 }
-
-.creators-strip { display: flex; gap: 14px; overflow-x: auto; padding: 4px 0 14px; scrollbar-width: none; align-items: flex-start; }
-.creators-strip::-webkit-scrollbar { display: none; }
-.strip-pill { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; flex-shrink: 0; width: 54px; transition: opacity 0.15s; }
-.strip-pill:hover { opacity: 0.8; }
-.strip-icon-circle {
-  width: 44px; height: 44px; border-radius: 50%;
-  background: var(--hover-bg); border: 2px solid var(--border-color);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; color: var(--text-secondary); flex-shrink: 0; position: relative;
-  transition: border-color 0.2s, color 0.2s, background 0.2s;
-}
-.strip-pill:hover .strip-icon-circle { border-color: var(--accent); color: var(--accent); }
-.strip-notif-badge {
-  position: absolute; top: -2px; right: -2px;
-  background: #c46a4e; color: #fff; font-size: 9px; font-weight: 700;
-  width: 15px; height: 15px; border-radius: 50%;
-  display: none; align-items: center; justify-content: center;
-  border: 1.5px solid var(--bg-color); pointer-events: none;
-}
-.strip-notif-badge.show { display: flex; }
-.creator-pill-circle {
-  width: 44px; height: 44px; border-radius: 50%;
-  background: var(--accent-soft); border: 2px solid var(--border-color);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 15px; font-weight: 700; color: var(--accent);
-  overflow: hidden; flex-shrink: 0; transition: border-color 0.2s;
-}
-.strip-pill:hover .creator-pill-circle { border-color: var(--accent); }
-.creator-pill-circle img { width: 100%; height: 100%; object-fit: cover; }
-.strip-pill-name {
-  font-size: 9px; font-weight: 600; color: var(--text-secondary);
-  text-align: center; white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis; width: 100%;
-}
-.strip-skeleton-pill { display: flex; flex-direction: column; align-items: center; gap: 5px; flex-shrink: 0; width: 54px; }
-.strip-skeleton-circle {
-  width: 44px; height: 44px; border-radius: 50%;
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--hover-bg) 50%, var(--border-color) 75%);
-  background-size: 400px 100%; animation: skelShimmer 1.4s ease infinite;
-}
-.strip-skeleton-label {
-  width: 36px; height: 8px; border-radius: 4px;
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--hover-bg) 50%, var(--border-color) 75%);
-  background-size: 400px 100%; animation: skelShimmer 1.4s ease infinite;
-}
-
-/* ══ TOPICS STRIP — pill-shaped, flat color, zero gradient/glow ══ */
-.topics-strip {
-  display: flex; gap: 8px; overflow-x: auto;
-  padding: 2px 0 16px; scrollbar-width: none;
-}
-.topics-strip::-webkit-scrollbar { display: none; }
-.topic-chip {
-  flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 15px; border-radius: 999px;
-  background: var(--accent-soft);
-  border: 1px solid rgba(200,169,110,0.22);
-  color: var(--text-primary); font-size: 12px; font-weight: 700;
-  font-family: var(--font-ui); cursor: pointer; white-space: nowrap;
-  transition: border-color 0.18s, background 0.18s;
-}
-.topic-chip:hover { border-color: var(--accent); background: rgba(200,169,110,0.18); }
-.topic-chip:active { background: rgba(200,169,110,0.24); }
-.topic-chip i { font-size: 9px; color: var(--accent); }
-.topic-chip .topic-count { font-size: 10px; font-weight: 600; color: var(--text-secondary); }
-.topics-strip-label {
-  font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--text-secondary); padding: 0 2px 8px; display: flex; align-items: center; gap: 6px;
-}
-.topics-strip-label i { color: var(--accent); font-size: 10px; }
-.topic-skel-chip {
-  flex-shrink: 0; width: 84px; height: 34px; border-radius: 999px;
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--hover-bg) 50%, var(--border-color) 75%);
-  background-size: 400px 100%; animation: skelShimmer 1.4s ease infinite;
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   TEXT FEED — replaces the masonry image grid.
-   Adapted from the "pills anywhere, no images" mockup: a single flowing
-   column of inline entries (handle → title → views → colon → body),
-   with inline audio pills that can sit mid-sentence. Justify is a
-   user-toggleable reading preference stored in the settings popover.
-   ══════════════════════════════════════════════════════════════════ */
-.text-feed-controls {
-  display: flex; justify-content: flex-end; padding: 0 2px 10px;
-}
-.text-feed {
-  font-family: var(--font-ui);
-  font-size: 1rem; line-height: 1.85; color: var(--text-primary);
-  padding: 2px 2px 4px;
-}
-.text-feed.justify {
-  text-align: justify; text-justify: inter-word;
-  hyphens: auto; -webkit-hyphens: auto;
-}
-.feed-entry {
-  display: inline; cursor: pointer; border-radius: 3px;
-  transition: background-color 0.15s ease;
-}
-.feed-entry:hover { background-color: var(--accent-soft); }
-.feed-entry:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
-.feed-handle { color: var(--accent); font-weight: 700; }
-.feed-title { font-family: var(--font-article); font-weight: 700; }
-.feed-views { color: var(--text-secondary); font-size: 0.85em; }
-.feed-colon { color: var(--text-secondary); }
-.feed-mcq-tag {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-size: 0.68em; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
-  color: var(--accent); vertical-align: middle; margin-left: 2px;
-}
-
-/* inline audio pill — sits anywhere within an entry's text flow */
-.feed-audio-pill {
-  display: inline-flex; align-items: center; gap: 7px;
-  vertical-align: middle;
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-radius: 999px; padding: 3px 10px 3px 4px; margin: 0 3px;
-  white-space: nowrap; line-height: 1;
-}
-.feed-audio-pill .play-dot {
-  width: 20px; height: 20px; border-radius: 50%; background: var(--accent);
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  cursor: pointer; transition: background-color 0.15s ease;
-}
-.feed-audio-pill .play-dot:hover { background: var(--accent-hover); }
-.feed-audio-pill .play-dot i { font-size: 8px; color: #0f0e0b; }
-.feed-audio-pill .mini-wave { display: flex; align-items: center; gap: 1.5px; height: 12px; }
-.feed-audio-pill .mini-wave span {
-  width: 2px; background: var(--text-secondary); border-radius: 1px; opacity: 0.6;
-}
-.feed-audio-pill .pill-label {
-  font-size: 0.72rem; color: var(--text-secondary); font-weight: 500;
-  max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
-/* ── inline library figure — a small pull-quote-style card that breaks
-   the text rhythm like a magazine figure, keeping the library's image
-   (per user request) without reverting to a grid tile. Floats within
-   the column so text can wrap around it on wider screens. ── */
-.feed-lib-figure {
-  display: block;
-  float: none;
-  margin: 18px 0;
-  padding: 0;
-}
-.feed-lib-card {
-  display: flex; align-items: stretch; gap: 0;
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-radius: 16px; overflow: hidden; cursor: pointer;
-  transition: border-color 0.18s ease, transform 0.18s ease;
-  max-width: 420px;
-}
-.feed-lib-card:hover { border-color: rgba(200,169,110,0.4); transform: translateY(-2px); }
-.feed-lib-card:active { transform: translateY(0) scale(0.99); }
-.feed-lib-img-wrap {
-  width: 88px; flex-shrink: 0; position: relative; overflow: hidden;
-  background: var(--bg-color);
-}
-.feed-lib-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.feed-lib-img-fallback {
-  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
-  color: var(--accent); font-size: 18px; opacity: 0.45;
-}
-.feed-lib-body {
-  flex: 1; min-width: 0; padding: 12px 14px;
-  display: flex; flex-direction: column; justify-content: center; gap: 5px;
-}
-.feed-lib-kicker {
-  font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em;
-  color: var(--accent); display: flex; align-items: center; gap: 5px;
-}
-.feed-lib-name {
-  font-family: var(--font-article); font-weight: 700; font-size: 14px;
-  color: var(--text-primary); line-height: 1.3;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-.feed-lib-count { font-size: 11px; color: var(--text-secondary); }
-.feed-lib-saved-mark { color: var(--accent); margin-left: 4px; }
-
-.load-more-wrap { text-align: center; margin-top: 10px; }
-.btn-load-more {
-  background: none; border: 1px solid var(--border-color);
-  color: var(--text-secondary); font-size: 12px; font-weight: 600;
-  cursor: pointer; padding: 9px 24px; border-radius: 20px;
-  font-family: var(--font-ui); display: inline-flex; align-items: center; gap: 7px;
-  transition: border-color 0.2s, color 0.2s;
-}
-.btn-load-more:hover { border-color: var(--accent); color: var(--accent); }
-.btn-load-more:disabled { opacity: 0.35; pointer-events: none; }
-
-/* ══ Create menu (replaces FAB) ══ */
-.create-menu-overlay {
-  position: fixed; inset: 0; z-index: 399;
-  background: rgba(0,0,0,0.6); backdrop-filter: blur(3px);
-  display: none; align-items: flex-end; justify-content: center;
-}
-.create-menu-overlay.open { display: flex; }
-.create-menu-sheet {
-  width: 100%; max-width: 450px;
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-bottom: none;
-  border-radius: 20px 20px 0 0;
-  padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
-  animation: createSheetUp 0.25s cubic-bezier(0.4,0,0.2,1);
-}
-@keyframes createSheetUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-.create-menu-handle { width: 36px; height: 4px; background: var(--border-color); border-radius: 2px; margin: 8px auto 14px; }
-.create-menu-title { font-size: 13px; font-weight: 800; color: var(--text-primary); padding: 0 4px 12px; }
-.create-menu-item {
-  display: flex; align-items: center; gap: 13px;
-  padding: 13px 10px; border-radius: 12px;
-  cursor: pointer; transition: background 0.15s;
-}
-.create-menu-item:hover { background: var(--bg-color); }
-.create-menu-icon {
-  width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
-  background: var(--accent-soft); border: 1px solid rgba(200,169,110,0.25);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--accent); font-size: 16px;
-}
-.create-menu-text { flex: 1; }
-.create-menu-item-title { font-size: 13.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 1px; }
-.create-menu-item-sub { font-size: 11px; color: var(--text-secondary); }
-.create-menu-item i.chev { color: var(--text-secondary); font-size: 11px; }
-
-@media (min-width: 820px) {
-  .create-menu-overlay { align-items: center; }
-  .create-menu-sheet {
-    max-width: 380px; border-radius: 18px; border-bottom: 1px solid var(--border-color);
-    padding-bottom: 16px; animation: createSheetPop 0.2s cubic-bezier(0.34,1.26,0.64,1);
-  }
-  @keyframes createSheetPop { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
-}
-
-.toast {
-  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(10px);
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-radius: 14px; padding: 10px 18px;
-  font-size: 13px; font-weight: 700; color: var(--text-primary);
-  z-index: 9999; opacity: 0;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  pointer-events: none; white-space: nowrap;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-}
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-.footer-bar {
-  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-  width: 100%; max-width: 450px;
-  background: #0f0e0b; border-top: 1px solid #2a2518;
-  padding: 8px 24px; padding-bottom: calc(8px + env(safe-area-inset-bottom));
-  display: flex; justify-content: space-around; align-items: center; z-index: 100;
-}
-.footer-btn {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  background: none; border: none; color: #8a8070;
-  cursor: pointer; transition: color 0.2s ease; padding: 6px 12px;
-}
-.footer-btn:hover { color: #f5f0e8; }
-.footer-btn.active { color: #c8a96e; }
-.footer-btn i { font-size: 19px; }
-.footer-btn span { font-size: 10px; font-weight: 600; }
-
-@media (min-width: 820px) {
-  .footer-bar {
-    left: auto; right: 24px; bottom: 50%; transform: translateY(50%);
-    width: auto; max-width: none; border: 1px solid var(--border-color);
-    border-top: 1px solid var(--border-color); border-radius: 24px;
-    padding: 12px 10px; flex-direction: column; gap: 4px; justify-content: center;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.45); backdrop-filter: blur(12px);
-    background: rgba(15,14,11,0.88);
-  }
-  .footer-btn { padding: 10px 14px; border-radius: 14px; gap: 5px; width: 64px; }
-  .footer-btn:hover { background: var(--hover-bg); color: var(--accent); }
-  .footer-btn i { font-size: 18px; }
-  .footer-btn span { font-size: 9px; }
-  .page-body { padding-right: 108px; padding-bottom: 20px; }
-}
-@media (max-width: 768px) {
-  .footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
-  .footer-btn { padding: 6px 8px; }
-  .footer-btn i { font-size: 17px; }
-  .footer-btn span { font-size: 9px; }
-}
-
-.empty-state {
-  display: flex; flex-direction: column; align-items: center;
-  padding: 60px 20px; color: var(--text-secondary); gap: 10px;
-}
-.empty-state i { font-size: 36px; opacity: 0.2; color: var(--accent); }
-.empty-state p { font-size: 13px; opacity: 0.55; }
-
-  </style>
+</style>
 </head>
-<body class="theme-dark font-modern">
+<body>
 
-<div class="toast" id="toast"></div>
+<header class="header">
+  <div class="header-left">
+    <div class="header-logo">Patholytica <span>PDF → Library</span></div>
+  </div>
+  <div class="header-status">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Not connected</span>
+  </div>
+</header>
 
-<div class="static-header">
-  <div class="static-header-inner">
-    <div class="header-logo" onclick="location.href='index.html'">
-      <img src="IMG_3220.png" alt="Patholytica" id="headerLogoImg">
-    </div>
-    <div class="header-actions">
-      <button class="header-icon-btn" id="bookmarkBtn" onclick="handleBookmarkBtn(this)" title="Saved Libraries">
-        <i class="fas fa-bookmark"></i>
+<div class="layout">
+  <aside class="sidebar">
+    <div>
+      <div class="sidebar-section-label">Supabase Config</div>
+      <div class="config-field">
+        <label>Project URL</label>
+        <input id="sbUrl" type="text" placeholder="https://xxx.supabase.co" />
+      </div>
+      <div class="config-field">
+        <label>Service Role Key (admin only — do not share)</label>
+        <input id="sbKey" type="password" placeholder="eyJ..." />
+      </div>
+      <div class="config-field">
+        <label>Articles table</label>
+        <input id="sbTable" type="text" value="articles" />
+      </div>
+      <div class="config-field">
+        <label>Playlists table</label>
+        <input id="plTable" type="text" value="playlists" />
+      </div>
+      <div class="config-field">
+        <label>Playlist items table</label>
+        <input id="plItemsTable" type="text" value="playlist_items" />
+      </div>
+      <div class="config-field">
+        <label>Media table</label>
+        <input id="mediaTable" type="text" value="media" />
+      </div>
+      <div class="config-field">
+        <label>Media storage bucket</label>
+        <input id="mediaBucket" type="text" value="article-media" />
+      </div>
+      <button class="btn btn-primary" id="btnConnect">
+        <i class="fa fa-plug"></i> Connect
       </button>
+      <div class="config-field-hint" style="margin-top:8px">Credentials are stored only in this browser's local storage.</div>
+      <div class="admin-key-warning"><i class="fa fa-triangle-exclamation"></i><span>This field takes the Supabase <strong>service role key</strong>, not the anon key. It bypasses row-level security entirely on every table. Local, trusted-admin use only — never deploy this page publicly or share this key.</span></div>
     </div>
-  </div>
-</div>
 
-<div class="settings-popover" id="settingsPopover">
-  <div class="sp-profile" id="spProfile" onclick="handleSpProfileClick()">
-    <div class="sp-profile-avatar" id="spAvatar">?</div>
-    <div class="sp-profile-info">
-      <div class="sp-profile-name" id="spName">Guest</div>
-      <div class="sp-profile-status guest" id="spStatus">Not logged in</div>
-    </div>
-  </div>
-  <div class="sp-body">
-    <div class="sp-section">
-      <div class="sp-label">Theme</div>
-      <div class="sp-row" id="sp-themes">
-        <button class="sp-pill" data-val="theme-dark">Dark</button>
-        <button class="sp-pill" data-val="theme-light">Light</button>
+    <hr class="divider" />
+
+    <div>
+      <div class="sidebar-section-label">AI Provider</div>
+      <div class="config-field">
+        <label>Provider</label>
+        <select id="aiProvider">
+          <option value="puter" selected>Puter.js (no key needed)</option>
+          <option value="openrouter">OpenRouter (bring your own key)</option>
+        </select>
+      </div>
+      <div class="config-field" id="modelFieldPuter">
+        <label>Model via Puter.js</label>
+        <select id="aiModelPuter">
+          <option value="anthropic/claude-opus-4-8">Claude Opus 4.8</option>
+          <option value="anthropic/claude-sonnet-4-6" selected>Claude Sonnet 4.6</option>
+          <option value="openai/gpt-5.5">GPT-5.5</option>
+          <option value="google/gemini-3.5-flash">Gemini 3.5 Flash</option>
+          <option value="deepseek/deepseek-v4-pro">DeepSeek V4 Pro</option>
+        </select>
+      </div>
+      <div class="config-field" id="modelFieldOpenrouter" style="display:none">
+        <label>Model via OpenRouter</label>
+        <select id="aiModelOpenrouter">
+          <option value="~openai/gpt-latest" selected>GPT (latest)</option>
+          <option value="~anthropic/claude-sonnet-latest">Claude Sonnet (latest)</option>
+          <option value="anthropic/claude-opus-4.8">Claude Opus 4.8</option>
+          <option value="google/gemini-3.5-flash">Gemini 3.5 Flash</option>
+          <option value="deepseek/deepseek-v4-pro">DeepSeek V4 Pro</option>
+        </select>
+      </div>
+      <div class="config-field" id="keyFieldOpenrouter" style="display:none">
+        <label>OpenRouter API Key</label>
+        <input id="orKey" type="password" placeholder="sk-or-v1-..." autocomplete="off" />
+        <div class="config-field-hint">Stored only in this browser's local storage. Get a key at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>.</div>
       </div>
     </div>
-    <div class="sp-section">
-      <div class="sp-label">Font</div>
-      <div class="sp-row" id="sp-fonts">
-        <button class="sp-pill" data-val="font-serif">Serif</button>
-        <button class="sp-pill" data-val="font-slab">Slab</button>
-        <button class="sp-pill" data-val="font-modern">Modern</button>
+
+    <hr class="divider" />
+
+    <div>
+      <div class="sidebar-section-label">About images</div>
+      <div class="config-field-hint" style="line-height:1.7">
+        "Auto-fetch" searches Wikimedia Commons — public domain / openly licensed images only, no key required. You can also upload your own image per article at any time.
       </div>
     </div>
-    <div class="sp-section">
-      <div class="sp-label">Reading</div>
-      <div class="sp-toggle-row">
-        <span class="sp-toggle-label">Justify text</span>
-        <label class="sp-switch">
-          <input type="checkbox" id="justifyToggle">
-          <span class="sp-switch-track"></span>
-          <span class="sp-switch-thumb"></span>
-        </label>
+  </aside>
+
+  <main class="main">
+    <div class="steps-bar" id="stepsBar">
+      <div class="step-pill active" data-step="1"><span class="step-num">1</span> Upload PDF</div>
+      <div class="step-connector"></div>
+      <div class="step-pill" data-step="2"><span class="step-num">2</span> AI structuring</div>
+      <div class="step-connector"></div>
+      <div class="step-pill" data-step="3"><span class="step-num">3</span> Review & images</div>
+      <div class="step-connector"></div>
+      <div class="step-pill" data-step="4"><span class="step-num">4</span> Publish</div>
+    </div>
+
+    <!-- STEP 1 — upload -->
+    <div class="step-panel active" id="panel1">
+      <div class="upload-zone" id="uploadZone">
+        <i class="fa fa-file-arrow-up"></i>
+        <div class="uz-title">Drop a PDF here, or click to choose one</div>
+        <div class="uz-sub">Text is extracted entirely in your browser — nothing is uploaded until you publish</div>
+        <input type="file" id="pdfInput" accept="application/pdf" />
+      </div>
+      <div id="fileChipWrap"></div>
+      <div class="extract-progress" id="extractProgress" style="display:none">
+        <div class="extract-status" id="extractStatus">Reading file…</div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="extractProgressFill"></div></div>
+      </div>
+      <div class="step-actions">
+        <button class="btn btn-primary" id="btnToStep2" style="width:auto;padding:10px 22px" disabled>
+          Continue <i class="fa fa-arrow-right"></i>
+        </button>
       </div>
     </div>
-    <div id="spAuthAction">
-      <button class="sp-login" onclick="location.href='login.html'">
-        <i class="fas fa-sign-in-alt"></i> Log in
-      </button>
-    </div>
-  </div>
-</div>
 
-<div class="notif-panel" id="notifPanel">
-  <div class="notif-panel-header">
-    <div class="notif-panel-title">Notifications</div>
-    <button class="notif-mark-all" id="notifMarkAll">Mark all read</button>
-  </div>
-  <div class="notif-list" id="notifList">
-    <div class="notif-spinner-wrap"><div class="notif-spinner"></div></div>
-  </div>
-</div>
+    <!-- STEP 2 — AI structuring -->
+    <div class="step-panel" id="panel2">
+      <div class="structure-panel">
+        <div class="sp-icon" id="spIcon"><i class="fa fa-wand-magic-sparkles"></i></div>
+        <div class="sp-title" id="spTitle">Ready to structure this PDF</div>
+        <div class="sp-sub" id="spSub">The AI will read the extracted text and propose a set of articles plus a library name. You can edit everything afterward.</div>
 
-<div class="saved-panel" id="savedPanel">
-  <div class="saved-panel-header">
-    <div class="saved-panel-title">Saved Libraries</div>
-  </div>
-  <div class="saved-list" id="savedList">
-    <div class="notif-spinner-wrap"><div class="notif-spinner"></div></div>
-  </div>
-</div>
+        <div class="structure-config">
+          <div class="config-field">
+            <label>Target article length</label>
+            <select id="articleLength">
+              <option value="short">Short — bite-sized (favor more, shorter articles)</option>
+              <option value="medium" selected>Medium — balanced</option>
+              <option value="long">Long — fewer, more comprehensive articles</option>
+            </select>
+          </div>
+          <div class="config-field" style="margin-bottom:0">
+            <label>Extra instructions <span style="opacity:.5;text-transform:none;letter-spacing:0">— optional</span></label>
+            <input id="structureNotes" type="text" placeholder="e.g. focus on clinical relevance, keep terminology simple…" />
+          </div>
+        </div>
 
-<div class="float-overlay" id="userFloatOverlay" onclick="closeUserPopup(event)">
-  <div class="user-float-card" id="userFloatCard" style="position:relative;">
-    <button class="float-close" onclick="closeUserPopup()"><i class="fas fa-times"></i></button>
-    <div id="userPopupContent"></div>
-  </div>
-</div>
-
-<div class="float-overlay" id="cardFloatOverlay" onclick="closeCardPreview(event)">
-  <div class="card-float-card" style="position:relative;">
-    <button class="float-close" style="position:absolute;top:14px;right:14px;z-index:2;" onclick="closeCardPreview()"><i class="fas fa-times"></i></button>
-    <div class="card-float-inner" id="cardPreviewInner">
-      <div class="cp-loading"><div class="cp-loading-ring"></div></div>
-    </div>
-  </div>
-</div>
-
-<div class="page-body">
-  <div class="creators-strip" id="creatorsStrip">
-    <div class="strip-pill" id="stripBellPill" onclick="handleStripBell(this)">
-      <div class="strip-icon-circle" id="stripBellCircle">
-        <i class="fas fa-bell"></i>
-        <div class="strip-notif-badge" id="stripNotifBadge"></div>
+        <button class="btn btn-primary" id="btnStructure" style="width:auto;padding:11px 24px">
+          <i class="fa fa-wand-magic-sparkles"></i> Structure with AI
+        </button>
       </div>
-      <div class="strip-pill-name">Alerts</div>
     </div>
-    <div class="strip-pill" id="stripSettingsPill" onclick="handleStripSettings(this)">
-      <div class="strip-icon-circle"><i class="fas fa-sliders-h"></i></div>
-      <div class="strip-pill-name">Settings</div>
+
+    <!-- STEP 3 — review -->
+    <div class="step-panel" id="panel3">
+      <div class="review-header">
+        <div class="review-lib-field">
+          <label>Library name</label>
+          <input class="lib-name-input" id="libNameInput" placeholder="Library name…" />
+          <textarea class="lib-desc-input" id="libDescInput" rows="2" placeholder="Library description (optional)…"></textarea>
+        </div>
+        <div class="review-summary">
+          <div class="summary-chip"><div class="sc-num" id="scArticles">0</div><div class="sc-label">Articles</div></div>
+          <div class="summary-chip"><div class="sc-num" id="scImages">0</div><div class="sc-label">Images</div></div>
+        </div>
+      </div>
+
+      <button class="add-article-btn" id="btnAddArticle"><i class="fa fa-plus"></i> Add another article</button>
+
+      <div class="review-list" id="reviewList"></div>
+
+      <div class="review-footer">
+        <div class="review-footer-left" id="reviewFooterNote">Review titles and content, attach images, then publish.</div>
+        <div class="review-footer-right">
+          <button class="btn-back" id="btnBackTo2"><i class="fa fa-arrow-left"></i> Back</button>
+          <button class="btn-publish" id="btnPublish"><i class="fa fa-paper-plane"></i> Publish Library</button>
+        </div>
+      </div>
     </div>
-    <div class="strip-skeleton-pill" id="creatorSkel0"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
-    <div class="strip-skeleton-pill" id="creatorSkel1"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
-    <div class="strip-skeleton-pill" id="creatorSkel2"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
-    <div class="strip-skeleton-pill" id="creatorSkel3"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
-    <div class="strip-skeleton-pill" id="creatorSkel4"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
-    <div class="strip-skeleton-pill" id="creatorSkel5"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
-  </div>
 
-  <div class="topics-strip-label" id="topicsStripLabel" style="display:none;"><i class="fas fa-hashtag"></i> Explore Topics</div>
-  <div class="topics-strip" id="topicsStrip">
-    <div class="topic-skel-chip"></div>
-    <div class="topic-skel-chip"></div>
-    <div class="topic-skel-chip"></div>
-    <div class="topic-skel-chip"></div>
-    <div class="topic-skel-chip"></div>
-  </div>
-
-  <div class="text-feed" id="mainGrid"></div>
-  <div class="load-more-wrap" id="loadMoreWrap" style="display:none;">
-    <button class="btn-load-more" id="loadMoreBtn" onclick="loadMore()">
-      <i class="fas fa-chevron-down"></i> Load more
-    </button>
-  </div>
+    <!-- STEP 4 — publish / done -->
+    <div class="step-panel" id="panel4">
+      <div class="publish-panel" id="publishPanel">
+        <div class="sp-icon thinking"><i class="fa fa-cloud-arrow-up"></i></div>
+        <div class="sp-title">Publishing…</div>
+        <div class="publish-progress-wrap"><div class="publish-progress-fill" id="publishProgressFill"></div></div>
+        <div class="publish-log" id="publishLog"></div>
+      </div>
+    </div>
+  </main>
 </div>
 
-<div class="create-menu-overlay" id="createMenuOverlay" onclick="closeCreateMenu(event)">
-  <div class="create-menu-sheet" onclick="event.stopPropagation()">
-    <div class="create-menu-handle"></div>
-    <div class="create-menu-title">Create</div>
-    <div class="create-menu-item" onclick="location.href='https://patholytica.com/create'">
-      <div class="create-menu-icon"><i class="fas fa-pen"></i></div>
-      <div class="create-menu-text">
-        <div class="create-menu-item-title">Classic</div>
-        <div class="create-menu-item-sub">Write a single article or MCQ</div>
-      </div>
-      <i class="fas fa-chevron-right chev"></i>
-    </div>
-    <div class="create-menu-item" onclick="location.href='https://patholytica.com/Create'">
-      <div class="create-menu-icon"><i class="fas fa-layer-group"></i></div>
-      <div class="create-menu-text">
-        <div class="create-menu-item-title">Batch Create</div>
-        <div class="create-menu-item-sub">Generate several articles at once</div>
-      </div>
-      <i class="fas fa-chevron-right chev"></i>
-    </div>
-    <div class="create-menu-item" onclick="location.href='https://patholytica.com/space'">
-      <div class="create-menu-icon"><i class="fas fa-th-large"></i></div>
-      <div class="create-menu-text">
-        <div class="create-menu-item-title">Space</div>
-        <div class="create-menu-item-sub">Open your workspace</div>
-      </div>
-      <i class="fas fa-chevron-right chev"></i>
-    </div>
-  </div>
-</div>
+<div id="toast"></div>
 
-<div class="footer-bar">
-  <button class="footer-btn active" onclick="location.href='index.html'">
-    <i class="fas fa-home"></i><span>Home</span>
-  </button>
-  <button class="footer-btn" onclick="location.href='https://patholytica.com/dailyfeed'">
-    <i class="fas fa-scroll"></i><span>Feed</span>
-  </button>
-  <button class="footer-btn" onclick="location.href='explore.html'">
-    <i class="fas fa-search"></i><span>Explore</span>
-  </button>
-  <button class="footer-btn" id="footerCreateBtn" onclick="openCreateMenu()">
-    <i class="fas fa-circle-plus"></i><span>Create</span>
-  </button>
-</div>
-
-<!-- 1. Theme + reading prefs persistence -->
 <script>
-(function(){
-  const theme   = localStorage.getItem('pref_theme')   || 'theme-dark';
-  const fontFam = localStorage.getItem('pref_fontfam') || 'font-modern';
-  const safeTheme = (theme === 'theme-light') ? 'theme-light' : 'theme-dark';
-  document.body.className = [safeTheme, fontFam].filter(Boolean).join(' ');
-})();
-</script>
+(function() {
+  // ══════════════════════════════════════════════════════════
+  // STATE
+  // ══════════════════════════════════════════════════════════
+  var sbClient = null;
+  var connected = false;
+  var toastTimer = null;
+  var currentStep = 1;
 
-<!-- 2. Settings popover -->
-<script>
-(function(){
-  const THEMES=['theme-dark','theme-light'];
-  const FONTS = ['font-serif','font-slab','font-modern'];
-  function applyTheme(val){
-    THEMES.forEach(t=>document.body.classList.remove(t));
-    document.body.classList.add(val);
-    localStorage.setItem('pref_theme', val);
-  }
-  function applyFont(val){
-    FONTS.forEach(f=>document.body.classList.remove(f));
-    document.body.classList.add(val);
-    localStorage.setItem('pref_fontfam', val);
-  }
-  function syncPills(){
-    const curT = THEMES.find(t=>document.body.classList.contains(t))||'theme-dark';
-    const curF = FONTS.find(f=>document.body.classList.contains(f))||'font-modern';
-    document.querySelectorAll('#sp-themes [data-val]').forEach(b=>b.classList.toggle('active',b.dataset.val===curT));
-    document.querySelectorAll('#sp-fonts [data-val]').forEach(b=>b.classList.toggle('active',b.dataset.val===curF));
-  }
-  document.getElementById('sp-themes').addEventListener('click',e=>{
-    const b=e.target.closest('[data-val]');if(!b)return;applyTheme(b.dataset.val);syncPills();
+  var pdfFile = null;
+  var extractedText = '';
+  var extractedPageCount = 0;
+
+  var libraryName = '';
+  var libraryDesc = '';
+  var reviewArticles = []; // { id, title, content, image: {url, credit, creditUrl, file, dataUrl} | null }
+  var articleIdCounter = 0;
+
+  var OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
+  var WIKIMEDIA_ENDPOINT = 'https://commons.wikimedia.org/w/api.php';
+
+  // ══════════════════════════════════════════════════════════
+  // BOOT
+  // ══════════════════════════════════════════════════════════
+  document.addEventListener('DOMContentLoaded', function() {
+    var savedUrl = localStorage.getItem('patholytica_sb_url');
+    if (savedUrl) document.getElementById('sbUrl').value = savedUrl;
+    var savedKey = localStorage.getItem('patholytica_sb_key');
+    if (savedKey) document.getElementById('sbKey').value = savedKey;
+    var savedOrKey = localStorage.getItem('patholytica_or_key');
+    if (savedOrKey) document.getElementById('orKey').value = savedOrKey;
+    var savedProvider = localStorage.getItem('patholytica_ai_provider');
+    if (savedProvider === 'openrouter' || savedProvider === 'puter') {
+      document.getElementById('aiProvider').value = savedProvider;
+    }
+    updateProviderVisibility();
+
+    document.getElementById('sbUrl').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_sb_url', e.target.value.trim());
+    });
+    document.getElementById('sbKey').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_sb_key', e.target.value.trim());
+    });
+    document.getElementById('orKey').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_or_key', e.target.value.trim());
+    });
+    document.getElementById('aiProvider').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_ai_provider', e.target.value);
+      updateProviderVisibility();
+    });
+
+    document.getElementById('btnConnect').addEventListener('click', connectSupabase);
+
+    var uploadZone = document.getElementById('uploadZone');
+    var pdfInput = document.getElementById('pdfInput');
+    uploadZone.addEventListener('click', function(){ pdfInput.click(); });
+    uploadZone.addEventListener('dragover', function(e){ e.preventDefault(); uploadZone.classList.add('drag'); });
+    uploadZone.addEventListener('dragleave', function(){ uploadZone.classList.remove('drag'); });
+    uploadZone.addEventListener('drop', function(e){
+      e.preventDefault(); uploadZone.classList.remove('drag');
+      if (e.dataTransfer.files.length) handlePdfFile(e.dataTransfer.files[0]);
+    });
+    pdfInput.addEventListener('change', function(e){
+      if (e.target.files.length) handlePdfFile(e.target.files[0]);
+    });
+
+    document.getElementById('btnToStep2').addEventListener('click', function(){ goToStep(2); });
+    document.getElementById('btnStructure').addEventListener('click', structureWithAI);
+    document.getElementById('btnBackTo2').addEventListener('click', function(){ goToStep(2); });
+    document.getElementById('btnAddArticle').addEventListener('click', addBlankArticle);
+    document.getElementById('btnPublish').addEventListener('click', publishLibrary);
+
+    document.getElementById('libNameInput').addEventListener('input', function(e){ libraryName = e.target.value; });
+    document.getElementById('libDescInput').addEventListener('input', function(e){ libraryDesc = e.target.value; });
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   });
-  document.getElementById('sp-fonts').addEventListener('click',e=>{
-    const b=e.target.closest('[data-val]');if(!b)return;applyFont(b.dataset.val);syncPills();
-  });
-  let _open=false;
-  window.closeSettings=function(){
-    document.getElementById('settingsPopover').classList.remove('open');
-    _open=false;
-  };
-  window.handleStripSettings=function(pill){
-    const pop=document.getElementById('settingsPopover');
-    _open=!_open;
-    if(_open){
-      document.getElementById('notifPanel').classList.remove('open');
-      document.getElementById('savedPanel').classList.remove('open');
-      const r=pill.getBoundingClientRect();
-      pop.style.top=(r.bottom+8)+'px';
-      let left=r.left;
-      if(left+230>window.innerWidth-8) left=window.innerWidth-238;
-      pop.style.left=Math.max(8,left)+'px';
-      pop.style.right='auto';
-      pop.classList.add('open');
-      syncPills();
-      setTimeout(()=>document.addEventListener('click',function oc(e){
-        if(!pop.contains(e.target)&&!pill.contains(e.target)){
-          pop.classList.remove('open');_open=false;
-        }
-        document.removeEventListener('click',oc);
-      },10));
+
+  function updateProviderVisibility() {
+    var provider = document.getElementById('aiProvider').value;
+    var isOpenRouter = provider === 'openrouter';
+    document.getElementById('modelFieldPuter').style.display      = isOpenRouter ? 'none' : 'flex';
+    document.getElementById('modelFieldOpenrouter').style.display = isOpenRouter ? 'flex' : 'none';
+    document.getElementById('keyFieldOpenrouter').style.display   = isOpenRouter ? 'flex' : 'none';
+  }
+
+  function getActiveModel() {
+    var provider = document.getElementById('aiProvider').value;
+    return provider === 'openrouter'
+      ? document.getElementById('aiModelOpenrouter').value
+      : document.getElementById('aiModelPuter').value;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // SUPABASE CONNECTION
+  // ══════════════════════════════════════════════════════════
+  function getClient() {
+    var url = document.getElementById('sbUrl').value.trim().replace(/\/$/, '');
+    var key = document.getElementById('sbKey').value.trim();
+    if (!url || !key) { showToast('Enter Supabase URL and service role key first', 'error'); return null; }
+    sbClient = window.supabase.createClient(url, key);
+    return sbClient;
+  }
+
+  async function connectSupabase() {
+    var client = getClient();
+    if (!client) return;
+
+    var btn = document.getElementById('btnConnect');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Connecting…';
+    setStatus('connecting');
+
+    try {
+      var table = document.getElementById('sbTable').value.trim() || 'articles';
+      var ping = await client.from(table).select('id', { count: 'exact', head: true });
+      if (ping.error) throw ping.error;
+
+      connected = true;
+      setStatus('connected');
+      showToast('Connected to Supabase', 'success');
+    } catch (err) {
+      console.error(err);
+      connected = false;
+      setStatus('error');
+      showToast('Connection failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-plug"></i> Connect';
+    }
+  }
+
+  function setStatus(state) {
+    var dot = document.getElementById('statusDot');
+    var text = document.getElementById('statusText');
+    dot.className = 'status-dot';
+    if (state === 'connected') { dot.classList.add('connected'); text.textContent = 'Connected'; }
+    else if (state === 'connecting') { text.textContent = 'Connecting…'; }
+    else if (state === 'error') { dot.classList.add('error'); text.textContent = 'Connection error'; }
+    else { text.textContent = 'Not connected'; }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // STEP NAVIGATION
+  // ══════════════════════════════════════════════════════════
+  function goToStep(n) {
+    currentStep = n;
+    for (var i = 1; i <= 4; i++) {
+      document.getElementById('panel' + i).classList.toggle('active', i === n);
+    }
+    var pills = document.querySelectorAll('.step-pill');
+    pills.forEach(function(p) {
+      var s = parseInt(p.dataset.step, 10);
+      p.classList.toggle('active', s === n);
+      p.classList.toggle('done', s < n);
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // STEP 1 — PDF UPLOAD + EXTRACTION
+  // ══════════════════════════════════════════════════════════
+  async function handlePdfFile(file) {
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      showToast('That file doesn\'t look like a PDF', 'error');
+      return;
+    }
+    pdfFile = file;
+    renderFileChip();
+    document.getElementById('btnToStep2').disabled = true;
+
+    var progressWrap = document.getElementById('extractProgress');
+    var statusEl = document.getElementById('extractStatus');
+    var fillEl = document.getElementById('extractProgressFill');
+    progressWrap.style.display = 'block';
+    fillEl.style.width = '0%';
+    statusEl.textContent = 'Reading file…';
+
+    try {
+      var buffer = await file.arrayBuffer();
+      statusEl.textContent = 'Parsing PDF…';
+      var pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+      var numPages = pdf.numPages;
+      var fullText = '';
+
+      for (var i = 1; i <= numPages; i++) {
+        var page = await pdf.getPage(i);
+        var content = await page.getTextContent();
+        var pageText = content.items.map(function(item){ return item.str; }).join(' ');
+        fullText += pageText.trim() + '\n\n';
+        fillEl.style.width = Math.round((i / numPages) * 100) + '%';
+        statusEl.textContent = 'Extracting page ' + i + ' of ' + numPages + '…';
+      }
+
+      fullText = fullText.trim();
+      if (!fullText) {
+        statusEl.textContent = 'No extractable text found — this PDF may be scanned images without a text layer.';
+        showToast('No extractable text found in this PDF', 'error');
+        progressWrap.style.display = 'none';
+        return;
+      }
+
+      extractedText = fullText;
+      extractedPageCount = numPages;
+      var wordCount = fullText.split(/\s+/).filter(Boolean).length;
+      statusEl.textContent = 'Extracted ' + numPages + ' page' + (numPages !== 1 ? 's' : '') + ' · ~' + wordCount.toLocaleString() + ' words';
+      progressWrap.style.display = 'block';
+      document.getElementById('btnToStep2').disabled = false;
+      updateFileChipMeta(numPages, wordCount);
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = 'Could not read this PDF. It may be corrupted, encrypted, or password-protected.';
+      showToast('PDF extraction failed: ' + err.message, 'error');
+      progressWrap.style.display = 'none';
+    }
+  }
+
+  function renderFileChip() {
+    var wrap = document.getElementById('fileChipWrap');
+    if (!pdfFile) { wrap.innerHTML = ''; return; }
+    var sizeKb = Math.round(pdfFile.size / 1024);
+    var sizeStr = sizeKb > 1024 ? (sizeKb / 1024).toFixed(1) + ' MB' : sizeKb + ' KB';
+    wrap.innerHTML = '<div class="file-chip" style="margin-top:18px">' +
+      '<i class="fa fa-file-pdf"></i>' +
+      '<div class="fc-info"><div class="fc-name">' + escHtml(pdfFile.name) + '</div><div class="fc-meta" id="fcMeta">' + sizeStr + '</div></div>' +
+      '<button class="fc-remove" id="fcRemove"><i class="fa fa-times"></i></button>' +
+    '</div>';
+    document.getElementById('fcRemove').addEventListener('click', function() {
+      pdfFile = null; extractedText = ''; extractedPageCount = 0;
+      wrap.innerHTML = '';
+      document.getElementById('extractProgress').style.display = 'none';
+      document.getElementById('btnToStep2').disabled = true;
+      document.getElementById('pdfInput').value = '';
+    });
+  }
+
+  function updateFileChipMeta(pages, words) {
+    var meta = document.getElementById('fcMeta');
+    if (meta) meta.textContent = pages + ' page' + (pages !== 1 ? 's' : '') + ' · ~' + words.toLocaleString() + ' words';
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // STEP 2 — AI STRUCTURING
+  // ══════════════════════════════════════════════════════════
+  function buildStructurePrompt(text, lengthPref, notes) {
+    var lengthGuide = lengthPref === 'short'
+      ? 'Favor MORE, SHORTER articles — split by distinct sub-topic wherever the source supports it.'
+      : lengthPref === 'long'
+      ? 'Favor FEWER, LONGER, more comprehensive articles — only split where topics are clearly distinct.'
+      : 'Balance article count and length — split where a natural topic boundary exists in the source.';
+
+    return 'You are a content editor for Patholytica, a medical education platform with a mobile bite-sized article feed.\n\n' +
+      'You are given the extracted text of a PDF (lecture notes, textbook excerpt, or similar). Your job:\n' +
+      '1. Propose a short, descriptive library name for this content (e.g. "Renal Physiology Basics", "Cardiac Pharmacology Week 3").\n' +
+      '2. Split the text into one or more standalone articles. Each article needs a clear title and well-written content in plain prose (not copied verbatim — rewrite for clarity and flow, but preserve all factual/clinical content and terminology accurately). Do not fabricate facts not present in the source.\n' +
+      '3. ' + lengthGuide + '\n' +
+      (notes ? '4. Additional instructions from the editor: ' + notes + '\n' : '') +
+      '\nFormat each article\'s content as plain paragraphs separated by a blank line (double newline). Do not use markdown headers or bullet lists — write in flowing educational prose suitable for a reading feed.\n\n' +
+      'For each article, also suggest 2-4 short, specific image search terms (for finding a relevant, real, public-domain illustration on Wikimedia Commons — e.g. "nephron anatomy diagram", "ECG normal sinus rhythm") — plain visual/medical subject terms only, no article title text.\n\n' +
+      'Return ONLY valid JSON, no markdown fences, no explanation, in exactly this shape:\n' +
+      '{\n' +
+      '  "libraryName": "string",\n' +
+      '  "libraryDescription": "one sentence description",\n' +
+      '  "articles": [\n' +
+      '    { "title": "string", "content": "string with \\n\\n paragraph breaks", "imageSearchTerms": ["term1","term2"] }\n' +
+      '  ]\n' +
+      '}\n\n' +
+      'SOURCE TEXT:\n"""\n' + text + '\n"""';
+  }
+
+  function extractStructureJSON(raw) {
+    var cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+    var match = cleaned.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('No JSON object found in AI response');
+    var parsed = JSON.parse(match[0]);
+    if (!parsed.articles || !Array.isArray(parsed.articles) || parsed.articles.length === 0) {
+      throw new Error('AI response did not include any articles');
+    }
+    return parsed;
+  }
+
+  async function callPuter(prompt, model) {
+    var response = await puter.ai.chat(prompt, { model: model });
+    var raw = '';
+    if (typeof response === 'string') {
+      raw = response;
+    } else if (response && response.message && response.message.content) {
+      raw = Array.isArray(response.message.content)
+        ? response.message.content.map(function(c){ return c.text || ''; }).join('')
+        : response.message.content;
     } else {
-      pop.classList.remove('open');
+      raw = JSON.stringify(response);
     }
-  };
-  document.addEventListener('DOMContentLoaded',syncPills);
-})();
-</script>
-
-<!-- 2b. Justify text toggle (new — lives in Settings, drives .text-feed) -->
-<script>
-(function(){
-  const JUSTIFY_KEY = 'pref_justify';
-  function applyJustify(on){
-    const feed = document.getElementById('mainGrid');
-    if(feed) feed.classList.toggle('justify', !!on);
-    const cb = document.getElementById('justifyToggle');
-    if(cb) cb.checked = !!on;
+    return raw;
   }
-  document.addEventListener('DOMContentLoaded', function(){
-    const saved = localStorage.getItem(JUSTIFY_KEY) === '1';
-    applyJustify(saved);
-    const cb = document.getElementById('justifyToggle');
-    if(cb){
-      cb.addEventListener('change', function(){
-        localStorage.setItem(JUSTIFY_KEY, cb.checked ? '1' : '0');
-        applyJustify(cb.checked);
+
+  async function callOpenRouter(prompt, model) {
+    var apiKey = document.getElementById('orKey').value.trim();
+    if (!apiKey) throw new Error('Enter an OpenRouter API key in the sidebar first');
+
+    var res = await fetch(OPENROUTER_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json',
+        'X-OpenRouter-Title': 'Patholytica PDF to Library'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 8000
+      })
+    });
+
+    var data = await res.json();
+    if (!res.ok) {
+      var msg = (data && data.error && data.error.message) ? data.error.message : ('OpenRouter request failed (' + res.status + ')');
+      throw new Error(msg);
+    }
+    var content = data && data.choices && data.choices[0] && data.choices[0].message
+      ? data.choices[0].message.content
+      : null;
+    if (!content) throw new Error('OpenRouter returned no content');
+    return content;
+  }
+
+  async function structureWithAI() {
+    if (!extractedText) { showToast('No extracted text to work with', 'error'); return; }
+
+    var provider = document.getElementById('aiProvider').value;
+    if (provider === 'openrouter' && !document.getElementById('orKey').value.trim()) {
+      showToast('Enter an OpenRouter API key in the sidebar first', 'error');
+      return;
+    }
+
+    var model = getActiveModel();
+    var lengthPref = document.getElementById('articleLength').value;
+    var notes = document.getElementById('structureNotes').value.trim();
+    var btn = document.getElementById('btnStructure');
+    var icon = document.getElementById('spIcon');
+    var title = document.getElementById('spTitle');
+    var sub = document.getElementById('spSub');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Structuring…';
+    icon.classList.add('thinking');
+    title.textContent = 'Reading and structuring…';
+    sub.textContent = 'This can take a moment on longer documents.';
+
+    // Cap very long PDFs so the prompt stays within reasonable model context —
+    // this is a client-side page with no chunking/map-reduce pipeline, so a
+    // single extremely long source is truncated with a clear notice rather
+    // than silently failing on a context-length error from the provider.
+    var MAX_CHARS = 60000;
+    var textForPrompt = extractedText;
+    var wasTruncated = false;
+    if (textForPrompt.length > MAX_CHARS) {
+      textForPrompt = textForPrompt.slice(0, MAX_CHARS);
+      wasTruncated = true;
+    }
+
+    var prompt = buildStructurePrompt(textForPrompt, lengthPref, notes);
+
+    try {
+      var raw = provider === 'openrouter'
+        ? await callOpenRouter(prompt, model)
+        : await callPuter(prompt, model);
+
+      var parsed = extractStructureJSON(raw);
+
+      libraryName = parsed.libraryName || 'Untitled Library';
+      libraryDesc = parsed.libraryDescription || '';
+      reviewArticles = parsed.articles.map(function(a) {
+        return {
+          id: 'art_' + (articleIdCounter++),
+          title: a.title || '(untitled)',
+          content: a.content || '',
+          imageSearchTerms: Array.isArray(a.imageSearchTerms) ? a.imageSearchTerms : [],
+          image: null
+        };
       });
+
+      if (wasTruncated) {
+        showToast('Note: PDF text was long and was truncated for this pass — review carefully', 'warning');
+      }
+      showToast('Structured into ' + reviewArticles.length + ' article' + (reviewArticles.length !== 1 ? 's' : ''), 'success');
+      renderReviewStep();
+      goToStep(3);
+    } catch (err) {
+      console.error(err);
+      showToast('AI structuring failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-wand-magic-sparkles"></i> Structure with AI';
+      icon.classList.remove('thinking');
+      title.textContent = 'Ready to structure this PDF';
+      sub.textContent = 'The AI will read the extracted text and propose a set of articles plus a library name. You can edit everything afterward.';
     }
-  });
-  // Exposed so the feed can re-apply the saved preference after it
-  // rebuilds mainGrid's content (initial load + load more).
-  window._applyJustifyPref = function(){
-    applyJustify(localStorage.getItem(JUSTIFY_KEY) === '1');
-  };
-})();
-</script>
-
-<!-- 3. Bell + community notifs -->
-<script>
-window._isLoggedIn = false;
-
-const COMMUNITY_NOTIFS = [
-  {
-    id:'__discord__', cls:'discord', icon:'fa-brands fa-discord',
-    msg:'🎉 Join our early community on Discord — be among the first members!',
-    time:'Patholytica Community',
-    target:'https://discord.gg/cx6cWF4KTf'
-  },
-  {
-    id:'__insta__', cls:'insta', icon:'fa-brands fa-instagram',
-    msg:'📸 Follow us on Instagram @patholytica for updates and highlights.',
-    time:'Patholytica Community',
-    target:'https://www.instagram.com/patholytica'
   }
-];
 
-function communityNotifsHTML(){
-  return COMMUNITY_NOTIFS.map(n=>`
-    <div class="notif-item" data-target="${n.target}" onclick="window.open('${n.target}','_blank')">
-      <div class="notif-icon ${n.cls}"><i class="fas ${n.icon}"></i></div>
-      <div class="notif-text">
-        <div class="notif-msg">${n.msg}</div>
-        <div class="notif-time">${n.time}</div>
-      </div>
-      <i class="fas fa-external-link-alt" style="font-size:9px;color:var(--text-secondary);flex-shrink:0;margin-top:2px;"></i>
-    </div>`).join('');
-}
-
-window.handleStripBell = function(pill){
-  const panel = document.getElementById('notifPanel');
-  const isOpen = panel.classList.contains('open');
-  window.closeSettings();
-  document.getElementById('savedPanel').classList.remove('open');
-  if(isOpen){ panel.classList.remove('open'); return; }
-  if(!window._isLoggedIn){
-    document.getElementById('notifList').innerHTML = communityNotifsHTML() + `
-      <div class="notif-empty">
-        <i class="fas fa-bell"></i>
-        <p>Log in to see your notifications</p>
-        <a href="login.html">Log in</a>
-      </div>`;
-    positionPanel(panel, pill);
-    return;
+  // ══════════════════════════════════════════════════════════
+  // STEP 3 — REVIEW
+  // ══════════════════════════════════════════════════════════
+  function renderReviewStep() {
+    document.getElementById('libNameInput').value = libraryName;
+    document.getElementById('libDescInput').value = libraryDesc;
+    renderReviewList();
   }
-  positionPanel(panel, pill);
-  if(window._supabaseNotifLoader) window._supabaseNotifLoader();
-};
 
-function positionPanel(panel, anchor){
-  const r = anchor.getBoundingClientRect();
-  panel.style.top = (r.bottom + 8) + 'px';
-  let left = r.left;
-  if(left + 310 > window.innerWidth - 8) left = window.innerWidth - 318;
-  panel.style.left = Math.max(8, left) + 'px';
-  panel.style.right = 'auto';
-  panel.classList.add('open');
-  setTimeout(()=>document.addEventListener('click', function oc(e){
-    if(!panel.contains(e.target) && !anchor.contains(e.target)){
-      panel.classList.remove('open');
+  function updateSummaryChips() {
+    document.getElementById('scArticles').textContent = reviewArticles.length;
+    var imgCount = reviewArticles.filter(function(a){ return !!a.image; }).length;
+    document.getElementById('scImages').textContent = imgCount;
+  }
+
+  function renderReviewList() {
+    var list = document.getElementById('reviewList');
+    updateSummaryChips();
+
+    if (reviewArticles.length === 0) {
+      list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:30px 10px">No articles yet — add one, or go back and structure the PDF again.</div>';
+      document.getElementById('btnPublish').disabled = true;
+      return;
     }
-    document.removeEventListener('click', oc);
-  }, 10));
-}
-</script>
+    document.getElementById('btnPublish').disabled = false;
 
-<!-- 4. Saved libraries (localStorage) -->
-<script>
-const LS_SAVED_KEY = 'patholytica_saved_libs';
-function getSavedLibs(){
-  try{ const raw=JSON.parse(localStorage.getItem(LS_SAVED_KEY)||'[]'); return Array.isArray(raw)?raw:[]; }catch(e){ return []; }
-}
-function setSavedLibs(list){
-  try{ localStorage.setItem(LS_SAVED_KEY, JSON.stringify(list)); }catch(e){}
-}
-function isLibSaved(id){ return getSavedLibs().some(l=>String(l.id)===String(id)); }
-function addSavedLib(lib){
-  const list=getSavedLibs().filter(l=>String(l.id)!==String(lib.id));
-  list.unshift({ id:lib.id, name:lib.name||'Untitled Library', thumbnail_url:lib.thumbnail_url||null, _count:lib._count||0, saved_at:Date.now() });
-  setSavedLibs(list);
-}
-function removeSavedLib(id){ setSavedLibs(getSavedLibs().filter(l=>String(l.id)!==String(id))); }
+    list.innerHTML = reviewArticles.map(function(a, i) {
+      return renderReviewCard(a, i);
+    }).join('');
 
-window.handleBookmarkBtn = function(btn){
-  const panel = document.getElementById('savedPanel');
-  const isOpen = panel.classList.contains('open');
-  window.closeSettings();
-  document.getElementById('notifPanel').classList.remove('open');
-  if(isOpen){ panel.classList.remove('open'); return; }
-  const r = btn.getBoundingClientRect();
-  panel.style.top  = (r.bottom + 8) + 'px';
-  let left = r.right - 320;
-  if(left < 8) left = 8;
-  panel.style.left  = left + 'px';
-  panel.style.right = 'auto';
-  panel.classList.add('open');
-  setTimeout(()=>document.addEventListener('click', function oc(e){
-    if(!panel.contains(e.target) && !btn.contains(e.target)){ panel.classList.remove('open'); }
-    document.removeEventListener('click', oc);
-  }, 10));
-  renderSavedPanel();
-};
-
-function renderSavedPanel(){
-  const list = document.getElementById('savedList');
-  const libs = getSavedLibs();
-  if(!libs.length){
-    list.innerHTML=`<div class="saved-empty"><i class="fas fa-bookmark"></i><p>No saved libraries yet</p></div>`;
-    return;
+    list.removeEventListener('click', onReviewListClick);
+    list.removeEventListener('input', onReviewListInput);
+    list.addEventListener('click', onReviewListClick);
+    list.addEventListener('input', onReviewListInput);
   }
-  list.innerHTML = libs.map(lib=>{
-    const cnt = lib._count||0;
-    const thumb = lib.thumbnail_url
-      ? `<img src="${esc(lib.thumbnail_url)}" alt="">`
-      : `<i class="fas fa-layer-group"></i>`;
-    return `<div class="saved-item" data-id="${esc(String(lib.id))}">
-      <div class="saved-item-thumb" onclick="window.openCardPreview('library','${esc(String(lib.id))}');document.getElementById('savedPanel').classList.remove('open');">${thumb}</div>
-      <div class="saved-item-info" onclick="window.openCardPreview('library','${esc(String(lib.id))}');document.getElementById('savedPanel').classList.remove('open');">
-        <div class="saved-item-name">${esc(lib.name||'Untitled')}</div>
-        <div class="saved-item-meta">${cnt} article${cnt!==1?'s':''}</div>
-      </div>
-      <button class="saved-item-remove" title="Remove" onclick="window._removeSavedFromPanel(event,'${esc(String(lib.id))}')">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>`;
-  }).join('');
-}
 
-window._removeSavedFromPanel = function(e, id){
-  e.stopPropagation();
-  removeSavedLib(id);
-  if(typeof userFavouritesLocalSync==='function') userFavouritesLocalSync();
-  renderSavedPanel();
-  showToast('Removed from saved');
-  if(typeof window._refreshLibraryBadges==='function') window._refreshLibraryBadges();
-};
+  function renderReviewCard(a, i) {
+    var titlePreview = a.title || '(untitled article)';
+    var wordCount = (a.content || '').split(/\s+/).filter(Boolean).length;
 
-window.esc=function(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; };
-</script>
+    var imagePreviewHtml = a.image
+      ? '<div class="rc-image-preview has-img"><img src="' + escHtml(a.image.dataUrl || a.image.url) + '" alt="">' +
+        '<button class="rc-image-remove" data-remove-image="' + a.id + '"><i class="fa fa-times"></i></button>' +
+        (a.image.credit ? '<div class="rc-image-credit">' + a.image.credit + '</div>' : '') +
+        '</div>'
+      : '<div class="rc-image-preview" id="imgprev-' + a.id + '"></div>';
 
-<!-- 5. Helpers -->
-<script>
-window.showToast=function(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg;t.classList.add('show');
-  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400);
-};
-window.fmtNum=function(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return String(n||0);};
-window.relTime=function(dateStr){
-  const ms=Date.now()-new Date(dateStr).getTime(),m=Math.floor(ms/60000),h=Math.floor(ms/3600000),d=Math.floor(ms/86400000);
-  if(m<1)return'just now';if(m<60)return`${m}m ago`;if(h<24)return`${h}h ago`;if(d<7)return`${d}d ago`;
-  return new Date(dateStr).toLocaleDateString('en-US',{month:'short',day:'numeric'});
-};
-</script>
+    return '<div class="review-card" id="revcard-' + a.id + '" data-article-id="' + a.id + '">' +
+      '<div class="rc-header" data-toggle-open="' + a.id + '">' +
+        '<i class="fa fa-grip-vertical rc-drag"></i>' +
+        '<div class="rc-index">' + String(i + 1).padStart(2, '0') + '</div>' +
+        '<div class="rc-title-preview">' + escHtml(titlePreview) + '</div>' +
+        '<button class="rc-remove-btn" data-remove-article="' + a.id + '" title="Remove"><i class="fa fa-trash"></i></button>' +
+        '<i class="fa fa-chevron-down rc-chevron" id="chev-' + a.id + '"></i>' +
+      '</div>' +
+      '<div class="rc-body" id="rcbody-' + a.id + '">' +
+        '<div class="rc-field">' +
+          '<label>Title</label>' +
+          '<input class="rc-title-input" data-edit-title="' + a.id + '" value="' + escHtml(a.title) + '" placeholder="Article title…" />' +
+        '</div>' +
+        '<div class="rc-field">' +
+          '<label>Content</label>' +
+          '<textarea class="rc-content-textarea" data-edit-content="' + a.id + '" placeholder="Article content…">' + escHtml(a.content) + '</textarea>' +
+        '</div>' +
+        '<div class="rc-meta-row"><span><i class="fa fa-align-left" style="margin-right:4px"></i> ~' + wordCount + ' words</span></div>' +
+        '<div class="rc-image-section">' +
+          '<label style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px">Image</label>' +
+          imagePreviewHtml +
+          '<div class="rc-image-toolbar">' +
+            '<button class="img-tool-btn" data-autofetch="' + a.id + '"><i class="fa fa-magnifying-glass"></i> Auto-fetch (Wikimedia)</button>' +
+            '<label class="img-tool-btn"><i class="fa fa-upload"></i> Upload<input type="file" accept="image/*" data-upload-image="' + a.id + '" /></label>' +
+          '</div>' +
+          '<div class="img-search-row" id="imgsearchrow-' + a.id + '" style="display:none">' +
+            '<input class="img-search-input" id="imgsearchinput-' + a.id + '" placeholder="Search Wikimedia Commons…" value="' + escHtml((a.imageSearchTerms && a.imageSearchTerms[0]) || a.title || '') + '" />' +
+            '<button class="img-tool-btn" data-run-search="' + a.id + '"><i class="fa fa-search"></i></button>' +
+          '</div>' +
+          '<div class="img-results-grid" id="imgresults-' + a.id + '"></div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
 
-<!-- 6. Create menu (replaces FAB) -->
-<script>
-window.openCreateMenu=function(){
-  document.getElementById('createMenuOverlay').classList.add('open');
-};
-window.closeCreateMenu=function(e){
-  if(!e||e.target===document.getElementById('createMenuOverlay'))
-    document.getElementById('createMenuOverlay').classList.remove('open');
-};
-</script>
+  function onReviewListClick(e) {
+    var toggleHead = e.target.closest('[data-toggle-open]');
+    var removeArt = e.target.closest('[data-remove-article]');
+    var removeImg = e.target.closest('[data-remove-image]');
+    var autofetch = e.target.closest('[data-autofetch]');
+    var runSearch = e.target.closest('[data-run-search]');
+    var resultThumb = e.target.closest('[data-pick-image]');
 
-<!-- 7. (masonry engine removed — text feed lays out via normal inline flow) -->
+    // Don't toggle open/close when the click is on an inner control
+    if (toggleHead && !e.target.closest('.rc-remove-btn')) {
+      var id = toggleHead.dataset.toggleOpen;
+      toggleCard(id);
+    }
+    if (removeArt) { e.stopPropagation(); removeArticle(removeArt.dataset.removeArticle); }
+    if (removeImg) { removeArticleImage(removeImg.dataset.removeImage); }
+    if (autofetch) { openImageSearch(autofetch.dataset.autofetch); }
+    if (runSearch) { runImageSearch(runSearch.dataset.runSearch); }
+    if (resultThumb) { pickImageResult(resultThumb.dataset.pickImage, resultThumb.dataset.imgUrl, resultThumb.dataset.imgCredit, resultThumb.dataset.imgCreditUrl); }
+  }
 
-<!-- 8. MAIN MODULE -->
-<script type="module">
-import { initializeApp }        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  function onReviewListInput(e) {
+    var titleEl = e.target.closest('[data-edit-title]');
+    var contentEl = e.target.closest('[data-edit-content]');
+    var uploadEl = e.target.closest('[data-upload-image]');
 
-const firebaseConfig={
-  apiKey:"AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
-  authDomain:"patholytica.firebaseapp.com",
-  databaseURL:"https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId:"patholytica",
-  storageBucket:"patholytica.firebasestorage.app",
-  messagingSenderId:"738430635282",
-  appId:"1:738430635282:web:8451ef380447c7611137cb"
-};
-const app  = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const supabase = window.supabase.createClient(
-  "https://ltxgafwywkdcxdlobcah.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0eGdhZnd5d2tkY3hkbG9iY2FoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5MjU3NzUsImV4cCI6MjEwMDUwMTc3NX0.CR-FvlL1HODWjsD7VrZkWQvg_pEasIhPQBXbSHbbNoE"
-);
+    if (titleEl) {
+      var a1 = findArticle(titleEl.dataset.editTitle);
+      if (a1) {
+        a1.title = titleEl.value;
+        var preview = document.querySelector('#revcard-' + a1.id + ' .rc-title-preview');
+        if (preview) preview.textContent = a1.title || '(untitled article)';
+      }
+    }
+    if (contentEl) {
+      var a2 = findArticle(contentEl.dataset.editContent);
+      if (a2) a2.content = contentEl.value;
+    }
+    if (uploadEl && uploadEl.files && uploadEl.files[0]) {
+      handleManualImageUpload(uploadEl.dataset.uploadImage, uploadEl.files[0]);
+    }
+  }
 
-window._supabaseClient = supabase;
+  function findArticle(id) {
+    return reviewArticles.find(function(a){ return a.id === id; });
+  }
 
-function weightedScore(item){
-  const v=item.views||0, l=item.likes||0;
-  return Math.log(v+1)*2 + Math.log(l+1)*3 + Math.random()*4;
-}
-function weightedShuffle(arr){
-  const scored=arr.map(item=>({item,score:weightedScore(item)}));
-  scored.sort((a,b)=>b.score-a.score);
-  for(let i=0;i<scored.length-1;i+=2){ if(Math.random()<0.25)[scored[i],scored[i+1]]=[scored[i+1],scored[i]]; }
-  return scored.map(s=>s.item);
-}
-function shuffleArray(arr){ const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a; }
+  function toggleCard(id) {
+    var body = document.getElementById('rcbody-' + id);
+    var chev = document.getElementById('chev-' + id);
+    if (!body) return;
+    var willOpen = !body.classList.contains('open');
+    body.classList.toggle('open', willOpen);
+    if (chev) chev.classList.toggle('open', willOpen);
+  }
 
-let currentUserData = null;
-let currentSupaUser = null;
-let userFavourites  = new Set();
+  function removeArticle(id) {
+    reviewArticles = reviewArticles.filter(function(a){ return a.id !== id; });
+    renderReviewList();
+  }
 
-function syncFavouritesFromLocal(){
-  userFavourites = new Set(getSavedLibs().map(l=>String(l.id)));
-}
-window.userFavouritesLocalSync = syncFavouritesFromLocal;
-syncFavouritesFromLocal();
+  function addBlankArticle() {
+    var a = { id: 'art_' + (articleIdCounter++), title: '', content: '', imageSearchTerms: [], image: null };
+    reviewArticles.push(a);
+    renderReviewList();
+    // Open the newly added card for immediate editing
+    setTimeout(function(){ toggleCard(a.id); }, 30);
+  }
 
-let allArticles = null;
-let shuffledArts = [];
-let artOffset = 0;
-let artHasMore = true;
-let artLoading = false;
-const ART_BATCH = 18;
-let libOffset = 0;
-const LIB_PER_BATCH = 4;
+  // ── Image: manual upload ──
+  function handleManualImageUpload(id, file) {
+    var a = findArticle(id);
+    if (!a) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      a.image = { dataUrl: e.target.result, url: e.target.result, file: file, credit: 'Uploaded image', creditUrl: null, source: 'upload' };
+      renderReviewList();
+      // Re-open the card that was just edited
+      setTimeout(function(){ toggleCard(id); }, 30);
+    };
+    reader.readAsDataURL(file);
+  }
 
-// Media pool (audio / youtube) pulled from the `media` table, woven
-// into entries as inline pills — mirrors the reference mockup's
-// audio-pill-mid-sentence pattern. Images are intentionally excluded
-// from the pool now, since the feed itself is text-only; article cover
-// images from `media` are simply not rendered here.
-let mediaPool = [];
-let mediaPoolOffset = 0;
-let mediaPoolFetched = false;
+  function removeArticleImage(id) {
+    var a = findArticle(id);
+    if (!a) return;
+    a.image = null;
+    renderReviewList();
+    setTimeout(function(){ toggleCard(id); }, 30);
+  }
 
-function esc(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
-window.esc = esc;
-function isMCQ(c){ return typeof c==='string'&&c.trimStart().startsWith('❔'); }
-function trunc(s,n){ s=s||''; return s.length>n?s.slice(0,n)+'…':s; }
+  // ── Image: Wikimedia Commons auto-fetch ──
+  function openImageSearch(id) {
+    var row = document.getElementById('imgsearchrow-' + id);
+    if (!row) return;
+    var isHidden = row.style.display === 'none';
+    row.style.display = isHidden ? 'flex' : 'none';
+    if (isHidden) runImageSearch(id);
+  }
 
-/* ══ NOTIFICATIONS ══ */
-window._supabaseNotifLoader = async function(){
-  if(!currentSupaUser) return;
-  const list  = document.getElementById('notifList');
-  const badge = document.getElementById('stripNotifBadge');
-  list.innerHTML='<div class="notif-spinner-wrap"><div class="notif-spinner"></div></div>';
-  try{
-    const{data:notifs}=await supabase.from('notifications').select('*')
-      .eq('recipient_id', currentSupaUser.user_id)
-      .order('created_at',{ascending:false}).limit(30);
+  async function runImageSearch(id) {
+    var a = findArticle(id);
+    var input = document.getElementById('imgsearchinput-' + id);
+    var resultsGrid = document.getElementById('imgresults-' + id);
+    if (!a || !input || !resultsGrid) return;
 
-    function notifIcon(type){
-      if(type==='like_article'||type==='like_comment')    return{cls:'like',icon:'fa-heart'};
-      if(type==='comment_on_article'||type==='reply_to_comment') return{cls:'comment',icon:'fa-comment'};
-      if(type==='new_follower')                           return{cls:'follow',icon:'fa-user-plus'};
-      if(type==='new_article_from_following')             return{cls:'article',icon:'fa-file-alt'};
-      return{cls:'follow',icon:'fa-bell'};
+    var query = input.value.trim();
+    if (!query) { showToast('Enter a search term', 'error'); return; }
+
+    resultsGrid.innerHTML = '<div class="img-results-empty"><i class="fa fa-spinner fa-spin"></i> Searching Wikimedia Commons…</div>';
+
+    try {
+      var results = await searchWikimedia(query);
+      if (results.length === 0) {
+        resultsGrid.innerHTML = '<div class="img-results-empty">No results — try a different, more general search term.</div>';
+        return;
+      }
+      resultsGrid.innerHTML = results.map(function(r) {
+        return '<div class="img-result-thumb" data-pick-image="' + id + '" data-img-url="' + escHtml(r.imageUrl) + '" data-img-credit="' + escHtml(r.creditHtml) + '" data-img-credit-url="' + escHtml(r.pageUrl) + '">' +
+          '<img src="' + escHtml(r.thumbUrl) + '" alt="' + escHtml(r.title) + '" loading="lazy">' +
+        '</div>';
+      }).join('');
+    } catch (err) {
+      console.error(err);
+      resultsGrid.innerHTML = '<div class="img-results-empty" style="color:var(--danger)">Search failed: ' + escHtml(err.message) + '</div>';
+    }
+  }
+
+  // Wikimedia Commons is used specifically because its public API is
+  // browser-callable with no key, and generatorsearch over file namespace
+  // returns openly-licensed / public-domain media by the nature of what's
+  // hosted there — this is the one "public source" an AI-driven client page
+  // can honestly pull images from without a server-side proxy or paid API.
+  async function searchWikimedia(query) {
+    var params = new URLSearchParams({
+      action: 'query',
+      generator: 'search',
+      gsrsearch: 'filetype:bitmap ' + query,
+      gsrnamespace: '6',
+      gsrlimit: '12',
+      prop: 'imageinfo',
+      iiprop: 'url|extmetadata',
+      iiurlwidth: '400',
+      format: 'json',
+      origin: '*'
+    });
+
+    var res = await fetch(WIKIMEDIA_ENDPOINT + '?' + params.toString());
+    if (!res.ok) throw new Error('Wikimedia request failed (' + res.status + ')');
+    var data = await res.json();
+    var pages = data && data.query && data.query.pages ? data.query.pages : {};
+
+    var results = [];
+    Object.keys(pages).forEach(function(k) {
+      var p = pages[k];
+      var info = p.imageinfo && p.imageinfo[0];
+      if (!info) return;
+      var meta = info.extmetadata || {};
+      var artist = meta.Artist ? stripHtml(meta.Artist.value) : '';
+      var licenseShort = meta.LicenseShortName ? meta.LicenseShortName.value : '';
+      var creditHtml = 'Wikimedia Commons' + (artist ? ' · ' + escHtml(artist) : '') + (licenseShort ? ' · ' + escHtml(licenseShort) : '');
+      results.push({
+        title: p.title || '',
+        thumbUrl: info.thumburl || info.url,
+        imageUrl: info.url,
+        pageUrl: info.descriptionurl || '',
+        creditHtml: creditHtml
+      });
+    });
+    return results;
+  }
+
+  function stripHtml(html) {
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  }
+
+  async function pickImageResult(id, imgUrl, creditHtml, creditUrl) {
+    var a = findArticle(id);
+    if (!a) return;
+
+    var resultsGrid = document.getElementById('imgresults-' + id);
+    if (resultsGrid) resultsGrid.innerHTML = '<div class="img-results-empty"><i class="fa fa-spinner fa-spin"></i> Loading image…</div>';
+
+    try {
+      // Fetch as blob and convert to a data URL so the preview + eventual
+      // Supabase upload behave exactly like the manual-upload path — one
+      // single upload code path handles both image sources at publish time.
+      var res = await fetch(imgUrl);
+      var blob = await res.blob();
+      var dataUrl = await blobToDataUrl(blob);
+
+      var credit = creditHtml + (creditUrl ? ' · <a href="' + escHtml(creditUrl) + '" target="_blank" rel="noopener">source</a>' : '');
+      a.image = { dataUrl: dataUrl, url: imgUrl, file: null, credit: credit, creditUrl: creditUrl, source: 'wikimedia' };
+      renderReviewList();
+      setTimeout(function(){ toggleCard(id); }, 30);
+    } catch (err) {
+      console.error(err);
+      showToast('Could not load that image (it may be blocked by CORS) — try another result', 'error');
+      if (resultsGrid) resultsGrid.innerHTML = '<div class="img-results-empty" style="color:var(--danger)">Could not load — try a different image.</div>';
+    }
+  }
+
+  function blobToDataUrl(blob) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function(){ resolve(reader.result); };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // STEP 4 — PUBLISH
+  // ══════════════════════════════════════════════════════════
+  async function publishLibrary() {
+    if (!connected || !sbClient) { showToast('Connect to Supabase first', 'error'); return; }
+    if (reviewArticles.length === 0) { showToast('Add at least one article first', 'error'); return; }
+    if (!libraryName.trim()) { showToast('Enter a library name first', 'error'); return; }
+
+    // Validate every article has a title and content before we start writing
+    var invalid = reviewArticles.find(function(a){ return !a.title.trim() || !a.content.trim(); });
+    if (invalid) {
+      showToast('Every article needs a title and content before publishing', 'error');
+      return;
     }
 
-    const unread=(notifs||[]).filter(n=>!n.is_read).length;
-    if(unread>0){badge.textContent=unread>9?'9+':unread;badge.classList.add('show');}
-    else badge.classList.remove('show');
+    goToStep(4);
+    clearPublishLog();
+    setPublishProgress(0);
+    appendPublishLog('info', 'Starting publish of "' + libraryName + '" (' + reviewArticles.length + ' articles)…');
 
-    const userNotifHTML = (!notifs||!notifs.length)
-      ? `<div class="notif-empty"><i class="fas fa-bell-slash"></i><p>No notifications yet</p></div>`
-      : notifs.map(n=>{
-          const{cls,icon}=notifIcon(n.type);
-          let target='#';
-          if(n.article_id) target=`https://patholytica.com/dailyfeed?article=${n.article_id}`;
-          else if(n.playlist_id) target=`playlist.html?id=${n.playlist_id}`;
-          return`<div class="notif-item ${n.is_read?'':'unread'}" data-id="${n.id}" data-target="${target}" onclick="window._handleNotif(this)">
-            <div class="notif-icon ${cls}"><i class="fas ${icon}"></i></div>
-            <div class="notif-text">
-              <div class="notif-msg">${esc(n.message||'New notification')}</div>
-              <div class="notif-time">${relTime(n.created_at)}</div>
-            </div>
-          </div>`;
-        }).join('');
+    var articlesTable = document.getElementById('sbTable').value.trim() || 'articles';
+    var plTable = document.getElementById('plTable').value.trim() || 'playlists';
+    var plItemsTable = document.getElementById('plItemsTable').value.trim() || 'playlist_items';
+    var mediaTable = document.getElementById('mediaTable').value.trim() || 'media';
+    var mediaBucket = document.getElementById('mediaBucket').value.trim() || 'article-media';
 
-    list.innerHTML = communityNotifsHTML() + userNotifHTML;
-  }catch(e){
-    list.innerHTML = communityNotifsHTML() +
-      `<div class="notif-empty"><i class="fas fa-exclamation-triangle"></i><p>Failed to load</p></div>`;
-  }
-};
+    var createdArticleIds = [];
+    var failedCount = 0;
+    var totalSteps = reviewArticles.length + 1; // + 1 for the library creation itself
+    var doneSteps = 0;
 
-window._handleNotif=async function(el){
-  const id=el.dataset.id, target=el.dataset.target;
-  el.classList.remove('unread');
-  const unread=document.querySelectorAll('.notif-item.unread').length;
-  const badge=document.getElementById('stripNotifBadge');
-  if(unread===0) badge.classList.remove('show');
-  else{badge.textContent=unread>9?'9+':unread;}
-  try{
-    if(currentSupaUser) await supabase.rpc('mark_notification_read',{p_notification_id:parseInt(id),p_firebase_uid:currentSupaUser.firebase_uid});
-  }catch(e){}
-  if(target&&target!=='#') window.location.href=target;
-};
+    try {
+      for (var i = 0; i < reviewArticles.length; i++) {
+        var a = reviewArticles[i];
+        appendPublishLog('info', 'Publishing article ' + (i + 1) + '/' + reviewArticles.length + ': "' + a.title + '"…');
 
-document.getElementById('notifMarkAll').addEventListener('click',async function(){
-  if(!currentSupaUser)return;
-  document.querySelectorAll('.notif-item.unread').forEach(el=>el.classList.remove('unread'));
-  document.getElementById('stripNotifBadge').classList.remove('show');
-  try{
-    await supabase.rpc('mark_all_notifications_read',{p_firebase_uid:currentSupaUser.firebase_uid});
-  }catch(e){}
-});
+        try {
+          var insertRes = await sbClient
+            .from(articlesTable)
+            .insert([{ title: a.title, content: a.content }])
+            .select()
+            .single();
+          if (insertRes.error) throw insertRes.error;
+          var artId = insertRes.data.id;
+          createdArticleIds.push(artId);
+          appendPublishLog('ok', '  Article created (id ' + artId + ')');
 
-/* ══ AUTH ══ */
-onAuthStateChanged(auth, async user=>{
-  if(user){
-    window._isLoggedIn = true;
-    try{
-      const{data:ud, error}=await supabase
-        .from('users')
-        .select('id, username, pfp, full_name, bio')
-        .eq('firebase_uid', user.uid)
+          if (a.image && a.image.dataUrl) {
+            try {
+              var blob = await (await fetch(a.image.dataUrl)).blob();
+              var ext = (blob.type && blob.type.indexOf('png') !== -1) ? 'png' : 'jpg';
+              var path = artId + '/' + Date.now() + '_cover.' + ext;
+              var upRes = await sbClient.storage.from(mediaBucket).upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: true });
+              if (upRes.error) throw upRes.error;
+              var pub = sbClient.storage.from(mediaBucket).getPublicUrl(path);
+              var publicUrl = pub.data.publicUrl;
+
+              var captionText = a.image.source === 'wikimedia' ? stripHtml(a.image.credit || '') : null;
+              var mediaRes = await sbClient.from(mediaTable).insert([{
+                article_id: artId, type: 'image', url: publicUrl, caption: captionText, display_order: 0
+              }]);
+              if (mediaRes.error) throw mediaRes.error;
+              appendPublishLog('ok', '  Image uploaded and attached');
+            } catch (imgErr) {
+              console.error(imgErr);
+              appendPublishLog('warn', '  Image upload failed (article still published without it): ' + imgErr.message);
+            }
+          }
+        } catch (artErr) {
+          console.error(artErr);
+          appendPublishLog('err', '  Failed to publish "' + a.title + '": ' + artErr.message);
+          failedCount++;
+        }
+
+        doneSteps++;
+        setPublishProgress(Math.round((doneSteps / totalSteps) * 100));
+      }
+
+      if (createdArticleIds.length === 0) {
+        appendPublishLog('err', 'No articles were published — skipping library creation.');
+        setPublishProgress(100);
+        showPublishDone(false, 'Nothing was published', 'All articles failed — check the log above and try again.');
+        return;
+      }
+
+      appendPublishLog('info', 'Creating library "' + libraryName + '"…');
+      var libRes = await sbClient
+        .from(plTable)
+        .insert([{ name: libraryName, description: libraryDesc || null }])
+        .select()
         .single();
+      if (libRes.error) throw libRes.error;
+      var libId = libRes.data.id;
+      appendPublishLog('ok', 'Library created (id ' + libId + ')');
 
-      if(ud && !error){
-        currentSupaUser = { user_id: ud.id, ...ud, firebase_uid: user.uid };
-        currentUserData = ud;
-        window._currentSupaUser = currentSupaUser;
-        updateSpProfile(ud, true);
-        document.getElementById('spAuthAction').innerHTML=
-          `<button class="sp-logout" onclick="window._doLogout()"><i class="fas fa-sign-out-alt"></i> Log out</button>`;
-        await window._supabaseNotifLoader();
-      } else {
-        currentSupaUser = null;
-        currentUserData = null;
-        window._currentSupaUser = null;
-        updateSpProfile(null, false);
-        document.getElementById('spAuthAction').innerHTML=
-          `<button class="sp-logout" onclick="window._doLogout()"><i class="fas fa-sign-out-alt"></i> Log out</button>`;
-      }
-    } catch(e){
-      console.error('Auth state error:', e);
-      updateSpProfile(null, false);
-    }
-  } else {
-    window._isLoggedIn = false;
-    currentSupaUser = null; currentUserData = null;
-    window._currentSupaUser = null;
-    updateSpProfile(null, false);
-    document.getElementById('spAuthAction').innerHTML=
-      `<button class="sp-login" onclick="location.href='login.html'"><i class="fas fa-sign-in-alt"></i> Log in</button>`;
-    document.getElementById('stripNotifBadge').classList.remove('show');
-  }
-});
-
-window._doLogout = async function(){
-  try{ await signOut(auth); } catch(e){}
-  window.location.reload();
-};
-
-function updateSpProfile(ud, loggedIn){
-  const avatar  = document.getElementById('spAvatar');
-  const nameEl  = document.getElementById('spName');
-  const statusEl= document.getElementById('spStatus');
-  if(loggedIn && ud){
-    if(ud.pfp){ avatar.innerHTML=`<img src="${esc(ud.pfp)}" alt="">`; }
-    else{ avatar.textContent=(ud.username||'U')[0].toUpperCase(); }
-    nameEl.textContent  = ud.username ? `@${ud.username}` : (ud.full_name||'User');
-    statusEl.textContent= '● Logged in';
-    statusEl.className  = 'sp-profile-status online';
-  } else {
-    avatar.innerHTML    = '<i class="fas fa-user" style="font-size:15px;opacity:0.5;"></i>';
-    nameEl.textContent  = 'Guest';
-    statusEl.textContent= 'Not logged in';
-    statusEl.className  = 'sp-profile-status guest';
-  }
-}
-
-window.handleSpProfileClick = function(){
-  closeSettings();
-  if(currentUserData){
-    location.href = currentUserData.username
-      ? `profile.html?username=${encodeURIComponent(currentUserData.username)}`
-      : 'login.html';
-  } else {
-    location.href = 'login.html';
-  }
-};
-
-/* ══ FAVOURITES ══ */
-function toggleFavourite(lib){
-  const pid = String(lib.id);
-  const wasFaved = isLibSaved(pid);
-  if(wasFaved){ removeSavedLib(pid); showToast('Removed from saved'); }
-  else{ addSavedLib(lib); showToast('Library saved!'); }
-  syncFavouritesFromLocal();
-  return !wasFaved;
-}
-
-/* ══ USER PREVIEW POPUP ══ */
-window.openUserPopup = async function(firebaseUid){
-  const overlay = document.getElementById('userFloatOverlay');
-  const content = document.getElementById('userPopupContent');
-  content.innerHTML = `
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
-      <div class="skel-circle" style="width:58px;height:58px;flex-shrink:0;"></div>
-      <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
-        <div class="skel-line" style="height:14px;width:65%;"></div>
-        <div class="skel-line" style="height:11px;width:40%;"></div>
-      </div>
-    </div>
-    <div style="display:flex;border:1px solid var(--border-color);border-radius:12px;overflow:hidden;margin-bottom:16px;">
-      ${[0,1,2,3].map(i=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:6px;${i?'border-left:1px solid var(--border-color);':''}">
-        <div class="skel-line" style="height:16px;width:40px;"></div>
-        <div class="skel-line" style="height:9px;width:55px;"></div>
-      </div>`).join('')}
-    </div>
-    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:18px;">
-      <div class="skel-line" style="height:11px;width:90%;"></div>
-      <div class="skel-line" style="height:11px;width:75%;"></div>
-      <div class="skel-line" style="height:11px;width:60%;"></div>
-    </div>
-    <div class="skel-line" style="height:42px;width:100%;border-radius:10px;"></div>`;
-  overlay.classList.add('open');
-  try{
-    const{data:user}=await supabase.from('users').select('*').eq('firebase_uid',firebaseUid).single();
-    const{data:articles}=await supabase.from('articles').select('id,views,likes').eq('firebase_user_id',firebaseUid);
-    const{count:followerCount}=await supabase.from('subscriptions')
-      .select('*',{count:'exact',head:true}).eq('author_id',user?.id||0);
-    if(!user){
-      content.innerHTML='<p style="padding:20px;color:var(--text-secondary);text-align:center;">User not found</p>';
-      return;
-    }
-    const totalViews=(articles||[]).reduce((s,a)=>s+(a.views||0),0);
-    const totalLikes=(articles||[]).reduce((s,a)=>s+(a.likes||0),0);
-    const displayName=user.full_name||user.username||'User';
-    const avatarHTML=user.pfp?`<img src="${esc(user.pfp)}" alt="">`:(user.username||'U')[0].toUpperCase();
-    const profileUrl=user.username?`profile.html?username=${encodeURIComponent(user.username)}`:'#';
-    content.innerHTML=`
-      <div class="user-popup-header">
-        <div class="user-popup-avatar">${avatarHTML}</div>
-        <div class="user-popup-identity">
-          <div class="user-popup-name">${esc(displayName)}</div>
-          <div class="user-popup-handle-txt">@${esc(user.username||'user')}</div>
-        </div>
-      </div>
-      <div class="user-popup-stats">
-        <div class="user-popup-stat"><div class="user-popup-stat-val">${fmtNum(followerCount||0)}</div><div class="user-popup-stat-label">Followers</div></div>
-        <div class="user-popup-stat"><div class="user-popup-stat-val">${fmtNum((articles||[]).length)}</div><div class="user-popup-stat-label">Articles</div></div>
-        <div class="user-popup-stat"><div class="user-popup-stat-val">${fmtNum(totalViews)}</div><div class="user-popup-stat-label">Views</div></div>
-        <div class="user-popup-stat"><div class="user-popup-stat-val">${fmtNum(totalLikes)}</div><div class="user-popup-stat-label">Likes</div></div>
-      </div>
-      ${user.bio?`<div class="user-popup-bio">${esc(user.bio)}</div>`:''}
-      <button class="user-popup-btn" onclick="location.href='${profileUrl}'">
-        <i class="fas fa-user"></i> View Profile
-      </button>`;
-  }catch(e){
-    content.innerHTML='<p style="padding:20px;color:var(--text-secondary);text-align:center;">Failed to load</p>';
-  }
-};
-
-window.closeUserPopup=function(e){
-  if(!e||e.target===document.getElementById('userFloatOverlay'))
-    document.getElementById('userFloatOverlay').classList.remove('open');
-};
-
-/* ══ CARD PREVIEW (full popup — kept for saved-panel / bookmarks / expand-btn) ══ */
-let previewMCQAnswered = false;
-let _currentPreviewLib = null;
-
-window.openCardPreview = async function(type, id){
-  const overlay = document.getElementById('cardFloatOverlay');
-  const inner   = document.getElementById('cardPreviewInner');
-  previewMCQAnswered = false;
-  _currentPreviewLib = null;
-  inner.innerHTML='<div class="cp-loading"><div class="cp-loading-ring"></div></div>';
-  overlay.classList.add('open');
-  try{
-    if(type==='article'||type==='mcq'){
-      const{data:art}=await supabase.from('articles').select('*').eq('id',id).single();
-      if(!art){inner.innerHTML='<p style="padding:20px;color:var(--text-secondary);">Not found</p>';return;}
-      let authorName='Unknown';
-      if(art.firebase_user_id){
-        const{data:au}=await supabase.from('users').select('username').eq('firebase_uid',art.firebase_user_id).single();
-        if(au) authorName=au.username?`@${au.username}`:'Unknown';
-      }
-      const mcq=isMCQ(art.content);
-      let contentHTML='';
-      if(mcq){
-        const lines=(art.content||'').trim().split('\n').map(l=>l.trim()).filter(Boolean);
-        const question=lines[0].replace(/^❔/,'').trim();
-        const rawOpts=lines.slice(1).map(l=>({label:l.replace(/^✅/,'').trim(),correct:l.startsWith('✅')}));
-        for(let i=rawOpts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[rawOpts[i],rawOpts[j]]=[rawOpts[j],rawOpts[i]];}
-        const letters=['A','B','C','D','E','F'];
-        contentHTML=`
-          <div class="cp-mcq-q">${esc(question)}</div>
-          <div class="cp-mcq-opts" id="cpMcqOpts">${rawOpts.map((o,i)=>`<button class="cp-mcq-opt" data-correct="${o.correct}"><span class="opt-l">${letters[i]||i+1}</span><span>${esc(o.label)}</span></button>`).join('')}</div>
-          <div class="cp-mcq-result" id="cpMcqResult"></div>`;
-      } else {
-        const excerpt=trunc((art.content||'').replace(/\n/g,' '),320);
-        contentHTML=`<div class="cp-excerpt">${esc(excerpt)}${(art.content||'').length>320?'…':''}</div>`;
-      }
-      inner.innerHTML=`
-        <div class="cp-type-badge ${mcq?'mcq':'article'}"><i class="fas fa-${mcq?'question-circle':'file-alt'}"></i> ${mcq?'MCQ':'Article'}</div>
-        <div class="cp-title">${esc(art.title||'Untitled')}</div>
-        <div class="cp-meta">
-          <span class="cp-meta-item"><i class="fas fa-eye"></i>${fmtNum(art.views||0)}</span>
-          <span class="cp-meta-item"><i class="fas fa-heart"></i>${fmtNum(art.likes||0)}</span>
-          <span class="cp-meta-item"><i class="fas fa-user"></i>${esc(authorName)}</span>
-        </div>
-        ${contentHTML}
-        <div class="cp-actions" style="padding-right:36px;">
-          <button class="cp-btn-primary" onclick="location.href='https://patholytica.com/dailyfeed?article=${id}'"><i class="fas fa-book-open"></i> Read in Feed</button>
-        </div>`;
-      if(mcq){
-        inner.querySelectorAll('.cp-mcq-opt').forEach(btn=>{
-          btn.addEventListener('click',()=>{
-            if(previewMCQAnswered)return;
-            previewMCQAnswered=true;
-            const isCorrect=btn.dataset.correct==='true';
-            inner.querySelectorAll('.cp-mcq-opt').forEach(b=>b.disabled=true);
-            const res=document.getElementById('cpMcqResult');
-            if(isCorrect){btn.classList.add('correct');if(res){res.textContent='✓ Correct!';res.className='cp-mcq-result correct';}}
-            else{btn.classList.add('wrong');const cb=inner.querySelector('.cp-mcq-opt[data-correct="true"]');if(cb)cb.classList.add('reveal');if(res){res.textContent='✗ Incorrect';res.className='cp-mcq-result wrong';}}
-          });
-        });
-      }
-    } else if(type==='library'){
-      const{data:lib}=await supabase.from('playlists').select('*').eq('id',id).single();
-      if(!lib){inner.innerHTML='<p style="padding:20px;color:var(--text-secondary);">Not found</p>';return;}
-      const{count:artCount}=await supabase.from('playlist_items').select('*',{count:'exact',head:true}).eq('playlist_id',id);
-      _currentPreviewLib = { id:lib.id, name:lib.name, thumbnail_url:lib.thumbnail_url, _count:artCount||0 };
-      const isSaved=isLibSaved(id);
-      let creatorName='Unknown';
-      if(lib.user_id){
-        const{data:cr}=await supabase.from('users').select('username').eq('id',lib.user_id).single();
-        if(cr) creatorName=cr.username?`@${cr.username}`:'Unknown';
-      }
-      inner.innerHTML=`
-        <div class="cp-type-badge library"><i class="fas fa-layer-group"></i> Library</div>
-        <div class="cp-title">${esc(lib.name||'Untitled Library')}</div>
-        <div class="cp-meta">
-          <span class="cp-meta-item"><i class="fas fa-layer-group"></i>${artCount||0} articles</span>
-          <span class="cp-meta-item"><i class="fas fa-user"></i>${esc(creatorName)}</span>
-        </div>
-        ${lib.description?`<div class="cp-lib-desc">${esc(lib.description)}</div>`:''}
-        <div class="cp-lib-save-row">
-          <button class="cp-save-btn ${isSaved?'saved':''}" id="cpSaveBtn" onclick="window._cpToggleSave()">
-            <i class="fas fa-bookmark"></i> ${isSaved?'Saved':'Save Library'}
-          </button>
-        </div>
-        <div class="cp-actions" style="padding-right:36px;">
-          <button class="cp-btn-primary" onclick="location.href='https://patholytica.com/dailyfeed?playlist=${id}'"><i class="fas fa-play"></i> Study Now</button>
-        </div>`;
-    }
-  }catch(e){
-    inner.innerHTML='<p style="padding:20px;color:var(--text-secondary);text-align:center;">Failed to load</p>';
-  }
-};
-
-window._cpToggleSave=function(){
-  const btn=document.getElementById('cpSaveBtn');
-  if(!btn||!_currentPreviewLib)return;
-  const newState=toggleFavourite(_currentPreviewLib);
-  btn.className=`cp-save-btn ${newState?'saved':''}`;
-  btn.innerHTML=`<i class="fas fa-bookmark"></i> ${newState?'Saved':'Save Library'}`;
-  document.querySelectorAll(`.feed-lib-figure[data-lib-id="${_currentPreviewLib.id}"] .feed-lib-saved-mark`).forEach(b=>{
-    b.style.display = newState ? 'inline' : 'none';
-  });
-};
-
-window.closeCardPreview=function(e){
-  if(!e||e.target===document.getElementById('cardFloatOverlay'))
-    document.getElementById('cardFloatOverlay').classList.remove('open');
-};
-
-/* ══ CREATORS STRIP ══ */
-async function loadCreators(){
-  const strip = document.getElementById('creatorsStrip');
-  try{
-    const{data:arts}=await supabase.from('articles').select('firebase_user_id');
-    if(!arts) return;
-    const counts={};
-    arts.forEach(a=>{if(a.firebase_user_id)counts[a.firebase_user_id]=(counts[a.firebase_user_id]||0)+1;});
-    const topUids=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([u])=>u);
-    if(!topUids.length){ strip.querySelectorAll('[id^="creatorSkel"]').forEach(el=>el.remove()); return; }
-    const{data:users}=await supabase.from('users').select('firebase_uid,username,full_name,pfp').in('firebase_uid',topUids);
-    const um={};(users||[]).forEach(u=>{um[u.firebase_uid]=u;});
-    strip.querySelectorAll('[id^="creatorSkel"]').forEach(el=>el.remove());
-    topUids.forEach(uid=>{
-      const u=um[uid];
-      const name=u?.username?'@'+u.username:(u?.full_name||'?');
-      const init=(name.replace(/^@/,'')||'?')[0].toUpperCase();
-      const pill=document.createElement('div');
-      pill.className='strip-pill creator-strip-pill';
-      pill.innerHTML=`
-        <div class="creator-pill-circle">${u?.pfp?`<img src="${esc(u.pfp)}" alt="${init}">`:`${init}`}</div>
-        <div class="strip-pill-name">${esc(name)}</div>`;
-      pill.addEventListener('click',()=>openUserPopup(uid));
-      strip.appendChild(pill);
-    });
-  }catch(e){
-    strip.querySelectorAll('[id^="creatorSkel"]').forEach(el=>el.remove());
-  }
-}
-
-/* ══ TOPICS STRIP (algotag(...) libraries) ══ */
-function algotagTitle(name){
-  const m=/^algotag\(([\s\S]*)\)\s*$/i.exec((name||'').trim());
-  if(!m) return null;
-  return m[1].trim();
-}
-
-async function loadTopicsStrip(){
-  const strip=document.getElementById('topicsStrip');
-  const label=document.getElementById('topicsStripLabel');
-  try{
-    const{data:libs}=await supabase.from('playlists').select('id,name').ilike('name','algotag(%');
-    const{data:countRows}=await supabase.from('playlist_items').select('playlist_id');
-    const countMap={};(countRows||[]).forEach(r=>{countMap[r.playlist_id]=(countMap[r.playlist_id]||0)+1;});
-    const topics=(libs||[])
-      .map(l=>({id:l.id, title:algotagTitle(l.name), count:countMap[l.id]||0}))
-      .filter(t=>t.title && t.count>0)
-      .sort((a,b)=>b.count-a.count);
-    strip.innerHTML='';
-    if(!topics.length){
-      label.style.display='none';
-      strip.style.display='none';
-      return;
-    }
-    label.style.display='flex';
-    topics.forEach(t=>{
-      const chip=document.createElement('div');
-      chip.className='topic-chip';
-      chip.innerHTML=`<i class="fas fa-hashtag"></i><span>${esc(t.title)}</span><span class="topic-count">${t.count}</span>`;
-      chip.addEventListener('click',()=>{ location.href=`https://patholytica.com/dailyfeed?playlist=${t.id}`; });
-      strip.appendChild(chip);
-    });
-  }catch(e){
-    label.style.display='none';
-    strip.style.display='none';
-  }
-}
-
-/* ══ MEDIA POOL (audio / youtube from `media` table — used for inline pills) ══ */
-async function fetchMediaPool(){
-  if(mediaPoolFetched) return;
-  mediaPoolFetched=true;
-  try{
-    const{data}=await supabase.from('media').select('*')
-      .in('type',['audio'])
-      .order('id',{ascending:false}).limit(120);
-    mediaPool = shuffleArray((data||[]).filter(m=>m.article_id));
-  }catch(e){ mediaPool=[]; }
-}
-
-/* Builds the inline audio pill markup used within a text entry, mirroring
-   the reference mockup's mid-sentence pill. Wave bars are randomized once
-   at build time purely for visual texture (no waveform data available). */
-function buildInlineAudioPillHTML(m, title){
-  const bars = Array(5).fill(0).map(()=> (30 + Math.random()*65).toFixed(0)).join(',');
-  const heights = bars.split(',');
-  const waveHTML = heights.map(h=>`<span style="height:${h}%"></span>`).join('');
-  return `<span class="feed-audio-pill" data-audio-url="${esc(m.url)}" onclick="event.stopPropagation()">
-      <span class="play-dot" onclick="window._toggleFeedAudio(this)"><i class="fas fa-play"></i></span>
-      <span class="mini-wave">${waveHTML}</span>
-      <span class="pill-label">${esc(trunc(title,26))}</span>
-    </span>`;
-}
-
-const _feedAudioEls = new WeakMap();
-window._toggleFeedAudio = function(dotEl){
-  const pill = dotEl.closest('.feed-audio-pill');
-  const url = pill.getAttribute('data-audio-url');
-  let audio = _feedAudioEls.get(pill);
-  if(!audio){
-    audio = new Audio(url);
-    audio.preload='none';
-    _feedAudioEls.set(pill, audio);
-    audio.addEventListener('ended', ()=>{ dotEl.querySelector('i').className='fas fa-play'; });
-  }
-  const icon = dotEl.querySelector('i');
-  if(audio.paused){ audio.play().catch(()=>{}); icon.className='fas fa-pause'; }
-  else{ audio.pause(); icon.className='fas fa-play'; }
-};
-
-/* ══ TEXT ENTRIES (articles/MCQs as flowing inline spans) ══ */
-function buildArticleEntryHTML(article, authorName, inlineAudio){
-  const mcq = isMCQ(article.content);
-  const title = article.title || (mcq ? 'Quick Question' : 'Untitled');
-  let bodyText;
-  if(mcq){
-    const lines=(article.content||'').trim().split('\n').map(l=>l.trim()).filter(Boolean);
-    bodyText = lines[0] ? lines[0].replace(/^❔/,'').trim() : '';
-  } else {
-    bodyText = (article.content||'').replace(/\n+/g,' ').trim();
-  }
-  bodyText = trunc(bodyText, 340);
-
-  // If we have an inline audio pill for this article, splice it in
-  // roughly mid-sentence the way the reference mockup does — after the
-  // nearest sentence boundary past the midpoint, so it reads as a
-  // natural pause rather than an interruption.
-  let bodyHTML = esc(bodyText);
-  // Only splice a pill into actual prose — an empty/near-empty body has
-  // nowhere natural to place it, so it would just float with stray
-  // whitespace on either side instead of reading as a mid-sentence pause.
-  if(inlineAudio && bodyText.length > 20){
-    const mid = Math.floor(bodyText.length/2);
-    let splice = bodyText.indexOf('. ', mid);
-    if(splice === -1) splice = bodyText.length;
-    else splice += 2;
-    const before = esc(bodyText.slice(0, splice));
-    const after  = esc(bodyText.slice(splice));
-    bodyHTML = after
-      ? `${before} ${buildInlineAudioPillHTML(inlineAudio, title)} ${after}`
-      : `${before} ${buildInlineAudioPillHTML(inlineAudio, title)}`;
-  }
-
-  return `<span class="feed-entry" tabindex="0" role="link" data-nav="https://patholytica.com/dailyfeed?article=${article.id}">
-    <span class="feed-handle">${esc(authorName)}</span> <span class="feed-title">${esc(title)}</span>${mcq?' <span class="feed-mcq-tag"><i class="fas fa-question-circle"></i>MCQ</span>':''} <span class="feed-views">· ${fmtNum(article.views||0)} views</span><span class="feed-colon">:</span>
-    ${bodyHTML}
-  </span>`;
-}
-
-/* ══ INLINE LIBRARY FIGURE (keeps the library's image, per user request,
-   without reverting to a masonry tile — a small horizontal card that
-   breaks the text column like a pull-quote figure) ══ */
-function buildLibraryFigureHTML(lib, articleCount){
-  const name = lib.name || 'Untitled Library';
-  const isSaved = isLibSaved(lib.id);
-  const imgHTML = lib.thumbnail_url
-    ? `<img src="${esc(lib.thumbnail_url)}" alt="${esc(name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex')">`
-    : '';
-  return `<span class="feed-lib-figure" data-lib-id="${esc(String(lib.id))}" data-nav="https://patholytica.com/dailyfeed?playlist=${lib.id}">
-    <span class="feed-lib-card">
-      <span class="feed-lib-img-wrap">
-        ${imgHTML}
-        <span class="feed-lib-img-fallback" style="${lib.thumbnail_url?'display:none;':''}"><i class="fas fa-layer-group"></i></span>
-      </span>
-      <span class="feed-lib-body">
-        <span class="feed-lib-kicker"><i class="fas fa-layer-group"></i> Library</span>
-        <span class="feed-lib-name">${esc(name)}</span>
-        <span class="feed-lib-count">${articleCount||0} article${articleCount!==1?'s':''}<span class="feed-lib-saved-mark" style="display:${isSaved?'inline':'none'};"> · saved</span></span>
-      </span>
-    </span>
-  </span>`;
-}
-
-/* ══ MAIN LOADER ══ */
-async function fetchAllArticles(){
-  if(allArticles!==null) return;
-  const{data,error}=await supabase.from('articles')
-    .select('*').order('created_at',{ascending:false}).limit(300);
-  if(error) throw error;
-  allArticles=data||[];
-  shuffledArts=weightedShuffle(allArticles);
-}
-
-// libExhausted tracks whether the paginated `.range()` library query has
-// run past the end of the table. Without this, once libOffset exceeds
-// the row count, PostgREST/Supabase returns a range error, the whole
-// try block throws, and execution jumps straight to catch — which never
-// restored the "Load more" button. That's the actual root cause of the
-// original "works once & then disappears" bug: the button was left
-// permanently stuck mid-spinner because a thrown error skipped the
-// re-enable code entirely. The real fix is two-fold: (1) never let the
-// libraries query run past what's available, and (2) make the catch
-// block always restore the button to a clickable state no matter what
-// failed, so a transient error never permanently breaks pagination.
-let libExhausted = false;
-
-async function loadBatch(isInitial=true){
-  if(artLoading)return;
-  if(!isInitial && !artHasMore) return;
-  artLoading=true;
-  const grid=document.getElementById('mainGrid');
-  const lmw=document.getElementById('loadMoreWrap');
-  const lmb=document.getElementById('loadMoreBtn');
-  try{
-    if(isInitial){
-      await fetchAllArticles();
-      await fetchMediaPool();
-    }
-    const batch=shuffledArts.slice(artOffset,artOffset+ART_BATCH);
-    artOffset+=batch.length;
-    artHasMore = artOffset < shuffledArts.length;
-    if(!batch.length){ artHasMore=false; }
-    else{
-      const authorUids=[...new Set(batch.map(a=>a.firebase_user_id).filter(Boolean))];
-      let authorMap={};
-      if(authorUids.length){
-        const{data:authors}=await supabase.from('users').select('firebase_uid,username').in('firebase_uid',authorUids);
-        (authors||[]).forEach(u=>{authorMap[u.firebase_uid]=u.username?`@${u.username}`:'Unknown';});
-      }
-
-      let libs=[];
-      if(!libExhausted){
-        const{data:libData,error:libErr}=await supabase.from('playlists').select('*')
-          .not('name','like','algotag(%')
-          .order('created_at',{ascending:false}).range(libOffset,libOffset+LIB_PER_BATCH-1);
-        if(libErr){
-          // Range exhausted or otherwise failed — stop paginating libraries
-          // going forward, but don't let it break article pagination.
-          libExhausted=true;
-        }else{
-          libs=libData||[];
-          libOffset+=libs.length;
-          if(libs.length<LIB_PER_BATCH) libExhausted=true;
-        }
-      }
-
-      const libIds=libs.map(l=>l.id);
-      let libCountMap={};
-      if(libIds.length){
-        const{data:irows}=await supabase.from('playlist_items').select('playlist_id').in('playlist_id',libIds);
-        (irows||[]).forEach(r=>{libCountMap[r.playlist_id]=(libCountMap[r.playlist_id]||0)+1;});
-      }
-      let sortedLibs=[...libs];
-      if(userFavourites.size>0){
-        const saved=sortedLibs.filter(l=>userFavourites.has(String(l.id))).slice(0,5);
-        const unsaved=sortedLibs.filter(l=>!userFavourites.has(String(l.id)));
-        sortedLibs=[...saved,...unsaved];
-      }
-
-      let libIdx=0;
-      let html='';
-      batch.forEach((art,i)=>{
-        const authorName = art.firebase_user_id ? (authorMap[art.firebase_user_id]||'Unknown') : 'Unknown';
-        let inlineAudio=null;
-        // Weave in an inline audio pill roughly every 4th entry (matches
-        // the density of the reference mockup) when the media pool has
-        // an item to offer.
-        if((i+1)%4===0 && mediaPool.length){
-          inlineAudio = mediaPool[mediaPoolOffset % mediaPool.length];
-          mediaPoolOffset++;
-        }
-        html += buildArticleEntryHTML(art, authorName, inlineAudio) + '\n';
-        // Weave a library figure in every 5th slot — keeps libraries
-        // present without crowding the reading rhythm.
-        if((i+1)%5===0 && libIdx<sortedLibs.length){
-          const lib=sortedLibs[libIdx++];
-          html += buildLibraryFigureHTML(lib, libCountMap[lib.id]||0) + '\n';
-        }
+      appendPublishLog('info', 'Linking ' + createdArticleIds.length + ' article(s) to the library…');
+      var itemRows = createdArticleIds.map(function(articleId, pos) {
+        return { playlist_id: libId, article_id: articleId, position: pos };
       });
-      while(libIdx<sortedLibs.length){
-        const l=sortedLibs[libIdx++];
-        html += buildLibraryFigureHTML(l, libCountMap[l.id]||0) + '\n';
-      }
-      grid.insertAdjacentHTML('beforeend', html);
-      if(window._applyJustifyPref) window._applyJustifyPref();
+      var itemsRes = await sbClient.from(plItemsTable).insert(itemRows);
+      if (itemsRes.error) throw itemsRes.error;
+      appendPublishLog('ok', 'All articles linked');
+
+      doneSteps++;
+      setPublishProgress(100);
+
+      var summary = createdArticleIds.length + ' article' + (createdArticleIds.length !== 1 ? 's' : '') + ' published' +
+        (failedCount > 0 ? ', ' + failedCount + ' failed' : '') + '.';
+      showPublishDone(true, 'Library published', summary);
+      showToast(summary, failedCount > 0 ? 'warning' : 'success');
+    } catch (err) {
+      console.error(err);
+      appendPublishLog('err', 'Publish failed: ' + err.message);
+      setPublishProgress(100);
+      showPublishDone(false, 'Publish failed', err.message);
     }
-    if(artHasMore){lmw.style.display='block';lmb.disabled=false;lmb.innerHTML='<i class="fas fa-chevron-down"></i> Load more';}
-    else lmw.style.display='none';
-  }catch(e){
-    console.error(e);
-    if(isInitial){
-      grid.innerHTML+=`<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Failed to load</p></div>`;
-    }
-    // Always restore the button to a working state on failure — a
-    // transient/one-off error should never permanently disable
-    // pagination. Re-check artHasMore so a real end-of-list still
-    // hides the button correctly instead of showing a dead-end retry.
-    if(lmw&&lmb){
-      if(artHasMore){
-        lmw.style.display='block';
-        lmb.disabled=false;
-        lmb.innerHTML='<i class="fas fa-chevron-down"></i> Load more';
-      }else{
-        lmw.style.display='none';
-      }
-    }
-  }finally{
-    artLoading=false;
   }
-}
 
-// Single delegated click/keyboard handler for the whole feed — entries
-// and library figures both carry data-nav, so one listener covers both,
-// same pattern as the reference mockup's entry.click handler.
-document.getElementById('mainGrid').addEventListener('click', function(e){
-  if(e.target.closest('.feed-audio-pill')) return; // pill handles its own click + stopPropagation
-  const el = e.target.closest('.feed-entry, .feed-lib-figure');
-  if(!el) return;
-  const url = el.getAttribute('data-nav');
-  if(url) location.href = url;
-});
-document.getElementById('mainGrid').addEventListener('keydown', function(e){
-  if(e.key!=='Enter' && e.key!==' ') return;
-  const el = e.target.closest('.feed-entry');
-  if(!el) return;
-  e.preventDefault();
-  const url = el.getAttribute('data-nav');
-  if(url) location.href = url;
-});
+  function showPublishDone(success, title, sub) {
+    var panel = document.getElementById('publishPanel');
+    var iconHtml = success
+      ? '<div class="done-icon"><i class="fa fa-check"></i></div>'
+      : '<div class="done-icon" style="background:rgba(192,98,74,.12);border-color:rgba(192,98,74,.4);color:var(--danger)"><i class="fa fa-triangle-exclamation"></i></div>';
 
-window.loadMore=async function(){
-  const btn=document.getElementById('loadMoreBtn');
-  btn.disabled=true;btn.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Loading…';
-  await loadBatch(false);
-};
+    var existingLog = document.getElementById('publishLog').outerHTML;
 
-loadCreators();
-loadTopicsStrip();
-loadBatch(true);
+    panel.innerHTML = iconHtml +
+      '<div class="sp-title">' + escHtml(title) + '</div>' +
+      '<div class="sp-sub">' + escHtml(sub) + '</div>' +
+      existingLog +
+      '<div class="done-actions">' +
+        '<button class="btn-back" id="btnStartOver"><i class="fa fa-rotate-left"></i> Start over</button>' +
+      '</div>';
+
+    document.getElementById('btnStartOver').addEventListener('click', resetTool);
+  }
+
+  function resetTool() {
+    pdfFile = null; extractedText = ''; extractedPageCount = 0;
+    libraryName = ''; libraryDesc = ''; reviewArticles = [];
+    document.getElementById('pdfInput').value = '';
+    document.getElementById('fileChipWrap').innerHTML = '';
+    document.getElementById('extractProgress').style.display = 'none';
+    document.getElementById('btnToStep2').disabled = true;
+    document.getElementById('structureNotes').value = '';
+    document.getElementById('libNameInput').value = '';
+    document.getElementById('libDescInput').value = '';
+    goToStep(1);
+  }
+
+  function clearPublishLog() {
+    var log = document.getElementById('publishLog');
+    if (log) log.innerHTML = '';
+    // Reset the panel back to its in-progress markup in case a previous
+    // run replaced it with the done-state markup via showPublishDone().
+    document.getElementById('publishPanel').innerHTML =
+      '<div class="sp-icon thinking"><i class="fa fa-cloud-arrow-up"></i></div>' +
+      '<div class="sp-title">Publishing…</div>' +
+      '<div class="publish-progress-wrap"><div class="publish-progress-fill" id="publishProgressFill"></div></div>' +
+      '<div class="publish-log" id="publishLog"></div>';
+  }
+
+  function setPublishProgress(pct) {
+    var fill = document.getElementById('publishProgressFill');
+    if (fill) fill.style.width = pct + '%';
+  }
+
+  function appendPublishLog(type, msg) {
+    var log = document.getElementById('publishLog');
+    if (!log) return;
+    var el = document.createElement('div');
+    el.className = 'log-entry ' + type;
+    el.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // SHARED UI HELPERS
+  // ══════════════════════════════════════════════════════════
+  function showToast(msg, type) {
+    var el = document.getElementById('toast');
+    var icon = type === 'success' ? '✓' : type === 'error' ? '⚠' : type === 'warning' ? '!' : 'ℹ';
+    el.className = 'show ' + (type || '');
+    el.innerHTML = '<span>' + icon + '</span><span>' + escHtml(msg) + '</span>';
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { el.className = ''; }, 3600);
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+})();
 </script>
-
 </body>
 </html>
