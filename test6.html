@@ -360,7 +360,7 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
         <div style="display:flex;gap:10px">
           <button class="btn-back" id="btnBackTo1"><i class="fa fa-arrow-left"></i> Back</button>
           <button class="btn btn-primary" id="btnApplyToAll" style="width:auto;padding:10px 20px">
-            Apply to all pages <i class="fa fa-arrow-right"></i>
+            Apply to this batch <i class="fa fa-arrow-right"></i>
           </button>
         </div>
       </div>
@@ -380,13 +380,15 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
         </div>
       </div>
 
+      <div class="step-note" id="batchProgressNote" style="margin-bottom:14px"></div>
+
       <div class="page-grid" id="pageGrid"></div>
 
       <div class="review-footer">
         <div class="review-footer-left" id="reviewFooterNote">Tap a page to fine-tune it individually, or use the × to exclude it from publishing.</div>
         <div class="review-footer-right">
           <button class="btn-back" id="btnBackTo2"><i class="fa fa-arrow-left"></i> Back</button>
-          <button class="btn-publish" id="btnPublish"><i class="fa fa-paper-plane"></i> Publish Library</button>
+          <button class="btn-publish" id="btnPublish"><i class="fa fa-paper-plane"></i> <span id="btnPublishLabel">Publish Library</span></button>
         </div>
       </div>
     </div>
@@ -460,6 +462,7 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
   var K_MIN = 0.08;
   var K_MAX = 0.55;
   var RENDER_SCALE = 2.0;      // pdf.js render scale — page canvas resolution before the MAX_DIM cap
+  var BATCH_SIZE = 100;        // pages rendered/held in memory at a time — keeps memory bounded on large PDFs
 
   var OPENROUTER_ENDEP = null; // unused here, kept out intentionally — no AI step in this tool
 
@@ -475,11 +478,15 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
   var pdfDoc = null;           // pdf.js document proxy
   var pageCount = 0;
 
-  // One entry per PDF page. `raw` is the untouched rendered-page canvas
-  // (built once). `settings` is either null (use global) or a per-page
-  // override { sensitivity, bgMode, inkColor }. `excluded` skips publish.
-  // `filtered` caches the last-rendered result canvas + a flag so the
-  // review grid doesn't recompute a page's filter on every render.
+  // One entry per PAGE IN THE CURRENT BATCH ONLY (never the whole PDF —
+  // that's the point of batching). `raw` is the untouched rendered-page
+  // canvas. `settings` is either null (use global) or a per-page override
+  // { sensitivity, bgMode, inkColor }. `excluded` skips publish. `filtered`
+  // caches the last-rendered result canvas + a dirty flag so review/publish
+  // don't recompute a page's filter unless something about it changed.
+  // `index` is the page's ABSOLUTE 0-based position in the whole PDF, not
+  // its position within this batch — used for the "Page N" article label
+  // and for resuming from the right spot in renderNextBatch().
   var pages = []; // { index, raw: canvas, settings: null|{...}, excluded: bool, filtered: canvas|null, filteredDirty: bool }
 
   var globalSettings = { sensitivity: 50, bgMode: 'transparent', inkColor: { r: 0x14, g: 0x12, b: 0x0f } };
@@ -487,8 +494,19 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
   var libraryName = '';
   var libraryDesc = '';
 
-  var previewPageIndex = 0;    // which page step-2's single preview is showing
-  var tuneModalPageIndex = null;
+  // Batch/cross-batch publish state. batchStart is the absolute page index
+  // (0-based) where the CURRENT batch begins; the batch covers
+  // [batchStart, batchStart + pages.length). libraryId is null until the
+  // first batch's publish creates the library row, then every later batch
+  // reuses it instead of creating a new one. publishedCount is a running
+  // total across all batches so far, purely for the "N of TOTAL published"
+  // messaging — it does not gate anything.
+  var batchStart = 0;
+  var libraryId = null;
+  var publishedCount = 0;
+
+  var previewPageIndex = 0;    // index INTO `pages` (i.e. batch-relative) that step-2's preview is showing
+  var tuneModalPageIndex = null; // also batch-relative, indexes into `pages`
 
   // ══════════════════════════════════════════════════════════
   // BOOT
@@ -777,7 +795,7 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
   }
 
   // ══════════════════════════════════════════════════════════
-  // STEP 1 — PDF UPLOAD + PER-PAGE RENDERING
+  // STEP 1 — PDF UPLOAD + FIRST-BATCH RENDERING
   // ══════════════════════════════════════════════════════════
   async function handlePdfFile(file) {
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
@@ -788,6 +806,9 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
     renderFileChip();
     document.getElementById('btnToStep2').disabled = true;
     pages = [];
+    batchStart = 0;
+    libraryId = null;
+    publishedCount = 0;
 
     var progressWrap = document.getElementById('extractProgress');
     var statusEl = document.getElementById('extractStatus');
@@ -800,7 +821,7 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
       var buffer = await file.arrayBuffer();
       statusEl.textContent = 'Parsing PDF…';
       var pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
-      pdfDoc = pdf;
+      pdfDoc = pdf; // kept alive for the whole session — later batches call pdf.getPage() again
       pageCount = pdf.numPages;
 
       if (pageCount === 0) {
@@ -810,21 +831,12 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
         return;
       }
 
-      for (var i = 1; i <= pageCount; i++) {
-        statusEl.textContent = 'Rendering page ' + i + ' of ' + pageCount + '…';
-        var raw = await renderPdfPageToCanvas(pdf, i);
-        pages.push({
-          index: i - 1,
-          raw: raw,
-          settings: null,      // null = use global settings
-          excluded: false,
-          filtered: null,
-          filteredDirty: true
-        });
-        fillEl.style.width = Math.round((i / pageCount) * 100) + '%';
-      }
+      await renderBatch(0);
 
-      statusEl.textContent = 'Rendered ' + pageCount + ' page' + (pageCount !== 1 ? 's' : '') + ' — ready to tune the scan filter';
+      var batchLabel = pageCount > BATCH_SIZE
+        ? 'Rendered pages 1–' + pages.length + ' of ' + pageCount + ' (batch 1 of ' + Math.ceil(pageCount / BATCH_SIZE) + ') — ready to tune the scan filter'
+        : 'Rendered ' + pageCount + ' page' + (pageCount !== 1 ? 's' : '') + ' — ready to tune the scan filter';
+      statusEl.textContent = batchLabel;
       document.getElementById('btnToStep2').disabled = false;
       updateFileChipMeta(pageCount);
 
@@ -839,6 +851,37 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
     }
   }
 
+  // Renders pages [startIndex, startIndex + BATCH_SIZE) (clamped to
+  // pageCount) into a FRESH `pages` array, replacing whatever batch was
+  // there before. This is the one place that grows `pages` — every other
+  // function treats it as read/mutate-in-place, never append-only, which
+  // is what keeps memory bounded regardless of total PDF length.
+  async function renderBatch(startIndex) {
+    var progressWrap = document.getElementById('extractProgress');
+    var statusEl = document.getElementById('extractStatus');
+    var fillEl = document.getElementById('extractProgressFill');
+    progressWrap.style.display = 'block';
+
+    var endIndex = Math.min(startIndex + BATCH_SIZE, pageCount);
+    pages = [];
+    batchStart = startIndex;
+
+    for (var absIdx = startIndex; absIdx < endIndex; absIdx++) {
+      var posInBatch = absIdx - startIndex;
+      statusEl.textContent = 'Rendering page ' + (absIdx + 1) + ' of ' + pageCount + '…';
+      var raw = await renderPdfPageToCanvas(pdfDoc, absIdx + 1); // pdf.js pages are 1-indexed
+      pages.push({
+        index: absIdx, // absolute position in the full PDF
+        raw: raw,
+        settings: null,
+        excluded: false,
+        filtered: null,
+        filteredDirty: true
+      });
+      fillEl.style.width = Math.round(((posInBatch + 1) / (endIndex - startIndex)) * 100) + '%';
+    }
+  }
+
   function renderFileChip() {
     var wrap = document.getElementById('fileChipWrap');
     if (!pdfFile) { wrap.innerHTML = ''; return; }
@@ -850,7 +893,7 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
       '<button class="fc-remove" id="fcRemove"><i class="fa fa-times"></i></button>' +
     '</div>';
     document.getElementById('fcRemove').addEventListener('click', function() {
-      pdfFile = null; pdfDoc = null; pageCount = 0; pages = [];
+      pdfFile = null; pdfDoc = null; pageCount = 0; pages = []; batchStart = 0; libraryId = null; publishedCount = 0;
       wrap.innerHTML = '';
       document.getElementById('extractProgress').style.display = 'none';
       document.getElementById('btnToStep2').disabled = true;
@@ -860,7 +903,7 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
 
   function updateFileChipMeta(count) {
     var meta = document.getElementById('fcMeta');
-    if (meta) meta.textContent = count + ' page' + (count !== 1 ? 's' : '') + ' rendered';
+    if (meta) meta.textContent = count + ' page' + (count !== 1 ? 's' : '') + (count > BATCH_SIZE ? ' · batched ' + BATCH_SIZE + ' at a time' : ' rendered');
   }
 
   // ══════════════════════════════════════════════════════════
@@ -966,14 +1009,15 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
     renderStep2Preview();
   }
 
-  // Stamps the tuned global settings onto every page that doesn't already
-  // have its own per-page override, marks all of them dirty so review's
-  // thumbnails recompute with the new defaults, then moves into review.
+  // Marks every page in the CURRENT BATCH dirty so review's thumbnails
+  // recompute with the tuned global defaults, then moves into review.
+  // Pages that already carry a per-page override are untouched by this —
+  // "apply to batch" only affects pages still following the global.
   function applyGlobalToAllAndContinue() {
     pages.forEach(function(p) {
-      p.filteredDirty = true; // global changed, or a page still points at it — recompute either way
+      p.filteredDirty = true;
     });
-    document.getElementById('step2Note').textContent = 'Applied to ' + pages.length + ' page' + (pages.length !== 1 ? 's' : '') + '.';
+    document.getElementById('step2Note').textContent = 'Applied to this batch (' + pages.length + ' page' + (pages.length !== 1 ? 's' : '') + ').';
     renderReviewStep();
     goToStep(3);
   }
@@ -984,7 +1028,35 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
   function renderReviewStep() {
     document.getElementById('libNameInput').value = libraryName;
     document.getElementById('libDescInput').value = libraryDesc;
+    updateBatchProgressNote();
     renderReviewGrid();
+  }
+
+  function totalBatchCount() {
+    return Math.max(1, Math.ceil(pageCount / BATCH_SIZE));
+  }
+
+  function currentBatchNumber() {
+    return Math.floor(batchStart / BATCH_SIZE) + 1;
+  }
+
+  function isFinalBatch() {
+    return batchStart + pages.length >= pageCount;
+  }
+
+  function updateBatchProgressNote() {
+    var noteEl = document.getElementById('batchProgressNote');
+    var labelEl = document.getElementById('btnPublishLabel');
+    if (pageCount > BATCH_SIZE) {
+      var batchN = currentBatchNumber();
+      var total = totalBatchCount();
+      noteEl.textContent = 'Batch ' + batchN + ' of ' + total + ' — pages ' + (batchStart + 1) + '–' + (batchStart + pages.length) + ' of ' + pageCount +
+        (publishedCount > 0 ? ' (' + publishedCount + ' already published)' : '');
+      labelEl.textContent = isFinalBatch() ? 'Publish final batch' : 'Publish batch & continue';
+    } else {
+      noteEl.textContent = '';
+      labelEl.textContent = 'Publish Library';
+    }
   }
 
   function updateSummaryChips() {
@@ -1151,10 +1223,16 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
     if (included.length === 0) { showToast('Include at least one page first', 'error'); return; }
     if (!libraryName.trim()) { showToast('Enter a library name first', 'error'); return; }
 
+    var thisIsFinalBatch = isFinalBatch();
+    var batchN = currentBatchNumber();
+    var totalBatches = totalBatchCount();
+
     goToStep(4);
     clearPublishLog();
     setPublishProgress(0);
-    appendPublishLog('info', 'Starting publish of "' + libraryName + '" (' + included.length + ' of ' + pages.length + ' pages)…');
+    appendPublishLog('info', totalBatches > 1
+      ? 'Publishing batch ' + batchN + ' of ' + totalBatches + ' — "' + libraryName + '" (' + included.length + ' of ' + pages.length + ' pages in this batch)…'
+      : 'Starting publish of "' + libraryName + '" (' + included.length + ' of ' + pages.length + ' pages)…');
 
     var articlesTable = document.getElementById('sbTable').value.trim() || 'articles';
     var plTable = document.getElementById('plTable').value.trim() || 'playlists';
@@ -1164,7 +1242,10 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
 
     var createdArticleIds = [];
     var failedCount = 0;
-    var totalSteps = included.length + 1; // + 1 for the library creation itself
+    // +1 step for library create only on the batch that actually creates
+    // it (libraryId still null). Later batches reuse it, so their progress
+    // bar reflects only the per-page work — no dead step at the end.
+    var totalSteps = included.length + (libraryId ? 0 : 1);
     var doneSteps = 0;
 
     try {
@@ -1194,8 +1275,14 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
             var pub = sbClient.storage.from(mediaBucket).getPublicUrl(path);
             var publicUrl = pub.data.publicUrl;
 
+            // Caption always names the render scale the page was rasterized
+            // at, so "scale" appears in every image description alongside
+            // real page-specific information rather than as an inert
+            // fixed string.
+            var captionText = pageLabel + ' — scanned at ' + RENDER_SCALE + 'x render scale';
+
             var mediaRes = await sbClient.from(mediaTable).insert([{
-              article_id: artId, type: 'image', url: publicUrl, caption: null, display_order: 0
+              article_id: artId, type: 'image', url: publicUrl, caption: captionText, display_order: 0
             }]);
             if (mediaRes.error) throw mediaRes.error;
             appendPublishLog('ok', '  Page image uploaded and attached');
@@ -1214,37 +1301,62 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
       }
 
       if (createdArticleIds.length === 0) {
-        appendPublishLog('err', 'No pages were published — skipping library creation.');
+        appendPublishLog('err', 'No pages were published in this batch — skipping link step.');
         setPublishProgress(100);
-        showPublishDone(false, 'Nothing was published', 'All pages failed — check the log above and try again.');
+        showPublishDone(false, 'Nothing was published', 'All pages in this batch failed — check the log above and try again.');
         return;
       }
 
-      appendPublishLog('info', 'Creating library "' + libraryName + '"…');
-      var libRes = await sbClient
-        .from(plTable)
-        .insert([{ name: libraryName, description: libraryDesc || null }])
-        .select()
-        .single();
-      if (libRes.error) throw libRes.error;
-      var libId = libRes.data.id;
-      appendPublishLog('ok', 'Library created (id ' + libId + ')');
+      // Create the library once, on whichever batch first succeeds. Every
+      // later batch reuses libraryId — this is what lands every batch in
+      // ONE library instead of a new library per batch.
+      if (!libraryId) {
+        appendPublishLog('info', 'Creating library "' + libraryName + '"…');
+        var libRes = await sbClient
+          .from(plTable)
+          .insert([{ name: libraryName, description: libraryDesc || null }])
+          .select()
+          .single();
+        if (libRes.error) throw libRes.error;
+        libraryId = libRes.data.id;
+        appendPublishLog('ok', 'Library created (id ' + libraryId + ')');
+        doneSteps++;
+        setPublishProgress(Math.round((doneSteps / totalSteps) * 100));
+      } else {
+        appendPublishLog('info', 'Adding to existing library (id ' + libraryId + ')…');
+      }
 
       appendPublishLog('info', 'Linking ' + createdArticleIds.length + ' page(s) to the library, in order…');
-      var itemRows = createdArticleIds.map(function(articleId, pos) {
-        return { playlist_id: libId, article_id: articleId, position: pos };
+      // position continues from the running total across all batches so
+      // far, not from 0 each time, so batch 2's pages land after batch 1's
+      // in the library instead of overwriting or interleaving with them.
+      var itemRows = createdArticleIds.map(function(articleId, idx) {
+        return { playlist_id: libraryId, article_id: articleId, position: publishedCount + idx };
       });
       var itemsRes = await sbClient.from(plItemsTable).insert(itemRows);
       if (itemsRes.error) throw itemsRes.error;
       appendPublishLog('ok', 'All pages linked');
 
-      doneSteps++;
       setPublishProgress(100);
+      publishedCount += createdArticleIds.length;
 
-      var summary = createdArticleIds.length + ' page' + (createdArticleIds.length !== 1 ? 's' : '') + ' published' +
+      var batchSummary = createdArticleIds.length + ' page' + (createdArticleIds.length !== 1 ? 's' : '') + ' published this batch' +
         (failedCount > 0 ? ', ' + failedCount + ' failed' : '') + '.';
-      showPublishDone(true, 'Library published', summary);
-      showToast(summary, failedCount > 0 ? 'warning' : 'success');
+
+      if (thisIsFinalBatch) {
+        var overallSummary = publishedCount + ' page' + (publishedCount !== 1 ? 's' : '') + ' published in total.';
+        appendPublishLog('ok', 'This was the final batch. ' + overallSummary);
+        showPublishDone(true, 'Library published', totalBatches > 1 ? overallSummary : batchSummary);
+        showToast(overallSummary, failedCount > 0 ? 'warning' : 'success');
+      } else {
+        appendPublishLog('info', 'Batch ' + batchN + ' of ' + totalBatches + ' complete. Rendering the next batch…');
+        showToast(batchSummary + ' Moving to the next batch…', failedCount > 0 ? 'warning' : 'success');
+        var nextStart = batchStart + pages.length;
+        await renderBatch(nextStart);
+        document.getElementById('extractProgress').style.display = 'none';
+        renderReviewStep(); // straight back to review with the next batch — global settings carry over automatically since step 2 isn't re-shown
+        goToStep(3);
+      }
     } catch (err) {
       console.error(err);
       appendPublishLog('err', 'Publish failed: ' + err.message);
@@ -1275,6 +1387,7 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
   function resetTool() {
     pdfFile = null; pdfDoc = null; pageCount = 0; pages = [];
     libraryName = ''; libraryDesc = '';
+    batchStart = 0; libraryId = null; publishedCount = 0;
     globalSettings = { sensitivity: 50, bgMode: 'transparent', inkColor: { r: 0x14, g: 0x12, b: 0x0f } };
     previewPageIndex = 0; tuneModalPageIndex = null;
 
@@ -1285,6 +1398,7 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
     document.getElementById('step2Note').textContent = '';
     document.getElementById('libNameInput').value = '';
     document.getElementById('libDescInput').value = '';
+    document.getElementById('batchProgressNote').textContent = '';
 
     reflectSettingsIntoControlSet(globalSettings, {
       slider: 'sensitivity', value: 'sensitivityValue',
