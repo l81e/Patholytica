@@ -1,1 +1,933 @@
-ok
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Scan — Patholytica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=Merriweather:ital,wght@1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void: #0a0a0c;
+    --void-2: #101012;
+    --panel: rgba(255,255,255,0.045);
+    --panel-border: rgba(255,255,255,0.09);
+    --gold: #f1d19e;
+    --gold-dim: rgba(241,209,158,0.16);
+    --gold-dimmer: rgba(241,209,158,0.08);
+    --ink-default: #14120f;
+    --text: #f2efe9;
+    --text-muted: #948f84;
+    --text-faint: #605c54;
+    --danger: #e07a5f;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body{
+    margin: 0;
+    height: 100%;
+    background: var(--void);
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    overscroll-behavior: none;
+  }
+
+  body{
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  button{
+    font-family: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+    border: none;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  button:focus-visible, input:focus-visible, [tabindex]:focus-visible{
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+
+  .eyebrow{
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  .serif-note{
+    font-family: 'Merriweather', serif;
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  /* ---------- top bar ---------- */
+  #topbar{
+    flex: 0 0 auto;
+    padding: calc(14px + var(--safe-top)) 20px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 20;
+    position: relative;
+  }
+
+  #topbar .title{
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  #topbar .title span{ color: var(--text-muted); font-weight: 400; }
+
+  #closeHint{
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+
+  /* ---------- stage (camera / canvas live here) ---------- */
+  #stage{
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 0 14px;
+    border-radius: 22px;
+    overflow: hidden;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #cameraVideo{
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #000;
+  }
+
+  /* checkerboard so transparent PNG result is legible */
+  .checker{
+    background-image:
+      linear-gradient(45deg, #1c1c1e 25%, transparent 25%),
+      linear-gradient(-45deg, #1c1c1e 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #1c1c1e 75%),
+      linear-gradient(-45deg, transparent 75%, #1c1c1e 75%);
+    background-size: 22px 22px;
+    background-position: 0 0, 0 11px, 11px -11px, -11px 0px;
+    background-color: #131315;
+  }
+
+  #resultWrap{
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  #resultWrap.white-bg{ background-color: #fdfcf9; }
+
+  #previewCanvas{
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  /* paper-dissolve reveal sweep */
+  #revealSweep{
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 0%, rgba(241,209,158,0.35) 48%, transparent 58%);
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+
+  #revealSweep.playing{
+    animation: sweep 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  @keyframes sweep{
+    0%{ transform: translateX(-120%); opacity: 1; }
+    70%{ opacity: 1; }
+    100%{ transform: translateX(120%); opacity: 0; }
+  }
+
+  /* scan guide frame over live camera */
+  #guideFrame{
+    position: absolute;
+    inset: 28px;
+    border: 1.5px dashed rgba(241,209,158,0.55);
+    border-radius: 14px;
+    pointer-events: none;
+  }
+
+  #guideFrame::before{
+    content: 'Fill the frame with the page';
+    position: absolute;
+    top: -30px;
+    left: 0;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  #processingOverlay{
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10,10,12,0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 5;
+  }
+
+  .spinner{
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 2.5px solid rgba(241,209,158,0.2);
+    border-top-color: var(--gold);
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  /* ---------- capture controls (over camera) ---------- */
+  #captureBar{
+    position: absolute;
+    left: 0; right: 0; bottom: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 34px;
+    z-index: 10;
+  }
+
+  #uploadFallback{
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.14);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  #shutterBtn{
+    width: 74px; height: 74px;
+    border-radius: 50%;
+    background: var(--gold);
+    border: 4px solid rgba(241,209,158,0.28);
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.3);
+    position: relative;
+    transition: transform 0.15s ease;
+  }
+
+  #shutterBtn:active{ transform: scale(0.9); }
+
+  #rotatePreCapture{
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.14);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  #cameraError{
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 30px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  /* ---------- bottom dock (glass panel, editing controls) ---------- */
+  #dock{
+    flex: 0 0 auto;
+    margin: 12px 14px calc(14px + var(--safe-bottom));
+    padding: 16px 18px calc(16px + var(--safe-bottom) * 0);
+    border-radius: 22px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+    z-index: 20;
+  }
+
+  .row{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .field-label{
+    font-size: 12.5px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .field-value{
+    font-size: 12px;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* sensitivity slider */
+  #sensitivity{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 30px;
+    background: transparent;
+  }
+
+  #sensitivity::-webkit-slider-runnable-track{
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, rgba(241,209,158,0.15), rgba(241,209,158,0.6));
+  }
+
+  #sensitivity::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    margin-top: -8px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    border: 2px solid var(--void);
+  }
+
+  #sensitivity::-moz-range-track{
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, rgba(241,209,158,0.15), rgba(241,209,158,0.6));
+  }
+
+  #sensitivity::-moz-range-thumb{
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--gold);
+    border: 2px solid var(--void);
+  }
+
+  .slider-endcaps{
+    display: flex;
+    justify-content: space-between;
+    font-size: 10.5px;
+    color: var(--text-faint);
+    margin-top: -6px;
+  }
+
+  /* segmented control for bg toggle */
+  .segmented{
+    display: flex;
+    background: rgba(0,0,0,0.3);
+    border-radius: 11px;
+    padding: 3px;
+    gap: 3px;
+  }
+
+  .segmented button{
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-muted);
+    border-radius: 8px;
+    transition: background 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .segmented button.active{
+    background: var(--gold);
+    color: #1a1508;
+  }
+
+  /* ink color swatches */
+  #inkSwatches{
+    display: flex;
+    gap: 9px;
+    align-items: center;
+  }
+
+  .swatch{
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    position: relative;
+  }
+
+  .swatch.active{ border-color: var(--gold); }
+
+  .swatch.active::after{
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+    border: 1px solid rgba(241,209,158,0.35);
+  }
+
+  #customSwatch{
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: none;
+    padding: 0;
+    background: none;
+    overflow: hidden;
+  }
+  #customSwatch::-webkit-color-swatch-wrapper{ padding: 0; }
+  #customSwatch::-webkit-color-swatch{ border: 2px solid rgba(255,255,255,0.25); border-radius: 50%; }
+
+  /* action row */
+  #actionRow{
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn{
+    flex: 1;
+    padding: 13px 14px;
+    border-radius: 13px;
+    font-size: 13.5px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+  }
+
+  .btn-ghost{
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .btn-gold{
+    background: var(--gold);
+    color: #1a1508;
+  }
+
+  .btn-gold:active, .btn-ghost:active{ opacity: 0.75; }
+
+  #toast{
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    transform: translateX(-50%) translateY(10px);
+    background: rgba(20,18,15,0.95);
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    font-size: 12.5px;
+    padding: 10px 16px;
+    border-radius: 30px;
+    opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 100;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  #toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  svg{ display: block; }
+
+  @media (prefers-reduced-motion: reduce){
+    #revealSweep.playing{ animation: none; }
+    .spinner{ animation: none; }
+  }
+</style>
+</head>
+<body>
+
+  <div id="topbar">
+    <div class="title">Scan <span class="serif-note">— ink from paper</span></div>
+    <div id="closeHint"></div>
+  </div>
+
+  <div id="stage">
+    <video id="cameraVideo" autoplay playsinline muted></video>
+    <div id="guideFrame"></div>
+
+    <div id="cameraError">
+      <div>Camera isn't available here.</div>
+      <div>Use the upload button below to pick a photo instead.</div>
+    </div>
+
+    <div id="captureBar">
+      <button id="rotatePreCapture" title="Switch camera" aria-label="Switch camera">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f2efe9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      </button>
+      <button id="shutterBtn" aria-label="Capture photo"></button>
+      <button id="uploadFallback" title="Upload a photo" aria-label="Upload a photo">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#f2efe9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      </button>
+      <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none">
+    </div>
+
+    <div id="resultWrap" class="checker">
+      <canvas id="previewCanvas"></canvas>
+      <div id="revealSweep"></div>
+    </div>
+
+    <div id="processingOverlay"><div class="spinner"></div></div>
+  </div>
+
+  <div id="dock">
+
+    <div>
+      <div class="row">
+        <div class="field-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 2"/></svg>
+          Sensitivity
+        </div>
+        <div class="field-value" id="sensitivityValue">50</div>
+      </div>
+      <input type="range" id="sensitivity" min="0" max="100" value="50" step="1">
+      <div class="slider-endcaps"><span>Clean</span><span>Catch faint marks</span></div>
+    </div>
+
+    <div class="row">
+      <div class="field-label">Background</div>
+      <div class="segmented" id="bgToggle" style="flex: 0 0 auto; width: 180px;">
+        <button data-bg="transparent" class="active">Transparent</button>
+        <button data-bg="white">White</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field-label">Ink color</div>
+      <div id="inkSwatches">
+        <button class="swatch active" data-color="#14120f" style="background:#14120f" aria-label="Black ink"></button>
+        <button class="swatch" data-color="#1d3a8f" style="background:#1d3a8f" aria-label="Blue ink"></button>
+        <button class="swatch" data-color="#f1d19e" style="background:#f1d19e" aria-label="Gold ink"></button>
+        <input type="color" id="customSwatch" value="#14120f" aria-label="Custom ink color">
+      </div>
+    </div>
+
+    <div id="actionRow">
+      <button class="btn btn-ghost" id="retakeBtn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+        Retake
+      </button>
+      <button class="btn btn-ghost" id="rotateBtn" title="Rotate 90°">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3"/><path d="M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
+        Rotate
+      </button>
+      <button class="btn btn-gold" id="downloadBtn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a1508" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Save PNG
+      </button>
+    </div>
+
+  </div>
+
+  <div id="toast"></div>
+
+  <canvas id="workCanvas" style="display:none"></canvas>
+
+<script>
+(function(){
+  'use strict';
+
+  // ================= constants =================
+  const MAX_DIM = 1800;        // working resolution cap (long edge, px)
+  const WINDOW_RADIUS = 12;    // local window radius for Sauvola (window = 25x25)
+  const R_CONST = 128;         // Sauvola normalization constant for 8-bit stddev
+  const SOFTNESS = 18;         // gray-level width of the anti-aliased edge transition
+  const K_MIN = 0.08;
+  const K_MAX = 0.55;
+
+  // ================= state =================
+  const state = {
+    stream: null,
+    facingMode: 'environment',
+    sourceCanvas: null,   // committed working image (post downscale, post rotation)
+    width: 0,
+    height: 0,
+    gray: null,           // Float64Array
+    integral: null,       // Float64Array
+    integralSq: null,     // Float64Array
+    alpha: null,          // Float32Array, last computed alpha map
+    bgMode: 'transparent',
+    inkColor: { r: 0x14, g: 0x12, b: 0x0f },
+    hasResult: false
+  };
+
+  // ================= dom refs =================
+  const els = {
+    video: document.getElementById('cameraVideo'),
+    guideFrame: document.getElementById('guideFrame'),
+    cameraError: document.getElementById('cameraError'),
+    captureBar: document.getElementById('captureBar'),
+    shutterBtn: document.getElementById('shutterBtn'),
+    switchCamBtn: document.getElementById('rotatePreCapture'),
+    uploadFallback: document.getElementById('uploadFallback'),
+    fileInput: document.getElementById('fileInput'),
+    resultWrap: document.getElementById('resultWrap'),
+    previewCanvas: document.getElementById('previewCanvas'),
+    revealSweep: document.getElementById('revealSweep'),
+    processingOverlay: document.getElementById('processingOverlay'),
+    workCanvas: document.getElementById('workCanvas'),
+    dock: document.getElementById('dock'),
+    sensitivity: document.getElementById('sensitivity'),
+    sensitivityValue: document.getElementById('sensitivityValue'),
+    bgToggle: document.getElementById('bgToggle'),
+    inkSwatches: document.getElementById('inkSwatches'),
+    customSwatch: document.getElementById('customSwatch'),
+    retakeBtn: document.getElementById('retakeBtn'),
+    rotateBtn: document.getElementById('rotateBtn'),
+    downloadBtn: document.getElementById('downloadBtn'),
+    toast: document.getElementById('toast')
+  };
+
+  // ================= utilities =================
+  function clamp(v, lo, hi){ return v < lo ? lo : (v > hi ? hi : v); }
+
+  let toastTimer = null;
+  function showToast(msg){
+    els.toast.textContent = msg;
+    els.toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2200);
+  }
+
+  function hexToRgb(hex){
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return m ? { r: parseInt(m[1],16), g: parseInt(m[2],16), b: parseInt(m[3],16) } : { r:0, g:0, b:0 };
+  }
+
+  // ================= camera =================
+  async function startCamera(){
+    stopCamera();
+    els.cameraError.style.display = 'none';
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: { ideal: state.facingMode },
+          width: { ideal: 1920 },
+          height: { ideal: 1920 }
+        }
+      });
+      state.stream = stream;
+      els.video.srcObject = stream;
+      els.video.style.display = '';
+      els.guideFrame.style.display = '';
+      els.shutterBtn.style.display = '';
+      els.switchCamBtn.style.display = '';
+    }catch(err){
+      els.video.style.display = 'none';
+      els.guideFrame.style.display = 'none';
+      els.cameraError.style.display = 'flex';
+      els.shutterBtn.style.display = 'none';
+      els.switchCamBtn.style.display = 'none';
+    }
+  }
+
+  function stopCamera(){
+    if(state.stream){
+      state.stream.getTracks().forEach(t => t.stop());
+      state.stream = null;
+    }
+  }
+
+  els.switchCamBtn.addEventListener('click', () => {
+    state.facingMode = state.facingMode === 'environment' ? 'user' : 'environment';
+    startCamera();
+  });
+
+  els.uploadFallback.addEventListener('click', () => els.fileInput.click());
+
+  // ================= capture flow =================
+  function showCaptureScreen(){
+    state.hasResult = false;
+    els.resultWrap.style.display = 'none';
+    els.dock.style.display = 'none';
+    els.captureBar.style.display = 'flex';
+    startCamera();
+  }
+
+  function showResultScreen(){
+    els.captureBar.style.display = 'none';
+    els.cameraError.style.display = 'none';
+    stopCamera();
+    els.resultWrap.style.display = 'flex';
+    els.dock.style.display = 'flex';
+    state.hasResult = true;
+  }
+
+  els.shutterBtn.addEventListener('click', () => {
+    if(!state.stream) return;
+    const vw = els.video.videoWidth, vh = els.video.videoHeight;
+    if(!vw || !vh) return;
+    const tmp = document.createElement('canvas');
+    tmp.width = vw; tmp.height = vh;
+    tmp.getContext('2d').drawImage(els.video, 0, 0, vw, vh);
+    commitSource(tmp, vw, vh);
+  });
+
+  els.fileInput.addEventListener('change', (evt) => {
+    const file = evt.target.files && evt.target.files[0];
+    if(!file) return;
+    const img = new Image();
+    img.onload = () => {
+      const tmp = document.createElement('canvas');
+      tmp.width = img.naturalWidth; tmp.height = img.naturalHeight;
+      tmp.getContext('2d').drawImage(img, 0, 0);
+      commitSource(tmp, img.naturalWidth, img.naturalHeight);
+      URL.revokeObjectURL(img.src);
+    };
+    img.src = URL.createObjectURL(file);
+    els.fileInput.value = '';
+  });
+
+  // Downscale the raw capture into state.sourceCanvas at MAX_DIM, then run the pipeline.
+  function commitSource(rawCanvas, rawW, rawH){
+    const scale = Math.min(1, MAX_DIM / Math.max(rawW, rawH));
+    const w = Math.max(1, Math.round(rawW * scale));
+    const h = Math.max(1, Math.round(rawH * scale));
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.getContext('2d').drawImage(rawCanvas, 0, 0, w, h);
+    state.sourceCanvas = c;
+    showResultScreen();
+    reprocessFromSource(true);
+  }
+
+  els.retakeBtn.addEventListener('click', showCaptureScreen);
+
+  els.rotateBtn.addEventListener('click', () => {
+    if(!state.sourceCanvas) return;
+    const src = state.sourceCanvas;
+    const rotated = document.createElement('canvas');
+    rotated.width = src.height;
+    rotated.height = src.width;
+    const ctx = rotated.getContext('2d');
+    ctx.translate(rotated.width / 2, rotated.height / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(src, -src.width / 2, -src.height / 2);
+    state.sourceCanvas = rotated;
+    reprocessFromSource(false);
+  });
+
+  // ================= grayscale + integral images =================
+  // Integral images give O(1) lookup of the sum (and sum-of-squares) over any
+  // rectangular window, so local mean/stddev for Sauvola thresholding can be
+  // recomputed cheaply. This one O(w*h) pass runs once per capture/rotation;
+  // it does NOT depend on the sensitivity slider.
+  function computeGrayscaleAndIntegrals(){
+    const c = state.sourceCanvas;
+    const w = c.width, h = c.height;
+    const ctx = c.getContext('2d');
+    const data = ctx.getImageData(0, 0, w, h).data;
+
+    const gray = new Float64Array(w * h);
+    for(let i = 0, p = 0; i < data.length; i += 4, p++){
+      // standard luminance weights
+      gray[p] = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+    }
+
+    const integral = new Float64Array(w * h);
+    const integralSq = new Float64Array(w * h);
+    for(let y = 0; y < h; y++){
+      let rowSum = 0, rowSumSq = 0;
+      const rowOff = y * w;
+      const prevRowOff = rowOff - w;
+      for(let x = 0; x < w; x++){
+        const v = gray[rowOff + x];
+        rowSum += v;
+        rowSumSq += v * v;
+        const above = y === 0 ? 0 : integral[prevRowOff + x];
+        const aboveSq = y === 0 ? 0 : integralSq[prevRowOff + x];
+        integral[rowOff + x] = rowSum + above;
+        integralSq[rowOff + x] = rowSumSq + aboveSq;
+      }
+    }
+
+    state.width = w;
+    state.height = h;
+    state.gray = gray;
+    state.integral = integral;
+    state.integralSq = integralSq;
+    state.alpha = new Float32Array(w * h);
+  }
+
+  function regionSum(table, w, h, x1, y1, x2, y2){
+    if(x1 < 0) x1 = 0;
+    if(y1 < 0) y1 = 0;
+    if(x2 > w - 1) x2 = w - 1;
+    if(y2 > h - 1) y2 = h - 1;
+    const A = (x1 > 0 && y1 > 0) ? table[(y1-1)*w + (x1-1)] : 0;
+    const B = (y1 > 0) ? table[(y1-1)*w + x2] : 0;
+    const C = (x1 > 0) ? table[y2*w + (x1-1)] : 0;
+    const D = table[y2*w + x2];
+    return D - B - C + A;
+  }
+
+  function sensitivityToK(sliderVal){
+    return K_MIN + (sliderVal / 100) * (K_MAX - K_MIN);
+  }
+
+  // Sauvola adaptive binarization with a soft (anti-aliased) edge, driven by k.
+  // Runs on every slider move — cheap, since it reuses the cached integrals.
+  function computeAlphaMap(k){
+    const { gray, integral, integralSq, width: w, height: h, alpha } = state;
+    const r = WINDOW_RADIUS;
+    for(let y = 0; y < h; y++){
+      const y1 = y - r, y2 = y + r;
+      for(let x = 0; x < w; x++){
+        const x1 = x - r, x2 = x + r;
+        const cx1 = x1 < 0 ? 0 : x1, cy1 = y1 < 0 ? 0 : y1;
+        const cx2 = x2 > w-1 ? w-1 : x2, cy2 = y2 > h-1 ? h-1 : y2;
+        const count = (cx2 - cx1 + 1) * (cy2 - cy1 + 1);
+
+        const sum = regionSum(integral, w, h, x1, y1, x2, y2);
+        const sumSq = regionSum(integralSq, w, h, x1, y1, x2, y2);
+        const mean = sum / count;
+        const variance = Math.max(0, sumSq / count - mean * mean);
+        const stddev = Math.sqrt(variance);
+
+        const T = mean * (1 + k * (stddev / R_CONST - 1));
+        const idx = y * w + x;
+        const diff = T - gray[idx];
+        alpha[idx] = clamp(diff / SOFTNESS + 0.5, 0, 1);
+      }
+    }
+  }
+
+  // ================= render =================
+  function renderPreview(){
+    const { alpha, width: w, height: h, bgMode, inkColor } = state;
+    els.previewCanvas.width = w;
+    els.previewCanvas.height = h;
+    const ctx = els.previewCanvas.getContext('2d');
+    const imgData = ctx.createImageData(w, h);
+    const out = imgData.data;
+    const isWhite = bgMode === 'white';
+
+    for(let p = 0, i = 0; p < alpha.length; p++, i += 4){
+      const a = alpha[p];
+      if(isWhite){
+        out[i]   = 255 * (1 - a) + inkColor.r * a;
+        out[i+1] = 255 * (1 - a) + inkColor.g * a;
+        out[i+2] = 255 * (1 - a) + inkColor.b * a;
+        out[i+3] = 255;
+      }else{
+        out[i]   = inkColor.r;
+        out[i+1] = inkColor.g;
+        out[i+2] = inkColor.b;
+        out[i+3] = Math.round(a * 255);
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+    els.resultWrap.classList.toggle('white-bg', isWhite);
+  }
+
+  function playRevealSweep(){
+    els.revealSweep.classList.remove('playing');
+    // force reflow so the animation can restart
+    void els.revealSweep.offsetWidth;
+    els.revealSweep.classList.add('playing');
+  }
+
+  function reprocessFromSource(playReveal){
+    els.processingOverlay.style.display = 'flex';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        computeGrayscaleAndIntegrals();
+        computeAlphaMap(sensitivityToK(Number(els.sensitivity.value)));
+        renderPreview();
+        els.processingOverlay.style.display = 'none';
+        if(playReveal) playRevealSweep();
+      });
+    });
+  }
+
+  // ================= controls =================
+  let sliderRAF = null;
+  els.sensitivity.addEventListener('input', () => {
+    els.sensitivityValue.textContent = els.sensitivity.value;
+    if(sliderRAF) return;
+    sliderRAF = requestAnimationFrame(() => {
+      sliderRAF = null;
+      if(!state.gray) return;
+      computeAlphaMap(sensitivityToK(Number(els.sensitivity.value)));
+      renderPreview();
+    });
+  });
+
+  els.bgToggle.addEventListener('click', (evt) => {
+    const btn = evt.target.closest('button[data-bg]');
+    if(!btn) return;
+    state.bgMode = btn.dataset.bg;
+    [...els.bgToggle.querySelectorAll('button')].forEach(b => b.classList.toggle('active', b === btn));
+    if(state.alpha && state.gray) renderPreview();
+  });
+
+  els.inkSwatches.addEventListener('click', (evt) => {
+    const btn = evt.target.closest('.swatch[data-color]');
+    if(!btn) return;
+    state.inkColor = hexToRgb(btn.dataset.color);
+    [...els.inkSwatches.querySelectorAll('.swatch')].forEach(s => s.classList.toggle('active', s === btn));
+    if(state.alpha && state.gray) renderPreview();
+  });
+
+  els.customSwatch.addEventListener('input', () => {
+    state.inkColor = hexToRgb(els.customSwatch.value);
+    [...els.inkSwatches.querySelectorAll('.swatch')].forEach(s => s.classList.remove('active'));
+    if(state.alpha && state.gray) renderPreview();
+  });
+
+  els.downloadBtn.addEventListener('click', () => {
+    if(!state.hasResult) return;
+    els.previewCanvas.toBlob((blob) => {
+      if(!blob){ showToast('Could not export PNG'); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      a.href = url;
+      a.download = `patholytica-scan-${stamp}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      showToast('Saved');
+    }, 'image/png');
+  });
+
+  // ================= boot =================
+  showCaptureScreen();
+
+})();
+</script>
+</body>
+</html>
