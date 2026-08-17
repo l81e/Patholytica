@@ -1,1314 +1,1452 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>Create — Patholytica</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Patholytica · PDF to Scanned Library</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 <style>
-:root {
---bg:#0f0e0b; --text:#f5f0e8; --sub:#8a8070;
---hover:#1a1810; --border:#2a2518;
---accent:#c8a96e; --accent-h:#b8935a;
---accent-glow:rgba(200,169,110,0.25);
---accent-soft:rgba(200,169,110,0.12);
---green:#6abf85;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0e0b;--bg2:#161410;--bg3:#1c1a14;--border:#2a2518;--border2:#352e1e;
+  --gold:#c8a96e;--gold-dim:#8a7249;--gold-glow:rgba(200,169,110,0.12);
+  --text:#e8e0cc;--muted:#7a7060;--danger:#c0624a;--success:#5a9e72;--warning:#c8943e;
 }
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;}
-body{
-font-family:"DM Sans",sans-serif;
-background:var(--bg);color:var(--text);
-position:fixed;width:100%;height:100%;
-overflow:hidden;
-}
-.app{
-position:fixed;top:0;left:50%;transform:translateX(-50%);
-width:100%;max-width:450px;height:100%;
-background:var(--bg);display:flex;flex-direction:column;
-}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;font-size:15px}
 
-/* ── Header ── */
-.hdr{
-flex-shrink:0;display:flex;align-items:center;gap:9px;
-padding:10px 14px;
-padding-top:calc(10px + env(safe-area-inset-top));
-border-bottom:1px solid var(--border);
-background:rgba(15,14,11,0.97);
-backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-z-index:50;
-}
-.hdr-back{
-width:34px;height:34px;border-radius:50%;
-background:var(--hover);border:1px solid var(--border);
-color:var(--text);cursor:pointer;
-display:flex;align-items:center;justify-content:center;
-font-size:13px;flex-shrink:0;
-}
-.hdr-title{flex:1;font-size:14px;font-weight:700;font-family:'Merriweather',serif;}
-.hdr-actions{display:flex;gap:7px;align-items:center;}
-.hdr-btn{
-padding:7px 12px;border-radius:20px;
-font-size:12px;font-weight:700;cursor:pointer;
-font-family:"DM Sans",sans-serif;
-display:flex;align-items:center;gap:5px;white-space:nowrap;
-border:none;
-}
-.hdr-ghost{background:var(--hover);border:1px solid var(--border)!important;color:var(--sub);}
-.hdr-primary{background:var(--accent);color:#0f0e0b;box-shadow:0 2px 10px var(--accent-glow);}
-.hdr-primary:disabled{opacity:.35;cursor:not-allowed;}
+/* ── header ── */
+.header{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:100;gap:20px;flex-wrap:wrap}
+.header-left{display:flex;align-items:center;gap:22px}
+.header-logo{font-family:'Merriweather',serif;font-size:18px;font-weight:700;color:var(--gold);letter-spacing:.03em}
+.header-logo span{color:var(--muted);font-weight:300;font-size:14px;margin-left:10px;font-family:'DM Sans',sans-serif}
+.header-status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s,box-shadow .3s}
+.status-dot.connected{background:var(--success);box-shadow:0 0 6px var(--success)}
+.status-dot.error{background:var(--danger);box-shadow:0 0 6px var(--danger)}
 
-/* ── Mode toggle in header ── */
-.mode-toggle{
-display:flex;background:var(--hover);
-border:1px solid var(--border);border-radius:20px;padding:3px;gap:2px;
-}
-.mode-toggle-btn{
-padding:5px 11px;border-radius:16px;border:none;cursor:pointer;
-font-size:11px;font-weight:700;font-family:"DM Sans",sans-serif;
-color:var(--sub);background:transparent;
-display:flex;align-items:center;gap:5px;transition:all .2s;
-white-space:nowrap;
-}
-.mode-toggle-btn i{font-size:10px;}
-.mode-toggle-btn.active{background:var(--accent);color:#0f0e0b;box-shadow:0 2px 8px var(--accent-glow);}
+/* ── layout ── */
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 61px)}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:24px 20px;display:flex;flex-direction:column;gap:24px;position:sticky;top:61px;height:calc(100vh - 61px);overflow-y:auto}
+.sidebar-section-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.config-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.config-field label{font-size:12px;color:var(--muted)}
+.config-field input,.config-field select{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%;transition:border-color .2s}
+.config-field input:focus,.config-field select:focus{border-color:var(--gold-dim)}
+.config-field input::placeholder{color:var(--muted)}
+.config-field-hint{font-size:11px;color:var(--muted);line-height:1.5}
+.config-field-hint a{color:var(--gold-dim)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 16px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .2s}
+.btn-primary{background:var(--gold);color:#0f0e0b;width:100%}
+.btn-primary:hover{background:#d4b87a}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.divider{border:none;border-top:1px solid var(--border)}
+.admin-key-warning{background:rgba(192,98,74,.08);border:1px solid rgba(192,98,74,.3);border-radius:7px;padding:9px 11px;font-size:11px;color:var(--danger);line-height:1.6;margin-top:8px;display:flex;gap:8px;align-items:flex-start}
+.admin-key-warning i{margin-top:1px;flex-shrink:0}
 
-/* ── Editor scroll ── */
-.editor-body{
-flex:1;overflow-y:auto;overflow-x:hidden;
-padding-bottom:130px;
--webkit-overflow-scrolling:touch;
-}
-.editor-body::-webkit-scrollbar{width:2px;}
-.editor-body::-webkit-scrollbar-thumb{background:var(--border);}
+/* ── main / steps ── */
+.main{display:flex;flex-direction:column}
+.steps-bar{display:flex;align-items:center;gap:0;padding:18px 32px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.step-pill{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--muted);padding:6px 14px 6px 6px;border-radius:20px}
+.step-pill .step-num{width:22px;height:22px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--muted);flex-shrink:0}
+.step-pill.active{color:var(--gold)}
+.step-pill.active .step-num{background:var(--gold);border-color:var(--gold);color:#0f0e0b}
+.step-pill.done{color:var(--success)}
+.step-pill.done .step-num{background:var(--success);border-color:var(--success);color:#fff}
+.step-connector{width:28px;height:1px;background:var(--border2);margin:0 2px}
 
-/* ── Author bar ── */
-.preview-author-bar{display:flex;align-items:center;gap:10px;padding:14px 18px 10px;}
-.preview-avatar{
-width:38px;height:38px;border-radius:50%;
-background:linear-gradient(135deg,var(--accent),#8a6430);
-display:flex;align-items:center;justify-content:center;
-font-size:14px;font-weight:700;color:#0f0e0b;flex-shrink:0;overflow:hidden;
-}
-.preview-avatar img{width:100%;height:100%;object-fit:cover;}
-.preview-author-name{font-size:13px;font-weight:700;}
-.preview-author-date{font-size:10px;color:var(--sub);}
+.step-panel{display:none;flex-direction:column;flex:1;padding:32px}
+.step-panel.active{display:flex}
 
-/* ── Title ── */
-.title-area{padding:0 18px 8px;}
-.title-input{
-font-size:20px;font-weight:800;color:var(--text);
-line-height:1.2;letter-spacing:-0.02em;font-family:'Merriweather',serif;
-border:none;outline:none;background:transparent;
-width:100%;resize:none;overflow:hidden;padding:0;min-height:1.2em;
-}
-.title-input::placeholder{color:var(--sub);opacity:.5;}
+/* ── step 1: upload ── */
+.upload-zone{border:2px dashed var(--border2);border-radius:16px;padding:60px 30px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;cursor:pointer;transition:all .2s;max-width:560px;margin:0 auto;width:100%}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--gold-dim);background:var(--gold-glow)}
+.upload-zone i{font-size:34px;color:var(--gold-dim)}
+.upload-zone .uz-title{font-family:'Merriweather',serif;font-size:18px;color:var(--text)}
+.upload-zone .uz-sub{font-size:13px;color:var(--muted)}
+.upload-zone input{display:none}
+.file-chip{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;max-width:560px;margin:0 auto;width:100%}
+.file-chip i.fa-file-pdf{color:var(--danger);font-size:18px;flex-shrink:0}
+.file-chip .fc-info{flex:1;min-width:0}
+.file-chip .fc-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-chip .fc-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.file-chip .fc-remove{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:6px;border-radius:6px}
+.file-chip .fc-remove:hover{color:var(--danger);background:rgba(192,98,74,.08)}
+.extract-progress{max-width:560px;margin:18px auto 0;width:100%}
+.extract-status{font-size:12px;color:var(--gold-dim);text-align:center;margin-bottom:8px}
+.progress-bar-bg{background:var(--border);border-radius:99px;height:5px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));border-radius:99px;transition:width .3s ease;width:0%}
+.step-actions{max-width:560px;margin:24px auto 0;width:100%;display:flex;justify-content:flex-end}
 
-/* ── Stats ── */
-.stats-bar{display:flex;gap:14px;padding:4px 18px 10px;border-bottom:1px solid var(--border);}
-.stat-chip{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--sub);}
-.stat-chip i{font-size:9px;}
+/* ── step 2: filter tuning ── */
+.filter-layout{display:grid;grid-template-columns:1fr 320px;gap:26px;flex:1;min-height:0}
+.filter-stage{background:#000;border-radius:16px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;min-height:420px}
+.filter-stage.checker{
+  background-image:linear-gradient(45deg,#1c1c1e 25%,transparent 25%),linear-gradient(-45deg,#1c1c1e 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1c1c1e 75%),linear-gradient(-45deg,transparent 75%,#1c1c1e 75%);
+  background-size:22px 22px;background-position:0 0,0 11px,11px -11px,-11px 0px;background-color:#131315;
+}
+.filter-stage canvas{max-width:100%;max-height:100%;box-shadow:0 20px 60px rgba(0,0,0,.5);border-radius:6px}
+.filter-stage .fs-page-nav{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:rgba(10,9,6,.75);backdrop-filter:blur(10px);border-radius:99px;padding:7px 8px 7px 16px;font-size:12px;color:var(--text)}
+.fs-page-nav button{background:rgba(255,255,255,.08);border:none;color:var(--text);width:26px;height:26px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px}
+.fs-page-nav button:hover{background:rgba(255,255,255,.16)}
+.fs-page-nav button:disabled{opacity:.3;cursor:not-allowed}
+.filter-stage .fs-processing{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(10,10,12,.5)}
+.spinner-ring{width:26px;height:26px;border:2.5px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-/* ── Blocks ── */
-.blocks-wrap{padding:6px 0 0;}
+.filter-controls{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:18px;overflow-y:auto}
+.fc-title{font-family:'Merriweather',serif;font-size:14px;color:var(--gold-dim);display:flex;align-items:center;justify-content:space-between}
+.fc-per-page-badge{font-size:10px;background:var(--gold-glow);color:var(--gold);padding:3px 8px;border-radius:99px;letter-spacing:.04em;display:none}
+.fc-per-page-badge.show{display:inline-block}
+.fc-field{display:flex;flex-direction:column;gap:8px}
+.fc-field-row{display:flex;align-items:center;justify-content:space-between}
+.fc-field-row label{font-size:12.5px;color:var(--muted)}
+.fc-field-value{font-size:12px;color:var(--gold);font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:26px;background:transparent}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,rgba(200,169,110,.15),rgba(200,169,110,.6))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;margin-top:-6.5px;border-radius:50%;background:var(--gold);border:2px solid var(--bg2);box-shadow:0 2px 6px rgba(0,0,0,.4)}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:linear-gradient(90deg,rgba(200,169,110,.15),rgba(200,169,110,.6))}
+input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;background:var(--gold);border:2px solid var(--bg2)}
+.slider-endcaps{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:-4px}
+.segmented{display:flex;background:rgba(0,0,0,.3);border-radius:9px;padding:3px;gap:3px}
+.segmented button{flex:1;padding:7px 8px;font-size:12px;font-weight:500;color:var(--muted);border:none;background:transparent;border-radius:6px;cursor:pointer;transition:background .15s,color .15s;font-family:'DM Sans',sans-serif}
+.segmented button.active{background:var(--gold);color:#1a1508}
+.ink-swatches{display:flex;gap:9px;align-items:center}
+.swatch{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;position:relative}
+.swatch.active{border-color:var(--gold)}
+.swatch.active::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:1px solid rgba(200,169,110,.35)}
+#customInkSwatch{width:24px;height:24px;border-radius:50%;border:none;padding:0;background:none;overflow:hidden;cursor:pointer}
+#customInkSwatch::-webkit-color-swatch-wrapper{padding:0}
+#customInkSwatch::-webkit-color-swatch{border:2px solid rgba(255,255,255,.25);border-radius:50%}
+.fc-apply-row{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--border);padding-top:16px;margin-top:2px}
+.fc-apply-hint{font-size:11px;color:var(--muted);line-height:1.5}
+.btn-ghost-full{width:100%;background:transparent;border:1px solid var(--border2);color:var(--muted);padding:9px;border-radius:8px;font-size:12.5px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn-ghost-full:hover{border-color:var(--gold-dim);color:var(--gold)}
+.step-actions-row{display:flex;justify-content:space-between;align-items:center;margin-top:20px}
+.step-note{font-size:12px;color:var(--muted)}
 
-.block-row{
-display:flex;align-items:flex-start;gap:0;
-position:relative;margin-bottom:2px;
-border-top:2px solid transparent;
-transition:border-color .15s;
-}
-.block-row.drag-target{border-top:2px solid var(--accent);}
+/* ── step 3: review grid ── */
+.review-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:22px;flex-wrap:wrap}
+.review-lib-field{flex:1;min-width:260px}
+.review-lib-field label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:7px}
+.lib-name-input{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:9px;padding:11px 14px;color:var(--gold);font-family:'Merriweather',serif;font-size:16px;font-weight:700;outline:none;transition:border-color .2s}
+.lib-name-input:focus{border-color:var(--gold-dim)}
+.lib-desc-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:9px 14px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;margin-top:8px;resize:none;line-height:1.5}
+.lib-desc-input:focus{border-color:var(--gold-dim);color:var(--text)}
+.review-summary{display:flex;gap:10px;flex-shrink:0}
+.summary-chip{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;min-width:70px}
+.summary-chip .sc-num{font-family:'Merriweather',serif;font-size:20px;font-weight:700;color:var(--gold);line-height:1}
+.summary-chip .sc-label{font-size:10px;color:var(--muted);margin-top:3px}
 
-.block-handle-col{
-width:30px;flex-shrink:0;
-display:flex;flex-direction:column;
-align-items:center;padding-top:10px;gap:4px;
-}
-.move-btn{
-width:26px;height:26px;border-radius:6px;border:none;
-background:transparent;color:var(--border);
-display:flex;align-items:center;justify-content:center;
-font-size:11px;cursor:pointer;transition:all .15s;
--webkit-tap-highlight-color:transparent;
-}
-.move-btn:active{background:var(--hover);color:var(--accent);}
+.page-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.page-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:border-color .15s;display:flex;flex-direction:column}
+.page-card:hover{border-color:var(--border2)}
+.page-card.excluded{opacity:.35}
+.page-card-thumb{aspect-ratio:3/4;background:#000;position:relative;overflow:hidden}
+.page-card-thumb.checker{background-image:linear-gradient(45deg,#1c1c1e 25%,transparent 25%),linear-gradient(-45deg,#1c1c1e 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1c1c1e 75%),linear-gradient(-45deg,transparent 75%,#1c1c1e 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0px;background-color:#131315}
+.page-card-thumb img{width:100%;height:100%;object-fit:contain;display:block}
+.page-card-thumb .pc-tweaked{position:absolute;top:6px;right:6px;background:rgba(200,169,110,.9);color:#1a1508;font-size:9px;font-weight:700;padding:2px 6px;border-radius:99px;letter-spacing:.03em}
+.page-card-thumb .pc-exclude-btn{position:absolute;top:6px;left:6px;width:22px;height:22px;border-radius:50%;background:rgba(10,9,6,.75);border:none;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.page-card-thumb .pc-exclude-btn:hover{background:rgba(192,98,74,.85)}
+.page-card-label{padding:9px 10px;font-size:11.5px;color:var(--muted);text-align:center;border-top:1px solid var(--border)}
 
-.block-content{flex:1;min-width:0;}
+.review-footer{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--border);padding:16px 32px;display:flex;justify-content:space-between;align-items:center;gap:14px;margin:24px -32px -32px;flex-wrap:wrap}
+.review-footer-left{font-size:12px;color:var(--muted)}
+.review-footer-right{display:flex;gap:10px}
+.btn-back{background:transparent;border:1px solid var(--border2);color:var(--muted);padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif}
+.btn-back:hover{color:var(--text);border-color:var(--border2)}
+.btn-publish{background:var(--gold);color:#0f0e0b;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;display:flex;align-items:center;gap:8px;font-family:'DM Sans',sans-serif}
+.btn-publish:hover{background:#d4b87a}
+.btn-publish:disabled{opacity:.4;cursor:not-allowed}
 
-.block-actions-col{
-width:30px;flex-shrink:0;
-display:flex;flex-direction:column;
-align-items:center;padding-top:8px;gap:4px;
-}
-.blk-act{
-width:26px;height:26px;border-radius:6px;border:none;
-background:transparent;color:var(--sub);
-display:flex;align-items:center;justify-content:center;
-font-size:10px;cursor:pointer;transition:all .15s;
-}
-.blk-act:active{background:var(--hover);}
-.blk-act.del:active{color:#f87171;}
+/* ── page-tune modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(5,4,3,.72);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:500;padding:24px}
+.modal-overlay.show{display:flex}
+.modal-box{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:760px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.modal-header .mh-title{font-family:'Merriweather',serif;font-size:15px;color:var(--gold-dim)}
+.modal-close{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:6px;border-radius:6px}
+.modal-close:hover{color:var(--text)}
+.modal-body{display:grid;grid-template-columns:1fr 260px;gap:0;flex:1;min-height:0}
+.modal-stage{background:#000;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
+.modal-stage.checker{background-image:linear-gradient(45deg,#1c1c1e 25%,transparent 25%),linear-gradient(-45deg,#1c1c1e 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1c1c1e 75%),linear-gradient(-45deg,transparent 75%,#1c1c1e 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0px;background-color:#131315}
+.modal-stage canvas{max-width:100%;max-height:100%;border-radius:6px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.modal-controls{border-left:1px solid var(--border);padding:18px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:10px}
 
-/* ── Text block ── */
-.text-block-container{position:relative;}
-.text-block-display{
-font-size:14px;line-height:1.7;color:var(--text);
-padding:6px 18px 6px 0;
-font-family:"DM Sans",sans-serif;letter-spacing:.01em;
-min-height:42px;word-break:break-word;white-space:pre-wrap;
-cursor:text;
--webkit-user-select:text;user-select:text;
-}
-.text-block-display:empty::before{content:attr(data-placeholder);color:var(--sub);opacity:.45;pointer-events:none;}
-.text-block-textarea{
-font-size:14px;line-height:1.7;color:var(--text);
-border:none;outline:none;background:transparent;
-width:100%;resize:none;
-min-height:42px;
-height:auto;
-padding:6px 18px 6px 0;
-font-family:"DM Sans",sans-serif;letter-spacing:.01em;
-display:none;
--webkit-appearance:none;
-caret-color:var(--accent);
-overflow:hidden;
-}
-.text-block-textarea::placeholder{color:var(--sub);opacity:.45;}
-.text-block-textarea.editing{display:block;}
-.text-block-display.hidden{display:none;}
+/* ── step 4: publish ── */
+.publish-panel{max-width:520px;margin:0 auto;width:100%;display:flex;flex-direction:column;align-items:center;gap:18px;padding:50px 0}
+.sp-icon{width:56px;height:56px;border-radius:16px;background:var(--gold-glow);border:1px solid var(--gold-dim);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--gold)}
+.sp-icon.thinking{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.5;transform:scale(.94)}50%{opacity:1;transform:scale(1)}}
+.sp-title{font-family:'Merriweather',serif;font-size:17px;text-align:center}
+.sp-sub{font-size:13px;color:var(--muted);text-align:center;max-width:400px;line-height:1.6}
+.publish-log{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;max-height:260px;overflow-y:auto;font-size:12px;font-family:'Courier New',monospace}
+.log-entry{padding:3px 0;line-height:1.6;color:var(--muted)}
+.log-entry.ok{color:var(--success)}.log-entry.warn{color:var(--warning)}.log-entry.err{color:var(--danger)}.log-entry.info{color:var(--gold-dim)}
+.publish-progress-wrap{width:100%;background:var(--border);border-radius:99px;height:6px;overflow:hidden}
+.publish-progress-fill{height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));border-radius:99px;transition:width .4s ease;width:0%}
+.done-icon{width:64px;height:64px;border-radius:50%;background:rgba(90,158,114,.12);border:1px solid rgba(90,158,114,.4);display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--success)}
+.done-actions{display:flex;gap:10px;margin-top:6px}
 
-/* Emoji highlight preview styles */
-.emo-magnify{font-weight:700;font-size:1.1em;}
-.emo-urgent{font-weight:700;color:#e8c86a;background:rgba(232,200,106,.12);border:1px solid rgba(232,200,106,.25);padding:.05em .3em;border-radius:5px;}
-.emo-pinned{border-left:2px solid var(--accent);padding-left:.45em;background:linear-gradient(to right,var(--accent-soft),transparent);border-radius:0 3px 3px 0;}
-.emo-fire{font-weight:700;background:linear-gradient(90deg,#c87040,#e8a040,#c8a96e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.emo-diamond{font-weight:700;background:linear-gradient(135deg,#e8d8a0,#c8a96e,#a08050);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.emo-yellow{color:#e8c86a;text-shadow:0 0 8px rgba(232,200,106,.6);}
-.emo-blue{color:#8aa0c0;text-shadow:0 0 8px rgba(138,160,192,.55);}
-.emo-green{color:#7ab88a;text-shadow:0 0 8px rgba(122,184,138,.55);}
-.emo-purple{color:var(--accent);text-shadow:0 0 10px rgba(200,169,110,.7);}
-.emo-red{color:#c97a5a;text-shadow:0 0 8px rgba(201,122,90,.55);}
-.emo-dark{color:#f0e8d8;background:rgba(0,0,0,.75);padding:.05em .3em;border-radius:4px;}
-.emo-brain{font-style:italic;color:var(--accent);border-bottom:1.5px solid rgba(200,169,110,.35);}
-.emo-book{font-family:'Merriweather',serif;background:rgba(200,169,110,.06);color:#d4b88a;padding:.05em .3em;border-radius:4px;border:1px solid rgba(200,169,110,.15);font-size:.95em;}
-.emo-idea{background:linear-gradient(to right,var(--accent-soft),rgba(200,169,110,.04));color:#d4a96e;padding:.05em .3em;border-radius:4px;}
-.emo-target{font-weight:700;outline:1.5px solid rgba(200,169,110,.5);outline-offset:2px;padding:.05em .25em;}
-.emo-micro{font-family:'Courier New',monospace;color:#c8a96e;font-size:.9em;border-bottom:1px dotted rgba(200,169,110,.4);}
-.emo-science{font-family:'Courier New',monospace;color:#b8a878;font-size:.9em;border-bottom:1px solid rgba(184,168,120,.35);}
-.emo-warning{background:rgba(200,169,110,.1);border:1px solid rgba(200,169,110,.3);color:#c8a96e;padding:.05em .35em;border-radius:5px;font-weight:700;}
-.emo-check{color:#7ab88a;background:rgba(122,184,138,.1);padding:.05em .28em;border-radius:4px;font-weight:700;}
-.emo-cross{color:#c97a5a;background:rgba(201,122,90,.08);padding:.05em .28em;border-radius:4px;text-decoration:line-through;text-decoration-color:rgba(201,122,90,.5);}
-.emo-hourglass{color:var(--accent);background:var(--accent-soft);padding:.05em .28em;border-radius:4px;}
-.emo-lock{color:#8a8070;background:rgba(42,37,24,.8);padding:.05em .32em;border-radius:4px;border:1px solid var(--border);font-weight:600;}
-.emo-unlock{color:var(--accent);background:var(--accent-soft);padding:.05em .32em;border-radius:4px;border:1px solid rgba(200,169,110,.25);}
-.emo-lightning{font-weight:700;background:linear-gradient(90deg,#e8c86a,#c8a96e,#e8d8a0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.emo-sparkle{background:linear-gradient(90deg,#f0e0b0,#c8a96e,#f0e0b0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.emo-star{color:#f0e0b0;text-shadow:-1px -1px 6px rgba(200,169,110,.7),1px 1px 6px rgba(200,169,110,.7);}
-.emo-crown{font-weight:800;background:linear-gradient(135deg,#e8d8a0,#c8a96e,#a07840);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.emo-rocket{font-weight:700;color:#e8d8a0;}
-.emo-wave{color:#c8a96e;}
-.emo-float{color:#c8a96e;}
-.emo-rainbow{background:linear-gradient(90deg,#c97a5a,#c8a96e,#7ab88a,#8aa0c0,#c8a96e,#c97a5a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:700;}
-.emo-magic{background:linear-gradient(90deg,#f0d8a0,#c8a96e,#e8c880,#f0d8a0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.emo-heart{color:#c87a6a;}
-.emo-puzzle{border:1px dashed rgba(200,169,110,.35);padding:.05em .32em;border-radius:5px;color:#c8a96e;}
-.emo-tag{background:var(--accent-soft);border:1px solid rgba(200,169,110,.25);color:#c8a96e;padding:.04em .5em;border-radius:20px;font-size:.88em;}
+/* ── shared ── */
+#toast{position:fixed;bottom:28px;right:28px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:12px 18px;border-radius:9px;font-size:13px;box-shadow:0 8px 28px rgba(0,0,0,.5);display:none;align-items:center;gap:9px;z-index:999;max-width:360px}
+#toast.show{display:flex;animation:slideUp .25s ease}
+#toast.success{border-left:3px solid var(--success)}
+#toast.error{border-left:3px solid var(--danger)}
+#toast.warning{border-left:3px solid var(--warning)}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
-/* Image block */
-.image-block-wrap{
-width:calc(100% + 30px);margin-right:-30px;
-margin-bottom:4px;margin-top:4px;overflow:hidden;
+@media (max-width:900px){
+  .filter-layout{grid-template-columns:1fr}
+  .filter-stage{min-height:320px}
+  .modal-body{grid-template-columns:1fr}
+  .modal-controls{border-left:none;border-top:1px solid var(--border)}
 }
-.image-block-wrap img{width:100%;height:auto;display:block;max-height:320px;object-fit:cover;}
-.image-caption-input{
-width:100%;background:transparent;border:none;outline:none;
-font-size:12px;color:var(--sub);font-family:"DM Sans",sans-serif;
-padding:5px 18px 5px 0;font-style:italic;
+@media (max-width:768px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}
+  .header{padding:14px 18px}
+  .step-panel{padding:20px 16px}
+  .steps-bar{padding:14px 16px}
+  .review-footer{margin:24px -16px -20px;padding:14px 16px}
 }
-.image-caption-input::placeholder{color:var(--sub);opacity:.5;}
-
-/* YouTube block */
-.yt-block-wrap{width:calc(100% + 30px);margin-right:-30px;margin-bottom:4px;margin-top:4px;overflow:hidden;}
-.yt-block-label{display:flex;align-items:center;gap:8px;padding:8px 18px;background:rgba(0,0,0,.4);border-bottom:1px solid rgba(255,255,255,.06);}
-.yt-block-label i{color:#c97a5a;font-size:13px;}
-.yt-block-label span{font-size:12px;font-weight:600;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.yt-block-label a{font-size:10px;font-weight:700;color:#c97a5a;background:rgba(201,122,90,.1);border:1px solid rgba(201,122,90,.2);border-radius:7px;padding:3px 9px;text-decoration:none;white-space:nowrap;flex-shrink:0;}
-.yt-block-wrap iframe{width:100%;aspect-ratio:16/9;border:none;display:block;}
-.yt-caption-input{width:100%;background:transparent;border:none;outline:none;font-size:12px;color:var(--sub);font-family:"DM Sans",sans-serif;padding:5px 18px 5px 0;font-style:italic;}
-.yt-caption-input::placeholder{color:var(--sub);opacity:.5;}
-
-/* Audio block */
-.audio-block-wrap{padding:6px 18px 6px 0;}
-.custom-audio-player{
-background:var(--hover);border-radius:12px;padding:14px;
-display:flex;align-items:center;gap:12px;border:1px solid var(--border);
-}
-.play-btn{
-width:40px;height:40px;border-radius:50%;
-background:var(--accent);border:none;color:#0f0e0b;
-cursor:pointer;display:flex;align-items:center;justify-content:center;
-font-size:14px;flex-shrink:0;box-shadow:0 0 14px var(--accent-glow);
-}
-.audio-info{flex:1;min-width:0;overflow:hidden;}
-.audio-title-txt{font-size:12px;font-weight:600;margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
-.waveform-container{position:relative;height:28px;background:var(--bg);border-radius:6px;margin-bottom:5px;cursor:pointer;overflow:hidden;}
-.waveform-progress{position:absolute;top:0;left:0;height:100%;background:var(--accent);opacity:.35;transition:width .1s linear;}
-.waveform-bars{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:space-around;padding:0 4px;}
-.waveform-bar{width:2px;background:var(--sub);border-radius:2px;opacity:.5;}
-.audio-time{display:flex;justify-content:space-between;font-size:10px;color:var(--sub);}
-.audio-caption-input{
-width:100%;background:transparent;border:none;outline:none;
-font-size:12px;color:var(--sub);font-family:"DM Sans",sans-serif;
-margin-top:6px;padding:0;font-style:italic;
-}
-.audio-caption-input::placeholder{color:var(--sub);opacity:.5;}
-
-/* Library row */
-.library-row{
-margin:12px 18px 0;padding:11px 14px;
-background:var(--hover);border:1px solid var(--border);
-border-radius:12px;display:flex;align-items:center;gap:10px;cursor:pointer;
-}
-.library-row i.lib-icon{font-size:13px;color:var(--accent);}
-.library-row-label{font-size:12px;font-weight:700;flex:1;}
-.library-row-val{font-size:11px;color:var(--sub);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.library-row .chev{font-size:10px;color:var(--sub);}
-
-/* MCQ */
-.mcq-wrap{padding:10px 18px 0;}
-.mcq-badge-edit{
-display:inline-flex;align-items:center;gap:6px;
-background:var(--accent-soft);border:1px solid rgba(200,169,110,.3);
-border-radius:20px;padding:4px 12px;margin-bottom:12px;
-font-size:10px;font-weight:800;letter-spacing:.08em;
-text-transform:uppercase;color:var(--accent);
-}
-.mcq-question-input{
-font-size:18px;font-weight:800;color:var(--text);
-line-height:1.3;letter-spacing:-0.02em;font-family:'Merriweather',serif;
-border:none;outline:none;background:transparent;
-width:100%;resize:none;overflow:hidden;padding:0;
-margin-bottom:14px;min-height:1.3em;
-}
-.mcq-question-input::placeholder{color:var(--sub);opacity:.45;}
-.mcq-options-wrap{display:flex;flex-direction:column;gap:8px;}
-.mcq-opt-row{
-display:flex;align-items:center;gap:10px;
-border:1px solid var(--border);border-radius:12px;
-padding:11px 13px;background:var(--hover);
-}
-.mcq-opt-row.correct-opt{border-color:rgba(106,191,133,.6);background:rgba(106,191,133,.06);}
-.mcq-opt-letter{
-width:24px;height:24px;border-radius:50%;
-border:1.5px solid var(--border);
-display:flex;align-items:center;justify-content:center;
-font-size:9px;font-weight:800;color:var(--sub);flex-shrink:0;
-}
-.mcq-opt-row.correct-opt .mcq-opt-letter{background:var(--green);border-color:var(--green);color:#0f0e0b;}
-.mcq-opt-input{flex:1;background:transparent;border:none;outline:none;font-size:13px;font-weight:500;color:var(--text);font-family:"DM Sans",sans-serif;}
-.mcq-opt-input::placeholder{color:var(--sub);opacity:.45;}
-.mcq-mark-correct{
-width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;
-display:flex;align-items:center;justify-content:center;
-font-size:10px;flex-shrink:0;background:var(--bg);color:var(--sub);
--webkit-tap-highlight-color:transparent;
-}
-.mcq-opt-row.correct-opt .mcq-mark-correct{background:var(--green);color:#0f0e0b;}
-.mcq-opt-del{
-width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;
-display:flex;align-items:center;justify-content:center;
-font-size:10px;background:transparent;color:var(--sub);flex-shrink:0;
--webkit-tap-highlight-color:transparent;
-}
-.mcq-add-opt{
-margin-top:8px;padding:12px;border-radius:10px;
-border:1px dashed var(--border);background:transparent;
-color:var(--sub);font-size:12px;font-weight:600;cursor:pointer;
-display:flex;align-items:center;justify-content:center;gap:6px;
-font-family:"DM Sans",sans-serif;width:100%;
-}
-
-/* ── Bottom toolbar ── */
-.bottom-toolbar{
-position:fixed;bottom:0;left:50%;transform:translateX(-50%);
-width:100%;max-width:450px;
-background:rgba(15,14,11,0.97);
-border-top:1px solid var(--border);
-backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-padding:8px 12px;
-padding-bottom:calc(8px + env(safe-area-inset-bottom));
-display:flex;flex-wrap:wrap;gap:6px;z-index:200;
-}
-.tool-btn{
-flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:4px;
-padding:10px 6px;border-radius:10px;
-border:1px solid var(--border);background:var(--hover);
-color:var(--sub);font-size:11px;font-weight:700;
-cursor:pointer;font-family:"DM Sans",sans-serif;white-space:nowrap;
--webkit-tap-highlight-color:transparent;
--webkit-appearance:none;
-}
-.tool-btn:active{border-color:var(--accent);color:var(--accent);}
-.tool-btn i{font-size:13px;}
-
-/* YT input */
-.yt-input-bar{
-display:none;align-items:center;gap:6px;
-margin:8px 18px 0;
-}
-.yt-input-bar.show{display:flex;}
-.yt-url-in{
-flex:1;padding:9px 12px;background:var(--hover);
-border:1px solid var(--border);border-radius:8px;outline:none;
-font-size:14px;color:var(--text);font-family:"DM Sans",sans-serif;
--webkit-appearance:none;
-}
-.yt-url-in:focus{border-color:#f87171;}
-.yt-url-in::placeholder{color:var(--sub);opacity:.5;}
-.yt-add-btn{padding:9px 12px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#f87171;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;}
-.yt-cancel-btn{padding:9px 10px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--sub);font-size:11px;cursor:pointer;}
-
-/* ── Highlight sheet ── */
-.hl-sheet-overlay{
-position:fixed;inset:0;background:rgba(0,0,0,.7);
-z-index:400;display:none;align-items:flex-end;justify-content:center;
-backdrop-filter:blur(2px);
-}
-.hl-sheet-overlay.show{display:flex;}
-.hl-sheet{
-background:#141210;border-radius:20px 20px 0 0;
-border:1px solid var(--border);border-bottom:none;
-width:100%;max-width:450px;
-max-height:60vh;display:flex;flex-direction:column;
-animation:slideUp .25s cubic-bezier(.4,0,.2,1);
-padding-bottom:env(safe-area-inset-bottom);
-/* Prevent touch events on the sheet from propagating during scroll settle */
-}
-@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
-.hl-sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;flex-shrink:0;}
-.hl-sheet-header{
-padding:10px 18px 8px;display:flex;align-items:center;justify-content:space-between;
-border-bottom:1px solid var(--border);flex-shrink:0;
-}
-.hl-sheet-title{font-size:13px;font-weight:700;font-family:'Merriweather',serif;}
-.hl-sheet-close{
-width:28px;height:28px;border-radius:50%;
-background:var(--hover);border:1px solid var(--border);
-color:var(--text);cursor:pointer;
-display:flex;align-items:center;justify-content:middle;font-size:11px;
-}
-.hl-list{
-flex:1;overflow-y:auto;padding:8px 0;
-/* Prevent accidental taps during momentum scroll */
--webkit-overflow-scrolling:touch;
-}
-.hl-list::-webkit-scrollbar{width:2px;}
-.hl-list::-webkit-scrollbar-thumb{background:var(--border);}
-.hl-group-label{
-font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
-color:var(--sub);opacity:.6;padding:8px 18px 4px;
-}
-.hl-btn{
-display:flex;align-items:center;gap:12px;padding:11px 18px;
-cursor:pointer;border:none;background:transparent;
-color:var(--text);font-size:13px;font-weight:600;
-font-family:"DM Sans",sans-serif;width:100%;text-align:left;
--webkit-tap-highlight-color:transparent;
-/* Touch-action allows scroll but we handle tap separately */
-touch-action:manipulation;
-user-select:none;-webkit-user-select:none;
-}
-.hl-btn:active{background:var(--hover);}
-.hl-swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
-.hl-preview{font-size:12px;margin-left:auto;opacity:.7;}
-
-/* ── Sheet ── */
-.sheet-overlay{
-position:fixed;inset:0;background:rgba(0,0,0,.85);
-z-index:300;display:none;align-items:flex-end;justify-content:center;
-backdrop-filter:blur(4px);
-}
-.sheet-overlay.show{display:flex;}
-.sheet{
-background:#141210;border-radius:20px 20px 0 0;
-border:1px solid var(--border);border-bottom:none;
-width:100%;max-width:450px;max-height:88vh;
-display:flex;flex-direction:column;
-animation:slideUp .3s cubic-bezier(.4,0,.2,1);
-padding-bottom:env(safe-area-inset-bottom);
-}
-.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;flex-shrink:0;}
-.sheet-header{padding:12px 18px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0;}
-.sheet-title{font-size:14px;font-weight:700;font-family:'Merriweather',serif;}
-.sheet-close{width:28px;height:28px;border-radius:50%;background:var(--hover);border:1px solid var(--border);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;}
-.sheet-body{flex:1;overflow-y:auto;padding:14px 18px;}
-.sheet-body::-webkit-scrollbar{width:2px;}
-.sheet-body::-webkit-scrollbar-thumb{background:var(--border);}
-.lib-opt{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--border);}
-.lib-opt:active{background:var(--hover);}
-.lib-opt.selected{background:var(--accent-soft);}
-.lib-opt-thumb{width:32px;height:32px;border-radius:7px;overflow:hidden;flex-shrink:0;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--sub);}
-.lib-opt-thumb img{width:100%;height:100%;object-fit:cover;}
-.lib-opt-name{font-size:12px;font-weight:600;flex:1;}
-.lib-opt-check{font-size:12px;color:var(--accent);display:none;}
-.lib-opt.selected .lib-opt-check{display:block;}
-.edit-art-item{display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--hover);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;}
-.edit-art-item:active{border-color:var(--accent);}
-.edit-art-title{font-size:13px;font-weight:700;margin-bottom:3px;line-height:1.3;font-family:'Merriweather',serif;}
-.edit-art-meta{font-size:10px;color:var(--sub);}
-.edit-art-mcq{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(74,222,128,.12);color:#4ade80;display:inline-block;margin-bottom:3px;}
-
-/* Toast */
-.toast{
-position:fixed;top:calc(60px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
-background:#141210;border:1px solid var(--border);border-radius:10px;
-padding:10px 16px;font-size:12px;font-weight:600;color:var(--text);
-z-index:9999;opacity:0;pointer-events:none;white-space:nowrap;
-transition:opacity .2s;box-shadow:0 8px 32px rgba(0,0,0,.5);
-}
-.toast.success{border-left:3px solid var(--green);}
-.toast.error{border-left:3px solid #c46a4e;}
-.toast.show{opacity:1;}
-.spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;display:inline-block;}
-@keyframes spin{to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
 
-<div class="app">
-<div class="hdr">
-  <button class="hdr-back" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
-  <div class="hdr-title" id="hdrTitle">New Article</div>
-  <div class="hdr-actions">
-    <div class="mode-toggle">
-      <button class="mode-toggle-btn active" id="btnModeArticle" onclick="switchMode('article')">
-        <i class="fas fa-file-alt"></i> Art
-      </button>
-      <button class="mode-toggle-btn" id="btnModeMCQ" onclick="switchMode('mcq')">
-        <i class="fas fa-question-circle"></i> MCQ
-      </button>
-    </div>
-    <button class="hdr-btn hdr-ghost" onclick="openEditSheet()"><i class="fas fa-folder-open"></i></button>
-    <button class="hdr-btn hdr-primary" id="publishBtn" onclick="publishContent()">Publish</button>
+<header class="header">
+  <div class="header-left">
+    <div class="header-logo">Patholytica <span>PDF → Scanned Library</span></div>
   </div>
-</div>
+  <div class="header-status">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Not connected</span>
+  </div>
+</header>
 
-<div class="editor-body" id="editorBody">
+<div class="layout">
+  <aside class="sidebar">
+    <div>
+      <div class="sidebar-section-label">Supabase Config</div>
+      <div class="config-field">
+        <label>Project URL</label>
+        <input id="sbUrl" type="text" placeholder="https://xxx.supabase.co" />
+      </div>
+      <div class="config-field">
+        <label>Service Role Key (admin only — do not share)</label>
+        <input id="sbKey" type="password" placeholder="eyJ..." />
+      </div>
+      <div class="config-field">
+        <label>Articles table</label>
+        <input id="sbTable" type="text" value="articles" />
+      </div>
+      <div class="config-field">
+        <label>Playlists table</label>
+        <input id="plTable" type="text" value="playlists" />
+      </div>
+      <div class="config-field">
+        <label>Playlist items table</label>
+        <input id="plItemsTable" type="text" value="playlist_items" />
+      </div>
+      <div class="config-field">
+        <label>Media table</label>
+        <input id="mediaTable" type="text" value="media" />
+      </div>
+      <div class="config-field">
+        <label>Media storage bucket</label>
+        <input id="mediaBucket" type="text" value="article-media" />
+      </div>
+      <button class="btn btn-primary" id="btnConnect">
+        <i class="fa fa-plug"></i> Connect
+      </button>
+      <div class="config-field-hint" style="margin-top:8px">Credentials are stored only in this browser's local storage.</div>
+      <div class="admin-key-warning"><i class="fa fa-triangle-exclamation"></i><span>This field takes the Supabase <strong>service role key</strong>, not the anon key. It bypasses row-level security entirely on every table. Local, trusted-admin use only — never deploy this page publicly or share this key.</span></div>
+    </div>
 
-  <!-- Article mode -->
-  <div id="articleMode">
-    <div class="preview-author-bar">
-      <div class="preview-avatar" id="previewAvatar">?</div>
-      <div>
-        <div class="preview-author-name" id="previewAuthorName">@username</div>
-        <div class="preview-author-date">Just now</div>
+    <hr class="divider" />
+
+    <div>
+      <div class="sidebar-section-label">How this works</div>
+      <div class="config-field-hint" style="line-height:1.7">
+        Every page of the PDF is rendered, run through the scan filter, and published as its own article — page image as the cover, page number as the content. All articles share the library's title and are linked in page order.
       </div>
     </div>
-    <div class="title-area">
-      <textarea class="title-input" id="titleInput" placeholder="Article Title" rows="1" oninput="autoResize(this)"></textarea>
-    </div>
-    <div class="stats-bar">
-      <div class="stat-chip"><i class="fas fa-eye"></i> 0 views</div>
-      <div class="stat-chip"><i class="fas fa-heart"></i> 0 likes</div>
-    </div>
-    <div class="blocks-wrap" id="blocksWrap"></div>
-    <div class="yt-input-bar" id="ytInputBar">
-      <input class="yt-url-in" id="ytUrlInput" placeholder="Paste YouTube URL…">
-      <button class="yt-add-btn" onclick="addYouTubeBlock()">Add</button>
-      <button class="yt-cancel-btn" onclick="hideYtBar()"><i class="fas fa-times"></i></button>
-    </div>
-    <div class="library-row" onclick="openLibSheet()">
-      <i class="fas fa-book-open lib-icon"></i>
-      <span class="library-row-label">Add to Library</span>
-      <span class="library-row-val" id="libRowVal">None</span>
-      <i class="fas fa-chevron-right chev"></i>
-    </div>
-    <div style="height:10px;"></div>
-  </div>
+  </aside>
 
-  <!-- MCQ mode -->
-  <div id="mcqMode" style="display:none;">
-    <div class="preview-author-bar">
-      <div class="preview-avatar" id="previewAvatarMCQ">?</div>
-      <div>
-        <div class="preview-author-name" id="previewAuthorNameMCQ">@username</div>
-        <div class="preview-author-date">Just now</div>
+  <main class="main">
+    <div class="steps-bar" id="stepsBar">
+      <div class="step-pill active" data-step="1"><span class="step-num">1</span> Upload PDF</div>
+      <div class="step-connector"></div>
+      <div class="step-pill" data-step="2"><span class="step-num">2</span> Tune scan filter</div>
+      <div class="step-connector"></div>
+      <div class="step-pill" data-step="3"><span class="step-num">3</span> Review pages</div>
+      <div class="step-connector"></div>
+      <div class="step-pill" data-step="4"><span class="step-num">4</span> Publish</div>
+    </div>
+
+    <!-- STEP 1 — upload -->
+    <div class="step-panel active" id="panel1">
+      <div class="upload-zone" id="uploadZone">
+        <i class="fa fa-file-arrow-up"></i>
+        <div class="uz-title">Drop a PDF here, or click to choose one</div>
+        <div class="uz-sub">Every page is rendered and filtered entirely in your browser — nothing is uploaded until you publish</div>
+        <input type="file" id="pdfInput" accept="application/pdf" />
+      </div>
+      <div id="fileChipWrap"></div>
+      <div class="extract-progress" id="extractProgress" style="display:none">
+        <div class="extract-status" id="extractStatus">Reading file…</div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="extractProgressFill"></div></div>
+      </div>
+      <div class="step-actions">
+        <button class="btn btn-primary" id="btnToStep2" style="width:auto;padding:10px 22px" disabled>
+          Continue <i class="fa fa-arrow-right"></i>
+        </button>
       </div>
     </div>
-    <div class="mcq-wrap">
-      <div class="mcq-badge-edit"><i class="fas fa-question-circle"></i> Quick Question</div>
-      <textarea class="mcq-question-input" id="mcqQuestion" placeholder="Type your question here…" rows="2" oninput="autoResize(this)"></textarea>
-      <div class="mcq-options-wrap" id="mcqOptionsWrap"></div>
-      <button class="mcq-add-opt" onclick="addMCQOption()"><i class="fas fa-plus"></i> Add Option</button>
+
+    <!-- STEP 2 — tune scan filter (global, previewed against one page) -->
+    <div class="step-panel" id="panel2">
+      <div class="filter-layout">
+        <div class="filter-stage checker" id="filterStage">
+          <canvas id="filterPreviewCanvas"></canvas>
+          <div class="fs-page-nav">
+            <button id="fsPrevPage" title="Previous page"><i class="fa fa-chevron-left"></i></button>
+            <span id="fsPageLabel">Page 1</span>
+            <button id="fsNextPage" title="Next page"><i class="fa fa-chevron-right"></i></button>
+          </div>
+          <div class="fs-processing" id="fsProcessing"><span class="spinner-ring"></span></div>
+        </div>
+
+        <div class="filter-controls">
+          <div class="fc-title">Global scan settings</div>
+
+          <div class="fc-field">
+            <div class="fc-field-row"><label>Sensitivity</label><span class="fc-field-value" id="sensitivityValue">50</span></div>
+            <input type="range" id="sensitivity" min="0" max="100" value="50" step="1">
+            <div class="slider-endcaps"><span>Clean</span><span>Catch faint marks</span></div>
+          </div>
+
+          <div class="fc-field">
+            <div class="fc-field-row"><label>Background</label></div>
+            <div class="segmented" id="bgToggle">
+              <button data-bg="transparent" class="active">Transparent</button>
+              <button data-bg="white">White</button>
+            </div>
+          </div>
+
+          <div class="fc-field">
+            <div class="fc-field-row"><label>Ink color</label></div>
+            <div class="ink-swatches" id="inkSwatches">
+              <button class="swatch active" data-color="#14120f" style="background:#14120f" aria-label="Black ink"></button>
+              <button class="swatch" data-color="#1d3a8f" style="background:#1d3a8f" aria-label="Blue ink"></button>
+              <button class="swatch" data-color="#c8a96e" style="background:#c8a96e" aria-label="Gold ink"></button>
+              <input type="color" id="customInkSwatch" value="#14120f" aria-label="Custom ink color">
+            </div>
+          </div>
+
+          <div class="fc-apply-row">
+            <div class="fc-apply-hint">This preview shows one page at a time so you can check the settings before they're applied to the whole PDF. Individual pages can still be tweaked afterward, in review.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-actions-row">
+        <div class="step-note" id="step2Note"></div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-back" id="btnBackTo1"><i class="fa fa-arrow-left"></i> Back</button>
+          <button class="btn btn-primary" id="btnApplyToAll" style="width:auto;padding:10px 20px">
+            Apply to this batch <i class="fa fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
     </div>
-    <div class="library-row" style="margin-top:14px;" onclick="openLibSheet()">
-      <i class="fas fa-book-open lib-icon"></i>
-      <span class="library-row-label">Add to Library</span>
-      <span class="library-row-val" id="libRowValMCQ">None</span>
-      <i class="fas fa-chevron-right chev"></i>
+
+    <!-- STEP 3 — review grid -->
+    <div class="step-panel" id="panel3">
+      <div class="review-header">
+        <div class="review-lib-field">
+          <label>Library name</label>
+          <input class="lib-name-input" id="libNameInput" placeholder="Library name…" />
+          <textarea class="lib-desc-input" id="libDescInput" rows="2" placeholder="Library description (optional)…"></textarea>
+        </div>
+        <div class="review-summary">
+          <div class="summary-chip"><div class="sc-num" id="scPages">0</div><div class="sc-label">Pages</div></div>
+          <div class="summary-chip"><div class="sc-num" id="scTweaked">0</div><div class="sc-label">Tweaked</div></div>
+        </div>
+      </div>
+
+      <div class="step-note" id="batchProgressNote" style="margin-bottom:14px"></div>
+
+      <div class="page-grid" id="pageGrid"></div>
+
+      <div class="review-footer">
+        <div class="review-footer-left" id="reviewFooterNote">Tap a page to fine-tune it individually, or use the × to exclude it from publishing.</div>
+        <div class="review-footer-right">
+          <button class="btn-back" id="btnBackTo2"><i class="fa fa-arrow-left"></i> Back</button>
+          <button class="btn-publish" id="btnPublish"><i class="fa fa-paper-plane"></i> <span id="btnPublishLabel">Publish Library</span></button>
+        </div>
+      </div>
     </div>
-    <div style="height:10px;"></div>
-  </div>
 
-</div>
-
-<!-- Toolbar -->
-<div class="bottom-toolbar" id="bottomToolbar">
-  <button class="tool-btn" onclick="addTextBlock()"><i class="fas fa-plus"></i> Text</button>
-  <label class="tool-btn">
-    <i class="fas fa-image"></i> Image
-    <input type="file" accept="image/*" style="display:none;" onchange="handleImage(event)">
-  </label>
-  <label class="tool-btn">
-    <i class="fas fa-music"></i> Audio
-    <input type="file" accept="audio/mpeg,audio/mp3,.mp3" style="display:none;" onchange="handleAudio(event)">
-  </label>
-  <button class="tool-btn" onclick="showYtBar()"><i class="fab fa-youtube"></i> YT</button>
-</div>
-</div>
-
-<!-- Highlight bottom sheet -->
-<div class="hl-sheet-overlay" id="hlSheetOverlay">
-<div class="hl-sheet" id="hlSheet">
-  <div class="hl-sheet-handle"></div>
-  <div class="hl-sheet-header">
-    <span class="hl-sheet-title">Highlight Style</span>
-    <button class="hl-sheet-close" onclick="closeHlSheet()"><i class="fas fa-times"></i></button>
-  </div>
-  <div class="hl-list" id="hlList"></div>
-</div>
-</div>
-
-<!-- Library sheet -->
-<div class="sheet-overlay" id="libSheet">
-<div class="sheet">
-  <div class="sheet-handle"></div>
-  <div class="sheet-header">
-    <span class="sheet-title">Add to Library</span>
-    <button class="sheet-close" onclick="closeLibSheet()"><i class="fas fa-times"></i></button>
-  </div>
-  <div class="sheet-body" id="libSheetBody">
-    <div class="lib-opt" onclick="selectLibrary(null,'None')">
-      <div class="lib-opt-thumb"><i class="fas fa-ban"></i></div>
-      <span class="lib-opt-name">None (standalone)</span>
-      <i class="fas fa-check lib-opt-check"></i>
+    <!-- STEP 4 — publish / done -->
+    <div class="step-panel" id="panel4">
+      <div class="publish-panel" id="publishPanel">
+        <div class="sp-icon thinking"><i class="fa fa-cloud-arrow-up"></i></div>
+        <div class="sp-title">Publishing…</div>
+        <div class="publish-progress-wrap"><div class="publish-progress-fill" id="publishProgressFill"></div></div>
+        <div class="publish-log" id="publishLog"></div>
+      </div>
     </div>
-    <div id="libOptions"><div style="padding:14px;font-size:12px;color:var(--sub);">Loading…</div></div>
-  </div>
-</div>
+  </main>
 </div>
 
-<!-- Edit Existing sheet -->
-<div class="sheet-overlay" id="editSheet">
-<div class="sheet">
-  <div class="sheet-handle"></div>
-  <div class="sheet-header">
-    <span class="sheet-title">Edit Existing</span>
-    <button class="sheet-close" onclick="closeEditSheet()"><i class="fas fa-times"></i></button>
-  </div>
-  <div class="sheet-body" id="editSheetBody">
-    <div style="display:flex;align-items:center;gap:10px;padding:20px;color:var(--sub);font-size:12px;">
-      <div class="spinner"></div> Loading…
+<!-- per-page tune modal -->
+<div class="modal-overlay" id="tuneModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="mh-title" id="tuneModalTitle">Tune page</div>
+      <button class="modal-close" id="tuneModalClose"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-stage checker" id="tuneModalStage">
+        <canvas id="tuneModalCanvas"></canvas>
+        <div class="fs-processing" id="tuneModalProcessing" style="display:none"><span class="spinner-ring"></span></div>
+      </div>
+      <div class="modal-controls">
+        <div class="fc-field">
+          <div class="fc-field-row"><label>Sensitivity</label><span class="fc-field-value" id="tuneSensitivityValue">50</span></div>
+          <input type="range" id="tuneSensitivity" min="0" max="100" value="50" step="1">
+          <div class="slider-endcaps"><span>Clean</span><span>Catch faint marks</span></div>
+        </div>
+        <div class="fc-field">
+          <div class="fc-field-row"><label>Background</label></div>
+          <div class="segmented" id="tuneBgToggle">
+            <button data-bg="transparent" class="active">Transparent</button>
+            <button data-bg="white">White</button>
+          </div>
+        </div>
+        <div class="fc-field">
+          <div class="fc-field-row"><label>Ink color</label></div>
+          <div class="ink-swatches" id="tuneInkSwatches">
+            <button class="swatch active" data-color="#14120f" style="background:#14120f" aria-label="Black ink"></button>
+            <button class="swatch" data-color="#1d3a8f" style="background:#1d3a8f" aria-label="Blue ink"></button>
+            <button class="swatch" data-color="#c8a96e" style="background:#c8a96e" aria-label="Gold ink"></button>
+            <input type="color" id="tuneCustomInkSwatch" value="#14120f" aria-label="Custom ink color">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost-full" id="tuneResetBtn" style="width:auto;padding:9px 16px"><i class="fa fa-rotate-left"></i> Reset to global</button>
+      <button class="btn btn-primary" id="tuneDoneBtn" style="width:auto;padding:9px 20px">Done</button>
     </div>
   </div>
 </div>
-</div>
 
-<div class="toast" id="toast"></div>
+<div id="toast"></div>
 
 <script>
-/* ══════════════════════════════════════
- EMOJI MAP & HIGHLIGHT EFFECTS
-══════════════════════════════════════ */
-const EMOJI_MAP={
-'🔍':'emo-magnify','❗':'emo-urgent','📌':'emo-pinned','🔥':'emo-fire','💎':'emo-diamond',
-'🟡':'emo-yellow','🔵':'emo-blue','🟢':'emo-green','🟣':'emo-purple','🔴':'emo-red',
-'⚫':'emo-dark','🧠':'emo-brain','📖':'emo-book','💡':'emo-idea','🎯':'emo-target',
-'🧩':'emo-puzzle','🏷️':'emo-tag','🔬':'emo-micro','⚠️':'emo-warning','✅':'emo-check',
-'❌':'emo-cross','⏳':'emo-hourglass','🔒':'emo-lock','🔓':'emo-unlock','⚡':'emo-lightning',
-'🌊':'emo-wave','💫':'emo-float','🚀':'emo-rocket','🌟':'emo-star','✨':'emo-sparkle',
-'🌈':'emo-rainbow','👑':'emo-crown','🪄':'emo-magic','❤️':'emo-heart','🧪':'emo-science',
-};
+(function() {
+  // ══════════════════════════════════════════════════════════
+  // CONSTANTS
+  // ══════════════════════════════════════════════════════════
+  var MAX_DIM = 1800;          // working resolution cap (long edge, px) — matches scan-tool.html
+  var WINDOW_RADIUS = 12;      // local window radius for Sauvola (window = 25x25)
+  var R_CONST = 128;           // Sauvola normalization constant for 8-bit stddev
+  var SOFTNESS = 18;           // gray-level width of the anti-aliased edge transition
+  var K_MIN = 0.08;
+  var K_MAX = 0.55;
+  var RENDER_SCALE = 2.0;      // pdf.js render scale — page canvas resolution before the MAX_DIM cap
+  var BATCH_SIZE = 100;        // pages rendered/held in memory at a time — keeps memory bounded on large PDFs
 
-const HIGHLIGHT_EFFECTS=[
-{group:'Color'},
-{label:'Yellow',emoji:'🟡',swatch:'#e8c86a',cls:'emo-yellow'},
-{label:'Red',emoji:'🔴',swatch:'#c97a5a',cls:'emo-red'},
-{label:'Green',emoji:'🟢',swatch:'#7ab88a',cls:'emo-green'},
-{label:'Blue',emoji:'🔵',swatch:'#8aa0c0',cls:'emo-blue'},
-{label:'Purple',emoji:'🟣',swatch:'#c8a96e',cls:'emo-purple'},
-{label:'Dark bg',emoji:'⚫',swatch:'#2a2518',cls:'emo-dark'},
-{group:'Emphasis'},
-{label:'Magnify',emoji:'🔍',swatch:'#f5f0e8',cls:'emo-magnify'},
-{label:'Urgent',emoji:'❗',swatch:'#e8c86a',cls:'emo-urgent'},
-{label:'Pinned',emoji:'📌',swatch:'#c8a96e',cls:'emo-pinned'},
-{label:'Fire',emoji:'🔥',swatch:'#c87040',cls:'emo-fire'},
-{label:'Diamond',emoji:'💎',swatch:'#8aa0c0',cls:'emo-diamond'},
-{label:'Lightning',emoji:'⚡',swatch:'#e8c86a',cls:'emo-lightning'},
-{label:'Crown',emoji:'👑',swatch:'#c8a96e',cls:'emo-crown'},
-{label:'Sparkle',emoji:'✨',swatch:'#f0e0b0',cls:'emo-sparkle'},
-{label:'Star',emoji:'🌟',swatch:'#f0e0b0',cls:'emo-star'},
-{group:'Academic'},
-{label:'Brain',emoji:'🧠',swatch:'#8aa0c0',cls:'emo-brain'},
-{label:'Book',emoji:'📖',swatch:'#d4b88a',cls:'emo-book'},
-{label:'Microscope',emoji:'🔬',swatch:'#c8a96e',cls:'emo-micro'},
-{label:'Science',emoji:'🧪',swatch:'#b8a878',cls:'emo-science'},
-{label:'Idea',emoji:'💡',swatch:'#e8c86a',cls:'emo-idea'},
-{label:'Target',emoji:'🎯',swatch:'#c97a5a',cls:'emo-target'},
-{label:'Puzzle',emoji:'🧩',swatch:'#c8a96e',cls:'emo-puzzle'},
-{label:'Tag',emoji:'🏷️',swatch:'#c8a96e',cls:'emo-tag'},
-{group:'Status'},
-{label:'Check',emoji:'✅',swatch:'#7ab88a',cls:'emo-check'},
-{label:'Cross',emoji:'❌',swatch:'#c97a5a',cls:'emo-cross'},
-{label:'Warning',emoji:'⚠️',swatch:'#e8c86a',cls:'emo-warning'},
-{label:'Hourglass',emoji:'⏳',swatch:'#c8a96e',cls:'emo-hourglass'},
-{label:'Lock',emoji:'🔒',swatch:'#8a8070',cls:'emo-lock'},
-{label:'Unlock',emoji:'🔓',swatch:'#c8a96e',cls:'emo-unlock'},
-{group:'Animated'},
-{label:'Rainbow',emoji:'🌈',swatch:'#c8a96e',cls:'emo-rainbow'},
-{label:'Magic',emoji:'🪄',swatch:'#f0d8a0',cls:'emo-magic'},
-{label:'Rocket',emoji:'🚀',swatch:'#e8d8a0',cls:'emo-rocket'},
-{label:'Wave',emoji:'🌊',swatch:'#8aa0c0',cls:'emo-wave'},
-{label:'Float',emoji:'💫',swatch:'#c8a96e',cls:'emo-float'},
-{label:'Heart',emoji:'❤️',swatch:'#c87a6a',cls:'emo-heart'},
-];
+  var OPENROUTER_ENDEP = null; // unused here, kept out intentionally — no AI step in this tool
 
-/* Build hl list — use touchend with scroll-detection to prevent accidental picks */
-(function(){
-const list=document.getElementById('hlList');
-HIGHLIGHT_EFFECTS.forEach(ef=>{
-  if(ef.group){
-    const lbl=document.createElement('div');
-    lbl.className='hl-group-label';lbl.textContent=ef.group;
-    list.appendChild(lbl);
-  } else {
-    const btn=document.createElement('button');
-    btn.className='hl-btn';
-    btn.dataset.emoji=ef.emoji;
-    btn.innerHTML=`<div class="hl-swatch" style="background:${ef.swatch};"></div>${ef.label}<span class="hl-preview ${ef.cls}">Sample text</span>`;
+  // ══════════════════════════════════════════════════════════
+  // STATE
+  // ══════════════════════════════════════════════════════════
+  var sbClient = null;
+  var connected = false;
+  var toastTimer = null;
+  var currentStep = 1;
 
-    // Track touch start position to distinguish tap from scroll
-    let _touchStartY=0;
-    let _touchMoved=false;
+  var pdfFile = null;
+  var pdfDoc = null;           // pdf.js document proxy
+  var pageCount = 0;
 
-    btn.addEventListener('touchstart',e=>{
-      _touchStartY=e.touches[0].clientY;
-      _touchMoved=false;
-    },{passive:true});
+  // One entry per PAGE IN THE CURRENT BATCH ONLY (never the whole PDF —
+  // that's the point of batching). `raw` is the untouched rendered-page
+  // canvas. `settings` is either null (use global) or a per-page override
+  // { sensitivity, bgMode, inkColor }. `excluded` skips publish. `filtered`
+  // caches the last-rendered result canvas + a dirty flag so review/publish
+  // don't recompute a page's filter unless something about it changed.
+  // `index` is the page's ABSOLUTE 0-based position in the whole PDF, not
+  // its position within this batch — used for the "Page N" article label
+  // and for resuming from the right spot in renderNextBatch().
+  var pages = []; // { index, raw: canvas, settings: null|{...}, excluded: bool, filtered: canvas|null, filteredDirty: bool }
 
-    btn.addEventListener('touchmove',e=>{
-      if(Math.abs(e.touches[0].clientY-_touchStartY)>6){
-        _touchMoved=true;
-      }
-    },{passive:true});
+  var globalSettings = { sensitivity: 50, bgMode: 'transparent', inkColor: { r: 0x14, g: 0x12, b: 0x0f } };
 
-    btn.addEventListener('touchend',e=>{
-      if(_touchMoved)return; // was scrolling, ignore
-      e.preventDefault();
-      applyHighlight(ef.emoji);
-    },{passive:false});
+  var libraryName = '';
+  var libraryDesc = '';
 
-    // Mouse fallback
-    btn.addEventListener('click',()=>applyHighlight(ef.emoji));
+  // Batch/cross-batch publish state. batchStart is the absolute page index
+  // (0-based) where the CURRENT batch begins; the batch covers
+  // [batchStart, batchStart + pages.length). libraryId is null until the
+  // first batch's publish creates the library row, then every later batch
+  // reuses it instead of creating a new one. publishedCount is a running
+  // total across all batches so far, purely for the "N of TOTAL published"
+  // messaging — it does not gate anything.
+  var batchStart = 0;
+  var libraryId = null;
+  var publishedCount = 0;
 
-    list.appendChild(btn);
-  }
-});
-})();
+  var previewPageIndex = 0;    // index INTO `pages` (i.e. batch-relative) that step-2's preview is showing
+  var tuneModalPageIndex = null; // also batch-relative, indexes into `pages`
 
-/* ══════════════════════════════════════
- EMOJI RENDERING FOR DISPLAY
-══════════════════════════════════════ */
-function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  // ══════════════════════════════════════════════════════════
+  // BOOT
+  // ══════════════════════════════════════════════════════════
+  document.addEventListener('DOMContentLoaded', function() {
+    var savedUrl = localStorage.getItem('patholytica_sb_url');
+    if (savedUrl) document.getElementById('sbUrl').value = savedUrl;
+    var savedKey = localStorage.getItem('patholytica_sb_key');
+    if (savedKey) document.getElementById('sbKey').value = savedKey;
 
-function buildEmojiPattern(){
-const keys=Object.keys(EMOJI_MAP).sort((a,b)=>b.length-a.length);
-const escaped=keys.map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|');
-return new RegExp(`(${escaped})([\\s\\S]*?)\\1`,'gu');
-}
-
-function renderEmojiPreview(text){
-const re=buildEmojiPattern();
-let result='',lastIndex=0,match;
-while((match=re.exec(text))!==null){
-  result+=escHtml(text.slice(lastIndex,match.index));
-  const cls=EMOJI_MAP[match[1]];
-  result+=`<span class="${cls}">${renderEmojiPreview(match[2])}</span>`;
-  lastIndex=re.lastIndex;
-}
-result+=escHtml(text.slice(lastIndex));
-return result;
-}
-
-/* ══════════════════════════════════════
- BLOCK STATE
-══════════════════════════════════════ */
-let mode='article';
-let blocks=[];
-let selectedLibraryId=null;
-let _hlTargetBlkId=null;
-let _hlSavedSel=null;
-
-/* ══════════════════════════════════════
- HELPERS
-══════════════════════════════════════ */
-function goBack(){if(document.referrer&&document.referrer.includes(location.host))history.back();else location.href='index.html';}
-function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
-function showToast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+type+' show';clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3000);}
-function showYtBar(){document.getElementById('ytInputBar').classList.add('show');setTimeout(()=>document.getElementById('ytUrlInput').focus(),100);}
-function hideYtBar(){document.getElementById('ytInputBar').classList.remove('show');document.getElementById('ytUrlInput').value='';}
-function extractYtId(url){const m=url.match(/(?:youtu\.be\/|v=|\/v\/|embed\/|shorts\/)([A-Za-z0-9_\-]{11})/);return m?m[1]:null;}
-const letters=['A','B','C','D','E','F'];
-
-/* ══════════════════════════════════════
- MODE
-══════════════════════════════════════ */
-function switchMode(m){
-mode=m;
-document.getElementById('articleMode').style.display=m==='article'?'block':'none';
-document.getElementById('mcqMode').style.display=m==='mcq'?'block':'none';
-document.getElementById('btnModeArticle').classList.toggle('active',m==='article');
-document.getElementById('btnModeMCQ').classList.toggle('active',m==='mcq');
-document.getElementById('hdrTitle').textContent=m==='article'?'New Article':'New MCQ';
-document.getElementById('bottomToolbar').style.display=m==='article'?'flex':'none';
-if(m==='mcq'&&document.querySelectorAll('.mcq-opt-row').length===0){
-  addMCQOption();addMCQOption();addMCQOption();addMCQOption();
-  document.querySelectorAll('.mcq-opt-row')[0]?.classList.add('correct-opt');
-}
-syncLibLabel();
-}
-
-/* ══════════════════════════════════════
- BLOCK RENDERING
-══════════════════════════════════════ */
-function genId(){return'blk_'+Date.now()+'_'+Math.random().toString(36).slice(2);}
-
-function addTextBlock(text=''){
-const id=genId();
-blocks.push({id,type:'text',text});
-renderBlocks();
-requestAnimationFrame(()=>{
-  const el=document.querySelector(`[data-blk="${id}"] .text-block-textarea`);
-  if(el){activateTextEdit(id,el);}
-});
-}
-
-function addImageBlock(dataUrl,name){blocks.push({id:genId(),type:'image',dataUrl,name,caption:''});renderBlocks();}
-function addAudioBlock(dataUrl,name){blocks.push({id:genId(),type:'audio',dataUrl,name,caption:''});renderBlocks();}
-function addYouTubeBlockData(ytId){blocks.push({id:genId(),type:'youtube',ytId,url:`https://www.youtube.com/embed/${ytId}`,caption:''});renderBlocks();}
-function removeBlock(id){blocks=blocks.filter(b=>b.id!==id);renderBlocks();}
-function moveBlockUp(id){const i=blocks.findIndex(b=>b.id===id);if(i>0){[blocks[i-1],blocks[i]]=[blocks[i],blocks[i-1]];renderBlocks();}}
-function moveBlockDown(id){const i=blocks.findIndex(b=>b.id===id);if(i<blocks.length-1){[blocks[i],blocks[i+1]]=[blocks[i+1],blocks[i]];renderBlocks();}}
-
-function renderBlocks(){
-const wrap=document.getElementById('blocksWrap');
-document.querySelectorAll('.text-block-textarea').forEach(ta=>{
-  const row=ta.closest('[data-blk]');if(!row)return;
-  const blk=blocks.find(b=>b.id===row.getAttribute('data-blk'));
-  if(blk&&blk.type==='text')blk.text=ta.value;
-});
-wrap.innerHTML='';
-if(blocks.length===0){addTextBlock('');return;}
-blocks.forEach((blk,idx)=>{
-  const row=document.createElement('div');
-  row.className='block-row';
-  row.dataset.blkrow=blk.id;
-
-  const handleCol=document.createElement('div');
-  handleCol.className='block-handle-col';
-  if(idx>0){
-    const upBtn=document.createElement('button');
-    upBtn.className='move-btn';upBtn.title='Move up';
-    upBtn.innerHTML='<i class="fas fa-chevron-up"></i>';
-    upBtn.onclick=()=>moveBlockUp(blk.id);
-    handleCol.appendChild(upBtn);
-  }
-  if(idx<blocks.length-1){
-    const dnBtn=document.createElement('button');
-    dnBtn.className='move-btn';dnBtn.title='Move down';
-    dnBtn.innerHTML='<i class="fas fa-chevron-down"></i>';
-    dnBtn.onclick=()=>moveBlockDown(blk.id);
-    handleCol.appendChild(dnBtn);
-  }
-
-  const content=document.createElement('div');
-  content.className='block-content';
-  content.setAttribute('data-blk',blk.id);
-
-  if(blk.type==='text'){
-    const container=document.createElement('div');
-    container.className='text-block-container';
-
-    const display=document.createElement('div');
-    display.className='text-block-display';
-    display.setAttribute('data-placeholder','Write here…');
-    display.setAttribute('data-blk-display',blk.id);
-    if(blk.text){display.innerHTML=renderEmojiPreview(blk.text);}
-    display.addEventListener('click',()=>activateTextEdit(blk.id,ta));
-    display.addEventListener('touchend',e=>{if(!window._hlPending)activateTextEdit(blk.id,ta);});
-
-    const ta=document.createElement('textarea');
-    ta.className='text-block-textarea';
-    ta.placeholder='Write here…';
-    ta.value=blk.text||'';
-    ta.rows=1;
-    ta.setAttribute('data-blk-ta',blk.id);
-
-    ta.addEventListener('input',function(){
-      blk.text=this.value;
-      // Re-measure height properly
-      this.style.height='auto';
-      this.style.height=this.scrollHeight+'px';
-      const disp=document.querySelector(`[data-blk-display="${blk.id}"]`);
-      if(disp)disp.innerHTML=blk.text?renderEmojiPreview(blk.text):'';
+    document.getElementById('sbUrl').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_sb_url', e.target.value.trim());
+    });
+    document.getElementById('sbKey').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_sb_key', e.target.value.trim());
     });
 
-    ta.addEventListener('blur',()=>{
-      blk.text=ta.value;
-      ta.classList.remove('editing');
-      display.classList.remove('hidden');
-      display.innerHTML=blk.text?renderEmojiPreview(blk.text):'';
+    document.getElementById('btnConnect').addEventListener('click', connectSupabase);
+
+    var uploadZone = document.getElementById('uploadZone');
+    var pdfInput = document.getElementById('pdfInput');
+    uploadZone.addEventListener('click', function(){ pdfInput.click(); });
+    uploadZone.addEventListener('dragover', function(e){ e.preventDefault(); uploadZone.classList.add('drag'); });
+    uploadZone.addEventListener('dragleave', function(){ uploadZone.classList.remove('drag'); });
+    uploadZone.addEventListener('drop', function(e){
+      e.preventDefault(); uploadZone.classList.remove('drag');
+      if (e.dataTransfer.files.length) handlePdfFile(e.dataTransfer.files[0]);
+    });
+    pdfInput.addEventListener('change', function(e){
+      if (e.target.files.length) handlePdfFile(e.target.files[0]);
     });
 
-    let hlPressTimer;
-    display.addEventListener('touchstart',e=>{
-      hlPressTimer=setTimeout(()=>{
-        window._hlPending=true;
-        activateTextEdit(blk.id,ta);
-        setTimeout(()=>{
-          ta.focus();ta.select();
-          _hlTargetBlkId=blk.id;
-          _hlSavedSel={start:0,end:ta.value.length};
-          openHlSheet();
-          setTimeout(()=>{window._hlPending=false;},300);
-        },200);
-      },600);
-    },{passive:true});
-    display.addEventListener('touchend',()=>clearTimeout(hlPressTimer));
-    display.addEventListener('touchmove',()=>clearTimeout(hlPressTimer));
+    document.getElementById('btnToStep2').addEventListener('click', enterStep2);
+    document.getElementById('btnBackTo1').addEventListener('click', function(){ goToStep(1); });
+    document.getElementById('btnApplyToAll').addEventListener('click', applyGlobalToAllAndContinue);
+    document.getElementById('btnBackTo2').addEventListener('click', function(){ goToStep(2); });
+    document.getElementById('btnPublish').addEventListener('click', publishLibrary);
 
-    ta.addEventListener('mouseup',()=>checkTaSelection(blk.id,ta));
-    ta.addEventListener('keyup',()=>checkTaSelection(blk.id,ta));
-    ta.addEventListener('touchend',()=>{setTimeout(()=>checkTaSelection(blk.id,ta),200);});
+    document.getElementById('libNameInput').addEventListener('input', function(e){ libraryName = e.target.value; });
+    document.getElementById('libDescInput').addEventListener('input', function(e){ libraryDesc = e.target.value; });
 
-    container.appendChild(display);
-    container.appendChild(ta);
-    content.appendChild(container);
-
-    // Initial height after append
-    requestAnimationFrame(()=>{
-      ta.style.height='auto';
-      ta.style.height=ta.scrollHeight+'px';
+    wireFilterControlSet({
+      sliderEl: document.getElementById('sensitivity'),
+      valueEl: document.getElementById('sensitivityValue'),
+      bgToggleEl: document.getElementById('bgToggle'),
+      inkSwatchesEl: document.getElementById('inkSwatches'),
+      customSwatchEl: document.getElementById('customInkSwatch'),
+      onChange: onGlobalPreviewSettingsChanged
     });
 
-  } else if(blk.type==='image'){
-    const wrap2=document.createElement('div');wrap2.className='image-block-wrap';
-    const img=document.createElement('img');img.src=blk.dataUrl||blk.url||'';img.alt=blk.name||'';img.crossOrigin='anonymous';
-    wrap2.appendChild(img);
-    const cap=document.createElement('input');cap.className='image-caption-input';cap.placeholder='Add a caption…';cap.value=blk.caption||'';cap.oninput=function(){blk.caption=this.value;};
-    wrap2.appendChild(cap);
-    content.appendChild(wrap2);
-  } else if(blk.type==='youtube'){
-    const ytWrap=document.createElement('div');ytWrap.className='yt-block-wrap';
-    const ytId=blk.ytId;
-    const lbl=document.createElement('div');lbl.className='yt-block-label';
-    lbl.innerHTML=`<i class="fab fa-youtube"></i><span>youtube.com/watch?v=${ytId}</span>${ytId?`<a href="https://www.youtube.com/watch?v=${ytId}" target="_blank" rel="noopener">Watch</a>`:''}`;
-    ytWrap.appendChild(lbl);
-    const iframe=document.createElement('iframe');iframe.src=blk.url;iframe.title='YouTube';iframe.allow='accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture';iframe.allowFullscreen=true;
-    ytWrap.appendChild(iframe);
-    const cap=document.createElement('input');cap.className='yt-caption-input';cap.placeholder='Add a caption…';cap.value=blk.caption||'';cap.oninput=function(){blk.caption=this.value;};
-    ytWrap.appendChild(cap);
-    content.appendChild(ytWrap);
-  } else if(blk.type==='audio'){
-    const audioWrap=document.createElement('div');audioWrap.className='audio-block-wrap';
-    const audioId='aud_'+blk.id.replace(/[^a-z0-9]/gi,'');
-    const bars=Array(15).fill(0).map(()=>`<div class="waveform-bar" style="height:${Math.random()*60+20}%"></div>`).join('');
-    audioWrap.innerHTML=`
-      <div class="custom-audio-player">
-        <button class="play-btn" onclick="toggleAudio(this,'${audioId}')"><i class="fas fa-play"></i></button>
-        <div class="audio-info">
-          <div class="audio-title-txt">${escHtml(blk.name||'Audio')}</div>
-          <div class="waveform-container" onclick="seekAudio(event,this,'${audioId}')">
-            <div class="waveform-progress"></div>
-            <div class="waveform-bars">${bars}</div>
-          </div>
-          <div class="audio-time"><span class="current-time">0:00</span><span class="duration">0:00</span></div>
-        </div>
-        <audio id="${audioId}" src="${blk.dataUrl||blk.url||''}" style="display:none;"></audio>
-      </div>
-      <input class="audio-caption-input" placeholder="Add a caption…" value="${escHtml(blk.caption||'')}" oninput="updateBlkCaption('${blk.id}',this.value)">`;
-    setTimeout(()=>{const audio=document.getElementById(audioId);if(audio){audio.addEventListener('loadedmetadata',()=>{const dur=Math.floor(audio.duration);const d=audio.closest('.custom-audio-player')?.querySelector('.duration');if(d)d.textContent=`${Math.floor(dur/60)}:${(dur%60).toString().padStart(2,'0')}`;});}},100);
-    content.appendChild(audioWrap);
-  }
+    document.getElementById('fsPrevPage').addEventListener('click', function(){ stepPreviewPage(-1); });
+    document.getElementById('fsNextPage').addEventListener('click', function(){ stepPreviewPage(1); });
 
-  const actCol=document.createElement('div');actCol.className='block-actions-col';
-  const delBtn=document.createElement('button');delBtn.className='blk-act del';delBtn.title='Delete';delBtn.innerHTML='<i class="fas fa-trash"></i>';delBtn.onclick=()=>removeBlock(blk.id);
-  actCol.appendChild(delBtn);
-  if(blk.type==='text'){
-    const hlBtn=document.createElement('button');hlBtn.className='blk-act';hlBtn.title='Highlight selected text';hlBtn.innerHTML='<i class="fas fa-highlighter"></i>';
-    hlBtn.addEventListener('click',()=>{
-      const ta=document.querySelector(`[data-blk-ta="${blk.id}"]`);
-      if(!ta){showToast('Tap text first','error');return;}
-      const s=ta.selectionStart,e=ta.selectionEnd;
-      if(s===e){showToast('Select text first','error');return;}
-      _hlTargetBlkId=blk.id;_hlSavedSel={start:s,end:e};
-      openHlSheet();
+    wireFilterControlSet({
+      sliderEl: document.getElementById('tuneSensitivity'),
+      valueEl: document.getElementById('tuneSensitivityValue'),
+      bgToggleEl: document.getElementById('tuneBgToggle'),
+      inkSwatchesEl: document.getElementById('tuneInkSwatches'),
+      customSwatchEl: document.getElementById('tuneCustomInkSwatch'),
+      onChange: onTuneModalSettingsChanged
     });
-    hlBtn.addEventListener('touchend',e2=>{
-      e2.preventDefault();
-      const ta=document.querySelector(`[data-blk-ta="${blk.id}"]`);
-      if(!ta){showToast('Tap text to edit first','error');return;}
-      const s=ta.selectionStart,en=ta.selectionEnd;
-      if(s===en){showToast('Select text first','error');return;}
-      _hlTargetBlkId=blk.id;_hlSavedSel={start:s,end:en};
-      openHlSheet();
-    },{passive:false});
-    actCol.appendChild(hlBtn);
-  }
+    document.getElementById('tuneModalClose').addEventListener('click', closeTuneModal);
+    document.getElementById('tuneDoneBtn').addEventListener('click', closeTuneModal);
+    document.getElementById('tuneResetBtn').addEventListener('click', resetTunePageToGlobal);
+    document.getElementById('tuneModal').addEventListener('click', function(e){
+      if (e.target.id === 'tuneModal') closeTuneModal();
+    });
 
-  row.appendChild(handleCol);
-  row.appendChild(content);
-  row.appendChild(actCol);
-  wrap.appendChild(row);
-});
-}
-
-function activateTextEdit(blkId,ta){
-const disp=document.querySelector(`[data-blk-display="${blkId}"]`);
-if(!disp)return;
-disp.classList.add('hidden');
-ta.classList.add('editing');
-// Ensure height is correct before focusing
-ta.style.height='auto';
-ta.style.height=ta.scrollHeight+'px';
-ta.focus();
-ta.setSelectionRange(ta.value.length,ta.value.length);
-}
-
-function checkTaSelection(blkId,ta){
-const s=ta.selectionStart,e=ta.selectionEnd;
-if(s!==e){_hlTargetBlkId=blkId;_hlSavedSel={start:s,end:e};}
-}
-
-function updateBlkCaption(id,val){const b=blocks.find(x=>x.id===id);if(b)b.caption=val;}
-
-/* ══════════════════════════════════════
- HIGHLIGHT SHEET
- Overlay tap-to-close only fires if touch didn't scroll
-══════════════════════════════════════ */
-window._hlPending=false;
-
-function openHlSheet(){
-document.getElementById('hlSheetOverlay').classList.add('show');
-}
-function closeHlSheet(){
-document.getElementById('hlSheetOverlay').classList.remove('show');
-}
-
-// Tap overlay (outside sheet) to close — with scroll guard
-(function(){
-const overlay=document.getElementById('hlSheetOverlay');
-const sheet=document.getElementById('hlSheet');
-let _ots=0,_otm=false;
-overlay.addEventListener('touchstart',e=>{_ots=e.touches[0].clientY;_otm=false;},{passive:true});
-overlay.addEventListener('touchmove',e=>{if(Math.abs(e.touches[0].clientY-_ots)>6)_otm=true;},{passive:true});
-overlay.addEventListener('touchend',e=>{
-  if(_otm)return;
-  if(!sheet.contains(e.target))closeHlSheet();
-});
-overlay.addEventListener('click',e=>{if(!sheet.contains(e.target))closeHlSheet();});
-})();
-
-function applyHighlight(emoji){
-closeHlSheet();
-if(!_hlTargetBlkId||!_hlSavedSel)return;
-const blk=blocks.find(b=>b.id===_hlTargetBlkId);
-const ta=document.querySelector(`[data-blk-ta="${_hlTargetBlkId}"]`);
-if(!blk||!ta)return;
-const {start,end}=_hlSavedSel;
-const val=ta.value;
-const selected=val.slice(start,end);
-const wrapped=`${emoji}${selected}${emoji}`;
-const newVal=val.slice(0,start)+wrapped+val.slice(end);
-ta.value=newVal;blk.text=newVal;
-ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';
-const disp=document.querySelector(`[data-blk-display="${_hlTargetBlkId}"]`);
-if(disp)disp.innerHTML=renderEmojiPreview(newVal);
-_hlSavedSel=null;_hlTargetBlkId=null;
-}
-
-/* ══════════════════════════════════════
- MEDIA HANDLERS
-══════════════════════════════════════ */
-function handleImage(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>addImageBlock(ev.target.result,f.name);r.readAsDataURL(f);e.target.value='';}
-function handleAudio(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>addAudioBlock(ev.target.result,f.name);r.readAsDataURL(f);e.target.value='';}
-function addYouTubeBlock(){const url=document.getElementById('ytUrlInput').value.trim();if(!url)return;const id=extractYtId(url);if(!id){showToast('Invalid YouTube URL','error');return;}addYouTubeBlockData(id);hideYtBar();}
-
-/* ══════════════════════════════════════
- AUDIO PLAYER
-══════════════════════════════════════ */
-window.toggleAudio=function(btn,audioId){
-const player=btn.closest('.custom-audio-player'),audio=document.getElementById(audioId),icon=btn.querySelector('i');
-if(!audio)return;
-if(audio.paused){audio.play();icon.className='fas fa-pause';audio.ontimeupdate=function(){const p=(audio.currentTime/audio.duration)*100;const pr=player.querySelector('.waveform-progress');if(pr)pr.style.width=p+'%';const ct=player.querySelector('.current-time');if(ct){const m=Math.floor(audio.currentTime/60),s=Math.floor(audio.currentTime%60);ct.textContent=`${m}:${s.toString().padStart(2,'0')}`;}};audio.onended=function(){icon.className='fas fa-play';const pr=player.querySelector('.waveform-progress');if(pr)pr.style.width='0%';const ct=player.querySelector('.current-time');if(ct)ct.textContent='0:00';};}else{audio.pause();icon.className='fas fa-play';}
-};
-window.seekAudio=function(event,container,audioId){const audio=document.getElementById(audioId);if(!audio||!audio.duration)return;const rect=container.getBoundingClientRect();audio.currentTime=((event.clientX-rect.left)/rect.width)*audio.duration;};
-
-/* ══════════════════════════════════════
- MCQ
-══════════════════════════════════════ */
-function addMCQOption(label='',correct=false){
-const wrap=document.getElementById('mcqOptionsWrap');
-const i=wrap.children.length;if(i>=6)return;
-const row=document.createElement('div');row.className='mcq-opt-row'+(correct?' correct-opt':'');
-row.innerHTML=`<div class="mcq-opt-letter">${letters[i]||i+1}</div><input class="mcq-opt-input" placeholder="Option ${letters[i]||i+1}…" value="${escHtml(label)}"><button class="mcq-mark-correct" onclick="markCorrect(this)"><i class="fas fa-check"></i></button><button class="mcq-opt-del" onclick="removeMCQOpt(this)"><i class="fas fa-times"></i></button>`;
-wrap.appendChild(row);
-}
-function markCorrect(btn){document.querySelectorAll('.mcq-opt-row').forEach(r=>r.classList.remove('correct-opt'));btn.closest('.mcq-opt-row').classList.add('correct-opt');}
-function removeMCQOpt(btn){const wrap=document.getElementById('mcqOptionsWrap');if(wrap.children.length<=2)return;btn.closest('.mcq-opt-row').remove();[...wrap.children].forEach((r,i)=>{r.querySelector('.mcq-opt-letter').textContent=letters[i]||i+1;r.querySelector('.mcq-opt-input').placeholder=`Option ${letters[i]||i+1}…`;});}
-
-/* ══════════════════════════════════════
- LIBRARY
-══════════════════════════════════════ */
-function openLibSheet(){document.getElementById('libSheet').classList.add('show');}
-function closeLibSheet(){document.getElementById('libSheet').classList.remove('show');}
-document.getElementById('libSheet').addEventListener('click',e=>{if(e.target===e.currentTarget)closeLibSheet();});
-
-function selectLibrary(id,name){
-selectedLibraryId=id;syncLibLabel();
-document.querySelectorAll('#libSheetBody .lib-opt').forEach(o=>o.classList.remove('selected'));
-if(id===null)document.querySelector('#libSheetBody .lib-opt')?.classList.add('selected');
-else document.querySelector(`#libSheetBody .lib-opt[data-lib-id="${id}"]`)?.classList.add('selected');
-closeLibSheet();
-}
-function syncLibLabel(){
-const name=selectedLibraryId?
-  (document.querySelector(`#libSheetBody .lib-opt[data-lib-id="${selectedLibraryId}"] .lib-opt-name`)?.textContent||'Library')
-  :'None';
-document.getElementById('libRowVal').textContent=name;
-document.getElementById('libRowValMCQ').textContent=name;
-}
-
-/* ══════════════════════════════════════
- EDIT EXISTING
-══════════════════════════════════════ */
-window._editingArticleId=null;
-function openEditSheet(){document.getElementById('editSheet').classList.add('show');loadUserArticlesForEdit();}
-function closeEditSheet(){document.getElementById('editSheet').classList.remove('show');}
-document.getElementById('editSheet').addEventListener('click',e=>{if(e.target===e.currentTarget)closeEditSheet();});
-
-async function loadUserArticlesForEdit(){
-if(!window._supabase||!window._currentUser)return;
-const body=document.getElementById('editSheetBody');
-body.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:20px;color:var(--sub);font-size:12px;"><div class="spinner"></div> Loading…</div>`;
-const{data,error}=await window._supabase.from('articles').select('*').eq('firebase_user_id',window._currentUser.uid).order('created_at',{ascending:false});
-if(error||!data||!data.length){body.innerHTML=`<div style="text-align:center;padding:30px;color:var(--sub);font-size:12px;">No articles found</div>`;return;}
-body.innerHTML='';
-data.forEach(a=>{
-  const isMcq=a.content&&a.content.trimStart().startsWith('❔');
-  const item=document.createElement('div');item.className='edit-art-item';
-  item.innerHTML=`${isMcq?'<span class="edit-art-mcq">MCQ</span>':''}<div style="flex:1;min-width:0;"><div class="edit-art-title">${escHtml(a.title||'Untitled')}</div><div class="edit-art-meta">${new Date(a.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div></div><i class="fas fa-chevron-right" style="color:var(--sub);font-size:11px;flex-shrink:0;"></i>`;
-  item.onclick=()=>loadForEdit(a);
-  body.appendChild(item);
-});
-}
-
-async function loadForEdit(a){
-closeEditSheet();
-window._editingArticleId=a.id;
-document.getElementById('hdrTitle').textContent='Edit';
-document.getElementById('publishBtn').textContent='Save';
-const isMcq=a.content&&a.content.trimStart().startsWith('❔');
-if(isMcq){
-  switchMode('mcq');
-  const lines=a.content.trim().split('\n').map(l=>l.trim()).filter(Boolean);
-  document.getElementById('mcqQuestion').value=lines[0].replace(/^❔/,'').trim();
-  autoResize(document.getElementById('mcqQuestion'));
-  document.getElementById('mcqOptionsWrap').innerHTML='';
-  lines.slice(1).forEach(line=>{
-    const correct=line.startsWith('✅');
-    addMCQOption(line.replace(/^✅/,'').trim(),correct);
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   });
-} else {
-  switchMode('article');
-  document.getElementById('titleInput').value=a.title||'';
-  autoResize(document.getElementById('titleInput'));
-  blocks=[];
-  if(a.content){
-    const paragraphs=a.content.split('\n\n').filter(p=>p.trim());
-    let mediaRows=[];
-    if(window._supabase){
-      const{data:med}=await window._supabase.from('media').select('*').eq('article_id',a.id).order('display_order',{ascending:true});
-      mediaRows=med||[];
+
+  // ══════════════════════════════════════════════════════════
+  // FILTER ENGINE — Sauvola adaptive threshold, ported from scan-tool.html
+  // Operates on a plain <canvas>; caller supplies settings each call.
+  // No shared/global mutable buffers here (unlike the single-page scanner)
+  // since multiple pages need independent grayscale/integral data — each
+  // call below builds and discards its own working arrays.
+  // ══════════════════════════════════════════════════════════
+  function clamp(v, lo, hi){ return v < lo ? lo : (v > hi ? hi : v); }
+
+  function hexToRgb(hex) {
+    var m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return m ? { r: parseInt(m[1],16), g: parseInt(m[2],16), b: parseInt(m[3],16) } : { r:0, g:0, b:0 };
+  }
+
+  function sensitivityToK(sliderVal) {
+    return K_MIN + (sliderVal / 100) * (K_MAX - K_MIN);
+  }
+
+  function regionSum(table, w, h, x1, y1, x2, y2) {
+    if (x1 < 0) x1 = 0;
+    if (y1 < 0) y1 = 0;
+    if (x2 > w - 1) x2 = w - 1;
+    if (y2 > h - 1) y2 = h - 1;
+    var A = (x1 > 0 && y1 > 0) ? table[(y1-1)*w + (x1-1)] : 0;
+    var B = (y1 > 0) ? table[(y1-1)*w + x2] : 0;
+    var C = (x1 > 0) ? table[y2*w + (x1-1)] : 0;
+    var D = table[y2*w + x2];
+    return D - B - C + A;
+  }
+
+  // Applies the full scan filter to `sourceCanvas` and returns a NEW canvas
+  // with the result. Pure function of (sourceCanvas, settings) — safe to
+  // call repeatedly / in any order across pages.
+  function applyScanFilter(sourceCanvas, settings) {
+    var w = sourceCanvas.width, h = sourceCanvas.height;
+    var srcCtx = sourceCanvas.getContext('2d');
+    var data = srcCtx.getImageData(0, 0, w, h).data;
+
+    var gray = new Float64Array(w * h);
+    for (var i = 0, p = 0; i < data.length; i += 4, p++) {
+      gray[p] = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
     }
-    paragraphs.forEach((p,i)=>{
-      blocks.push({id:genId(),type:'text',text:p.trim()});
-      mediaRows.filter(m=>m.display_order===i).forEach(m=>{
-        const bid=genId();
-        if(m.type==='image')blocks.push({id:bid,type:'image',dataUrl:m.url,url:m.url,name:m.caption||'Image',caption:m.caption||''});
-        else if(m.type==='youtube'){const ytId=m.url.match(/embed\/([A-Za-z0-9_\-]{11})/)?.[1]||'';blocks.push({id:bid,type:'youtube',ytId,url:m.url,caption:m.caption||''});}
-        else if(m.type==='audio')blocks.push({id:bid,type:'audio',dataUrl:m.url,url:m.url,name:m.caption||'Audio',caption:m.caption||''});
+
+    var integral = new Float64Array(w * h);
+    var integralSq = new Float64Array(w * h);
+    for (var y = 0; y < h; y++) {
+      var rowSum = 0, rowSumSq = 0;
+      var rowOff = y * w;
+      var prevRowOff = rowOff - w;
+      for (var x = 0; x < w; x++) {
+        var v = gray[rowOff + x];
+        rowSum += v;
+        rowSumSq += v * v;
+        var above = y === 0 ? 0 : integral[prevRowOff + x];
+        var aboveSq = y === 0 ? 0 : integralSq[prevRowOff + x];
+        integral[rowOff + x] = rowSum + above;
+        integralSq[rowOff + x] = rowSumSq + aboveSq;
+      }
+    }
+
+    var k = sensitivityToK(settings.sensitivity);
+    var r = WINDOW_RADIUS;
+    var alpha = new Float32Array(w * h);
+    for (var yy = 0; yy < h; yy++) {
+      var y1 = yy - r, y2 = yy + r;
+      for (var xx = 0; xx < w; xx++) {
+        var x1 = xx - r, x2 = xx + r;
+        var cx1 = x1 < 0 ? 0 : x1, cy1 = y1 < 0 ? 0 : y1;
+        var cx2 = x2 > w-1 ? w-1 : x2, cy2 = y2 > h-1 ? h-1 : y2;
+        var count = (cx2 - cx1 + 1) * (cy2 - cy1 + 1);
+
+        var sum = regionSum(integral, w, h, x1, y1, x2, y2);
+        var sumSq = regionSum(integralSq, w, h, x1, y1, x2, y2);
+        var mean = sum / count;
+        var variance = Math.max(0, sumSq / count - mean * mean);
+        var stddev = Math.sqrt(variance);
+
+        var T = mean * (1 + k * (stddev / R_CONST - 1));
+        var idx = yy * w + xx;
+        var diff = T - gray[idx];
+        alpha[idx] = clamp(diff / SOFTNESS + 0.5, 0, 1);
+      }
+    }
+
+    var out = document.createElement('canvas');
+    out.width = w; out.height = h;
+    var outCtx = out.getContext('2d');
+    var imgData = outCtx.createImageData(w, h);
+    var outData = imgData.data;
+    var isWhite = settings.bgMode === 'white';
+    var ink = settings.inkColor;
+
+    for (var pp = 0, ii = 0; pp < alpha.length; pp++, ii += 4) {
+      var a = alpha[pp];
+      if (isWhite) {
+        outData[ii]   = 255 * (1 - a) + ink.r * a;
+        outData[ii+1] = 255 * (1 - a) + ink.g * a;
+        outData[ii+2] = 255 * (1 - a) + ink.b * a;
+        outData[ii+3] = 255;
+      } else {
+        outData[ii]   = ink.r;
+        outData[ii+1] = ink.g;
+        outData[ii+2] = ink.b;
+        outData[ii+3] = Math.round(a * 255);
+      }
+    }
+    outCtx.putImageData(imgData, 0, 0);
+    return out;
+  }
+
+  function effectiveSettingsForPage(pageEntry) {
+    return pageEntry.settings || globalSettings;
+  }
+
+  // Lazily (re)computes pageEntry.filtered using its effective settings,
+  // only if marked dirty. Callers that just changed a page's settings must
+  // set filteredDirty = true first.
+  function ensurePageFiltered(pageEntry) {
+    if (pageEntry.filtered && !pageEntry.filteredDirty) return pageEntry.filtered;
+    pageEntry.filtered = applyScanFilter(pageEntry.raw, effectiveSettingsForPage(pageEntry));
+    pageEntry.filteredDirty = false;
+    return pageEntry.filtered;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // PDF RENDERING
+  // ══════════════════════════════════════════════════════════
+  // Renders one pdf.js page to a canvas, then downscales into the same
+  // MAX_DIM working-resolution cap the single-page scan tool uses, so the
+  // filter engine behaves identically (same window radius in relative
+  // terms) whether the source was a camera photo or a PDF page.
+  async function renderPdfPageToCanvas(pdf, pageNum) {
+    var page = await pdf.getPage(pageNum);
+    var viewport = page.getViewport({ scale: RENDER_SCALE });
+    var raw = document.createElement('canvas');
+    raw.width = viewport.width;
+    raw.height = viewport.height;
+    await page.render({ canvasContext: raw.getContext('2d'), viewport: viewport }).promise;
+
+    var longEdge = Math.max(raw.width, raw.height);
+    var scale = Math.min(1, MAX_DIM / longEdge);
+    if (scale >= 1) return raw;
+
+    var w = Math.max(1, Math.round(raw.width * scale));
+    var h = Math.max(1, Math.round(raw.height * scale));
+    var down = document.createElement('canvas');
+    down.width = w; down.height = h;
+    down.getContext('2d').drawImage(raw, 0, 0, w, h);
+    return down;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // SUPABASE CONNECTION
+  // ══════════════════════════════════════════════════════════
+  function getClient() {
+    var url = document.getElementById('sbUrl').value.trim().replace(/\/$/, '');
+    var key = document.getElementById('sbKey').value.trim();
+    if (!url || !key) { showToast('Enter Supabase URL and service role key first', 'error'); return null; }
+    sbClient = window.supabase.createClient(url, key);
+    return sbClient;
+  }
+
+  async function connectSupabase() {
+    var client = getClient();
+    if (!client) return;
+
+    var btn = document.getElementById('btnConnect');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Connecting…';
+    setStatus('connecting');
+
+    try {
+      var table = document.getElementById('sbTable').value.trim() || 'articles';
+      var ping = await client.from(table).select('id', { count: 'exact', head: true });
+      if (ping.error) throw ping.error;
+
+      connected = true;
+      setStatus('connected');
+      showToast('Connected to Supabase', 'success');
+    } catch (err) {
+      console.error(err);
+      connected = false;
+      setStatus('error');
+      showToast('Connection failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-plug"></i> Connect';
+    }
+  }
+
+  function setStatus(state) {
+    var dot = document.getElementById('statusDot');
+    var text = document.getElementById('statusText');
+    dot.className = 'status-dot';
+    if (state === 'connected') { dot.classList.add('connected'); text.textContent = 'Connected'; }
+    else if (state === 'connecting') { text.textContent = 'Connecting…'; }
+    else if (state === 'error') { dot.classList.add('error'); text.textContent = 'Connection error'; }
+    else { text.textContent = 'Not connected'; }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // STEP NAVIGATION
+  // ══════════════════════════════════════════════════════════
+  function goToStep(n) {
+    currentStep = n;
+    for (var i = 1; i <= 4; i++) {
+      document.getElementById('panel' + i).classList.toggle('active', i === n);
+    }
+    var pills = document.querySelectorAll('.step-pill');
+    pills.forEach(function(p) {
+      var s = parseInt(p.dataset.step, 10);
+      p.classList.toggle('active', s === n);
+      p.classList.toggle('done', s < n);
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // STEP 1 — PDF UPLOAD + FIRST-BATCH RENDERING
+  // ══════════════════════════════════════════════════════════
+  async function handlePdfFile(file) {
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      showToast('That file doesn\'t look like a PDF', 'error');
+      return;
+    }
+    pdfFile = file;
+    renderFileChip();
+    document.getElementById('btnToStep2').disabled = true;
+    pages = [];
+    batchStart = 0;
+    libraryId = null;
+    publishedCount = 0;
+
+    var progressWrap = document.getElementById('extractProgress');
+    var statusEl = document.getElementById('extractStatus');
+    var fillEl = document.getElementById('extractProgressFill');
+    progressWrap.style.display = 'block';
+    fillEl.style.width = '0%';
+    statusEl.textContent = 'Reading file…';
+
+    try {
+      var buffer = await file.arrayBuffer();
+      statusEl.textContent = 'Parsing PDF…';
+      var pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+      pdfDoc = pdf; // kept alive for the whole session — later batches call pdf.getPage() again
+      pageCount = pdf.numPages;
+
+      if (pageCount === 0) {
+        statusEl.textContent = 'This PDF has no pages.';
+        showToast('This PDF has no pages', 'error');
+        progressWrap.style.display = 'none';
+        return;
+      }
+
+      await renderBatch(0);
+
+      var batchLabel = pageCount > BATCH_SIZE
+        ? 'Rendered pages 1–' + pages.length + ' of ' + pageCount + ' (batch 1 of ' + Math.ceil(pageCount / BATCH_SIZE) + ') — ready to tune the scan filter'
+        : 'Rendered ' + pageCount + ' page' + (pageCount !== 1 ? 's' : '') + ' — ready to tune the scan filter';
+      statusEl.textContent = batchLabel;
+      document.getElementById('btnToStep2').disabled = false;
+      updateFileChipMeta(pageCount);
+
+      // Default library name from the filename, editable later in review
+      var baseName = pdfFile.name.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ').trim();
+      libraryName = baseName || 'Untitled Library';
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = 'Could not read this PDF. It may be corrupted, encrypted, or password-protected.';
+      showToast('PDF rendering failed: ' + err.message, 'error');
+      progressWrap.style.display = 'none';
+    }
+  }
+
+  // Renders pages [startIndex, startIndex + BATCH_SIZE) (clamped to
+  // pageCount) into a FRESH `pages` array, replacing whatever batch was
+  // there before. This is the one place that grows `pages` — every other
+  // function treats it as read/mutate-in-place, never append-only, which
+  // is what keeps memory bounded regardless of total PDF length.
+  async function renderBatch(startIndex) {
+    var progressWrap = document.getElementById('extractProgress');
+    var statusEl = document.getElementById('extractStatus');
+    var fillEl = document.getElementById('extractProgressFill');
+    progressWrap.style.display = 'block';
+
+    var endIndex = Math.min(startIndex + BATCH_SIZE, pageCount);
+    pages = [];
+    batchStart = startIndex;
+
+    for (var absIdx = startIndex; absIdx < endIndex; absIdx++) {
+      var posInBatch = absIdx - startIndex;
+      statusEl.textContent = 'Rendering page ' + (absIdx + 1) + ' of ' + pageCount + '…';
+      var raw = await renderPdfPageToCanvas(pdfDoc, absIdx + 1); // pdf.js pages are 1-indexed
+      pages.push({
+        index: absIdx, // absolute position in the full PDF
+        raw: raw,
+        settings: null,
+        excluded: false,
+        filtered: null,
+        filteredDirty: true
+      });
+      fillEl.style.width = Math.round(((posInBatch + 1) / (endIndex - startIndex)) * 100) + '%';
+    }
+  }
+
+  function renderFileChip() {
+    var wrap = document.getElementById('fileChipWrap');
+    if (!pdfFile) { wrap.innerHTML = ''; return; }
+    var sizeKb = Math.round(pdfFile.size / 1024);
+    var sizeStr = sizeKb > 1024 ? (sizeKb / 1024).toFixed(1) + ' MB' : sizeKb + ' KB';
+    wrap.innerHTML = '<div class="file-chip" style="margin-top:18px">' +
+      '<i class="fa fa-file-pdf"></i>' +
+      '<div class="fc-info"><div class="fc-name">' + escHtml(pdfFile.name) + '</div><div class="fc-meta" id="fcMeta">' + sizeStr + '</div></div>' +
+      '<button class="fc-remove" id="fcRemove"><i class="fa fa-times"></i></button>' +
+    '</div>';
+    document.getElementById('fcRemove').addEventListener('click', function() {
+      pdfFile = null; pdfDoc = null; pageCount = 0; pages = []; batchStart = 0; libraryId = null; publishedCount = 0;
+      wrap.innerHTML = '';
+      document.getElementById('extractProgress').style.display = 'none';
+      document.getElementById('btnToStep2').disabled = true;
+      document.getElementById('pdfInput').value = '';
+    });
+  }
+
+  function updateFileChipMeta(count) {
+    var meta = document.getElementById('fcMeta');
+    if (meta) meta.textContent = count + ' page' + (count !== 1 ? 's' : '') + (count > BATCH_SIZE ? ' · batched ' + BATCH_SIZE + ' at a time' : ' rendered');
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // SHARED FILTER-CONTROL WIRING
+  // One set of {slider, bgToggle, inkSwatches} markup is reused for the
+  // step-2 global preview panel and the per-page tune modal. This wires
+  // either instance to call back with the new settings object, without
+  // duplicating the DOM-event logic between them.
+  // ══════════════════════════════════════════════════════════
+  function wireFilterControlSet(cfg) {
+    cfg.sliderEl.addEventListener('input', function() {
+      cfg.valueEl.textContent = cfg.sliderEl.value;
+      cfg.onChange({ sensitivity: Number(cfg.sliderEl.value) });
+    });
+    cfg.bgToggleEl.addEventListener('click', function(e) {
+      var btn = e.target.closest('button[data-bg]');
+      if (!btn) return;
+      [].forEach.call(cfg.bgToggleEl.querySelectorAll('button'), function(b){ b.classList.toggle('active', b === btn); });
+      cfg.onChange({ bgMode: btn.dataset.bg });
+    });
+    cfg.inkSwatchesEl.addEventListener('click', function(e) {
+      var btn = e.target.closest('.swatch[data-color]');
+      if (!btn) return;
+      [].forEach.call(cfg.inkSwatchesEl.querySelectorAll('.swatch'), function(s){ s.classList.toggle('active', s === btn); });
+      cfg.onChange({ inkColor: hexToRgb(btn.dataset.color) });
+    });
+    cfg.customSwatchEl.addEventListener('input', function() {
+      [].forEach.call(cfg.inkSwatchesEl.querySelectorAll('.swatch'), function(s){ s.classList.remove('active'); });
+      cfg.onChange({ inkColor: hexToRgb(cfg.customSwatchEl.value) });
+    });
+  }
+
+  // Pushes a settings object's values into a control set's DOM (used when
+  // opening the tune modal on a page that already has an override, or when
+  // resetting it back to the global defaults).
+  function reflectSettingsIntoControlSet(settings, ids) {
+    document.getElementById(ids.slider).value = settings.sensitivity;
+    document.getElementById(ids.value).textContent = settings.sensitivity;
+    [].forEach.call(document.getElementById(ids.bgToggle).querySelectorAll('button'), function(b) {
+      b.classList.toggle('active', b.dataset.bg === settings.bgMode);
+    });
+    var hex = '#' + [settings.inkColor.r, settings.inkColor.g, settings.inkColor.b].map(function(c){
+      return c.toString(16).padStart(2, '0');
+    }).join('');
+    document.getElementById(ids.customSwatch).value = hex;
+    var matched = false;
+    [].forEach.call(document.getElementById(ids.inkSwatches).querySelectorAll('.swatch[data-color]'), function(s) {
+      var isMatch = s.dataset.color.toLowerCase() === hex.toLowerCase();
+      s.classList.toggle('active', isMatch);
+      if (isMatch) matched = true;
+    });
+    return matched;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // STEP 2 — GLOBAL FILTER TUNING (single-page live preview)
+  // ══════════════════════════════════════════════════════════
+  function enterStep2() {
+    if (pages.length === 0) { showToast('Upload a PDF first', 'error'); return; }
+    previewPageIndex = 0;
+    renderStep2Preview();
+    goToStep(2);
+  }
+
+  function onGlobalPreviewSettingsChanged(partial) {
+    Object.assign(globalSettings, partial);
+    renderStep2Preview();
+  }
+
+  var step2RenderToken = 0;
+  function renderStep2Preview() {
+    var pageEntry = pages[previewPageIndex];
+    if (!pageEntry) return;
+
+    document.getElementById('fsPageLabel').textContent = 'Page ' + (previewPageIndex + 1) + ' of ' + pages.length;
+    document.getElementById('fsPrevPage').disabled = previewPageIndex === 0;
+    document.getElementById('fsNextPage').disabled = previewPageIndex === pages.length - 1;
+
+    var overlay = document.getElementById('fsProcessing');
+    overlay.style.display = 'flex';
+
+    var token = ++step2RenderToken;
+    // Filtering a full-resolution page can take a beat; yield to the next
+    // frame so the spinner actually paints before the main-thread crunch.
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        if (token !== step2RenderToken) return; // a newer render superseded this one
+        var filtered = applyScanFilter(pageEntry.raw, globalSettings);
+        var canvas = document.getElementById('filterPreviewCanvas');
+        canvas.width = filtered.width;
+        canvas.height = filtered.height;
+        canvas.getContext('2d').drawImage(filtered, 0, 0);
+        document.getElementById('filterStage').classList.toggle('checker', globalSettings.bgMode === 'transparent');
+        overlay.style.display = 'none';
       });
     });
-    mediaRows.filter(m=>m.display_order>=paragraphs.length).forEach(m=>{
-      const bid=genId();
-      if(m.type==='image')blocks.push({id:bid,type:'image',dataUrl:m.url,url:m.url,name:m.caption||'Image',caption:m.caption||''});
-      else if(m.type==='youtube'){const ytId=m.url.match(/embed\/([A-Za-z0-9_\-]{11})/)?.[1]||'';blocks.push({id:bid,type:'youtube',ytId,url:m.url,caption:m.caption||''});}
-      else if(m.type==='audio')blocks.push({id:bid,type:'audio',dataUrl:m.url,url:m.url,name:m.caption||'Audio',caption:m.caption||''});
+  }
+
+  function stepPreviewPage(delta) {
+    var next = previewPageIndex + delta;
+    if (next < 0 || next >= pages.length) return;
+    previewPageIndex = next;
+    renderStep2Preview();
+  }
+
+  // Marks every page in the CURRENT BATCH dirty so review's thumbnails
+  // recompute with the tuned global defaults, then moves into review.
+  // Pages that already carry a per-page override are untouched by this —
+  // "apply to batch" only affects pages still following the global.
+  function applyGlobalToAllAndContinue() {
+    pages.forEach(function(p) {
+      p.filteredDirty = true;
+    });
+    document.getElementById('step2Note').textContent = 'Applied to this batch (' + pages.length + ' page' + (pages.length !== 1 ? 's' : '') + ').';
+    renderReviewStep();
+    goToStep(3);
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // STEP 3 — REVIEW GRID
+  // ══════════════════════════════════════════════════════════
+  function renderReviewStep() {
+    document.getElementById('libNameInput').value = libraryName;
+    document.getElementById('libDescInput').value = libraryDesc;
+    updateBatchProgressNote();
+    renderReviewGrid();
+  }
+
+  function totalBatchCount() {
+    return Math.max(1, Math.ceil(pageCount / BATCH_SIZE));
+  }
+
+  function currentBatchNumber() {
+    return Math.floor(batchStart / BATCH_SIZE) + 1;
+  }
+
+  function isFinalBatch() {
+    return batchStart + pages.length >= pageCount;
+  }
+
+  function updateBatchProgressNote() {
+    var noteEl = document.getElementById('batchProgressNote');
+    var labelEl = document.getElementById('btnPublishLabel');
+    if (pageCount > BATCH_SIZE) {
+      var batchN = currentBatchNumber();
+      var total = totalBatchCount();
+      noteEl.textContent = 'Batch ' + batchN + ' of ' + total + ' — pages ' + (batchStart + 1) + '–' + (batchStart + pages.length) + ' of ' + pageCount +
+        (publishedCount > 0 ? ' (' + publishedCount + ' already published)' : '');
+      labelEl.textContent = isFinalBatch() ? 'Publish final batch' : 'Publish batch & continue';
+    } else {
+      noteEl.textContent = '';
+      labelEl.textContent = 'Publish Library';
+    }
+  }
+
+  function updateSummaryChips() {
+    var included = pages.filter(function(p){ return !p.excluded; });
+    var tweaked = pages.filter(function(p){ return !!p.settings; });
+    document.getElementById('scPages').textContent = included.length;
+    document.getElementById('scTweaked').textContent = tweaked.length;
+  }
+
+  function renderReviewGrid() {
+    var grid = document.getElementById('pageGrid');
+    updateSummaryChips();
+
+    if (pages.length === 0) {
+      grid.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:30px 10px;grid-column:1/-1">No pages to show — go back and upload a PDF.</div>';
+      document.getElementById('btnPublish').disabled = true;
+      return;
+    }
+
+    var anyIncluded = pages.some(function(p){ return !p.excluded; });
+    document.getElementById('btnPublish').disabled = !anyIncluded;
+
+    grid.innerHTML = pages.map(renderPageCard).join('');
+
+    grid.removeEventListener('click', onPageGridClick);
+    grid.addEventListener('click', onPageGridClick);
+
+    // Thumbnails are filled in after the grid markup exists, one at a time,
+    // since applyScanFilter is CPU-bound and blocking pageCount of them
+    // back-to-back on layout would freeze the tab on longer PDFs.
+    schedulePageThumbnails();
+  }
+
+  function renderPageCard(p, i) {
+    var isTransparent = effectiveSettingsForPage(p).bgMode === 'transparent';
+    return '<div class="page-card' + (p.excluded ? ' excluded' : '') + '" data-page-i="' + i + '">' +
+      '<div class="page-card-thumb' + (isTransparent ? ' checker' : '') + '" id="pgthumb-' + i + '">' +
+        (p.settings ? '<span class="pc-tweaked">Tuned</span>' : '') +
+        '<button class="pc-exclude-btn" data-exclude-i="' + i + '" title="' + (p.excluded ? 'Include this page' : 'Exclude this page') + '">' +
+          '<i class="fa fa-' + (p.excluded ? 'plus' : 'times') + '"></i>' +
+        '</button>' +
+      '</div>' +
+      '<div class="page-card-label">Page ' + (i + 1) + '</div>' +
+    '</div>';
+  }
+
+  var thumbQueueToken = 0;
+  function schedulePageThumbnails() {
+    var token = ++thumbQueueToken;
+    var idx = 0;
+    function step() {
+      if (token !== thumbQueueToken) return; // grid was re-rendered, abandon this pass
+      if (idx >= pages.length) return;
+      var p = pages[idx];
+      var filtered = ensurePageFiltered(p);
+      var container = document.getElementById('pgthumb-' + idx);
+      if (container) {
+        var img = document.createElement('img');
+        img.src = filtered.toDataURL('image/png');
+        container.insertBefore(img, container.firstChild);
+      }
+      idx++;
+      setTimeout(step, 0); // yield between pages so the grid stays responsive
+    }
+    step();
+  }
+
+  function onPageGridClick(e) {
+    var excludeBtn = e.target.closest('[data-exclude-i]');
+    if (excludeBtn) {
+      e.stopPropagation();
+      var pi = Number(excludeBtn.dataset.excludeI);
+      pages[pi].excluded = !pages[pi].excluded;
+      renderReviewGrid();
+      return;
+    }
+    var card = e.target.closest('[data-page-i]');
+    if (card) {
+      openTuneModal(Number(card.dataset.pageI));
+    }
+  }
+
+  // ── per-page tune modal ──
+  function openTuneModal(pageIndex) {
+    tuneModalPageIndex = pageIndex;
+    var p = pages[pageIndex];
+    var effective = effectiveSettingsForPage(p);
+
+    document.getElementById('tuneModalTitle').textContent = 'Tune page ' + (pageIndex + 1);
+    reflectSettingsIntoControlSet(effective, {
+      slider: 'tuneSensitivity', value: 'tuneSensitivityValue',
+      bgToggle: 'tuneBgToggle', inkSwatches: 'tuneInkSwatches', customSwatch: 'tuneCustomInkSwatch'
+    });
+
+    document.getElementById('tuneModal').classList.add('show');
+    renderTuneModalPreview();
+  }
+
+  function closeTuneModal() {
+    document.getElementById('tuneModal').classList.remove('show');
+    tuneModalPageIndex = null;
+    renderReviewGrid(); // reflect any tweak made while the modal was open
+  }
+
+  function onTuneModalSettingsChanged(partial) {
+    if (tuneModalPageIndex === null) return;
+    var p = pages[tuneModalPageIndex];
+    // First edit in the modal forks this page off the global defaults into
+    // its own override object, seeded from whatever was in effect already.
+    if (!p.settings) {
+      p.settings = Object.assign({}, globalSettings, { inkColor: Object.assign({}, globalSettings.inkColor) });
+    }
+    Object.assign(p.settings, partial);
+    p.filteredDirty = true;
+    renderTuneModalPreview();
+  }
+
+  function resetTunePageToGlobal() {
+    if (tuneModalPageIndex === null) return;
+    var p = pages[tuneModalPageIndex];
+    p.settings = null;
+    p.filteredDirty = true;
+    reflectSettingsIntoControlSet(globalSettings, {
+      slider: 'tuneSensitivity', value: 'tuneSensitivityValue',
+      bgToggle: 'tuneBgToggle', inkSwatches: 'tuneInkSwatches', customSwatch: 'tuneCustomInkSwatch'
+    });
+    renderTuneModalPreview();
+  }
+
+  var tuneRenderToken = 0;
+  function renderTuneModalPreview() {
+    if (tuneModalPageIndex === null) return;
+    var p = pages[tuneModalPageIndex];
+    var overlay = document.getElementById('tuneModalProcessing');
+    overlay.style.display = 'flex';
+
+    var token = ++tuneRenderToken;
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        if (token !== tuneRenderToken || tuneModalPageIndex === null) return;
+        var filtered = applyScanFilter(p.raw, effectiveSettingsForPage(p));
+        var canvas = document.getElementById('tuneModalCanvas');
+        canvas.width = filtered.width;
+        canvas.height = filtered.height;
+        canvas.getContext('2d').drawImage(filtered, 0, 0);
+        document.getElementById('tuneModalStage').classList.toggle('checker', effectiveSettingsForPage(p).bgMode === 'transparent');
+        overlay.style.display = 'none';
+      });
     });
   }
-  renderBlocks();
-}
-}
 
-/* ══════════════════════════════════════
- PUBLISH
-══════════════════════════════════════ */
-window.publishContent=async function(){
-if(!window._currentUser){showToast('Not logged in','error');return;}
-const btn=document.getElementById('publishBtn');
-const isEditing=!!window._editingArticleId;
-document.querySelectorAll('.text-block-textarea').forEach(ta=>{
-  const blk=blocks.find(b=>b.id===ta.getAttribute('data-blk-ta'));
-  if(blk)blk.text=ta.value;
-});
-if(mode==='article'){
-  const title=document.getElementById('titleInput').value.trim();
-  if(!title){showToast('Title required','error');return;}
-  const textBlocks=blocks.filter(b=>b.type==='text');
-  const content=textBlocks.map(b=>(b.text||'').trim()).filter(Boolean).join('\n\n');
-  if(!content){showToast('Add some content','error');return;}
-    btn.disabled=true;btn.innerHTML='<div class="spinner"></div>';
-  try{
-    await window._ensureSupabaseAuth();
-    let artId;
-    if(isEditing){
-      const{error}=await window._supabase.rpc('update_article_owned',{p_article_id:window._editingArticleId,p_firebase_uid:window._currentUser.uid,p_title:title,p_content:content});
-      if(error)throw error;
-      artId=window._editingArticleId;
-      await window._supabase.rpc('delete_media_owned',{p_article_id:artId,p_firebase_uid:window._currentUser.uid});
-    } else {
-      const{data:art,error}=await window._supabase.rpc('insert_article',{p_firebase_uid:window._currentUser.uid,p_title:title,p_content:content});
-      if(error)throw error;artId=art.id;
-    }
-    const mediaBlocks=blocks.filter(b=>b.type!=='text');
-if(mediaBlocks.length>0){
-  let lastTextIdx=0;const textIdxMap={};let tc=0;
-  blocks.forEach(b=>{if(b.type==='text'){textIdxMap[b.id]=tc++;}});
-  const inserts=[];
-  for(const b of blocks){
-    if(b.type==='text'){lastTextIdx=textIdxMap[b.id]??lastTextIdx;continue;}
-    let mediaUrl=b.url||'';
-    if(b.dataUrl&&b.dataUrl.startsWith('data:')){
-      try{
-        const res=await fetch(b.dataUrl);
-        const blob=await res.blob();
-        const ext=b.type==='audio'?'mp3':b.type==='image'?'jpg':'bin';
-        const path=`${artId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-        const{error:upErr}=await window._supabase.storage.from('article-media').upload(path,blob,{contentType:blob.type,upsert:true});
-        if(upErr)throw upErr;
-        const{data:{publicUrl}}=window._supabase.storage.from('article-media').getPublicUrl(path);
-        mediaUrl=publicUrl;
-      }catch(upEx){console.error('[media upload]',upEx);mediaUrl='';}
-    }
-    if(mediaUrl)inserts.push({article_id:artId,type:b.type,url:mediaUrl,caption:b.caption||null,display_order:lastTextIdx});
+  // ══════════════════════════════════════════════════════════
+  // STEP 4 — PUBLISH
+  // ══════════════════════════════════════════════════════════
+  function canvasToBlob(canvas) {
+    return new Promise(function(resolve) {
+      canvas.toBlob(function(blob) { resolve(blob); }, 'image/png');
+    });
   }
-  if(inserts.length){
-    for(const ins of inserts){
-      await window._supabase.rpc('insert_media_owned',{p_article_id:ins.article_id,p_firebase_uid:window._currentUser.uid,p_type:ins.type,p_url:ins.url,p_caption:ins.caption,p_display_order:ins.display_order});
+
+  async function publishLibrary() {
+    if (!connected || !sbClient) { showToast('Connect to Supabase first', 'error'); return; }
+    var included = pages.filter(function(p){ return !p.excluded; });
+    if (included.length === 0) { showToast('Include at least one page first', 'error'); return; }
+    if (!libraryName.trim()) { showToast('Enter a library name first', 'error'); return; }
+
+    var thisIsFinalBatch = isFinalBatch();
+    var batchN = currentBatchNumber();
+    var totalBatches = totalBatchCount();
+
+    goToStep(4);
+    clearPublishLog();
+    setPublishProgress(0);
+    appendPublishLog('info', totalBatches > 1
+      ? 'Publishing batch ' + batchN + ' of ' + totalBatches + ' — "' + libraryName + '" (' + included.length + ' of ' + pages.length + ' pages in this batch)…'
+      : 'Starting publish of "' + libraryName + '" (' + included.length + ' of ' + pages.length + ' pages)…');
+
+    var articlesTable = document.getElementById('sbTable').value.trim() || 'articles';
+    var plTable = document.getElementById('plTable').value.trim() || 'playlists';
+    var plItemsTable = document.getElementById('plItemsTable').value.trim() || 'playlist_items';
+    var mediaTable = document.getElementById('mediaTable').value.trim() || 'media';
+    var mediaBucket = document.getElementById('mediaBucket').value.trim() || 'article-media';
+
+    var createdArticleIds = [];
+    var failedCount = 0;
+    // +1 step for library create only on the batch that actually creates
+    // it (libraryId still null). Later batches reuse it, so their progress
+    // bar reflects only the per-page work — no dead step at the end.
+    var totalSteps = included.length + (libraryId ? 0 : 1);
+    var doneSteps = 0;
+
+    try {
+      for (var i = 0; i < included.length; i++) {
+        var p = included[i];
+        var pageLabel = 'Page ' + (p.index + 1);
+        appendPublishLog('info', 'Publishing ' + pageLabel + ' (' + (i + 1) + '/' + included.length + ')…');
+
+        try {
+          var insertRes = await sbClient
+            .from(articlesTable)
+            .insert([{ title: libraryName, content: pageLabel }])
+            .select()
+            .single();
+          if (insertRes.error) throw insertRes.error;
+          var artId = insertRes.data.id;
+          createdArticleIds.push(artId);
+          appendPublishLog('ok', '  Article created (id ' + artId + ')');
+
+          try {
+            var filtered = ensurePageFiltered(p);
+            var blob = await canvasToBlob(filtered);
+            if (!blob) throw new Error('Could not encode page image');
+            var path = artId + '/' + Date.now() + '_page.png';
+            var upRes = await sbClient.storage.from(mediaBucket).upload(path, blob, { contentType: 'image/png', upsert: true });
+            if (upRes.error) throw upRes.error;
+            var pub = sbClient.storage.from(mediaBucket).getPublicUrl(path);
+            var publicUrl = pub.data.publicUrl;
+
+            // Caption is set to the literal word "scale" — same plain-text
+            // field create.html's image-caption-input writes into, just
+            // filled in here instead of by hand.
+            var captionText = 'scale';
+
+            var mediaRes = await sbClient.from(mediaTable).insert([{
+              article_id: artId, type: 'image', url: publicUrl, caption: captionText, display_order: 0
+            }]);
+            if (mediaRes.error) throw mediaRes.error;
+            appendPublishLog('ok', '  Page image uploaded and attached');
+          } catch (imgErr) {
+            console.error(imgErr);
+            appendPublishLog('warn', '  Image upload failed (article still published without it): ' + imgErr.message);
+          }
+        } catch (artErr) {
+          console.error(artErr);
+          appendPublishLog('err', '  Failed to publish ' + pageLabel + ': ' + artErr.message);
+          failedCount++;
+        }
+
+        doneSteps++;
+        setPublishProgress(Math.round((doneSteps / totalSteps) * 100));
+      }
+
+      if (createdArticleIds.length === 0) {
+        appendPublishLog('err', 'No pages were published in this batch — skipping link step.');
+        setPublishProgress(100);
+        showPublishDone(false, 'Nothing was published', 'All pages in this batch failed — check the log above and try again.');
+        return;
+      }
+
+      // Create the library once, on whichever batch first succeeds. Every
+      // later batch reuses libraryId — this is what lands every batch in
+      // ONE library instead of a new library per batch.
+      if (!libraryId) {
+        appendPublishLog('info', 'Creating library "' + libraryName + '"…');
+        var libRes = await sbClient
+          .from(plTable)
+          .insert([{ name: libraryName, description: libraryDesc || null }])
+          .select()
+          .single();
+        if (libRes.error) throw libRes.error;
+        libraryId = libRes.data.id;
+        appendPublishLog('ok', 'Library created (id ' + libraryId + ')');
+        doneSteps++;
+        setPublishProgress(Math.round((doneSteps / totalSteps) * 100));
+      } else {
+        appendPublishLog('info', 'Adding to existing library (id ' + libraryId + ')…');
+      }
+
+      appendPublishLog('info', 'Linking ' + createdArticleIds.length + ' page(s) to the library, in order…');
+      // position continues from the running total across all batches so
+      // far, not from 0 each time, so batch 2's pages land after batch 1's
+      // in the library instead of overwriting or interleaving with them.
+      var itemRows = createdArticleIds.map(function(articleId, idx) {
+        return { playlist_id: libraryId, article_id: articleId, position: publishedCount + idx };
+      });
+      var itemsRes = await sbClient.from(plItemsTable).insert(itemRows);
+      if (itemsRes.error) throw itemsRes.error;
+      appendPublishLog('ok', 'All pages linked');
+
+      setPublishProgress(100);
+      publishedCount += createdArticleIds.length;
+
+      var batchSummary = createdArticleIds.length + ' page' + (createdArticleIds.length !== 1 ? 's' : '') + ' published this batch' +
+        (failedCount > 0 ? ', ' + failedCount + ' failed' : '') + '.';
+
+      if (thisIsFinalBatch) {
+        var overallSummary = publishedCount + ' page' + (publishedCount !== 1 ? 's' : '') + ' published in total.';
+        appendPublishLog('ok', 'This was the final batch. ' + overallSummary);
+        showPublishDone(true, 'Library published', totalBatches > 1 ? overallSummary : batchSummary);
+        showToast(overallSummary, failedCount > 0 ? 'warning' : 'success');
+      } else {
+        appendPublishLog('info', 'Batch ' + batchN + ' of ' + totalBatches + ' complete. Rendering the next batch…');
+        showToast(batchSummary + ' Moving to the next batch…', failedCount > 0 ? 'warning' : 'success');
+        var nextStart = batchStart + pages.length;
+        await renderBatch(nextStart);
+        document.getElementById('extractProgress').style.display = 'none';
+        renderReviewStep(); // straight back to review with the next batch — global settings carry over automatically since step 2 isn't re-shown
+        goToStep(3);
+      }
+    } catch (err) {
+      console.error(err);
+      appendPublishLog('err', 'Publish failed: ' + err.message);
+      setPublishProgress(100);
+      showPublishDone(false, 'Publish failed', err.message);
     }
   }
-}
-    if(!isEditing&&selectedLibraryId){await window._supabase.rpc('insert_playlist_item_owned',{p_playlist_id:selectedLibraryId,p_firebase_uid:window._currentUser.uid,p_article_id:artId});}
-    showToast(isEditing?'Saved!':'Published!','success');
-    setTimeout(()=>location.href=`https://patholytica.com/dailyfeed.html?article=${artId}`,1000);
-  }catch(e){showToast('Error: '+e.message,'error');btn.disabled=false;btn.innerHTML=isEditing?'Save':'Publish';}
-} else {
-  const question=document.getElementById('mcqQuestion').value.trim();
-  if(!question){showToast('Question required','error');return;}
-  const rows=[...document.querySelectorAll('.mcq-opt-row')];
-  if(rows.length<2){showToast('Need at least 2 options','error');return;}
-  if(!rows.some(r=>r.classList.contains('correct-opt'))){showToast('Mark one correct answer','error');return;}
-  const content=['❔'+question,...rows.map(r=>{const inp=r.querySelector('.mcq-opt-input').value.trim();return r.classList.contains('correct-opt')?'✅'+inp:inp;})].join('\n');
-  btn.disabled=true;btn.innerHTML='<div class="spinner"></div>';
-  try{
-    await window._ensureSupabaseAuth();
-    let artId;
-    if(isEditing){const{error}=await window._supabase.rpc('update_article_owned',{p_article_id:window._editingArticleId,p_firebase_uid:window._currentUser.uid,p_title:question,p_content:content});if(error)throw error;artId=window._editingArticleId;}
-    else{const{data:art,error}=await window._supabase.rpc('insert_article',{p_firebase_uid:window._currentUser.uid,p_title:question,p_content:content});if(error)throw error;artId=art?.id??art;if(selectedLibraryId)await window._supabase.rpc('insert_playlist_item_owned',{p_playlist_id:selectedLibraryId,p_firebase_uid:window._currentUser.uid,p_article_id:artId});}
-    console.log('[publish] artId:',artId);
-    showToast(isEditing?'Saved!':'Published!','success');
-    setTimeout(()=>location.href=`https://patholytica.com/dailyfeed.html?article=${artId}`,1000);
-  }catch(e){showToast('Error: '+e.message,'error');btn.disabled=false;btn.innerHTML=isEditing?'Save':'Publish';}
-}
-};
 
-/* init */
-renderBlocks();
-</script>
+  function showPublishDone(success, title, sub) {
+    var panel = document.getElementById('publishPanel');
+    var iconHtml = success
+      ? '<div class="done-icon"><i class="fa fa-check"></i></div>'
+      : '<div class="done-icon" style="background:rgba(192,98,74,.12);border-color:rgba(192,98,74,.4);color:var(--danger)"><i class="fa fa-triangle-exclamation"></i></div>';
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    var existingLog = document.getElementById('publishLog').outerHTML;
 
-const firebaseConfig={apiKey:"AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",authDomain:"patholytica.firebaseapp.com",databaseURL:"https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",projectId:"patholytica",storageBucket:"patholytica.firebasestorage.app",messagingSenderId:"738430635282",appId:"1:738430635282:web:8451ef380447c7611137cb"};
-const app=initializeApp(firebaseConfig);
-const auth=getAuth(app);
-const supabase=window.supabase.createClient(
-"https://ltxgafwywkdcxdlobcah.supabase.co",
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0eGdhZnd5d2tkY3hkbG9iY2FoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5MjU3NzUsImV4cCI6MjEwMDUwMTc3NX0.CR-FvlL1HODWjsD7VrZkWQvg_pEasIhPQBXbSHbbNoE"
-);
-window._supabase=supabase;
+    panel.innerHTML = iconHtml +
+      '<div class="sp-title">' + escHtml(title) + '</div>' +
+      '<div class="sp-sub">' + escHtml(sub) + '</div>' +
+      existingLog +
+      '<div class="done-actions">' +
+        '<button class="btn-back" id="btnStartOver"><i class="fa fa-rotate-left"></i> Start over</button>' +
+      '</div>';
 
-async function ensureSupabaseAuth(){
-  if(!window._currentUser) return false;
-  try{
-    const {error}=await supabase.rpc('set_current_user',{uid:window._currentUser.uid});
-    if(error){console.error('[RLS] set_current_user error:',error);return false;}
-    return true;
-  }catch(e){console.error('[RLS] set_current_user exception:',e);return false;}
-}
-window._ensureSupabaseAuth=ensureSupabaseAuth;
+    document.getElementById('btnStartOver').addEventListener('click', resetTool);
+  }
 
-onAuthStateChanged(auth,async user=>{
-if(!user){location.href='login.html';return;}
-window._currentUser=user;
-const{data:ud}=await supabase.from('users').select('*').eq('firebase_uid',user.uid).single();
-if(ud){
-  ['previewAvatar','previewAvatarMCQ'].forEach(id=>{
-    const el=document.getElementById(id);if(!el)return;
-    if(ud.pfp)el.innerHTML=`<img src="${ud.pfp}" alt="">`;
-    else el.textContent=(ud.username||'U')[0].toUpperCase();
-  });
-  ['previewAuthorName','previewAuthorNameMCQ'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el)el.textContent=ud.username?`@${ud.username}`:(ud.full_name||'You');
-  });
-  loadLibraries(ud);
-}
-});
+  function resetTool() {
+    pdfFile = null; pdfDoc = null; pageCount = 0; pages = [];
+    libraryName = ''; libraryDesc = '';
+    batchStart = 0; libraryId = null; publishedCount = 0;
+    globalSettings = { sensitivity: 50, bgMode: 'transparent', inkColor: { r: 0x14, g: 0x12, b: 0x0f } };
+    previewPageIndex = 0; tuneModalPageIndex = null;
 
-async function loadLibraries(ud){
-if(!ud)return;
-const{data:libs}=await supabase.from('playlists').select('id,name,thumbnail_url').eq('user_id',ud.id).order('name',{ascending:true});
-const wrap=document.getElementById('libOptions');
-if(!libs||!libs.length){wrap.innerHTML=`<div style="padding:12px 14px;font-size:11px;color:var(--sub);">No libraries yet</div>`;return;}
-wrap.innerHTML='';
-libs.forEach(lib=>{
-  const opt=document.createElement('div');opt.className='lib-opt';opt.dataset.libId=lib.id;
-  const thumbHtml=lib.thumbnail_url?`<img src="${lib.thumbnail_url}">`:`<i class="fas fa-book-open"></i>`;
-  opt.innerHTML=`<div class="lib-opt-thumb">${thumbHtml}</div><span class="lib-opt-name">${lib.name}</span><i class="fas fa-check lib-opt-check"></i>`;
-  opt.onclick=()=>{
-    document.querySelectorAll('#libSheetBody .lib-opt').forEach(o=>o.classList.remove('selected'));
-    opt.classList.add('selected');
-    selectLibrary(lib.id,lib.name);
-  };
-  wrap.appendChild(opt);
-});
-}
+    document.getElementById('pdfInput').value = '';
+    document.getElementById('fileChipWrap').innerHTML = '';
+    document.getElementById('extractProgress').style.display = 'none';
+    document.getElementById('btnToStep2').disabled = true;
+    document.getElementById('step2Note').textContent = '';
+    document.getElementById('libNameInput').value = '';
+    document.getElementById('libDescInput').value = '';
+    document.getElementById('batchProgressNote').textContent = '';
+
+    reflectSettingsIntoControlSet(globalSettings, {
+      slider: 'sensitivity', value: 'sensitivityValue',
+      bgToggle: 'bgToggle', inkSwatches: 'inkSwatches', customSwatch: 'customInkSwatch'
+    });
+
+    goToStep(1);
+  }
+
+  function clearPublishLog() {
+    document.getElementById('publishPanel').innerHTML =
+      '<div class="sp-icon thinking"><i class="fa fa-cloud-arrow-up"></i></div>' +
+      '<div class="sp-title">Publishing…</div>' +
+      '<div class="publish-progress-wrap"><div class="publish-progress-fill" id="publishProgressFill"></div></div>' +
+      '<div class="publish-log" id="publishLog"></div>';
+  }
+
+  function setPublishProgress(pct) {
+    var fill = document.getElementById('publishProgressFill');
+    if (fill) fill.style.width = pct + '%';
+  }
+
+  function appendPublishLog(type, msg) {
+    var log = document.getElementById('publishLog');
+    if (!log) return;
+    var el = document.createElement('div');
+    el.className = 'log-entry ' + type;
+    el.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // SHARED UI HELPERS
+  // ══════════════════════════════════════════════════════════
+  function showToast(msg, type) {
+    var el = document.getElementById('toast');
+    var icon = type === 'success' ? '✓' : type === 'error' ? '⚠' : type === 'warning' ? '!' : 'ℹ';
+    el.className = 'show ' + (type || '');
+    el.innerHTML = '<span>' + icon + '</span><span>' + escHtml(msg) + '</span>';
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { el.className = ''; }, 3600);
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+})();
 </script>
 </body>
 </html>
