@@ -54,6 +54,7 @@
             height: 100vh;
             background: var(--bg-color);
             overflow-y: auto;
+            overflow-x: hidden;
         }
 
         .app-container::-webkit-scrollbar {
@@ -70,17 +71,45 @@
         }
 
         /* ══════════════════════════════════════════════
+           PROGRESS BAR — thin fixed indicator at the very
+           bottom of the viewport, fills with real scroll
+           progress through the article. Mirrors the
+           mockup's detail-screen progress hairline.
+        ══════════════════════════════════════════════ */
+        .scroll-progress-track {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 0;
+            width: 100%;
+            max-width: 450px;
+            height: 3px;
+            background: rgba(245,240,232,0.12);
+            z-index: 500;
+        }
+
+        .scroll-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent-glow);
+            transition: width 0.08s linear;
+        }
+
+        /* ══════════════════════════════════════════════
            HERO IMAGE — first attributed image of the
            article, pinned to the absolute top of the page
-           (no header above it), with a gradient scrim that
-           dissolves it into the page background so the
-           title/text below reads as a continuation of the
-           same surface rather than a hard cut.
+           (no header above it). Sized close to full-screen
+           like the mockup's detail view, with a strong
+           gradient scrim so the title block sits directly
+           on the photo rather than the photo fully
+           resolving to background before text starts.
         ══════════════════════════════════════════════ */
         .hero-image-wrap {
             position: relative;
             width: 100%;
-            max-height: 56vh;
+            height: 82vh;
+            min-height: 460px;
             overflow: hidden;
             background: var(--bg-color);
         }
@@ -88,7 +117,6 @@
         .hero-image-wrap img {
             width: 100%;
             height: 100%;
-            max-height: 56vh;
             object-fit: cover;
             display: block;
         }
@@ -98,44 +126,73 @@
             left: 0;
             right: 0;
             bottom: 0;
-            height: 65%;
-            background: linear-gradient(to bottom, rgba(15,14,11,0) 0%, rgba(15,14,11,0.55) 45%, var(--bg-color) 100%);
+            height: 78%;
+            background: linear-gradient(to bottom,
+                rgba(15,14,11,0) 0%,
+                rgba(15,14,11,0.05) 25%,
+                rgba(15,14,11,0.55) 60%,
+                rgba(15,14,11,0.92) 88%,
+                var(--bg-color) 100%);
             pointer-events: none;
         }
 
-        .hero-image-caption {
-            font-size: 12px;
-            color: var(--text-secondary);
-            font-style: italic;
-            padding: 8px 20px 0;
-        }
-
-        .article-wrapper {
-            padding: 20px;
-            padding-top: 18px;
-            padding-bottom: 60px;
-        }
-
-        .article-wrapper.no-hero {
-            padding-top: calc(20px + env(safe-area-inset-top));
-        }
-
-        .article-header {
+        /* Close (X) button — top right of the hero, matches
+           the mockup's dismissible detail-screen pattern. */
+        .hero-close-btn {
+            position: absolute;
+            top: calc(16px + env(safe-area-inset-top));
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(15,14,11,0.55);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            border: 1px solid rgba(245,240,232,0.15);
+            color: var(--text-primary);
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
+            justify-content: center;
+            font-size: 15px;
+            cursor: pointer;
+            z-index: 20;
+            transition: background 0.2s ease;
+        }
+
+        .hero-close-btn:hover {
+            background: rgba(15,14,11,0.8);
+        }
+
+        /* Title block anchored to the bottom of the hero,
+           sitting on the scrim — name, publisher, stats,
+           date, like/share actions. Replaces the old
+           standalone .article-header + .article-stats rows
+           that used to sit below the image on plain bg. */
+        .hero-title-block {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            padding: 0 20px 22px;
+            z-index: 10;
+        }
+
+        .hero-eyebrow-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
         }
 
         .author-avatar {
-            width: 44px;
-            height: 44px;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--accent), #8a6430);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 14px;
             font-weight: bold;
             color: #0f0e0b;
             overflow: hidden;
@@ -149,17 +206,20 @@
             object-fit: cover;
         }
 
-        .author-info {
+        .hero-eyebrow-text {
             flex: 1;
+            min-width: 0;
         }
 
         .author-name {
             color: var(--text-primary);
             font-weight: 700;
-            font-size: 17px;
-            margin-bottom: 2px;
+            font-size: 14px;
             cursor: pointer;
             transition: color 0.2s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .author-name:hover {
@@ -169,15 +229,25 @@
         .article-date {
             color: var(--text-secondary);
             font-size: 12px;
+            margin-top: 1px;
         }
 
-        .article-stats {
+        .article-title {
+            font-family: var(--font-article);
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            line-height: 1.15;
+            letter-spacing: -0.01em;
+        }
+
+        /* Stats row + like/share actions share one line,
+           matching the mockup's icon row beneath the title. */
+        .hero-stats-row {
             display: flex;
             align-items: center;
             gap: 16px;
-            margin-bottom: 16px;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border-color);
         }
 
         .stat-item {
@@ -185,11 +255,11 @@
             align-items: center;
             gap: 6px;
             color: var(--text-secondary);
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .stat-item i {
-            font-size: 16px;
+            font-size: 14px;
         }
 
         .stat-item.views i {
@@ -200,7 +270,104 @@
             color: #d4845a;
         }
 
-        .article-title {
+        .hero-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .icon-action-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(245,240,232,0.1);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            border: 1px solid rgba(245,240,232,0.15);
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .icon-action-btn:hover {
+            background: rgba(245,240,232,0.18);
+        }
+
+        .icon-action-btn:active {
+            transform: scale(0.92);
+        }
+
+        .icon-action-btn.like-active {
+            color: #d4845a;
+            border-color: rgba(212,132,90,0.4);
+            background: rgba(212,132,90,0.15);
+        }
+
+        .icon-action-btn.like-active i {
+            font-weight: 900;
+        }
+
+        .icon-action-btn.share-pop i {
+            animation: shareTick 0.3s ease;
+        }
+
+        @keyframes shareTick {
+            0% { transform: scale(1); }
+            40% { transform: scale(0.8); }
+            100% { transform: scale(1); }
+        }
+
+        /* ── Fallback header, used only when an article has
+           no hero image — keeps the page usable without
+           forcing a photo that doesn't exist. Same content
+           as hero-title-block but on flat background, laid
+           out at the top of the wrapper the old way. ── */
+        .plain-header {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .no-hero .plain-header {
+            display: flex;
+        }
+
+        .no-hero .plain-header .author-avatar {
+            width: 44px;
+            height: 44px;
+            font-size: 18px;
+        }
+
+        .no-hero .plain-header .author-name {
+            font-size: 17px;
+        }
+
+        .no-hero .plain-header .article-date {
+            font-size: 12px;
+        }
+
+        .plain-stats-row {
+            display: none;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .no-hero .plain-stats-row {
+            display: flex;
+        }
+
+        .plain-title {
+            display: none;
             font-family: var(--font-article);
             font-size: 30px;
             font-weight: 700;
@@ -208,6 +375,32 @@
             margin-bottom: 16px;
             line-height: 1.2;
             letter-spacing: -0.01em;
+        }
+
+        .no-hero .plain-title {
+            display: block;
+        }
+
+        .article-wrapper {
+            padding: 22px 20px;
+            padding-top: 24px;
+            padding-bottom: 60px;
+        }
+
+        .no-hero.article-wrapper {
+            padding-top: calc(20px + env(safe-area-inset-top));
+        }
+
+        /* Section label above the body copy — mirrors the
+           mockup's "About" heading over its description
+           paragraph. */
+        .content-section-label {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
         }
 
         .article-content {
@@ -569,14 +762,43 @@
             background: var(--accent-hover);
         }
 
+        /* Small toast for share/link-copy confirmation. */
+        .share-toast {
+            position: fixed;
+            left: 50%;
+            bottom: 28px;
+            transform: translateX(-50%) translateY(12px);
+            background: var(--hover-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
+            padding: 10px 16px;
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            z-index: 600;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .share-toast.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
         @media (max-width: 768px) {
             .article-wrapper {
-                padding: 16px;
+                padding: 20px 16px;
                 padding-bottom: 60px;
             }
 
+            .hero-image-wrap {
+                height: 78vh;
+            }
+
             .article-title {
-                font-size: 26px;
+                font-size: 24px;
             }
         }
     </style>
@@ -597,25 +819,64 @@
         <div id="articleContent" style="display: none;">
 
             <!-- Hero image: first attributed image of the article, always
-                 pinned to the top of the page. The scrim div beneath it
-                 fades it into the page background so the content below
-                 reads as one continuous surface. -->
+                 pinned to the top of the page. Sized near full-screen with
+                 a close button and the whole title block (name, stats,
+                 like/share) laid over the scrim, matching the mockup's
+                 detail screen. -->
             <div class="hero-image-wrap" id="heroImageWrap" style="display:none;">
                 <img id="heroImageEl" src="" alt="">
                 <div class="hero-image-scrim"></div>
+
+                <button class="hero-close-btn" id="heroCloseBtn" aria-label="Close">
+                    <i class="fas fa-xmark"></i>
+                </button>
+
+                <div class="hero-title-block">
+                    <div class="hero-eyebrow-row">
+                        <div class="author-avatar" id="authorAvatarHero">A</div>
+                        <div class="hero-eyebrow-text">
+                            <div class="author-name" id="authorNameHero">Loading...</div>
+                            <div class="article-date" id="articleDateHero">Loading...</div>
+                        </div>
+                    </div>
+
+                    <div class="article-title" id="articleTitleHero"></div>
+
+                    <div class="hero-stats-row">
+                        <div class="stat-item views">
+                            <i class="fas fa-eye"></i>
+                            <span id="viewCountHero">0</span>
+                        </div>
+                        <div class="stat-item likes">
+                            <i class="fas fa-heart"></i>
+                            <span id="likeCountHero">0</span>
+                        </div>
+                        <div class="hero-actions">
+                            <button class="icon-action-btn" id="likeBtn" aria-label="Like this article" aria-pressed="false">
+                                <i class="far fa-heart"></i>
+                            </button>
+                            <button class="icon-action-btn" id="shareBtn" aria-label="Share this article">
+                                <i class="fas fa-arrow-up-from-bracket"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="hero-image-caption" id="heroImageCaption" style="display:none;"></div>
 
             <div class="article-wrapper" id="articleWrapper">
-                <div class="article-header">
+
+                <!-- Fallback header — only shown for articles with no hero
+                     image, via the .no-hero class toggled in JS. Same
+                     name/date/stats/title, laid out on flat background. -->
+                <div class="plain-header">
                     <div class="author-avatar" id="authorAvatar">A</div>
-                    <div class="author-info">
+                    <div class="author-info" style="flex:1;">
                         <div class="author-name" id="authorName">Loading...</div>
                         <div class="article-date" id="articleDate">Loading...</div>
                     </div>
                 </div>
 
-                <div class="article-stats">
+                <div class="plain-stats-row">
                     <div class="stat-item views">
                         <i class="fas fa-eye"></i>
                         <span id="viewCount">0</span>
@@ -624,9 +885,19 @@
                         <i class="fas fa-heart"></i>
                         <span id="likeCountStat">0</span>
                     </div>
+                    <div class="hero-actions">
+                        <button class="icon-action-btn" id="likeBtnPlain" aria-label="Like this article" aria-pressed="false">
+                            <i class="far fa-heart"></i>
+                        </button>
+                        <button class="icon-action-btn" id="shareBtnPlain" aria-label="Share this article">
+                            <i class="fas fa-arrow-up-from-bracket"></i>
+                        </button>
+                    </div>
                 </div>
-                
-                <div class="article-title" id="articleTitle"></div>
+
+                <div class="plain-title" id="articleTitle"></div>
+
+                <div class="content-section-label">About</div>
                 <div class="article-content" id="articleBody"></div>
 
                 <!-- Suggested Articles Section -->
@@ -638,6 +909,12 @@
         </div>
     </div>
 
+    <!-- Thin scroll progress indicator, fixed to the very bottom of the
+         viewport, mirroring the mockup's detail-screen progress hairline. -->
+    <div class="scroll-progress-track">
+        <div class="scroll-progress-fill" id="scrollProgressFill"></div>
+    </div>
+
     <!-- Term Popup -->
     <div class="term-popup" id="termPopup">
         <div class="term-popup-header">
@@ -647,6 +924,9 @@
         <div class="term-popup-divider"></div>
         <div class="term-popup-body" id="termPopupBody"></div>
     </div>
+
+    <!-- Share confirmation toast -->
+    <div class="share-toast" id="shareToast">Link copied</div>
 
     <script>
         function openProfile(username) {
@@ -734,6 +1014,51 @@
             document.querySelectorAll('audio[data-src]').forEach(a=>window.loadAudioIfNeeded(a.id));
           },10000);
         }
+
+        // ── SCROLL PROGRESS ──
+        // Tracks real scroll position within .app-container (the page's
+        // actual scroll container, since body itself doesn't scroll here)
+        // and fills the fixed bottom bar proportionally.
+        function initScrollProgress(){
+          const container = document.getElementById('appContainer');
+          const fill = document.getElementById('scrollProgressFill');
+          if (!container || !fill) return;
+          function update(){
+            const scrollable = container.scrollHeight - container.clientHeight;
+            const pct = scrollable > 0 ? Math.min(100, Math.max(0, (container.scrollTop / scrollable) * 100)) : 0;
+            fill.style.width = pct + '%';
+          }
+          container.addEventListener('scroll', update, { passive: true });
+          window.addEventListener('resize', update);
+          update();
+        }
+
+        // ── CLOSE BUTTON ──
+        // No defined parent route exists in this standalone file, so this
+        // falls back to browser history, and to the site root if there is
+        // no history to go back to (e.g. article opened directly).
+        function initCloseButton(){
+          const btn = document.getElementById('heroCloseBtn');
+          if (!btn) return;
+          btn.addEventListener('click', () => {
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              window.location.href = 'https://patholytica.com/';
+            }
+          });
+        }
+
+        // ── SHARE TOAST ──
+        let shareToastTimer = null;
+        function showShareToast(message){
+          const toast = document.getElementById('shareToast');
+          if (!toast) return;
+          toast.textContent = message;
+          toast.classList.add('visible');
+          if (shareToastTimer) clearTimeout(shareToastTimer);
+          shareToastTimer = setTimeout(() => toast.classList.remove('visible'), 2200);
+        }
     </script>
 
     <script type="module">
@@ -764,6 +1089,8 @@
         let currentArticle = null;
         let viewTimer = null;
         let hasIncrementedView = false;
+        let hasLiked = false;
+        let likeInFlight = false;
 
         async function ensureSupabaseAuth() {
             if (!currentFirebaseUser) return false;
@@ -802,6 +1129,9 @@
             if (user) {
                 await ensureSupabaseAuth();
                 currentUser = await getCurrentUser();
+                if (currentArticle) {
+                    await refreshLikeState(currentArticle.id);
+                }
             } else {
                 currentUser = null;
             }
@@ -834,7 +1164,7 @@
         if (error) throw error;
         if (currentArticle) {
             currentArticle.views = nv;
-            document.getElementById('viewCount').textContent = formatNumber(nv);
+            setViewCount(nv);
         }
         if (currentUser) {
             supabase.rpc('record_article_interaction', { p_user_id: currentUser.user_id, p_article_id: parseInt(articleId), p_interaction_type: 'view' }).then(({ error }) => { if (error) console.error('[record_article_interaction view]', error); });
@@ -845,6 +1175,143 @@
     }
 }
 
+        // ── LIKE / SHARE ──
+        // Mirrors the pattern already used for view tracking: an RPC call
+        // plus a record_article_interaction row. `toggle_like` is expected
+        // to flip the current user's like on this article and return the
+        // article's new total like count — same call shape as
+        // increment_views. This RPC needs to exist server-side; nothing
+        // here can create it.
+        function setLikeButtonState(active) {
+            document.querySelectorAll('.icon-action-btn[id^="likeBtn"]').forEach(btn => {
+                btn.classList.toggle('like-active', active);
+                btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+                const icon = btn.querySelector('i');
+                if (icon) icon.className = active ? 'fas fa-heart' : 'far fa-heart';
+            });
+        }
+
+        function setLikeCount(n) {
+            const formatted = formatNumber(n || 0);
+            const heroEl = document.getElementById('likeCountHero');
+            const plainEl = document.getElementById('likeCountStat');
+            if (heroEl) heroEl.textContent = formatted;
+            if (plainEl) plainEl.textContent = formatted;
+        }
+
+        function setViewCount(n) {
+            const formatted = formatNumber(n || 0);
+            const heroEl = document.getElementById('viewCountHero');
+            const plainEl = document.getElementById('viewCount');
+            if (heroEl) heroEl.textContent = formatted;
+            if (plainEl) plainEl.textContent = formatted;
+        }
+
+        async function refreshLikeState(articleId) {
+            if (!currentUser) { hasLiked = false; setLikeButtonState(false); return; }
+            try {
+                const { data, error } = await supabase
+                    .from('article_likes')
+                    .select('article_id')
+                    .eq('article_id', articleId)
+                    .eq('user_id', currentUser.user_id)
+                    .maybeSingle();
+                if (error) { console.error('[refreshLikeState]', error); return; }
+                hasLiked = !!data;
+                setLikeButtonState(hasLiked);
+            } catch (e) {
+                console.error('[refreshLikeState] exception', e);
+            }
+        }
+
+        async function handleLikeClick() {
+            if (likeInFlight || !currentArticle) return;
+            if (!currentUser) {
+                showShareToast('Sign in to like articles');
+                return;
+            }
+            likeInFlight = true;
+
+            // Optimistic update first, matching the responsiveness of the
+            // mockup's tappable heart icon.
+            const prevLiked = hasLiked;
+            const prevCount = currentArticle.likes || 0;
+            hasLiked = !prevLiked;
+            setLikeButtonState(hasLiked);
+            setLikeCount(prevCount + (hasLiked ? 1 : -1));
+
+            try {
+                const { data: newCount, error } = await supabase.rpc('toggle_like', {
+                    p_article_id: parseInt(currentArticle.id),
+                    p_user_id: currentUser.user_id
+                });
+                if (error) throw error;
+                currentArticle.likes = newCount;
+                setLikeCount(newCount);
+                supabase.rpc('record_article_interaction', {
+                    p_user_id: currentUser.user_id,
+                    p_article_id: parseInt(currentArticle.id),
+                    p_interaction_type: hasLiked ? 'like' : 'unlike'
+                }).then(({ error }) => { if (error) console.error('[record_article_interaction like]', error); });
+            } catch (error) {
+                console.error('Error toggling like:', error);
+                // Roll back the optimistic update on failure.
+                hasLiked = prevLiked;
+                setLikeButtonState(prevLiked);
+                setLikeCount(prevCount);
+                showShareToast('Could not update like');
+            } finally {
+                likeInFlight = false;
+            }
+        }
+
+        async function handleShareClick(btn) {
+            const url = window.location.href;
+            const title = currentArticle?.title || 'Patholytica';
+            if (btn) {
+                btn.classList.remove('share-pop');
+                void btn.offsetWidth;
+                btn.classList.add('share-pop');
+            }
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title, url });
+                } catch (e) {
+                    // User cancelled the native share sheet — no toast needed.
+                    if (e && e.name === 'AbortError') return;
+                    console.error('Error sharing:', e);
+                }
+            } else if (navigator.clipboard && navigator.clipboard.writeText) {
+                try {
+                    await navigator.clipboard.writeText(url);
+                    showShareToast('Link copied');
+                } catch (e) {
+                    console.error('Error copying link:', e);
+                    showShareToast('Could not copy link');
+                }
+            } else {
+                showShareToast('Copy this link: ' + url);
+            }
+
+            if (currentUser && currentArticle) {
+                supabase.rpc('record_article_interaction', {
+                    p_user_id: currentUser.user_id,
+                    p_article_id: parseInt(currentArticle.id),
+                    p_interaction_type: 'share'
+                }).then(({ error }) => { if (error) console.error('[record_article_interaction share]', error); });
+            }
+        }
+
+        function initLikeShareButtons() {
+            ['likeBtn', 'likeBtnPlain'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.addEventListener('click', handleLikeClick);
+            });
+            ['shareBtn', 'shareBtnPlain'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.addEventListener('click', () => handleShareClick(btn));
+            });
+        }
 
         function formatNumber(num) {
             if (num >= 1000000) {
@@ -968,6 +1435,12 @@
 
                 startViewTimer(articleId);
                 scheduleAudioLazyLoad();
+                initScrollProgress();
+                initCloseButton();
+                initLikeShareButtons();
+                if (currentUser) {
+                    await refreshLikeState(articleId);
+                }
 
             } catch (error) {
                 console.error('Error loading article:', error);
@@ -1012,12 +1485,14 @@
 
             // ── Hero image: pull out the first image-type media item by
             // display_order and render it full-bleed at the top of the
-            // page. It is excluded from the media array used by the
+            // page, with the title block laid on top of it (mockup-style).
+            // It is excluded from the media array used by the
             // paragraph-interleaving loop below, so it never repeats
-            // further down the article.
+            // further down the article. When no hero image exists, the
+            // .no-hero class switches over to the flat fallback header
+            // inside .article-wrapper instead.
             const heroWrap = document.getElementById('heroImageWrap');
             const heroImg = document.getElementById('heroImageEl');
-            const heroCaption = document.getElementById('heroImageCaption');
             const articleWrapper = document.getElementById('articleWrapper');
 
             const sortedMedia = [...media].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
@@ -1031,47 +1506,45 @@
                 heroImg.src = heroMediaItem.url;
                 heroImg.alt = heroMediaItem.caption || article.title || 'Article image';
                 heroWrap.style.display = 'block';
-                if (heroMediaItem.caption) {
-                    heroCaption.textContent = heroMediaItem.caption;
-                    heroCaption.style.display = 'block';
-                } else {
-                    heroCaption.style.display = 'none';
-                }
                 articleWrapper.classList.remove('no-hero');
             } else {
                 heroWrap.style.display = 'none';
-                heroCaption.style.display = 'none';
                 articleWrapper.classList.add('no-hero');
             }
 
             populateOGMeta(article, heroMediaItem ? heroMediaItem.url : null);
 
-            document.getElementById('articleTitle').textContent = article.title || 'Untitled';
+            const titleText = article.title || 'Untitled';
+            document.getElementById('articleTitleHero').textContent = titleText;
+            document.getElementById('articleTitle').textContent = titleText;
 
             const authorUsername = author?.username || '';
             const authorName = authorUsername ? `@${authorUsername}` : (author?.full_name || 'Anonymous');
-            const authorNameElement = document.getElementById('authorName');
-            authorNameElement.textContent = authorName;
-            
-            if (authorUsername) {
-                authorNameElement.style.cursor = 'pointer';
-                authorNameElement.onclick = () => openProfile(authorUsername);
-            }
-            
+            const dateText = formatDate(new Date(article.created_at));
             const avatarContent = getAvatarContent(authorName, author?.pfp);
-            const avatarElement = document.getElementById('authorAvatar');
-            avatarElement.innerHTML = avatarContent;
-            
-            if (authorUsername) {
-                avatarElement.style.cursor = 'pointer';
-                avatarElement.onclick = () => openProfile(authorUsername);
-            }
 
-            const date = new Date(article.created_at);
-            document.getElementById('articleDate').textContent = formatDate(date);
+            [
+                { nameId: 'authorNameHero', dateId: 'articleDateHero', avatarId: 'authorAvatarHero' },
+                { nameId: 'authorName', dateId: 'articleDate', avatarId: 'authorAvatar' }
+            ].forEach(({ nameId, dateId, avatarId }) => {
+                const nameEl = document.getElementById(nameId);
+                const dateEl = document.getElementById(dateId);
+                const avatarEl = document.getElementById(avatarId);
 
-            document.getElementById('viewCount').textContent = formatNumber(article.views || 0);
-            document.getElementById('likeCountStat').textContent = formatNumber(article.likes || 0);
+                nameEl.textContent = authorName;
+                dateEl.textContent = dateText;
+                avatarEl.innerHTML = avatarContent;
+
+                if (authorUsername) {
+                    nameEl.style.cursor = 'pointer';
+                    nameEl.onclick = () => openProfile(authorUsername);
+                    avatarEl.style.cursor = 'pointer';
+                    avatarEl.onclick = () => openProfile(authorUsername);
+                }
+            });
+
+            setViewCount(article.views || 0);
+            setLikeCount(article.likes || 0);
 
             const contentContainer = document.getElementById('articleBody');
             contentContainer.innerHTML = '';
