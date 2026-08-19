@@ -1830,9 +1830,16 @@ async function handleFeedLike(btn){
 }
 window._handleFeedLike = handleFeedLike;
 
+/* Item 2: double-tap-to-heart never fires over a YouTube embed — the
+   video needs real taps to reach its own player (play/pause/seek),
+   not to be swallowed by the heart gesture. Guards here defensively;
+   the carousel's own per-slide handler (added for Item 3) applies the
+   same exclusion at the slide level, since a single post can carry
+   both image and YouTube slides once the carousel is in place. */
 function setupDoubleTapLike(mediaEl,likeBtn){
   let lastTap=0;
   mediaEl.addEventListener('click',function(e){
+    if(e.target.closest('.ig-post-yt-wrap')) return;
     const now=Date.now();
     if(now-lastTap<320){
       if(!likeBtn.classList.contains('liked')) handleFeedLike(likeBtn);
@@ -2135,26 +2142,41 @@ window._shareHomeArticle=function(articleId,title){
   else{ navigator.clipboard.writeText(url).then(()=>showToast('🔗 Link copied!')).catch(()=>showToast('🔗 '+url)); }
 };
 
-/* Real no-image fallback: builds a media element from the article's own
-   media rows (image → img, youtube → iframe, audio → player), and if
-   truly none exist, renders a short text excerpt instead — never a
-   stock/placeholder photo. */
-function buildNoImageBody(article){
-  const own = mediaByArticle[article.id] || [];
-  const yt = own.find(m=>m.type==='youtube');
-  const au = own.find(m=>m.type==='audio');
+/* Item 3: renders one carousel slide's inner content for a given media
+   row. `isFirstSlide` controls video behavior — the first slide (if a
+   video) plays fully interactively; every later video slide is a
+   short muted/looped preview locked behind an overlay that hands off
+   to the full article rather than playing inline. Item 2's double-tap
+   exclusion is what keeps a first-slide YouTube video tappable — see
+   buildArticleCarousel's click handler below. */
+function buildCarouselSlideHTML(m,article,isFirstSlide){
   const title = article.title || (isMCQ(article.content)?'Quick Question':'Untitled');
-
-  if(yt){
-    return `<div class="ig-post-media" style="cursor:default;">
-      <div class="ig-post-yt-wrap">
-        <iframe src="${esc(yt.url)}" title="${esc(title)}" loading="lazy"
-          allow="accelerometer;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>
-        <div class="ig-post-media-badge"><i class="fab fa-youtube"></i> Video</div>
+  if(m.type==='image'){
+    return `<div class="ig-post-media" data-id="${article.id}">
+      <img src="${esc(m.url)}" alt="${esc(title)}" loading="lazy">
+    </div>`;
+  }
+  if(m.type==='youtube'){
+    if(isFirstSlide){
+      return `<div class="ig-post-media" style="cursor:default;">
+        <div class="ig-post-yt-wrap yt-interactive">
+          <iframe src="${esc(m.url)}" title="${esc(title)}" loading="lazy"
+            allow="accelerometer;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>
+          <div class="ig-post-media-badge"><i class="fab fa-youtube"></i> Video</div>
+        </div>
+      </div>`;
+    }
+    // Later video slide: preview only, locked behind an overlay —
+    // never full inline playback for a non-first video slide.
+    return `<div class="ig-post-carousel-video-locked" onclick="location.href='https://patholytica.com/dailyfeed?article=${article.id}'">
+      <div class="ig-post-media-badge"><i class="fab fa-youtube"></i> Video</div>
+      <div class="ig-post-carousel-lock-overlay">
+        <i class="fas fa-play-circle"></i>
+        <span>Open to watch</span>
       </div>
     </div>`;
   }
-  if(au){
+  if(m.type==='audio'){
     const bars=Array(24).fill(0).map(()=>`<div class="ig-post-audio-bar" style="height:${Math.random()*70+20}%"></div>`).join('');
     const aid='home_audio_'+Math.random().toString(36).substr(2,9);
     return `<div class="ig-post-audio-wrap">
@@ -2163,15 +2185,58 @@ function buildNoImageBody(article){
         <button class="ig-post-audio-play" type="button" onclick="window._toggleHomeAudio(this,'${aid}')"><i class="fas fa-play"></i></button>
         <div class="ig-post-audio-wave">${bars}</div>
       </div>
-      <audio id="${aid}" data-src="${esc(au.url)}" style="display:none;"></audio>
+      <audio id="${aid}" data-src="${esc(m.url)}" style="display:none;"></audio>
     </div>`;
   }
-  // No image, no youtube, no audio at all — text-only excerpt, no placeholder.
-  const excerpt = trunc((article.content||'').replace(/\n/g,' ').trim(), 140);
-  return excerpt ? `<div class="ig-post-textexcerpt">${esc(excerpt)}</div>` : '';
+  return '';
 }
 
-function buildArticlePost(article,imageUrl){
+/* Item 3: builds the full swipeable carousel for an article's media.
+   Falls back to a single text-excerpt slide (matching the previous
+   no-media behavior) when the article has no media at all. */
+function buildArticleCarousel(article){
+  const media = (mediaByArticle[article.id]||[]).filter(m=>m.type==='image'||m.type==='youtube'||m.type==='audio');
+  if(!media.length){
+    const excerpt = trunc((article.content||'').replace(/\n/g,' ').trim(), 140);
+    return excerpt ? `<div class="ig-post-textexcerpt">${esc(excerpt)}</div>` : '';
+  }
+  if(media.length===1){
+    return buildCarouselSlideHTML(media[0],article,true);
+  }
+  const slidesHTML = media.map((m,i)=>`<div class="ig-post-carousel-slide" data-slide-index="${i}" data-media-type="${m.type}">${buildCarouselSlideHTML(m,article,i===0)}</div>`).join('');
+  const dotsHTML = media.map((_,i)=>`<div class="ig-post-carousel-dot${i===0?' active':''}"></div>`).join('');
+  return `<div class="ig-post-carousel" data-carousel-id="${article.id}">
+    <div class="ig-post-carousel-track">${slidesHTML}</div>
+    <div class="ig-post-carousel-dots">${dotsHTML}</div>
+    <div class="ig-post-carousel-counter">1/${media.length}</div>
+  </div>`;
+}
+
+/* Item 3: tracks which slide is active as the user swipes, updating
+   the dot indicator and the "N/total" counter. Uses native scroll
+   position rather than custom drag math, so the gesture itself is the
+   browser's own touch-scrolling — reliable and platform-consistent. */
+function setupCarouselTracking(carouselEl){
+  const track = carouselEl.querySelector('.ig-post-carousel-track');
+  const dots = carouselEl.querySelectorAll('.ig-post-carousel-dot');
+  const counter = carouselEl.querySelector('.ig-post-carousel-counter');
+  const slideCount = dots.length;
+  if(!track||!slideCount) return;
+  let ticking=false;
+  track.addEventListener('scroll',()=>{
+    if(ticking) return;
+    ticking=true;
+    requestAnimationFrame(()=>{
+      const idx = Math.round(track.scrollLeft/track.clientWidth);
+      const clamped = Math.max(0,Math.min(slideCount-1,idx));
+      dots.forEach((d,i)=>d.classList.toggle('active',i===clamped));
+      if(counter) counter.textContent = `${clamped+1}/${slideCount}`;
+      ticking=false;
+    });
+  },{passive:true});
+}
+
+function buildArticlePost(article){
   const post=document.createElement('div'); post.className='ig-post'; post.dataset.articleId=article.id;
   const avatarHTML=article.authorPfp?`<img src="${esc(article.authorPfp)}" alt="">`:(article.authorUsername||article.author||'A').replace('@','').charAt(0).toUpperCase();
   const profileUrl=article.authorUsername?`profile.html?username=${encodeURIComponent(article.authorUsername)}`:'#';
@@ -2184,20 +2249,23 @@ function buildArticlePost(article,imageUrl){
     followHTML: buildFollowBtnHTML(article)
   });
 
-  const bodyHTML = imageUrl
-    ? `<div class="ig-post-media" data-id="${article.id}">
-        <img src="${esc(imageUrl)}" alt="${esc(title)}" loading="lazy">
-      </div>`
-    : buildNoImageBody(article);
+  const bodyHTML = buildArticleCarousel(article);
 
   post.innerHTML = headerHTML + bodyHTML +
     buildActionRow(article) +
     `<div class="ig-post-caption"><span class="cap-user" onclick="location.href='${profileUrl}'">${esc(article.author||'Anonymous')}</span><span class="ig-post-title-link" onclick="location.href='https://patholytica.com/dailyfeed?article=${article.id}'">${esc(trunc(stripEmoji(title),140))}</span></div>
     <div class="ig-post-timestamp">${relTime(article.created_at)}</div>`;
 
-  const mediaEl=post.querySelector('.ig-post-media');
+  const carouselEl=post.querySelector('.ig-post-carousel');
+  if(carouselEl) setupCarouselTracking(carouselEl);
+
+  // Double-tap-to-heart applies to a single non-carousel image slide
+  // (matching prior behavior) and to each image slide inside a
+  // carousel — never to a YouTube slide, per Item 2.
   const likeBtn=post.querySelector('.like-btn');
-  if(mediaEl&&likeBtn) setupDoubleTapLike(mediaEl,likeBtn);
+  if(likeBtn){
+    post.querySelectorAll('.ig-post-media').forEach(mediaEl=>setupDoubleTapLike(mediaEl,likeBtn));
+  }
   return post;
 }
 
@@ -2409,11 +2477,9 @@ async function loadBatch(isInitial=true){
       const artIds=batch.map(a=>a.id);
       const{data:media}=await supabase.from('media').select('article_id,url,type')
         .in('article_id',artIds).order('display_order',{ascending:true});
-      const imgMap={};
       (media||[]).forEach(m=>{
         if(!mediaByArticle[m.article_id]) mediaByArticle[m.article_id]=[];
         mediaByArticle[m.article_id].push(m);
-        if(m.type==='image' && !imgMap[m.article_id]) imgMap[m.article_id]=m.url;
       });
 
       const uids=[...new Set(batch.map(a=>a.firebase_user_id).filter(Boolean))];
@@ -2457,7 +2523,7 @@ async function loadBatch(isInitial=true){
       let libIdx=0;
       const artIdToArticle={}; enrichedBatch.forEach(a=>{artIdToArticle[a.id]=a;});
       enrichedBatch.forEach((art,i)=>{
-        const post = isMCQ(art.content) ? buildMCQPost(art) : buildArticlePost(art, imgMap[art.id]||null);
+        const post = isMCQ(art.content) ? buildMCQPost(art) : buildArticlePost(art);
         grid.appendChild(post);
         if((i+1)%4===0&&libIdx<sortedLibs.length){
           const lib=sortedLibs[libIdx++];
