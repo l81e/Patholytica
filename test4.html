@@ -2123,13 +2123,13 @@ function buildActionRow(article,isLibraryPost){
           <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
           <span class="ig-action-btn-count" data-role="like-count">${fmtNum(article.likes||0)}</span>
         </button>
-        <button class="ig-action-btn expand-btn" data-id="${id}" onclick="location.href='https://patholytica.com/dailyfeed?article=${id}'" title="Open in Feed">
-          <svg viewBox="0 0 24 24"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
-          <span class="ig-action-btn-count"><i class="fas fa-eye" style="font-size:9px;"></i> ${fmtNum(article.views||0)}</span>
-        </button>
         <button class="ig-action-btn comment-btn" data-id="${id}" onclick="window.openCommentsModal('${id}')">
           <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
           <span class="ig-action-btn-count" data-role="comment-count" data-raw="${article._commentCount||0}">${commentCount}</span>
+        </button>
+        <button class="ig-action-btn expand-btn" data-id="${id}" onclick="location.href='https://patholytica.com/dailyfeed?article=${id}'" title="Open in Feed">
+          <svg viewBox="0 0 24 24"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+          <span class="ig-action-btn-count">${fmtNum(article.views||0)}</span>
         </button>
       </div>
       <div class="ig-post-actions-right">${rightSlot}</div>
@@ -2317,32 +2317,73 @@ function buildMCQPost(article){
   return post;
 }
 
-function buildLibraryPost(lib,articleCount){
-  const post=document.createElement('div'); post.className='ig-post'; post.setAttribute('data-lib-id',lib.id);
+/* Item 7: renders one library as a book-cover card inside the shelf
+   carousel — the thumbnail fills the card like a book cover rather
+   than sitting as a small round avatar in a header. */
+function buildLibraryCoverHTML(lib,articleCount){
   const isSaved=isLibSaved(lib.id);
-  post.innerHTML = buildPostHeader({
-    avatarHTML: lib.thumbnail_url?`<img src="${esc(lib.thumbnail_url)}" alt="">`:'<i class="fas fa-layer-group"></i>',
-    avatarTint: true,
-    username: lib.name||'Untitled Library',
-    subtext: `<span><i class="fas fa-layer-group" style="font-size:9px;"></i> ${articleCount} article${articleCount!==1?'s':''}</span>`,
-    avatarClick: `window.openCardPreview('library','${lib.id}')`,
-    usernameClick: `window.openCardPreview('library','${lib.id}')`
-  }) + `
-    <div class="ig-post-lib-body">
-      ${lib.description?`<div class="ig-post-lib-desc">${esc(trunc(lib.description,160))}</div>`:''}
-      <div class="ig-post-lib-actions">
-        <button class="ig-post-lib-btn-primary" onclick="location.href='https://patholytica.com/dailyfeed?playlist=${lib.id}'"><i class="fas fa-play"></i> Study Now</button>
-        <button class="ig-post-lib-btn-save${isSaved?' saved':''}" onclick="window._toggleLibSaveInline(${lib.id},'${esc(lib.name||'Untitled Library').replace(/'/g,"\\'")}','${esc(lib.thumbnail_url||'')}',${articleCount})">
-          <i class="fa${isSaved?'s':'r'} fa-bookmark"></i>
-        </button>
+  const coverHTML = lib.thumbnail_url
+    ? `<img src="${esc(lib.thumbnail_url)}" alt="${esc(lib.name||'Library')}" loading="lazy">`
+    : `<div class="lib-cover-fallback"><i class="fas fa-layer-group"></i></div>`;
+  return `<div class="lib-cover-card" data-lib-id="${lib.id}">
+    <div class="lib-cover-thumb" onclick="window.openCardPreview('library','${lib.id}')">
+      ${coverHTML}
+      <button class="lib-cover-save${isSaved?' saved':''}" onclick="event.stopPropagation();window._toggleLibSaveInline(${lib.id},'${esc(lib.name||'Untitled Library').replace(/'/g,"\\'")}','${esc(lib.thumbnail_url||'')}',${articleCount})">
+        <i class="fa${isSaved?'s':'r'} fa-bookmark"></i>
+      </button>
+    </div>
+    <div class="lib-cover-title" onclick="window.openCardPreview('library','${lib.id}')">${esc(trunc(lib.name||'Untitled Library',48))}</div>
+    <div class="lib-cover-meta">${articleCount} article${articleCount!==1?'s':''}</div>
+    <button class="lib-cover-study-btn" onclick="location.href='https://patholytica.com/dailyfeed?playlist=${lib.id}'"><i class="fas fa-play"></i> Study</button>
+  </div>`;
+}
+
+/* Item 7: a swipeable shelf of book-cover cards, one post per group
+   of libraries rather than one post per library — the carousel is the
+   distinct, shelf-like display Item 7 asked for, replacing the old
+   single-thumbnail post. `libs` is an array of {lib, articleCount}. */
+function buildLibraryPost(libs){
+  if(!libs||!libs.length) return null;
+  const post=document.createElement('div'); post.className='ig-post ig-post-lib-shelf';
+  post.setAttribute('data-lib-ids',libs.map(x=>x.lib.id).join(','));
+  const cardsHTML = libs.map(x=>buildLibraryCoverHTML(x.lib,x.articleCount)).join('');
+  const dotsHTML = libs.length>1
+    ? `<div class="ig-post-carousel-dots lib-shelf-dots">${libs.map((_,i)=>`<div class="ig-post-carousel-dot${i===0?' active':''}"></div>`).join('')}</div>`
+    : '';
+  post.innerHTML = `
+    <div class="ig-post-header">
+      <div class="ig-post-avatar lib-avatar-tint"><i class="fas fa-book-open"></i></div>
+      <div class="ig-post-headertext">
+        <span class="ig-post-username">Libraries for you</span>
+        <div class="ig-post-subtext"><span>Swipe to browse</span></div>
       </div>
+    </div>
+    <div class="lib-shelf-carousel">
+      <div class="lib-shelf-track">${cardsHTML}</div>
+      ${dotsHTML}
     </div>`;
+  const trackEl=post.querySelector('.lib-shelf-track');
+  const dots=post.querySelectorAll('.lib-shelf-dots .ig-post-carousel-dot');
+  if(trackEl&&dots.length){
+    let ticking=false;
+    trackEl.addEventListener('scroll',()=>{
+      if(ticking) return;
+      ticking=true;
+      requestAnimationFrame(()=>{
+        const cardWidth = trackEl.querySelector('.lib-cover-card')?.offsetWidth || trackEl.clientWidth;
+        const idx = Math.round(trackEl.scrollLeft/(cardWidth+12));
+        const clamped = Math.max(0,Math.min(dots.length-1,idx));
+        dots.forEach((d,i)=>d.classList.toggle('active',i===clamped));
+        ticking=false;
+      });
+    },{passive:true});
+  }
   return post;
 }
 
 window._toggleLibSaveInline=function(id,name,thumb,count){
   const newState=toggleFavourite({id,name,thumbnail_url:thumb||null,_count:count});
-  document.querySelectorAll(`.ig-post[data-lib-id="${id}"] .ig-post-lib-btn-save`).forEach(b=>{
+  document.querySelectorAll(`.lib-cover-card[data-lib-id="${id}"] .lib-cover-save`).forEach(b=>{
     b.classList.toggle('saved', newState);
     b.innerHTML = newState ? '<i class="fas fa-bookmark"></i>' : '<i class="far fa-bookmark"></i>';
   });
