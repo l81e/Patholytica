@@ -71,10 +71,18 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
   display: flex; align-items: center; justify-content: center;
   font-size: 16px; color: var(--text-secondary);
   transition: color 0.2s, background 0.2s;
-  margin-right: 4px;
+  margin-right: 4px; position: relative;
 }
 .header-icon-btn:hover { color: var(--accent); background: var(--accent-soft); }
 .header-icon-btn.active { color: var(--accent); }
+.header-notif-badge {
+  position: absolute; top: 3px; right: 3px;
+  background: #c46a4e; color: #fff; font-size: 9px; font-weight: 700;
+  width: 15px; height: 15px; border-radius: 50%;
+  display: none; align-items: center; justify-content: center;
+  border: 1.5px solid var(--bg-color); pointer-events: none;
+}
+.header-notif-badge.show { display: flex; }
 
 .notif-panel {
   display: none; flex-direction: column;
@@ -437,31 +445,389 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 }
 
 .page-body {
-  max-width: 1200px; margin: 0 auto;
-  padding: 10px 12px;
+  max-width: 640px; margin: 0 auto;
+  padding: 0;
   padding-bottom: calc(80px + env(safe-area-inset-bottom));
 }
 
-.creators-strip { display: flex; gap: 14px; overflow-x: auto; padding: 4px 0 14px; scrollbar-width: none; align-items: flex-start; }
+.ig-feed { display: flex; flex-direction: column; }
+
+.ig-post {
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+}
+
+.ig-post-header {
+  display: flex; align-items: center; gap: 11px;
+  padding: 11px 12px;
+}
+.ig-post-avatar {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--accent), #8a6430);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #0f0e0b;
+  overflow: hidden; cursor: pointer;
+  box-shadow: 0 0 0 2px var(--bg-color), 0 0 0 3.5px var(--accent);
+}
+.ig-post-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.ig-post-avatar.lib-avatar-tint {
+  background: rgba(106,159,207,0.18); color: #6a9fcf;
+  box-shadow: 0 0 0 2px var(--bg-color), 0 0 0 3.5px rgba(106,159,207,0.5);
+}
+.ig-post-headertext { flex: 1; min-width: 0; }
+.ig-post-username {
+  font-size: 13px; font-weight: 700; color: var(--text-primary);
+  cursor: pointer; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ig-post-username:hover { color: var(--accent); }
+.ig-post-subtext { font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 5px; }
+.ig-post-subtext .dot { width: 2px; height: 2px; border-radius: 50%; background: var(--text-secondary); flex-shrink: 0; }
+.ig-post-follow-btn {
+  font-size: 12px; font-weight: 700; color: var(--accent);
+  background: none; border: none; cursor: pointer; padding: 4px 6px;
+  font-family: var(--font-ui); flex-shrink: 0; transition: opacity 0.15s;
+}
+.ig-post-follow-btn:hover { opacity: 0.7; }
+.ig-post-follow-btn.following { color: var(--text-secondary); }
+
+/* Item 4: header follow pill — rectangular, labeled, replaces the
+   circular icon-only follow button when it sits in the post header. */
+.ig-post-follow-pill {
+  flex-shrink: 0; padding: 6px 14px; border-radius: 8px;
+  border: 1.5px solid var(--accent); background: var(--accent-soft);
+  color: var(--accent); font-size: 12px; font-weight: 700;
+  font-family: var(--font-ui); cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent; white-space: nowrap;
+}
+.ig-post-follow-pill:hover { background: rgba(200,169,110,0.22); }
+.ig-post-follow-pill:active { transform: scale(0.96); }
+.ig-post-follow-pill.following {
+  border-color: var(--border-color); background: none; color: var(--text-secondary);
+}
+.ig-post-follow-pill.following:hover { border-color: var(--accent); color: var(--accent); }
+
+.ig-post-media {
+  position: relative; width: 100%;
+  background: var(--hover-bg);
+  cursor: pointer; overflow: hidden;
+}
+.ig-post-media img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.ig-post-media-fallback {
+  width: 100%; aspect-ratio: 1/1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  background: linear-gradient(135deg, var(--hover-bg) 0%, #1e1c16 100%);
+  color: var(--accent); padding: 20px; text-align: center;
+}
+.ig-post-media-fallback i { font-size: 30px; opacity: 0.55; }
+.ig-post-media-fallback span { font-size: 13px; font-weight: 700; color: var(--text-primary); font-family: var(--font-article); line-height: 1.35; opacity: 0.85; }
+.ig-post-media-badge {
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+  background: rgba(0,0,0,0.55); color: #fff; border-radius: 5px; padding: 3px 7px;
+  backdrop-filter: blur(4px); pointer-events: none;
+}
+.ig-post-yt-wrap { position: relative; width: 100%; background: #000; }
+.ig-post-yt-wrap iframe { width: 100%; aspect-ratio: 1/1; border: none; display: block; pointer-events: none; }
+/* Item 2: once a YouTube slide is the active carousel slide, the
+   iframe becomes genuinely interactive (playable) — the double-tap
+   listener is never bound over an active YouTube slide in JS, and
+   this class removes the click-passthrough veneer so taps reach the
+   player instead of the post underneath it. */
+.ig-post-yt-wrap.yt-interactive iframe { pointer-events: auto; }
+
+/* Item 3: swipeable per-article carousel. One slide-track that pages
+   horizontally; each slide is one media block (image / video-preview /
+   audio / text). Dots indicate position; a locked video slide shows a
+   short muted preview with an explicit "open to watch" overlay rather
+   than full playback inline. */
+.ig-post-carousel {
+  position: relative; width: 100%; overflow: hidden;
+}
+.ig-post-carousel-track {
+  display: flex; width: 100%;
+  overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.ig-post-carousel-track::-webkit-scrollbar { display: none; }
+.ig-post-carousel-slide {
+  flex: 0 0 100%; width: 100%; scroll-snap-align: start; scroll-snap-stop: always;
+  position: relative;
+}
+.ig-post-carousel-dots {
+  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); z-index: 3;
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 8px; border-radius: 20px;
+  background: rgba(0,0,0,0.4); backdrop-filter: blur(3px);
+  pointer-events: none;
+}
+.ig-post-carousel-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(255,255,255,0.45); transition: background 0.15s, transform 0.15s;
+  flex-shrink: 0;
+}
+.ig-post-carousel-dot.active { background: #fff; transform: scale(1.3); }
+.ig-post-carousel-counter {
+  position: absolute; top: 10px; right: 10px; z-index: 3;
+  font-size: 10px; font-weight: 700; color: #fff;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(3px);
+  border-radius: 10px; padding: 3px 8px; pointer-events: none;
+}
+/* Video-preview slide (any slide after the first, when that slide is
+   a video): short muted/looping preview only, with a locked overlay
+   that hands off to the full article rather than playing inline. */
+.ig-post-carousel-video-locked {
+  position: relative; width: 100%; aspect-ratio: 1/1; background: #000; overflow: hidden;
+}
+.ig-post-carousel-video-locked video {
+  width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none;
+}
+.ig-post-carousel-lock-overlay {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  background: rgba(0,0,0,0.42); cursor: pointer; text-align: center; padding: 20px;
+}
+.ig-post-carousel-lock-overlay i { font-size: 24px; color: #fff; opacity: 0.92; }
+.ig-post-carousel-lock-overlay span {
+  font-size: 12px; font-weight: 700; color: #fff;
+  background: rgba(0,0,0,0.35); border-radius: 20px; padding: 6px 14px;
+}
+.ig-post-carousel-slide-text {
+  padding: 16px 14px; min-height: 100px; display: flex; align-items: center;
+  background: var(--hover-bg);
+  font-size: 13px; line-height: 1.6; color: var(--text-primary);
+}
+
+/* Item 7: library shelf — a swipeable row of book-cover cards,
+   replacing the old single small-thumbnail library post. Each card
+   shows the library's own thumbnail_url filling a tall cover shape,
+   the way a shelf of book spines/covers would read. */
+.lib-shelf-carousel { padding: 4px 12px 12px; }
+.lib-shelf-track {
+  display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x proximity;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-bottom: 4px;
+}
+.lib-shelf-track::-webkit-scrollbar { display: none; }
+.lib-cover-card {
+  flex: 0 0 132px; width: 132px; scroll-snap-align: start;
+  display: flex; flex-direction: column;
+}
+.lib-cover-thumb {
+  position: relative; width: 132px; height: 176px; border-radius: 10px;
+  overflow: hidden; cursor: pointer; background: var(--hover-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+}
+.lib-cover-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lib-cover-fallback {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, rgba(106,159,207,0.18), rgba(106,159,207,0.05));
+  color: #6a9fcf; font-size: 30px;
+}
+.lib-cover-save {
+  position: absolute; top: 7px; right: 7px; z-index: 2;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); border: none;
+  color: #fff; font-size: 11px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.lib-cover-save:hover { background: rgba(0,0,0,0.7); }
+.lib-cover-save.saved { color: var(--accent); }
+.lib-cover-title {
+  font-size: 12.5px; font-weight: 700; color: var(--text-primary);
+  font-family: var(--font-article); line-height: 1.3; margin-top: 8px;
+  cursor: pointer; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.lib-cover-title:hover { color: var(--accent); }
+.lib-cover-meta { font-size: 10.5px; color: var(--text-secondary); margin-top: 2px; }
+.lib-cover-study-btn {
+  margin-top: 7px; padding: 7px; border-radius: 8px; width: 100%;
+  background: var(--accent-soft); border: 1px solid rgba(200,169,110,0.3);
+  color: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer;
+  font-family: var(--font-ui); transition: background 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.lib-cover-study-btn:hover { background: rgba(200,169,110,0.22); }
+.lib-shelf-dots { position: static; transform: none; margin: 8px auto 0; width: fit-content; background: none; padding: 0; backdrop-filter: none; }
+.lib-shelf-dots .ig-post-carousel-dot { background: var(--border-color); }
+.lib-shelf-dots .ig-post-carousel-dot.active { background: var(--accent); }
+
+.ig-post-actions {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 10px 6px;
+}
+/* Item 1: icon and count sit side-by-side within a button (row, not
+   column), with visible internal gap; Item 5: actions-left now holds
+   only like/comment/view — share moves to its own right-aligned slot
+   below, separated from these three. */
+.ig-post-actions-left { display: flex; align-items: center; gap: 18px; }
+.ig-action-btn {
+  display: flex; flex-direction: row; align-items: center; gap: 6px;
+  min-width: 0; padding: 4px 4px;
+  background: none; border: none; cursor: pointer; color: var(--text-primary);
+  transition: transform 0.1s; flex-shrink: 0;
+}
+.ig-action-btn:active { transform: scale(0.9); }
+.ig-action-btn svg { width: 22px; height: 22px; stroke: var(--text-primary); fill: none; stroke-width: 1.8; flex-shrink: 0; }
+.ig-action-btn.like-btn.liked svg { fill: #d4845a; stroke: #d4845a; }
+.ig-action-btn.save-btn.saved svg { fill: var(--accent); stroke: var(--accent); }
+.ig-action-btn-count {
+  font-size: 11px; font-weight: 700; color: var(--text-secondary); line-height: 1;
+}
+.ig-action-btn.like-btn.liked .ig-action-btn-count { color: #d4845a; }
+/* Item 5: share sits alone at the bottom-right, away from the other
+   three action buttons. */
+.ig-post-actions-right { display: flex; align-items: center; flex-shrink: 0; }
+
+.ig-post-caption {
+  padding: 0 12px; font-size: 13px; line-height: 1.5; color: var(--text-primary);
+  margin-bottom: 3px;
+}
+.ig-post-caption .cap-user { font-weight: 700; margin-right: 5px; cursor: pointer; }
+.ig-post-caption .cap-user:hover { color: var(--accent); }
+.ig-post-title-link { cursor: pointer; }
+.ig-post-title-link:hover { color: var(--accent); }
+
+.ig-post-timestamp {
+  padding: 2px 12px 10px;
+  font-size: 10px; letter-spacing: 0.03em; text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.ig-post-mcq-body { padding: 4px 12px 6px; }
+.ig-post-mcq-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--accent-soft); border: 1px solid rgba(200,169,110,0.3);
+  border-radius: 20px; padding: 4px 11px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
+}
+.ig-post-mcq-q {
+  font-size: 15px; font-weight: 800; color: var(--text-primary);
+  font-family: var(--font-article); line-height: 1.35; margin-bottom: 12px;
+}
+.ig-post-mcq-opts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 6px; }
+.ig-post-mcq-opt {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 13px; border-radius: 11px;
+  border: 1px solid var(--border-color); background: var(--hover-bg);
+  font-size: 13px; font-weight: 500; color: var(--text-primary); cursor: pointer;
+  transition: border-color 0.15s, background 0.15s; text-align: left; width: 100%;
+  font-family: var(--font-ui);
+}
+.ig-post-mcq-opt:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+.ig-post-mcq-opt:disabled { cursor: default; }
+.ig-post-mcq-opt .opt-l {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 1.5px solid var(--border-color);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 800; flex-shrink: 0; color: var(--text-secondary);
+}
+.ig-post-mcq-opt.correct { border-color: #6abf85; background: rgba(106,191,133,0.08); }
+.ig-post-mcq-opt.correct .opt-l { background: #6abf85; border-color: #6abf85; color: #0f0e0b; }
+.ig-post-mcq-opt.wrong   { border-color: #c46a4e; background: rgba(196,106,78,0.07); }
+.ig-post-mcq-opt.wrong   .opt-l { background: #c46a4e; border-color: #c46a4e; color: #fff; }
+.ig-post-mcq-opt.reveal  { border-color: rgba(106,191,133,0.5); }
+.ig-post-mcq-opt.reveal  .opt-l { border-color: #6abf85; color: #6abf85; }
+.ig-post-mcq-result { font-size: 12.5px; font-weight: 700; margin-top: 8px; min-height: 16px; }
+.ig-post-mcq-result.correct { color: #6abf85; }
+.ig-post-mcq-result.wrong   { color: #c46a4e; }
+
+.ig-post-textexcerpt {
+  padding: 0 12px; margin-top: 2px; margin-bottom: 6px;
+  font-size: 12.5px; line-height: 1.55; color: var(--text-secondary);
+}
+
+.comments-modal-overlay {
+  position: fixed; inset: 0; z-index: 550;
+  background: rgba(0,0,0,0.65); backdrop-filter: blur(5px);
+  display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.comments-modal-overlay.open { display: flex; }
+.comments-modal {
+  width: 100%; max-width: 420px; height: min(72vh, 600px);
+  background: var(--hover-bg); border: 1px solid var(--border-color);
+  border-radius: 20px; box-shadow: 0 24px 64px rgba(0,0,0,0.75);
+  animation: floatIn 0.22s cubic-bezier(0.34,1.26,0.64,1);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.comments-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px; border-bottom: 1px solid var(--border-color); flex-shrink: 0;
+}
+.comments-modal-title { font-size: 14px; font-weight: 800; color: var(--text-primary); }
+.comments-modal-close {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--bg-color); border: 1px solid var(--border-color);
+  color: var(--text-secondary); font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: color 0.15s, border-color 0.15s;
+}
+.comments-modal-close:hover { color: var(--accent); border-color: var(--accent); }
+.comments-modal-list { flex: 1; overflow-y: auto; padding: 12px 18px; }
+.comments-modal-list::-webkit-scrollbar { width: 2px; }
+.comments-modal-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+.cm-comment-item { display: flex; gap: 10px; margin-bottom: 16px; }
+.cm-comment-avatar {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+  background: linear-gradient(135deg, var(--accent), #8a6430);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #0f0e0b;
+}
+.cm-comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.cm-comment-body { flex: 1; min-width: 0; }
+.cm-comment-author { font-weight: 700; font-size: 12px; color: var(--text-primary); margin-bottom: 3px; }
+.cm-comment-text { font-size: 13px; line-height: 1.5; color: var(--text-primary); margin-bottom: 4px; }
+.cm-comment-time { font-size: 10px; color: var(--text-secondary); }
+.cm-comment-time.uploading { color: var(--accent); font-style: italic; }
+.cm-comment-time.upload-error { color: #c46a4e; }
+.cm-comments-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; color: var(--text-secondary); gap: 10px;
+}
+.cm-comments-empty i { font-size: 32px; opacity: 0.25; color: var(--accent); }
+.cm-comments-empty p { font-size: 12.5px; margin: 0; text-align: center; }
+.comments-modal-input-wrap {
+  padding: 10px 14px; border-top: 1px solid var(--border-color); flex-shrink: 0;
+}
+.comments-modal-input-row { display: flex; gap: 8px; align-items: center; }
+.comments-modal-input {
+  flex: 1; background: var(--bg-color); border: 1px solid var(--border-color);
+  border-radius: 20px; padding: 9px 14px; color: var(--text-primary);
+  font-size: 16px; outline: none; transition: border-color 0.15s ease;
+  font-family: var(--font-ui);
+}
+.comments-modal-input:focus { border-color: var(--accent); }
+.comments-modal-send {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--accent); border: none; color: #0f0e0b;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; transition: background 0.2s ease; flex-shrink: 0;
+}
+.comments-modal-send:hover { background: var(--accent-hover); }
+.comments-modal-send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.ig-post-audio-wrap { padding: 12px; }
+.ig-post-audio-title { font-size: 13.5px; font-weight: 700; color: var(--text-primary); font-family: var(--font-article); margin-bottom: 10px; line-height: 1.35; }
+.ig-post-audio-row { display: flex; align-items: center; gap: 11px; }
+.ig-post-audio-play {
+  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent); border: none; color: #0f0e0b;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 13px; transition: background 0.15s;
+}
+.ig-post-audio-play:hover { background: var(--accent-hover); }
+.ig-post-audio-wave { flex: 1; height: 24px; display: flex; align-items: center; gap: 2px; }
+.ig-post-audio-bar { flex: 1; background: var(--border-color); border-radius: 2px; min-width: 2px; }
+
+.creators-strip { display: flex; gap: 14px; overflow-x: auto; padding: 12px 12px 10px; scrollbar-width: none; align-items: flex-start; }
 .creators-strip::-webkit-scrollbar { display: none; }
 .strip-pill { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; flex-shrink: 0; width: 54px; transition: opacity 0.15s; }
 .strip-pill:hover { opacity: 0.8; }
-.strip-icon-circle {
-  width: 44px; height: 44px; border-radius: 50%;
-  background: var(--hover-bg); border: 2px solid var(--border-color);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; color: var(--text-secondary); flex-shrink: 0; position: relative;
-  transition: border-color 0.2s, color 0.2s, background 0.2s;
-}
-.strip-pill:hover .strip-icon-circle { border-color: var(--accent); color: var(--accent); }
-.strip-notif-badge {
-  position: absolute; top: -2px; right: -2px;
-  background: #c46a4e; color: #fff; font-size: 9px; font-weight: 700;
-  width: 15px; height: 15px; border-radius: 50%;
-  display: none; align-items: center; justify-content: center;
-  border: 1.5px solid var(--bg-color); pointer-events: none;
-}
-.strip-notif-badge.show { display: flex; }
 .creator-pill-circle {
   width: 44px; height: 44px; border-radius: 50%;
   background: var(--accent-soft); border: 2px solid var(--border-color);
@@ -488,185 +854,36 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
   background-size: 400px 100%; animation: skelShimmer 1.4s ease infinite;
 }
 
-/* ══ TOPICS STRIP (new, distinct pill-tag design) ══ */
-.topics-strip {
-  display: flex; gap: 8px; overflow-x: auto;
-  padding: 2px 0 16px; scrollbar-width: none;
+.create-strip-circle {
+  background: var(--accent-soft) !important;
+  border: 2px solid rgba(200,169,110,0.35) !important;
+  color: var(--accent) !important; font-size: 17px !important;
 }
-.topics-strip::-webkit-scrollbar { display: none; }
-.topic-chip {
-  flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 15px; border-radius: 10px;
-  background: linear-gradient(135deg, var(--accent-soft), rgba(106,159,207,0.06));
-  border: 1px solid rgba(200,169,110,0.22);
-  color: var(--text-primary); font-size: 12px; font-weight: 700;
-  font-family: var(--font-ui); cursor: pointer; white-space: nowrap;
-  transition: border-color 0.18s, transform 0.15s, background 0.18s;
-}
-.topic-chip:hover { border-color: var(--accent); transform: translateY(-1px); background: linear-gradient(135deg, rgba(200,169,110,0.18), rgba(106,159,207,0.1)); }
-.topic-chip:active { transform: translateY(0) scale(0.97); }
-.topic-chip i { font-size: 9px; color: var(--accent); }
-.topic-chip .topic-count { font-size: 10px; font-weight: 600; color: var(--text-secondary); }
-.topics-strip-label {
-  font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--text-secondary); padding: 0 2px 8px; display: flex; align-items: center; gap: 6px;
-}
-.topics-strip-label i { color: var(--accent); font-size: 10px; }
-.topic-skel-chip {
-  flex-shrink: 0; width: 84px; height: 34px; border-radius: 10px;
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--hover-bg) 50%, var(--border-color) 75%);
-  background-size: 400px 100%; animation: skelShimmer 1.4s ease infinite;
-}
+.strip-pill:hover .create-strip-circle { border-color: var(--accent) !important; }
 
-.masonry-grid { position: relative; width: 100%; }
-/* Grid items positioned directly by runMasonry(): article/library cards are
-   wrapped in .pin-card-wrap (card + its expand panel), while skeletons and
-   media cards are positioned as themselves. */
-.pin-card-wrap, .pin-skeleton, .media-feed-card { position: absolute; top: 0; left: 0; visibility: hidden; }
-.pin-card-wrap.positioned, .pin-skeleton.positioned, .media-feed-card.positioned { visibility: visible; }
-@media (min-width: 640px) {
-  .masonry-grid { columns: 3; column-gap: 10px; height: auto !important; }
-  .pin-card-wrap, .pin-skeleton, .media-feed-card {
-    break-inside: avoid; margin-bottom: 10px;
-    position: static !important; top: auto !important; left: auto !important;
-    width: auto !important; height: auto !important; visibility: visible !important;
-  }
-}
-@media (min-width: 820px)  { .masonry-grid { columns: 4; } }
-@media (min-width: 1080px) { .masonry-grid { columns: 5; } }
+.ig-post-skeleton { padding-bottom: 6px; margin-bottom: 6px; }
+.ig-skel-header { display: flex; align-items: center; gap: 11px; padding: 11px 12px; }
+.ig-skel-avatar { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; }
+.ig-skel-name { height: 11px; width: 110px; border-radius: 5px; }
+.ig-skel-media { width: 100%; aspect-ratio: 1/1; }
+.ig-skel-actions { display: flex; gap: 10px; padding: 10px 12px 4px; }
+.ig-skel-icon { width: 24px; height: 24px; border-radius: 6px; }
+.ig-skel-line { height: 11px; margin: 0 12px 8px; border-radius: 5px; }
 
-.pin-card {
-  position: relative;
-  border-radius: 14px;
-  overflow: hidden; cursor: pointer; display: block;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-  background: var(--hover-bg);
+.scroll-sentinel { height: 1px; width: 100%; }
+.scroll-loader-wrap { text-align: center; padding: 16px 12px; display: none; }
+.scroll-loader-wrap.active { display: block; }
+.scroll-loader-spinner {
+  width: 24px; height: 24px; margin: 0 auto;
+  border: 2px solid var(--border-color); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.9s linear infinite;
 }
-.pin-card:hover { transform: translateY(-3px) scale(1.01); box-shadow: 0 12px 36px rgba(0,0,0,0.55); }
-.pin-card:active { transform: scale(0.98); }
-.pin-card-img { width: 100%; height: auto; display: block; }
-.pin-card-img.fixed-ratio { width: 100%; object-fit: cover; display: block; }
-.pin-card-img-fallback {
-  width: 100%; display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, var(--hover-bg) 0%, #1e1c16 100%);
-  color: var(--accent); font-size: 28px; opacity: 0.4;
+.scroll-end-msg {
+  text-align: center; padding: 24px 20px; color: var(--text-secondary);
+  font-size: 12px; opacity: 0.6; display: none;
 }
-.pin-card-overlay {
-  position: absolute; bottom: 0; left: 0; right: 0;
-  background: linear-gradient(to top, rgba(4,3,2,0.92) 0%, rgba(4,3,2,0.70) 30%, rgba(4,3,2,0.30) 60%, transparent 100%);
-  padding: 28px 11px 11px;
-  display: flex; flex-direction: column; gap: 5px; z-index: 1;
-}
-.pin-overlay-title {
-  font-size: 12px; font-weight: 700; color: #f5f0e8;
-  line-height: 1.3; font-family: var(--font-article);
-  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
-  letter-spacing: -0.01em; text-shadow: 0 1px 6px rgba(0,0,0,0.8);
-}
-.pin-overlay-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-.pin-badge {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
-  background: var(--accent-soft); color: var(--accent);
-  border: 1px solid rgba(200,169,110,0.3);
-  border-radius: 4px; padding: 2px 6px; backdrop-filter: blur(4px);
-}
-.pin-stat { font-size: 9px; color: rgba(245,240,232,0.65); display: flex; align-items: center; gap: 3px; }
-.pin-stat i { font-size: 8px; }
+.scroll-end-msg.active { display: block; }
 
-/* ══ Expandable inline detail (article / library) — matches profile.html style ══ */
-.pin-expand-panel {
-  display: none; margin-top: 6px;
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-radius: 12px; padding: 13px 14px;
-  animation: detailIn 0.2s ease;
-}
-.pin-expand-panel.open { display: block; }
-@keyframes detailIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
-.pin-expand-title {
-  font-size: 13px; font-weight: 800; color: var(--text-primary);
-  font-family: var(--font-article); margin-bottom: 6px; line-height: 1.35;
-}
-.pin-expand-desc { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 10px; }
-.pin-expand-desc-empty { font-size: 12px; color: var(--text-secondary); font-style: italic; margin-bottom: 10px; }
-.pin-expand-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-.pin-expand-meta-item { font-size: 10.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
-.pin-expand-meta-item i { color: var(--accent); font-size: 9px; }
-.pin-expand-actions { display: flex; gap: 8px; }
-.pin-expand-btn {
-  flex: 1; padding: 9px; border-radius: 9px;
-  background: var(--accent); color: #0f0e0b;
-  font-size: 12px; font-weight: 700; border: none; cursor: pointer;
-  font-family: var(--font-ui); transition: background 0.15s;
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-}
-.pin-expand-btn:hover { background: var(--accent-hover); }
-.pin-expand-btn.secondary {
-  flex: none; padding: 9px 12px;
-  background: var(--bg-color); color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-}
-.pin-expand-btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
-
-/* ══ Media feed card (image/audio/YT interspersed in grid) ══ */
-.media-feed-card {
-  break-inside: avoid; border-radius: 14px; overflow: hidden;
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  cursor: pointer; transition: transform 0.18s ease, box-shadow 0.18s ease;
-}
-@media (min-width: 640px) { .media-feed-card { margin-bottom: 10px; } }
-.media-feed-card:hover { transform: translateY(-3px) scale(1.01); box-shadow: 0 12px 36px rgba(0,0,0,0.55); }
-.media-feed-card:active { transform: scale(0.98); }
-.media-feed-img { width: 100%; height: auto; display: block; object-fit: cover; }
-.media-feed-yt-wrap { position: relative; width: 100%; background: #000; }
-.media-feed-yt-wrap iframe { width: 100%; aspect-ratio: 16/9; border: none; display: block; pointer-events: none; }
-.media-feed-yt-badge {
-  position: absolute; top: 8px; right: 8px;
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
-  background: rgba(0,0,0,0.65); color: #fff; border-radius: 5px; padding: 3px 7px;
-  backdrop-filter: blur(4px); pointer-events: none;
-}
-.media-feed-footer {
-  padding: 10px 12px;
-  display: flex; align-items: center; gap: 8px;
-}
-.media-feed-footer-title {
-  font-size: 11.5px; font-weight: 700; color: var(--text-primary);
-  font-family: var(--font-article); line-height: 1.3;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-  flex: 1;
-}
-.media-feed-footer i { color: var(--accent); font-size: 11px; flex-shrink: 0; }
-.media-feed-audio-wrap { padding: 14px 12px 12px; }
-.media-feed-audio-title {
-  font-size: 11.5px; font-weight: 700; color: var(--text-primary);
-  font-family: var(--font-article); margin-bottom: 9px; line-height: 1.3;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-.media-feed-play-row { display: flex; align-items: center; gap: 10px; }
-.media-feed-play-btn {
-  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
-  background: var(--accent); border: none; color: #0f0e0b;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  font-size: 12px; transition: background 0.15s;
-}
-.media-feed-play-btn:hover { background: var(--accent-hover); }
-.media-feed-wave { flex: 1; height: 22px; display: flex; align-items: center; gap: 2px; }
-.media-feed-wave-bar { flex: 1; background: var(--border-color); border-radius: 2px; min-width: 2px; }
-
-.load-more-wrap { text-align: center; margin-top: 10px; }
-.btn-load-more {
-  background: none; border: 1px solid var(--border-color);
-  color: var(--text-secondary); font-size: 12px; font-weight: 600;
-  cursor: pointer; padding: 9px 24px; border-radius: 20px;
-  font-family: var(--font-ui); display: inline-flex; align-items: center; gap: 7px;
-  transition: border-color 0.2s, color 0.2s;
-}
-.btn-load-more:hover { border-color: var(--accent); color: var(--accent); }
-.btn-load-more:disabled { opacity: 0.35; pointer-events: none; }
-
-/* ══ Create menu (replaces FAB) ══ */
 .create-menu-overlay {
   position: fixed; inset: 0; z-index: 399;
   background: rgba(0,0,0,0.6); backdrop-filter: blur(3px);
@@ -722,6 +939,20 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+.heart-burst {
+  position: fixed; pointer-events: none; z-index: 9999;
+  transform: translate(-50%, -50%);
+  animation: heartBurstAnim 0.65s cubic-bezier(0.16,1,0.3,1) forwards;
+}
+.heart-burst svg { width: 70px; height: 70px; filter: drop-shadow(0 0 10px rgba(200,169,110,0.5)); }
+@keyframes heartBurstAnim {
+  0%  {opacity:0; transform:translate(-50%,-50%) scale(0.3);}
+  30% {opacity:1; transform:translate(-50%,-50%) scale(1.2);}
+  55% {transform:translate(-50%,-50%) scale(0.95);}
+  80% {opacity:0.85; transform:translate(-50%,-50%) scale(1.05);}
+  100%{opacity:0; transform:translate(-50%,-56%) scale(0.85);}
+}
+
 .footer-bar {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
   width: 100%; max-width: 450px;
@@ -752,7 +983,7 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
   .footer-btn:hover { background: var(--hover-bg); color: var(--accent); }
   .footer-btn i { font-size: 18px; }
   .footer-btn span { font-size: 9px; }
-  .page-body { padding-right: 108px; padding-bottom: 20px; }
+  .page-body { padding-right: 0; padding-bottom: 20px; }
 }
 @media (max-width: 768px) {
   .footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
@@ -780,8 +1011,15 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
       <img src="IMG_3220.png" alt="Patholytica" id="headerLogoImg">
     </div>
     <div class="header-actions">
+      <button class="header-icon-btn" id="headerBellBtn" onclick="handleHeaderBell(this)" title="Notifications">
+        <i class="fas fa-bell"></i>
+        <div class="header-notif-badge" id="headerNotifBadge"></div>
+      </button>
       <button class="header-icon-btn" id="bookmarkBtn" onclick="handleBookmarkBtn(this)" title="Saved Libraries">
         <i class="fas fa-bookmark"></i>
+      </button>
+      <button class="header-icon-btn" id="headerSettingsBtn" onclick="handleHeaderSettings(this)" title="Settings">
+        <i class="fas fa-sliders-h"></i>
       </button>
     </div>
   </div>
@@ -854,18 +1092,27 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
   </div>
 </div>
 
+<div class="comments-modal-overlay" id="commentsModalOverlay" onclick="closeCommentsModal(event)">
+  <div class="comments-modal" onclick="event.stopPropagation()">
+    <div class="comments-modal-header">
+      <div class="comments-modal-title">Comments</div>
+      <button class="comments-modal-close" onclick="closeCommentsModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="comments-modal-list" id="commentsModalList"></div>
+    <div class="comments-modal-input-wrap">
+      <div class="comments-modal-input-row">
+        <input type="text" class="comments-modal-input" id="commentsModalInput" placeholder="Add a comment…">
+        <button class="comments-modal-send" id="commentsModalSend" onclick="window._sendHomeComment()"><i class="fas fa-paper-plane"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="page-body">
   <div class="creators-strip" id="creatorsStrip">
-    <div class="strip-pill" id="stripBellPill" onclick="handleStripBell(this)">
-      <div class="strip-icon-circle" id="stripBellCircle">
-        <i class="fas fa-bell"></i>
-        <div class="strip-notif-badge" id="stripNotifBadge"></div>
-      </div>
-      <div class="strip-pill-name">Alerts</div>
-    </div>
-    <div class="strip-pill" id="stripSettingsPill" onclick="handleStripSettings(this)">
-      <div class="strip-icon-circle"><i class="fas fa-sliders-h"></i></div>
-      <div class="strip-pill-name">Settings</div>
+    <div class="strip-pill" id="createStripPill" onclick="openCreateMenu()">
+      <div class="creator-pill-circle create-strip-circle"><i class="fas fa-plus"></i></div>
+      <div class="strip-pill-name">Create</div>
     </div>
     <div class="strip-skeleton-pill" id="creatorSkel0"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
     <div class="strip-skeleton-pill" id="creatorSkel1"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
@@ -875,21 +1122,10 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
     <div class="strip-skeleton-pill" id="creatorSkel5"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
   </div>
 
-  <div class="topics-strip-label" id="topicsStripLabel" style="display:none;"><i class="fas fa-hashtag"></i> Explore Topics</div>
-  <div class="topics-strip" id="topicsStrip">
-    <div class="topic-skel-chip"></div>
-    <div class="topic-skel-chip"></div>
-    <div class="topic-skel-chip"></div>
-    <div class="topic-skel-chip"></div>
-    <div class="topic-skel-chip"></div>
-  </div>
-
-  <div class="masonry-grid" id="mainGrid"></div>
-  <div class="load-more-wrap" id="loadMoreWrap" style="display:none;">
-    <button class="btn-load-more" id="loadMoreBtn" onclick="loadMore()">
-      <i class="fas fa-chevron-down"></i> Load more
-    </button>
-  </div>
+  <div class="ig-feed" id="mainGrid"></div>
+  <div class="scroll-sentinel" id="scrollSentinel"></div>
+  <div class="scroll-loader-wrap" id="scrollLoaderWrap"><div class="scroll-loader-spinner"></div></div>
+  <div class="scroll-end-msg" id="scrollEndMsg">You're all caught up</div>
 </div>
 
 <div class="create-menu-overlay" id="createMenuOverlay" onclick="closeCreateMenu(event)">
@@ -899,7 +1135,7 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
     <div class="create-menu-item" onclick="location.href='https://patholytica.com/create'">
       <div class="create-menu-icon"><i class="fas fa-pen"></i></div>
       <div class="create-menu-text">
-        <div class="create-menu-item-title">Classic</div>
+        <div class="create-menu-item-title">Normal</div>
         <div class="create-menu-item-sub">Write a single article or MCQ</div>
       </div>
       <i class="fas fa-chevron-right chev"></i>
@@ -907,16 +1143,24 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
     <div class="create-menu-item" onclick="location.href='https://patholytica.com/Create'">
       <div class="create-menu-icon"><i class="fas fa-layer-group"></i></div>
       <div class="create-menu-text">
-        <div class="create-menu-item-title">Batch Create</div>
+        <div class="create-menu-item-title">Batches</div>
         <div class="create-menu-item-sub">Generate several articles at once</div>
       </div>
       <i class="fas fa-chevron-right chev"></i>
     </div>
-    <div class="create-menu-item" onclick="location.href='https://patholytica.com/space'">
-      <div class="create-menu-icon"><i class="fas fa-th-large"></i></div>
+    <div class="create-menu-item" onclick="location.href='https://patholytica.com/Studio'">
+      <div class="create-menu-icon"><i class="fas fa-book-open"></i></div>
       <div class="create-menu-text">
-        <div class="create-menu-item-title">Space</div>
-        <div class="create-menu-item-sub">Open your workspace</div>
+        <div class="create-menu-item-title">Sourced</div>
+        <div class="create-menu-item-sub">Create from your own sources</div>
+      </div>
+      <i class="fas fa-chevron-right chev"></i>
+    </div>
+    <div class="create-menu-item" onclick="location.href='https://patholytica.com/scribe'">
+      <div class="create-menu-icon"><i class="fas fa-feather"></i></div>
+      <div class="create-menu-text">
+        <div class="create-menu-item-title">Handwritten</div>
+        <div class="create-menu-item-sub">Turn handwritten notes into content</div>
       </div>
       <i class="fas fa-chevron-right chev"></i>
     </div>
@@ -938,7 +1182,6 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
   </button>
 </div>
 
-<!-- 1. Theme persistence -->
 <script>
 (function(){
   const theme   = localStorage.getItem('pref_theme')   || 'theme-dark';
@@ -948,7 +1191,6 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 })();
 </script>
 
-<!-- 2. Settings popover -->
 <script>
 (function(){
   const THEMES=['theme-dark','theme-light'];
@@ -980,22 +1222,22 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
     document.getElementById('settingsPopover').classList.remove('open');
     _open=false;
   };
-  window.handleStripSettings=function(pill){
+  window.handleHeaderSettings=function(btn){
     const pop=document.getElementById('settingsPopover');
     _open=!_open;
     if(_open){
       document.getElementById('notifPanel').classList.remove('open');
       document.getElementById('savedPanel').classList.remove('open');
-      const r=pill.getBoundingClientRect();
+      const r=btn.getBoundingClientRect();
       pop.style.top=(r.bottom+8)+'px';
-      let left=r.left;
-      if(left+230>window.innerWidth-8) left=window.innerWidth-238;
-      pop.style.left=Math.max(8,left)+'px';
+      let left=r.right-230;
+      if(left<8) left=8;
+      pop.style.left=left+'px';
       pop.style.right='auto';
       pop.classList.add('open');
       syncPills();
       setTimeout(()=>document.addEventListener('click',function oc(e){
-        if(!pop.contains(e.target)&&!pill.contains(e.target)){
+        if(!pop.contains(e.target)&&!btn.contains(e.target)){
           pop.classList.remove('open');_open=false;
         }
         document.removeEventListener('click',oc);
@@ -1008,7 +1250,6 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 })();
 </script>
 
-<!-- 3. Bell + community notifs -->
 <script>
 window._isLoggedIn = false;
 
@@ -1039,7 +1280,7 @@ function communityNotifsHTML(){
     </div>`).join('');
 }
 
-window.handleStripBell = function(pill){
+window.handleHeaderBell = function(btn){
   const panel = document.getElementById('notifPanel');
   const isOpen = panel.classList.contains('open');
   window.closeSettings();
@@ -1052,19 +1293,19 @@ window.handleStripBell = function(pill){
         <p>Log in to see your notifications</p>
         <a href="login.html">Log in</a>
       </div>`;
-    positionPanel(panel, pill);
+    positionPanel(panel, btn);
     return;
   }
-  positionPanel(panel, pill);
+  positionPanel(panel, btn);
   if(window._supabaseNotifLoader) window._supabaseNotifLoader();
 };
 
 function positionPanel(panel, anchor){
   const r = anchor.getBoundingClientRect();
   panel.style.top = (r.bottom + 8) + 'px';
-  let left = r.left;
-  if(left + 310 > window.innerWidth - 8) left = window.innerWidth - 318;
-  panel.style.left = Math.max(8, left) + 'px';
+  let left = r.right - 310;
+  if(left < 8) left = 8;
+  panel.style.left = left + 'px';
   panel.style.right = 'auto';
   panel.classList.add('open');
   setTimeout(()=>document.addEventListener('click', function oc(e){
@@ -1076,7 +1317,6 @@ function positionPanel(panel, anchor){
 }
 </script>
 
-<!-- 4. Saved libraries (localStorage) -->
 <script>
 const LS_SAVED_KEY = 'patholytica_saved_libs';
 function getSavedLibs(){
@@ -1150,7 +1390,6 @@ window._removeSavedFromPanel = function(e, id){
 window.esc=function(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; };
 </script>
 
-<!-- 5. Helpers -->
 <script>
 window.showToast=function(msg){
   const t=document.getElementById('toast');
@@ -1163,9 +1402,14 @@ window.relTime=function(dateStr){
   if(m<1)return'just now';if(m<60)return`${m}m ago`;if(h<24)return`${h}h ago`;if(d<7)return`${d}d ago`;
   return new Date(dateStr).toLocaleDateString('en-US',{month:'short',day:'numeric'});
 };
+window.spawnHeartBurst=function(x,y){
+  const el=document.createElement('div');el.className='heart-burst';
+  el.style.left=x+'px';el.style.top=y+'px';
+  el.innerHTML=`<svg viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg"><path d="M50 85 C50 85 5 55 5 28 C5 14 16 5 28 5 C37 5 45 10 50 18 C55 10 63 5 72 5 C84 5 95 14 95 28 C95 55 50 85 50 85Z" fill="#c8a96e"/></svg>`;
+  document.body.appendChild(el);el.addEventListener('animationend',()=>el.remove());
+};
 </script>
 
-<!-- 6. Create menu (replaces FAB) -->
 <script>
 window.openCreateMenu=function(){
   document.getElementById('createMenuOverlay').classList.add('open');
@@ -1176,56 +1420,6 @@ window.closeCreateMenu=function(e){
 };
 </script>
 
-<!-- 7. Masonry -->
-<script>
-(function(){
-  const COL_GAP = 10;
-  function isMobile(){ return window.innerWidth < 640; }
-  let _scheduled = false;
-  function scheduleMasonry(){
-    if(_scheduled) return;
-    _scheduled = true;
-    requestAnimationFrame(()=>{ _scheduled=false; runMasonry(); });
-  }
-  window.runMasonry = function(){
-    const grid = document.getElementById('mainGrid');
-    if(!grid) return;
-    const cards = Array.from(grid.querySelectorAll('.pin-card-wrap, .pin-skeleton, .media-feed-card'));
-    if(!cards.length) return;
-    if(!isMobile()){
-      grid.style.height = '';
-      cards.forEach(card=>{
-        card.style.position=''; card.style.left=''; card.style.top=''; card.style.width='';
-        card.classList.add('positioned');
-      });
-      return;
-    }
-    const containerW = grid.offsetWidth;
-    const colW = (containerW - COL_GAP) / 2;
-    const colHeights = [0, 0];
-    cards.forEach(card=>{ card.style.position='absolute'; card.style.width=colW+'px'; });
-    cards.forEach(card=>{
-      const col = colHeights[0] <= colHeights[1] ? 0 : 1;
-      card.style.left = col===0 ? '0px' : (colW+COL_GAP)+'px';
-      card.style.top  = colHeights[col]+'px';
-      card.classList.add('positioned');
-      colHeights[col] += card.offsetHeight + COL_GAP;
-    });
-    grid.style.height = Math.max(colHeights[0], colHeights[1])+'px';
-  };
-  function observeGrid(){
-    const grid = document.getElementById('mainGrid');
-    if(!grid) return;
-    const mo = new MutationObserver(()=>{ scheduleMasonry(); });
-    mo.observe(grid, { childList: true, subtree: true });
-    grid.addEventListener('load', e=>{ if(e.target.tagName==='IMG') scheduleMasonry(); }, true);
-  }
-  window.addEventListener('resize', scheduleMasonry);
-  document.addEventListener('DOMContentLoaded', observeGrid);
-})();
-</script>
-
-<!-- 8. MAIN MODULE -->
 <script type="module">
 import { initializeApp }        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -1249,25 +1443,25 @@ const supabase = window.supabase.createClient(
 window._supabaseClient = supabase;
 
 const STOCK_POOL_RAW = [
-  { url:'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600&q=80', h:340 },
-  { url:'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=600&q=80', h:300 },
-  { url:'https://images.unsplash.com/photo-1448630360428-65456885c650?w=600&q=80', h:280 },
-  { url:'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80', h:360 },
-  { url:'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=600&q=80', h:310 },
-  { url:'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=600&q=80', h:270 },
-  { url:'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=600&q=80', h:390 },
-  { url:'https://images.unsplash.com/photo-1550859492-d5da9d8e45f3?w=600&q=80', h:260 },
-  { url:'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=600&q=80', h:320 },
-  { url:'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80', h:350 },
-  { url:'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&q=80', h:290 },
-  { url:'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&q=80', h:300 },
-  { url:'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&q=80', h:330 },
-  { url:'https://images.unsplash.com/photo-1495562569060-2eec283d3391?w=600&q=80', h:250 },
-  { url:'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&q=80', h:280 },
-  { url:'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=600&q=80', h:340 },
-  { url:'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=600&q=80', h:300 },
-  { url:'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&q=80', h:260 },
-  { url:'https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=600&q=80', h:380 },
+  { url:'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1448630360428-65456885c650?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1550859492-d5da9d8e45f3?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1495562569060-2eec283d3391?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&q=80' },
+  { url:'https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=800&q=80' },
 ];
 function shuffleArray(arr){ const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a; }
 const STOCK_POOL = shuffleArray(STOCK_POOL_RAW);
@@ -1287,6 +1481,8 @@ function weightedShuffle(arr){
 let currentUserData = null;
 let currentSupaUser = null;
 let userFavourites  = new Set();
+let userLikesHome   = new Set();
+let userFollowingHome = new Set();
 
 function syncFavouritesFromLocal(){
   userFavourites = new Set(getSavedLibs().map(l=>String(l.id)));
@@ -1299,26 +1495,185 @@ let shuffledArts = [];
 let artOffset = 0;
 let artHasMore = true;
 let artLoading = false;
-const ART_BATCH = 18;
+const ART_BATCH = 12;
 let libOffset = 0;
-const LIB_PER_BATCH = 4;
+const LIB_PER_BATCH = 3;
 
-// Media pool (images / audio / youtube) pulled from the `media` table,
-// interspersed into the grid every few cards.
 let mediaPool = [];
 let mediaPoolOffset = 0;
 let mediaPoolFetched = false;
+let mediaByArticle = {};
 
 function esc(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
 window.esc = esc;
 function isMCQ(c){ return typeof c==='string'&&c.trimStart().startsWith('❔'); }
 function trunc(s,n){ s=s||''; return s.length>n?s.slice(0,n)+'…':s; }
+function stripEmoji(s){ return (s||'').replace(/[🔍❗📌🔥💎🟡🔵🟢🟣🔴⚫🧠📖💡🎯🧩🏷️🔬⚠️✅❌⏳🔒🔓⚡🌊🌀💫🚀🎬🌟✨🌈👑🪄❤️😄😌😮😎🤖🧪🏛️🌍💰⚖️📡🎵🧊🔊]/gu,''); }
+
+/* ══ FOLLOW (matches Dailyfeed's follow_user/unfollow_user RPCs + subscriptions table) ══ */
+async function loadUserFollowingHome(){
+  if(!currentSupaUser)return;
+  try{
+    const{data}=await supabase.from('subscriptions').select('author_id').eq('follower_id',currentSupaUser.user_id);
+    userFollowingHome = new Set((data||[]).map(r=>String(r.author_id)));
+    document.querySelectorAll('.ig-post-follow-pill[data-supa-uid]').forEach(btn=>{
+      const following = userFollowingHome.has(String(btn.dataset.supaUid));
+      btn.classList.toggle('following', following);
+      btn.textContent = following ? 'Following' : 'Follow';
+    });
+  }catch(e){}
+}
+
+function buildFollowBtnHTML(article){
+  const aSupaId = article.authorSupaUserId || '';
+  const aFbUid  = article.firebase_user_id || '';
+  if(!aSupaId) return '';
+  if(currentSupaUser && String(currentSupaUser.user_id)===String(aSupaId)) return '';
+  const isFollowing = userFollowingHome.has(String(aSupaId));
+  return `<button class="ig-post-follow-pill${isFollowing?' following':''}" data-supa-uid="${aSupaId}" onclick="window._handleFollowHome(event,'${aFbUid}','${aSupaId}')">${isFollowing?'Following':'Follow'}</button>`;
+}
+
+window._handleFollowHome = async function(e,aFbUid,aSupaId){
+  e.stopPropagation();
+  if(!currentSupaUser){ location.href='login.html'; return; }
+  const btn=e.currentTarget;
+  if(btn.dataset.processing==='true')return; btn.dataset.processing='true';
+  const supaUid=String(aSupaId);
+  const wasFollowing=userFollowingHome.has(supaUid);
+  if(wasFollowing) userFollowingHome.delete(supaUid); else userFollowingHome.add(supaUid);
+  document.querySelectorAll(`.ig-post-follow-pill[data-supa-uid="${supaUid}"]`).forEach(b=>{
+    b.classList.toggle('following',!wasFollowing);
+    b.textContent = !wasFollowing ? 'Following' : 'Follow';
+  });
+  try{
+    if(wasFollowing){
+      const{error}=await supabase.rpc('unfollow_user',{p_author_id:parseInt(aSupaId),p_firebase_uid:currentSupaUser.firebase_uid});
+      if(error)throw error;
+    }else{
+      const{error}=await supabase.rpc('follow_user',{p_author_id:parseInt(aSupaId),p_firebase_uid:currentSupaUser.firebase_uid});
+      if(error)throw error;
+    }
+  }catch(err){
+    if(wasFollowing) userFollowingHome.add(supaUid); else userFollowingHome.delete(supaUid);
+    document.querySelectorAll(`.ig-post-follow-pill[data-supa-uid="${supaUid}"]`).forEach(b=>{
+      const stillFollowing=userFollowingHome.has(supaUid);
+      b.classList.toggle('following',stillFollowing);
+      b.textContent = stillFollowing ? 'Following' : 'Follow';
+    });
+  }finally{ btn.dataset.processing='false'; }
+};
+
+/* ══ COMMENTS MODAL ══ */
+let _currentCommentArticleId = null;
+
+function commentsModalSkeletonHTML(){
+  return `<div style="display:flex;flex-direction:column;gap:14px;">
+    ${[1,2,3].map(()=>`<div style="display:flex;gap:10px;">
+      <div class="skel-circle" style="width:30px;height:30px;flex-shrink:0;"></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+        <div class="skel-line" style="height:11px;width:90px;"></div>
+        <div class="skel-line" style="height:12px;width:80%;"></div>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+window.openCommentsModal = async function(articleId){
+  _currentCommentArticleId = articleId;
+  document.getElementById('commentsModalOverlay').classList.add('open');
+  document.getElementById('commentsModalList').innerHTML = commentsModalSkeletonHTML();
+  await loadHomeComments(articleId);
+};
+
+window.closeCommentsModal = function(e){
+  if(!e||e.target===document.getElementById('commentsModalOverlay')){
+    document.getElementById('commentsModalOverlay').classList.remove('open');
+    _currentCommentArticleId = null;
+  }
+};
+
+async function loadHomeComments(articleId){
+  const list = document.getElementById('commentsModalList');
+  try{
+    const{data:comments}=await supabase.from('comments').select('*').eq('article_id',articleId).order('created_at',{ascending:true});
+    if(!comments?.length){
+      list.innerHTML=`<div class="cm-comments-empty"><i class="fas fa-comments"></i><p>No comments yet<br>Be the first to comment!</p></div>`;
+      return;
+    }
+    const uids=[...new Set(comments.map(c=>c.user_id).filter(Boolean))];
+    let usersMap={};
+    if(uids.length){
+      const{data:users}=await supabase.from('users').select('id,username,pfp,full_name').in('id',uids);
+      (users||[]).forEach(u=>{usersMap[u.id]=u;});
+    }
+    list.innerHTML = comments.map(c=>{
+      const u=usersMap[c.user_id];
+      const author=u?.username?`@${u.username}`:(u?.full_name||'Anonymous');
+      const av=u?.pfp?`<img src="${esc(u.pfp)}" alt="">`:(u?.username||'A')[0].toUpperCase();
+      return `<div class="cm-comment-item">
+        <div class="cm-comment-avatar">${av}</div>
+        <div class="cm-comment-body">
+          <div class="cm-comment-author">${esc(author)}</div>
+          <div class="cm-comment-text">${esc(c.comment_text)}</div>
+          <div class="cm-comment-time">${relTime(c.created_at)}</div>
+        </div>
+      </div>`;
+    }).join('');
+    list.scrollTop = list.scrollHeight;
+  }catch(e){
+    list.innerHTML = `<div class="cm-comments-empty"><i class="fas fa-exclamation-triangle"></i><p>Failed to load comments</p></div>`;
+  }
+}
+
+window._sendHomeComment = async function(){
+  const input = document.getElementById('commentsModalInput');
+  const text = input.value.trim();
+  if(!text || !_currentCommentArticleId) return;
+  if(!currentSupaUser){ location.href='login.html'; return; }
+  const sendBtn = document.getElementById('commentsModalSend');
+  sendBtn.disabled = true;
+  const list = document.getElementById('commentsModalList');
+  const emptyEl = list.querySelector('.cm-comments-empty');
+  if(emptyEl) list.innerHTML = '';
+  const authorName = currentSupaUser.username ? `@${currentSupaUser.username}` : 'You';
+  const av = (currentSupaUser.username||'Y')[0].toUpperCase();
+  const tempId = 'homecmt_'+Date.now();
+  list.insertAdjacentHTML('beforeend', `<div class="cm-comment-item" id="${tempId}">
+    <div class="cm-comment-avatar">${av}</div>
+    <div class="cm-comment-body">
+      <div class="cm-comment-author">${esc(authorName)}</div>
+      <div class="cm-comment-text">${esc(text)}</div>
+      <div class="cm-comment-time uploading">Sending…</div>
+    </div>
+  </div>`);
+  list.scrollTop = list.scrollHeight;
+  input.value = '';
+  const articleId = _currentCommentArticleId;
+  const countEl = document.querySelector(`.ig-action-btn.comment-btn[data-id="${articleId}"] [data-role="comment-count"]`);
+  if(countEl) countEl.textContent = fmtNum(parseInt(countEl.dataset.raw||'0')+1);
+  if(countEl) countEl.dataset.raw = parseInt(countEl.dataset.raw||'0')+1;
+  try{
+    const{error}=await supabase.rpc('insert_comment',{p_article_id:parseInt(articleId),p_firebase_uid:currentSupaUser.firebase_uid,p_comment_text:text});
+    if(error) throw error;
+    const tempEl=document.getElementById(tempId);
+    if(tempEl){ const t=tempEl.querySelector('.cm-comment-time'); if(t){ t.className='cm-comment-time'; t.textContent='just now'; } }
+  }catch(e){
+    const tempEl=document.getElementById(tempId);
+    if(tempEl){ const t=tempEl.querySelector('.cm-comment-time'); if(t){ t.className='cm-comment-time upload-error'; t.textContent='Failed to send'; } }
+    if(countEl){ const rv=Math.max(0,parseInt(countEl.dataset.raw||'1')-1); countEl.textContent=fmtNum(rv); countEl.dataset.raw=rv; }
+  }finally{ sendBtn.disabled=false; }
+};
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const input = document.getElementById('commentsModalInput');
+  if(input) input.addEventListener('keypress', e=>{ if(e.key==='Enter') window._sendHomeComment(); });
+});
 
 /* ══ NOTIFICATIONS ══ */
 window._supabaseNotifLoader = async function(){
   if(!currentSupaUser) return;
   const list  = document.getElementById('notifList');
-  const badge = document.getElementById('stripNotifBadge');
+  const badge = document.getElementById('headerNotifBadge');
   list.innerHTML='<div class="notif-spinner-wrap"><div class="notif-spinner"></div></div>';
   try{
     const{data:notifs}=await supabase.from('notifications').select('*')
@@ -1364,7 +1719,7 @@ window._handleNotif=async function(el){
   const id=el.dataset.id, target=el.dataset.target;
   el.classList.remove('unread');
   const unread=document.querySelectorAll('.notif-item.unread').length;
-  const badge=document.getElementById('stripNotifBadge');
+  const badge=document.getElementById('headerNotifBadge');
   if(unread===0) badge.classList.remove('show');
   else{badge.textContent=unread>9?'9+':unread;}
   try{
@@ -1376,7 +1731,7 @@ window._handleNotif=async function(el){
 document.getElementById('notifMarkAll').addEventListener('click',async function(){
   if(!currentSupaUser)return;
   document.querySelectorAll('.notif-item.unread').forEach(el=>el.classList.remove('unread'));
-  document.getElementById('stripNotifBadge').classList.remove('show');
+  document.getElementById('headerNotifBadge').classList.remove('show');
   try{
     await supabase.rpc('mark_all_notifications_read',{p_firebase_uid:currentSupaUser.firebase_uid});
   }catch(e){}
@@ -1391,7 +1746,7 @@ onAuthStateChanged(auth, async user=>{
         .from('users')
         .select('id, username, pfp, full_name, bio')
         .eq('firebase_uid', user.uid)
-        .single();
+        .maybeSingle();
 
       if(ud && !error){
         currentSupaUser = { user_id: ud.id, ...ud, firebase_uid: user.uid };
@@ -1400,6 +1755,8 @@ onAuthStateChanged(auth, async user=>{
         updateSpProfile(ud, true);
         document.getElementById('spAuthAction').innerHTML=
           `<button class="sp-logout" onclick="window._doLogout()"><i class="fas fa-sign-out-alt"></i> Log out</button>`;
+        await loadUserLikesHome();
+        await loadUserFollowingHome();
         await window._supabaseNotifLoader();
       } else {
         currentSupaUser = null;
@@ -1420,7 +1777,7 @@ onAuthStateChanged(auth, async user=>{
     updateSpProfile(null, false);
     document.getElementById('spAuthAction').innerHTML=
       `<button class="sp-login" onclick="location.href='login.html'"><i class="fas fa-sign-in-alt"></i> Log in</button>`;
-    document.getElementById('stripNotifBadge').classList.remove('show');
+    document.getElementById('headerNotifBadge').classList.remove('show');
   }
 });
 
@@ -1428,6 +1785,17 @@ window._doLogout = async function(){
   try{ await signOut(auth); } catch(e){}
   window.location.reload();
 };
+
+async function loadUserLikesHome(){
+  if(!currentSupaUser)return;
+  try{
+    const{data}=await supabase.from('likes').select('article_id').eq('user_id',currentSupaUser.user_id);
+    userLikesHome = new Set((data||[]).map(l=>String(l.article_id)));
+    document.querySelectorAll('.ig-action-btn.like-btn').forEach(btn=>{
+      btn.classList.toggle('liked', userLikesHome.has(String(btn.dataset.id)));
+    });
+  }catch(e){}
+}
 
 function updateSpProfile(ud, loggedIn){
   const avatar  = document.getElementById('spAvatar');
@@ -1468,6 +1836,55 @@ function toggleFavourite(lib){
   return !wasFaved;
 }
 
+/* ══ LIKE (feed-level, quick optimistic toggle) ══ */
+async function handleFeedLike(btn){
+  const id=String(btn.dataset.id);
+  if(!currentSupaUser){ location.href='login.html'; return; }
+  const wasLiked=userLikesHome.has(id);
+  const countEl=btn.querySelector('[data-role="like-count"]');
+  const prevCount=parseInt(btn.dataset.count||'0');
+  const newCount=wasLiked?Math.max(0,prevCount-1):prevCount+1;
+  btn.dataset.count=newCount;
+  if(wasLiked){userLikesHome.delete(id);btn.classList.remove('liked');}
+  else{userLikesHome.add(id);btn.classList.add('liked');}
+  if(countEl) countEl.textContent = fmtNum(newCount);
+  try{
+    if(wasLiked){
+      const{error}=await supabase.rpc('unlike_article',{p_article_id:parseInt(id),p_firebase_uid:currentSupaUser.firebase_uid});
+      if(error)throw error;
+    }else{
+      const{error}=await supabase.rpc('like_article',{p_article_id:parseInt(id),p_firebase_uid:currentSupaUser.firebase_uid});
+      if(error)throw error;
+    }
+  }catch(e){
+    if(wasLiked){userLikesHome.add(id);btn.classList.add('liked');}
+    else{userLikesHome.delete(id);btn.classList.remove('liked');}
+    btn.dataset.count=prevCount;
+    if(countEl) countEl.textContent = fmtNum(prevCount);
+  }
+}
+window._handleFeedLike = handleFeedLike;
+
+/* Item 2: double-tap-to-heart never fires over a YouTube embed — the
+   video needs real taps to reach its own player (play/pause/seek),
+   not to be swallowed by the heart gesture. Guards here defensively;
+   the carousel's own per-slide handler (added for Item 3) applies the
+   same exclusion at the slide level, since a single post can carry
+   both image and YouTube slides once the carousel is in place. */
+function setupDoubleTapLike(mediaEl,likeBtn){
+  let lastTap=0;
+  mediaEl.addEventListener('click',function(e){
+    if(e.target.closest('.ig-post-yt-wrap')) return;
+    const now=Date.now();
+    if(now-lastTap<320){
+      if(!likeBtn.classList.contains('liked')) handleFeedLike(likeBtn);
+      window.spawnHeartBurst(e.clientX,e.clientY);
+      e.preventDefault();
+    }
+    lastTap=now;
+  });
+}
+
 /* ══ USER PREVIEW POPUP ══ */
 window.openUserPopup = async function(firebaseUid){
   const overlay = document.getElementById('userFloatOverlay');
@@ -1494,7 +1911,7 @@ window.openUserPopup = async function(firebaseUid){
     <div class="skel-line" style="height:42px;width:100%;border-radius:10px;"></div>`;
   overlay.classList.add('open');
   try{
-    const{data:user}=await supabase.from('users').select('*').eq('firebase_uid',firebaseUid).single();
+    const{data:user}=await supabase.from('users').select('*').eq('firebase_uid',firebaseUid).maybeSingle();
     const{data:articles}=await supabase.from('articles').select('id,views,likes').eq('firebase_user_id',firebaseUid);
     const{count:followerCount}=await supabase.from('subscriptions')
       .select('*',{count:'exact',head:true}).eq('author_id',user?.id||0);
@@ -1535,7 +1952,7 @@ window.closeUserPopup=function(e){
     document.getElementById('userFloatOverlay').classList.remove('open');
 };
 
-/* ══ CARD PREVIEW (full popup — kept for saved-panel / bookmarks) ══ */
+/* ══ CARD PREVIEW (full popup — kept for saved-panel / bookmarks + article/library expand) ══ */
 let previewMCQAnswered = false;
 let _currentPreviewLib = null;
 
@@ -1548,11 +1965,11 @@ window.openCardPreview = async function(type, id){
   overlay.classList.add('open');
   try{
     if(type==='article'||type==='mcq'){
-      const{data:art}=await supabase.from('articles').select('*').eq('id',id).single();
+      const{data:art}=await supabase.from('articles').select('*').eq('id',id).maybeSingle();
       if(!art){inner.innerHTML='<p style="padding:20px;color:var(--text-secondary);">Not found</p>';return;}
       let authorName='Unknown';
       if(art.firebase_user_id){
-        const{data:au}=await supabase.from('users').select('username').eq('firebase_uid',art.firebase_user_id).single();
+        const{data:au}=await supabase.from('users').select('username').eq('firebase_uid',art.firebase_user_id).maybeSingle();
         if(au) authorName=au.username?`@${au.username}`:'Unknown';
       }
       const mcq=isMCQ(art.content);
@@ -1597,14 +2014,14 @@ window.openCardPreview = async function(type, id){
         });
       }
     } else if(type==='library'){
-      const{data:lib}=await supabase.from('playlists').select('*').eq('id',id).single();
+      const{data:lib}=await supabase.from('playlists').select('*').eq('id',id).maybeSingle();
       if(!lib){inner.innerHTML='<p style="padding:20px;color:var(--text-secondary);">Not found</p>';return;}
       const{count:artCount}=await supabase.from('playlist_items').select('*',{count:'exact',head:true}).eq('playlist_id',id);
       _currentPreviewLib = { id:lib.id, name:lib.name, thumbnail_url:lib.thumbnail_url, _count:artCount||0 };
       const isSaved=isLibSaved(id);
       let creatorName='Unknown';
       if(lib.user_id){
-        const{data:cr}=await supabase.from('users').select('username').eq('id',lib.user_id).single();
+        const{data:cr}=await supabase.from('users').select('username').eq('id',lib.user_id).maybeSingle();
         if(cr) creatorName=cr.username?`@${cr.username}`:'Unknown';
       }
       inner.innerHTML=`
@@ -1635,104 +2052,15 @@ window._cpToggleSave=function(){
   const newState=toggleFavourite(_currentPreviewLib);
   btn.className=`cp-save-btn ${newState?'saved':''}`;
   btn.innerHTML=`<i class="fas fa-bookmark"></i> ${newState?'Saved':'Save Library'}`;
-  document.querySelectorAll(`.pin-card-wrap[data-lib-id="${_currentPreviewLib.id}"] .lib-saved-badge`).forEach(b=>{
-    b.style.display = newState ? 'inline-flex' : 'none';
+  document.querySelectorAll(`.lib-cover-card[data-lib-id="${_currentPreviewLib.id}"] .lib-cover-save`).forEach(b=>{
+    b.classList.toggle('saved', newState);
+    b.innerHTML = newState ? '<i class="fas fa-bookmark"></i>' : '<i class="far fa-bookmark"></i>';
   });
 };
 
 window.closeCardPreview=function(e){
   if(!e||e.target===document.getElementById('cardFloatOverlay'))
     document.getElementById('cardFloatOverlay').classList.remove('open');
-};
-
-/* ══ INLINE EXPAND PANEL (article / library — matches profile.html detail style) ══ */
-let _openExpandKey = null;
-
-function closeAllExpandPanels(exceptKey){
-  document.querySelectorAll('.pin-expand-panel.open').forEach(p=>{
-    if(p.dataset.key===exceptKey) return;
-    p.classList.remove('open');
-    p.innerHTML='';
-  });
-  if(exceptKey===undefined) _openExpandKey=null;
-}
-
-async function toggleArticleExpand(wrapEl, article){
-  const key='art_'+article.id;
-  const panel=wrapEl.querySelector('.pin-expand-panel');
-  if(_openExpandKey===key){
-    panel.classList.remove('open'); panel.innerHTML=''; _openExpandKey=null;
-    window.runMasonry();
-    return;
-  }
-  closeAllExpandPanels(key);
-  _openExpandKey=key;
-  const mcq=isMCQ(article.content);
-  panel.dataset.key=key;
-  panel.innerHTML=`<div style="display:flex;justify-content:center;padding:14px 0;"><div class="cp-loading-ring" style="width:20px;height:20px;"></div></div>`;
-  panel.classList.add('open');
-  window.runMasonry();
-  try{
-    const excerpt = mcq
-      ? (function(){ const lines=(article.content||'').trim().split('\n').map(l=>l.trim()).filter(Boolean); return lines[0]?lines[0].replace(/^❔/,'').trim():''; })()
-      : trunc((article.content||'').replace(/\n/g,' '),220);
-    panel.innerHTML=`
-      <div class="pin-expand-title">${esc(article.title||(mcq?'Quick Question':'Untitled'))}</div>
-      <div class="pin-expand-meta">
-        <span class="pin-expand-meta-item"><i class="fas fa-eye"></i>${fmtNum(article.views||0)}</span>
-        <span class="pin-expand-meta-item"><i class="fas fa-heart"></i>${fmtNum(article.likes||0)}</span>
-        ${mcq?'<span class="pin-expand-meta-item"><i class="fas fa-question-circle"></i>MCQ</span>':''}
-      </div>
-      ${excerpt?`<div class="pin-expand-desc">${esc(excerpt)}${(article.content||'').length>220?'…':''}</div>`:`<div class="pin-expand-desc-empty">No preview available.</div>`}
-      <div class="pin-expand-actions">
-        <button class="pin-expand-btn" onclick="location.href='https://patholytica.com/dailyfeed?article=${article.id}'"><i class="fas fa-book-open"></i> Read in Feed</button>
-        <button class="pin-expand-btn secondary" onclick="window.openCardPreview('${mcq?'mcq':'article'}','${article.id}')"><i class="fas fa-expand"></i></button>
-      </div>`;
-    window.runMasonry();
-  }catch(e){
-    panel.innerHTML=`<div class="pin-expand-desc">Failed to load.</div>`;
-    window.runMasonry();
-  }
-}
-
-async function toggleLibraryExpand(wrapEl, lib, articleCount){
-  const key='lib_'+lib.id;
-  const panel=wrapEl.querySelector('.pin-expand-panel');
-  if(_openExpandKey===key){
-    panel.classList.remove('open'); panel.innerHTML=''; _openExpandKey=null;
-    window.runMasonry();
-    return;
-  }
-  closeAllExpandPanels(key);
-  _openExpandKey=key;
-  panel.dataset.key=key;
-  panel.innerHTML=`<div style="display:flex;justify-content:center;padding:14px 0;"><div class="cp-loading-ring" style="width:20px;height:20px;"></div></div>`;
-  panel.classList.add('open');
-  window.runMasonry();
-  const isSaved=isLibSaved(lib.id);
-  panel.innerHTML=`
-    <div class="pin-expand-title">${esc(lib.name||'Untitled Library')}</div>
-    <div class="pin-expand-meta">
-      <span class="pin-expand-meta-item"><i class="fas fa-layer-group"></i>${articleCount||0} article${articleCount!==1?'s':''}</span>
-    </div>
-    ${lib.description?`<div class="pin-expand-desc">${esc(lib.description)}</div>`:`<div class="pin-expand-desc-empty">No description.</div>`}
-    <div class="pin-expand-actions">
-      <button class="pin-expand-btn" onclick="location.href='https://patholytica.com/dailyfeed?playlist=${lib.id}'"><i class="fas fa-play"></i> Study Now</button>
-      <button class="pin-expand-btn secondary${isSaved?' saved':''}" id="pinExpLibSave_${lib.id}" style="${isSaved?'border-color:rgba(200,169,110,0.4);color:var(--accent);background:var(--accent-soft);':''}" onclick="window._pinExpLibToggleSave(${lib.id},'${esc(lib.name||'Untitled Library').replace(/'/g,"\\'")}','${esc(lib.thumbnail_url||'')}',${articleCount||0})"><i class="fas fa-bookmark"></i></button>
-    </div>`;
-  window.runMasonry();
-}
-
-window._pinExpLibToggleSave=function(id,name,thumb,count){
-  const newState=toggleFavourite({id,name,thumbnail_url:thumb||null,_count:count});
-  document.querySelectorAll(`.pin-card-wrap[data-lib-id="${id}"] .lib-saved-badge`).forEach(b=>{
-    b.style.display = newState ? 'inline-flex' : 'none';
-  });
-  const btn=document.getElementById(`pinExpLibSave_${id}`);
-  if(btn){
-    btn.className = `pin-expand-btn secondary${newState?' saved':''}`;
-    btn.style.cssText = newState ? 'border-color:rgba(200,169,110,0.4);color:var(--accent);background:var(--accent-soft);' : '';
-  }
 };
 
 /* ══ CREATORS STRIP ══ */
@@ -1765,44 +2093,6 @@ async function loadCreators(){
   }
 }
 
-/* ══ TOPICS STRIP (algotag(...) libraries) ══ */
-function algotagTitle(name){
-  const m=/^algotag\(([\s\S]*)\)\s*$/i.exec((name||'').trim());
-  if(!m) return null;
-  return m[1].trim();
-}
-
-async function loadTopicsStrip(){
-  const strip=document.getElementById('topicsStrip');
-  const label=document.getElementById('topicsStripLabel');
-  try{
-    const{data:libs}=await supabase.from('playlists').select('id,name').ilike('name','algotag(%');
-    const{data:countRows}=await supabase.from('playlist_items').select('playlist_id');
-    const countMap={};(countRows||[]).forEach(r=>{countMap[r.playlist_id]=(countMap[r.playlist_id]||0)+1;});
-    const topics=(libs||[])
-      .map(l=>({id:l.id, title:algotagTitle(l.name), count:countMap[l.id]||0}))
-      .filter(t=>t.title && t.count>0)
-      .sort((a,b)=>b.count-a.count);
-    strip.innerHTML='';
-    if(!topics.length){
-      label.style.display='none';
-      strip.style.display='none';
-      return;
-    }
-    label.style.display='flex';
-    topics.forEach(t=>{
-      const chip=document.createElement('div');
-      chip.className='topic-chip';
-      chip.innerHTML=`<i class="fas fa-hashtag"></i><span>${esc(t.title)}</span><span class="topic-count">${t.count}</span>`;
-      chip.addEventListener('click',()=>{ location.href=`https://patholytica.com/dailyfeed?playlist=${t.id}`; });
-      strip.appendChild(chip);
-    });
-  }catch(e){
-    label.style.display='none';
-    strip.style.display='none';
-  }
-}
-
 /* ══ MEDIA POOL (image / audio / youtube from `media` table) ══ */
 async function fetchMediaPool(){
   if(mediaPoolFetched) return;
@@ -1815,156 +2105,431 @@ async function fetchMediaPool(){
   }catch(e){ mediaPool=[]; }
 }
 
-function buildMediaFeedCard(m, article){
-  const div=document.createElement('div');
-  div.className='media-feed-card';
-  const title = article ? (article.title || (isMCQ(article.content)?'Quick Question':'Untitled')) : 'Untitled';
-  const goToArticle=()=>{ if(article) location.href=`https://patholytica.com/dailyfeed?article=${article.id}`; };
+/* ══ COMMENT COUNTS ══ */
+/* ══ COMMENT COUNTS ══
+   Scoped to only the article IDs currently rendered — the previous
+   version selected article_id from the entire comments table with no
+   filter, meaning every batch load re-scanned every comment ever
+   posted platform-wide just to count them client-side. This now asks
+   only about the posts actually on screen. */
+async function loadHomeCommentCounts(){
+  try{
+    const btns=[...document.querySelectorAll('.ig-action-btn.comment-btn[data-id]')];
+    const ids=[...new Set(btns.map(b=>b.dataset.id).filter(Boolean))];
+    if(!ids.length) return;
+    const{data}=await supabase.from('comments').select('article_id').in('article_id',ids);
+    const counts={};(data||[]).forEach(c=>{counts[c.article_id]=(counts[c.article_id]||0)+1;});
+    btns.forEach(btn=>{
+      const c=counts[btn.dataset.id]||0;
+      const span=btn.querySelector('[data-role="comment-count"]');
+      if(span){ span.textContent=fmtNum(c); span.dataset.raw=c; }
+    });
+  }catch(e){}
+}
 
-  if(m.type==='image'){
-    div.innerHTML=`
-      <img class="media-feed-img" src="${esc(m.url)}" alt="${esc(title)}" loading="lazy"
-           onerror="this.closest('.media-feed-card')&&this.closest('.media-feed-card').remove();window.runMasonry&&window.runMasonry();">
-      <div class="media-feed-footer"><i class="fas fa-image"></i><div class="media-feed-footer-title">${esc(trunc(title,70))}</div></div>`;
-    div.addEventListener('click',goToArticle);
-    const img=div.querySelector('img');
-    if(img) img.addEventListener('load',()=>window.runMasonry(),{once:true});
-  } else if(m.type==='youtube'){
-    div.innerHTML=`
-      <div class="media-feed-yt-wrap">
-        <iframe src="${esc(m.url)}" title="${esc(title)}" loading="lazy"
-          allow="accelerometer;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>
-        <div class="media-feed-yt-badge"><i class="fab fa-youtube"></i> Video</div>
+/* ══════════════════════════════════════════════════════════
+   IG-STYLE POST BUILDERS
+══════════════════════════════════════════════════════════ */
+
+function buildPostHeader(opts){
+  return `
+    <div class="ig-post-header">
+      <div class="ig-post-avatar${opts.avatarTint?' lib-avatar-tint':''}" ${opts.avatarClick?`onclick="${opts.avatarClick}"`:''}>${opts.avatarHTML}</div>
+      <div class="ig-post-headertext">
+        <span class="ig-post-username" ${opts.usernameClick?`onclick="${opts.usernameClick}"`:''}>${esc(opts.username)}</span>
+        ${opts.subtext?`<div class="ig-post-subtext">${opts.subtext}</div>`:''}
       </div>
-      <div class="media-feed-footer"><i class="fas fa-play"></i><div class="media-feed-footer-title">${esc(trunc(title,70))}</div></div>`;
-    // The iframe is pointer-events:none (see .media-feed-yt-wrap iframe in CSS)
-    // so the entire card behaves as one unambiguous control: tapping anywhere,
-    // including over the video itself, navigates to the referenced article —
-    // consistent with how image and article cards behave in this same grid.
-    // Full inline playback belongs to the article/feed view (file2's embed),
-    // not this compact grid card.
-    div.addEventListener('click',goToArticle);
-  } else if(m.type==='audio'){
-    const bars=Array(18).fill(0).map(()=>`<div class="media-feed-wave-bar" style="height:${Math.random()*70+20}%"></div>`).join('');
-    div.innerHTML=`
-      <div class="media-feed-audio-wrap">
-        <div class="media-feed-audio-title">${esc(trunc(title,80))}</div>
-        <div class="media-feed-play-row">
-          <button class="media-feed-play-btn" type="button"><i class="fas fa-play"></i></button>
-          <div class="media-feed-wave">${bars}</div>
+      ${opts.followHTML||''}
+    </div>`;
+}
+
+/* Item 5: the action row's right slot is now the lone, separated share
+   button — like/comment/view stay together on the left; share sits
+   alone on the right, away from the other three. Item 4: the follow
+   affordance no longer renders here at all — it now lives in the post
+   header as a labeled pill (see buildPostHeader's followHTML slot). */
+function buildActionRow(article,isLibraryPost){
+  const id=article.id;
+  const isLiked=userLikesHome.has(String(id));
+  const commentCount=fmtNum(article._commentCount||0);
+  const rightSlot = isLibraryPost
+    ? `<button class="ig-action-btn save-btn" onclick="location.href='https://patholytica.com/dailyfeed?playlist=${id}'">
+        <svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+      </button>`
+    : `<button class="ig-action-btn share-btn" data-id="${id}" onclick="window._shareHomeArticle(${id},'${(article.title||'').replace(/'/g,"\\'")}')">
+        <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+        <span class="ig-action-btn-count">Share</span>
+      </button>`;
+  return `
+    <div class="ig-post-actions">
+      <div class="ig-post-actions-left">
+        <button class="ig-action-btn like-btn${isLiked?' liked':''}" data-id="${id}" data-count="${article.likes||0}" onclick="window._handleFeedLike(this)">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          <span class="ig-action-btn-count" data-role="like-count">${fmtNum(article.likes||0)}</span>
+        </button>
+        <button class="ig-action-btn comment-btn" data-id="${id}" onclick="window.openCommentsModal('${id}')">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <span class="ig-action-btn-count" data-role="comment-count" data-raw="${article._commentCount||0}">${commentCount}</span>
+        </button>
+        <button class="ig-action-btn expand-btn" data-id="${id}" onclick="location.href='https://patholytica.com/dailyfeed?article=${id}'" title="Open in Feed">
+          <svg viewBox="0 0 24 24"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+          <span class="ig-action-btn-count">${fmtNum(article.views||0)}</span>
+        </button>
+      </div>
+      <div class="ig-post-actions-right">${rightSlot}</div>
+    </div>`;
+}
+
+window._shareHomeArticle=function(articleId,title){
+  const url=`https://patholytica.com/dailyfeed?article=${articleId}`;
+  if(navigator.share){ navigator.share({title:title||'Patholytica Article',url}).catch(()=>{}); }
+  else{ navigator.clipboard.writeText(url).then(()=>showToast('🔗 Link copied!')).catch(()=>showToast('🔗 '+url)); }
+};
+
+/* Item 3: renders one carousel slide's inner content for a given media
+   row. `isFirstSlide` controls video behavior — the first slide (if a
+   video) plays fully interactively; every later video slide is a
+   short muted/looped preview locked behind an overlay that hands off
+   to the full article rather than playing inline. Item 2's double-tap
+   exclusion is what keeps a first-slide YouTube video tappable — see
+   buildArticleCarousel's click handler below. */
+function buildCarouselSlideHTML(m,article,isFirstSlide){
+  const title = article.title || (isMCQ(article.content)?'Quick Question':'Untitled');
+  if(m.type==='image'){
+    return `<div class="ig-post-media" data-id="${article.id}">
+      <img src="${esc(m.url)}" alt="${esc(title)}" loading="lazy">
+    </div>`;
+  }
+  if(m.type==='youtube'){
+    if(isFirstSlide){
+      return `<div class="ig-post-media" style="cursor:default;">
+        <div class="ig-post-yt-wrap yt-interactive">
+          <iframe src="${esc(m.url)}" title="${esc(title)}" loading="lazy"
+            allow="accelerometer;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>
+          <div class="ig-post-media-badge"><i class="fab fa-youtube"></i> Video</div>
         </div>
       </div>`;
-    const audio=new Audio(m.url);
-    audio.preload='none';
-    const playBtn=div.querySelector('.media-feed-play-btn');
-    const icon=playBtn.querySelector('i');
-    let playing=false;
-    playBtn.addEventListener('click',(e)=>{
-      e.stopPropagation();
-      if(playing){ audio.pause(); icon.className='fas fa-play'; playing=false; }
-      else{ audio.play().catch(()=>{}); icon.className='fas fa-pause'; playing=true; }
-    });
-    audio.addEventListener('ended',()=>{ icon.className='fas fa-play'; playing=false; });
-    // Clicking the card body (not the play button) goes to the referenced article.
-    div.addEventListener('click',(e)=>{ if(e.target.closest('.media-feed-play-btn'))return; goToArticle(); });
+    }
+    // Later video slide: preview only, locked behind an overlay —
+    // never full inline playback for a non-first video slide.
+    return `<div class="ig-post-carousel-video-locked" onclick="location.href='https://patholytica.com/dailyfeed?article=${article.id}'">
+      <div class="ig-post-media-badge"><i class="fab fa-youtube"></i> Video</div>
+      <div class="ig-post-carousel-lock-overlay">
+        <i class="fas fa-play-circle"></i>
+        <span>Open to watch</span>
+      </div>
+    </div>`;
   }
-  return div;
+  if(m.type==='audio'){
+    const bars=Array(24).fill(0).map(()=>`<div class="ig-post-audio-bar" style="height:${Math.random()*70+20}%"></div>`).join('');
+    const aid='home_audio_'+Math.random().toString(36).substr(2,9);
+    return `<div class="ig-post-audio-wrap">
+      <div class="ig-post-audio-title">${esc(trunc(stripEmoji(title),90))}</div>
+      <div class="ig-post-audio-row">
+        <button class="ig-post-audio-play" type="button" onclick="window._toggleHomeAudio(this,'${aid}')"><i class="fas fa-play"></i></button>
+        <div class="ig-post-audio-wave">${bars}</div>
+      </div>
+      <audio id="${aid}" data-src="${esc(m.url)}" style="display:none;"></audio>
+    </div>`;
+  }
+  return '';
 }
 
-/* ══ EXPANDABLE PIN WRAPPERS ══ */
-function wrapPinCard(innerCardEl){
-  const wrap=document.createElement('div');
-  wrap.className='pin-card-wrap';
-  wrap.appendChild(innerCardEl);
-  const panel=document.createElement('div');
-  panel.className='pin-expand-panel';
-  wrap.appendChild(panel);
-  return wrap;
+/* Item 3: builds the full swipeable carousel for an article's media.
+   Falls back to a single text-excerpt slide (matching the previous
+   no-media behavior) when the article has no media at all. */
+function buildArticleCarousel(article){
+  const media = (mediaByArticle[article.id]||[]).filter(m=>m.type==='image'||m.type==='youtube'||m.type==='audio');
+  if(!media.length){
+    const excerpt = trunc((article.content||'').replace(/\n/g,' ').trim(), 140);
+    return excerpt ? `<div class="ig-post-textexcerpt">${esc(excerpt)}</div>` : '';
+  }
+  if(media.length===1){
+    return buildCarouselSlideHTML(media[0],article,true);
+  }
+  const slidesHTML = media.map((m,i)=>`<div class="ig-post-carousel-slide" data-slide-index="${i}" data-media-type="${m.type}">${buildCarouselSlideHTML(m,article,i===0)}</div>`).join('');
+  const dotsHTML = media.map((_,i)=>`<div class="ig-post-carousel-dot${i===0?' active':''}"></div>`).join('');
+  return `<div class="ig-post-carousel" data-carousel-id="${article.id}">
+    <div class="ig-post-carousel-track">${slidesHTML}</div>
+    <div class="ig-post-carousel-dots">${dotsHTML}</div>
+    <div class="ig-post-carousel-counter">1/${media.length}</div>
+  </div>`;
 }
 
-/* ══ PIN CARDS ══ */
-function buildArticlePinInner(article, imageUrl){
-  const div=document.createElement('div');div.className='pin-card';
-  const mcq=isMCQ(article.content);
+/* Item 3: tracks which slide is active as the user swipes, updating
+   the dot indicator and the "N/total" counter. Uses native scroll
+   position rather than custom drag math, so the gesture itself is the
+   browser's own touch-scrolling — reliable and platform-consistent. */
+function setupCarouselTracking(carouselEl){
+  const track = carouselEl.querySelector('.ig-post-carousel-track');
+  const dots = carouselEl.querySelectorAll('.ig-post-carousel-dot');
+  const counter = carouselEl.querySelector('.ig-post-carousel-counter');
+  const slideCount = dots.length;
+  if(!track||!slideCount) return;
+  let ticking=false;
+  track.addEventListener('scroll',()=>{
+    if(ticking) return;
+    ticking=true;
+    requestAnimationFrame(()=>{
+      const idx = Math.round(track.scrollLeft/track.clientWidth);
+      const clamped = Math.max(0,Math.min(slideCount-1,idx));
+      dots.forEach((d,i)=>d.classList.toggle('active',i===clamped));
+      if(counter) counter.textContent = `${clamped+1}/${slideCount}`;
+      ticking=false;
+    });
+  },{passive:true});
+}
+
+function buildArticlePost(article){
+  const post=document.createElement('div'); post.className='ig-post'; post.dataset.articleId=article.id;
+  const avatarHTML=article.authorPfp?`<img src="${esc(article.authorPfp)}" alt="">`:(article.authorUsername||article.author||'A').replace('@','').charAt(0).toUpperCase();
+  const profileUrl=article.authorUsername?`profile.html?username=${encodeURIComponent(article.authorUsername)}`:'#';
   const title=article.title||'Untitled';
-  let imgSrc=imageUrl,imgH=null;
-  if(!imgSrc){const stock=stockFor(article.id);imgSrc=stock.url;imgH=stock.h;}
-  const imgStyle=imgH?`height:${imgH}px;`:'';
-  div.innerHTML=`
-    <img class="pin-card-img${imgH?' fixed-ratio':''}" src="${esc(imgSrc)}" alt="${esc(title)}" loading="lazy"
-         style="${imgStyle}object-fit:cover;"
-         onerror="this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex')">
-    <div class="pin-card-img-fallback" style="display:none;height:${imgH||220}px;"><i class="fas fa-file-alt"></i></div>
-    <div class="pin-card-overlay">
-      <div class="pin-overlay-title">${esc(trunc(title,90))}</div>
-      <div class="pin-overlay-meta">
-        ${mcq?`<div class="pin-badge mcq-badge"><i class="fas fa-question-circle"></i> MCQ</div>`
-             :`<div class="pin-badge art-badge"><i class="fas fa-file-alt"></i> Article</div>`}
-        <span class="pin-stat"><i class="fas fa-eye"></i>${fmtNum(article.views||0)}</span>
-        <span class="pin-stat"><i class="fas fa-heart"></i>${fmtNum(article.likes||0)}</span>
+
+  const headerHTML = buildPostHeader({
+    avatarHTML, username: article.author||'Anonymous',
+    avatarClick: `location.href='${profileUrl}'`, usernameClick: `location.href='${profileUrl}'`,
+    subtext: `<span>${relTime(article.created_at)}</span>`,
+    followHTML: buildFollowBtnHTML(article)
+  });
+
+  const bodyHTML = buildArticleCarousel(article);
+
+  post.innerHTML = headerHTML + bodyHTML +
+    buildActionRow(article) +
+    `<div class="ig-post-caption"><span class="cap-user" onclick="location.href='${profileUrl}'">${esc(article.author||'Anonymous')}</span><span class="ig-post-title-link" onclick="location.href='https://patholytica.com/dailyfeed?article=${article.id}'">${esc(trunc(stripEmoji(title),140))}</span></div>
+    <div class="ig-post-timestamp">${relTime(article.created_at)}</div>`;
+
+  const carouselEl=post.querySelector('.ig-post-carousel');
+  if(carouselEl) setupCarouselTracking(carouselEl);
+
+  // Double-tap-to-heart applies to a single non-carousel image slide
+  // (matching prior behavior) and to each image slide inside a
+  // carousel — never to a YouTube slide, per Item 2.
+  const likeBtn=post.querySelector('.like-btn');
+  if(likeBtn){
+    post.querySelectorAll('.ig-post-media').forEach(mediaEl=>setupDoubleTapLike(mediaEl,likeBtn));
+  }
+  return post;
+}
+
+function buildMCQPost(article){
+  const post=document.createElement('div'); post.className='ig-post'; post.dataset.articleId=article.id;
+  const avatarHTML=article.authorPfp?`<img src="${esc(article.authorPfp)}" alt="">`:(article.authorUsername||article.author||'A').replace('@','').charAt(0).toUpperCase();
+  const profileUrl=article.authorUsername?`profile.html?username=${encodeURIComponent(article.authorUsername)}`:'#';
+
+  const lines=(article.content||'').trim().split('\n').map(l=>l.trim()).filter(Boolean);
+  const question=lines[0]?lines[0].replace(/^❔/,'').trim():'';
+  const rawOpts=lines.slice(1).map(l=>({label:l.replace(/^✅/,'').trim(),correct:l.startsWith('✅')}));
+  for(let i=rawOpts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[rawOpts[i],rawOpts[j]]=[rawOpts[j],rawOpts[i]];}
+  const letters=['A','B','C','D','E','F'];
+
+  post.innerHTML = buildPostHeader({
+    avatarHTML, username: article.author||'Anonymous',
+    avatarClick: `location.href='${profileUrl}'`, usernameClick: `location.href='${profileUrl}'`,
+    subtext: `<span>❔ Quick Question</span><span class="dot"></span><span>${relTime(article.created_at)}</span>`,
+    followHTML: buildFollowBtnHTML(article)
+  }) + `
+    <div class="ig-post-mcq-body">
+      <div class="ig-post-mcq-badge"><i class="fas fa-question-circle"></i> Quick Question</div>
+      <div class="ig-post-mcq-q">${esc(stripEmoji(question))}</div>
+      <div class="ig-post-mcq-opts" id="igMcqOpts_${article.id}">
+        ${rawOpts.map((o,i)=>`<button class="ig-post-mcq-opt" data-correct="${o.correct}"><span class="opt-l">${letters[i]||i+1}</span><span>${esc(o.label)}</span></button>`).join('')}
       </div>
-    </div>`;
-  const img=div.querySelector('img');
-  if(img){ img.addEventListener('load',()=>window.runMasonry(),{once:true}); }
-  return div;
+      <div class="ig-post-mcq-result" id="igMcqResult_${article.id}"></div>
+    </div>` +
+    buildActionRow(article) +
+    `<div class="ig-post-timestamp">${relTime(article.created_at)}</div>`;
+
+  let answered=false;
+  post.querySelectorAll('.ig-post-mcq-opt').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(answered)return; answered=true;
+      const opts=post.querySelectorAll('.ig-post-mcq-opt');
+      opts.forEach(b=>b.disabled=true);
+      const msgEl=document.getElementById(`igMcqResult_${article.id}`);
+      const isCorrect=btn.dataset.correct==='true';
+      if(isCorrect){
+        btn.classList.add('correct'); if(msgEl){msgEl.textContent='✓ Correct!';msgEl.className='ig-post-mcq-result correct';}
+      }else{
+        btn.classList.add('wrong'); if(msgEl)msgEl.className='ig-post-mcq-result wrong';
+        const correctBtn=[...opts].find(b=>b.dataset.correct==='true');
+        if(correctBtn){correctBtn.classList.add('reveal'); if(msgEl)msgEl.textContent='✗ Incorrect';}
+      }
+    });
+  });
+  return post;
 }
 
-function buildArticlePin(article, imageUrl){
-  const inner=buildArticlePinInner(article, imageUrl);
-  const wrap=wrapPinCard(inner);
-  wrap.dataset.articleId=article.id;
-  inner.addEventListener('click',()=>toggleArticleExpand(wrap, article));
-  return wrap;
-}
-
-function buildLibraryPinInner(lib, articleCount){
-  const div=document.createElement('div');div.className='pin-card';
-  const name=lib.name||'Untitled Library';
+/* Item 7: renders one library as a book-cover card inside the shelf
+   carousel — the thumbnail fills the card like a book cover rather
+   than sitting as a small round avatar in a header. */
+function buildLibraryCoverHTML(lib,articleCount){
   const isSaved=isLibSaved(lib.id);
-  let imgSrc=lib.thumbnail_url,imgH=null;
-  if(!imgSrc){const stock=stockFor(lib.id+500);imgSrc=stock.url;imgH=stock.h;}
-  const imgStyle=imgH?`height:${imgH}px;`:'';
-  div.innerHTML=`
-    <img class="pin-card-img${imgH?' fixed-ratio':''}" src="${esc(imgSrc)}" alt="${esc(name)}" loading="lazy"
-         style="${imgStyle}object-fit:cover;"
-         onerror="this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex')">
-    <div class="pin-card-img-fallback" style="display:none;height:${imgH||220}px;"><i class="fas fa-layer-group"></i></div>
-    <div class="pin-card-overlay">
-      <div class="pin-overlay-title">${esc(trunc(name,70))}</div>
-      <div class="pin-overlay-meta">
-        <div class="pin-badge lib-badge"><i class="fas fa-layer-group"></i> Library</div>
-        <div class="pin-badge lib-badge lib-saved-badge" style="display:${isSaved?'inline-flex':'none'};"><i class="fas fa-bookmark"></i> Saved</div>
-        <span class="pin-stat">${articleCount} article${articleCount!==1?'s':''}</span>
-      </div>
-    </div>`;
-  const img=div.querySelector('img');
-  if(img){ img.addEventListener('load',()=>window.runMasonry(),{once:true}); }
-  return div;
+  const coverHTML = lib.thumbnail_url
+    ? `<img src="${esc(lib.thumbnail_url)}" alt="${esc(lib.name||'Library')}" loading="lazy">`
+    : `<div class="lib-cover-fallback"><i class="fas fa-layer-group"></i></div>`;
+  return `<div class="lib-cover-card" data-lib-id="${lib.id}">
+    <div class="lib-cover-thumb" onclick="window.openCardPreview('library','${lib.id}')">
+      ${coverHTML}
+      <button class="lib-cover-save${isSaved?' saved':''}" onclick="event.stopPropagation();window._toggleLibSaveInline(${lib.id},'${esc(lib.name||'Untitled Library').replace(/'/g,"\\'")}','${esc(lib.thumbnail_url||'')}',${articleCount})">
+        <i class="fa${isSaved?'s':'r'} fa-bookmark"></i>
+      </button>
+    </div>
+    <div class="lib-cover-title" onclick="window.openCardPreview('library','${lib.id}')">${esc(trunc(lib.name||'Untitled Library',48))}</div>
+    <div class="lib-cover-meta">${articleCount} article${articleCount!==1?'s':''}</div>
+    <button class="lib-cover-study-btn" onclick="location.href='https://patholytica.com/dailyfeed?playlist=${lib.id}'"><i class="fas fa-play"></i> Study</button>
+  </div>`;
 }
 
-function buildLibraryPin(lib, articleCount){
-  const inner=buildLibraryPinInner(lib, articleCount);
-  const wrap=wrapPinCard(inner);
-  wrap.setAttribute('data-lib-id', lib.id);
-  inner.addEventListener('click',()=>toggleLibraryExpand(wrap, lib, articleCount));
-  return wrap;
+/* Item 7: a swipeable shelf of book-cover cards, one post per group
+   of libraries rather than one post per library — the carousel is the
+   distinct, shelf-like display Item 7 asked for, replacing the old
+   single-thumbnail post. `libs` is an array of {lib, articleCount}. */
+function buildLibraryPost(libs){
+  if(!libs||!libs.length) return null;
+  const post=document.createElement('div'); post.className='ig-post ig-post-lib-shelf';
+  post.setAttribute('data-lib-ids',libs.map(x=>x.lib.id).join(','));
+  const cardsHTML = libs.map(x=>buildLibraryCoverHTML(x.lib,x.articleCount)).join('');
+  const dotsHTML = libs.length>1
+    ? `<div class="ig-post-carousel-dots lib-shelf-dots">${libs.map((_,i)=>`<div class="ig-post-carousel-dot${i===0?' active':''}"></div>`).join('')}</div>`
+    : '';
+  post.innerHTML = `
+    <div class="ig-post-header">
+      <div class="ig-post-avatar lib-avatar-tint"><i class="fas fa-book-open"></i></div>
+      <div class="ig-post-headertext">
+        <span class="ig-post-username">Libraries for you</span>
+        <div class="ig-post-subtext"><span>Swipe to browse</span></div>
+      </div>
+    </div>
+    <div class="lib-shelf-carousel">
+      <div class="lib-shelf-track">${cardsHTML}</div>
+      ${dotsHTML}
+    </div>`;
+  const trackEl=post.querySelector('.lib-shelf-track');
+  const dots=post.querySelectorAll('.lib-shelf-dots .ig-post-carousel-dot');
+  if(trackEl&&dots.length){
+    let ticking=false;
+    trackEl.addEventListener('scroll',()=>{
+      if(ticking) return;
+      ticking=true;
+      requestAnimationFrame(()=>{
+        const cardWidth = trackEl.querySelector('.lib-cover-card')?.offsetWidth || trackEl.clientWidth;
+        const idx = Math.round(trackEl.scrollLeft/(cardWidth+12));
+        const clamped = Math.max(0,Math.min(dots.length-1,idx));
+        dots.forEach((d,i)=>d.classList.toggle('active',i===clamped));
+        ticking=false;
+      });
+    },{passive:true});
+  }
+  return post;
 }
+
+window._toggleLibSaveInline=function(id,name,thumb,count){
+  const newState=toggleFavourite({id,name,thumbnail_url:thumb||null,_count:count});
+  document.querySelectorAll(`.lib-cover-card[data-lib-id="${id}"] .lib-cover-save`).forEach(b=>{
+    b.classList.toggle('saved', newState);
+    b.innerHTML = newState ? '<i class="fas fa-bookmark"></i>' : '<i class="far fa-bookmark"></i>';
+  });
+};
+
+function buildMediaFeedPost(m,article){
+  const post=document.createElement('div'); post.className='ig-post';
+  if(!article) return null;
+  const title = article.title || (isMCQ(article.content)?'Quick Question':'Untitled');
+  const avatarHTML=article.authorPfp?`<img src="${esc(article.authorPfp)}" alt="">`:(article.authorUsername||article.author||'A').replace('@','').charAt(0).toUpperCase();
+  const profileUrl=article.authorUsername?`profile.html?username=${encodeURIComponent(article.authorUsername)}`:'#';
+  const goHref=`https://patholytica.com/dailyfeed?article=${article.id}`;
+
+  const header = buildPostHeader({
+    avatarHTML, username: article.author||'Anonymous',
+    avatarClick: `location.href='${profileUrl}'`, usernameClick: `location.href='${profileUrl}'`,
+    subtext: `<span>${relTime(article.created_at)}</span>`,
+    followHTML: buildFollowBtnHTML(article)
+  });
+
+  if(m.type==='image'){
+    post.innerHTML = header + `
+      <div class="ig-post-media" data-id="${article.id}">
+        <img src="${esc(m.url)}" alt="${esc(title)}" loading="lazy"
+             onerror="this.closest('.ig-post')&&this.closest('.ig-post').remove();">
+      </div>` +
+      buildActionRow(article) +
+      `<div class="ig-post-caption"><span class="cap-user" onclick="location.href='${profileUrl}'">${esc(article.author||'Anonymous')}</span><span class="ig-post-title-link" onclick="location.href='${goHref}'">${esc(trunc(stripEmoji(title),140))}</span></div>
+      <div class="ig-post-timestamp">${relTime(article.created_at)}</div>`;
+    const mediaEl=post.querySelector('.ig-post-media');
+    const likeBtn=post.querySelector('.like-btn');
+    if(mediaEl&&likeBtn) setupDoubleTapLike(mediaEl,likeBtn);
+  } else if(m.type==='youtube'){
+    post.innerHTML = header + `
+      <div class="ig-post-media" style="cursor:default;">
+        <div class="ig-post-yt-wrap">
+          <iframe src="${esc(m.url)}" title="${esc(title)}" loading="lazy"
+            allow="accelerometer;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>
+          <div class="ig-post-media-badge"><i class="fab fa-youtube"></i> Video</div>
+        </div>
+      </div>` +
+      buildActionRow(article) +
+      `<div class="ig-post-caption"><span class="cap-user" onclick="location.href='${profileUrl}'">${esc(article.author||'Anonymous')}</span><span class="ig-post-title-link" onclick="location.href='${goHref}'">${esc(trunc(stripEmoji(title),140))}</span></div>
+      <div class="ig-post-timestamp">${relTime(article.created_at)}</div>`;
+  } else if(m.type==='audio'){
+    const bars=Array(24).fill(0).map(()=>`<div class="ig-post-audio-bar" style="height:${Math.random()*70+20}%"></div>`).join('');
+    const aid='home_audio_'+Math.random().toString(36).substr(2,9);
+    post.innerHTML = header + `
+      <div class="ig-post-audio-wrap">
+        <div class="ig-post-audio-title">${esc(trunc(stripEmoji(title),90))}</div>
+        <div class="ig-post-audio-row">
+          <button class="ig-post-audio-play" type="button" onclick="window._toggleHomeAudio(this,'${aid}')"><i class="fas fa-play"></i></button>
+          <div class="ig-post-audio-wave">${bars}</div>
+        </div>
+        <audio id="${aid}" data-src="${esc(m.url)}" style="display:none;"></audio>
+      </div>` +
+      buildActionRow(article) +
+      `<div class="ig-post-caption"><span class="cap-user" onclick="location.href='${profileUrl}'">${esc(article.author||'Anonymous')}</span><span class="ig-post-title-link" onclick="location.href='${goHref}'">${esc(trunc(stripEmoji(title),140))}</span></div>
+      <div class="ig-post-timestamp">${relTime(article.created_at)}</div>`;
+  }
+  return post;
+}
+
+window._toggleHomeAudio=function(btn,audioId){
+  const audio=document.getElementById(audioId);
+  if(!audio)return;
+  if(!audio.src && audio.dataset.src){ audio.src=audio.dataset.src; audio.load(); }
+  const icon=btn.querySelector('i');
+  if(audio.paused){
+    audio.play().catch(()=>{}); icon.className='fas fa-pause';
+    audio.onended=()=>{ icon.className='fas fa-play'; };
+  }else{
+    audio.pause(); icon.className='fas fa-play';
+  }
+};
 
 /* ══ SKELETONS ══ */
-function injectSkeletons(n=8){
+function ig_skeletonHTML(){
+  return `
+    <div class="ig-skel-header">
+      <div class="ig-skel-avatar skel-circle"></div>
+      <div class="ig-skel-name skel-line"></div>
+    </div>
+    <div class="ig-skel-media skel-line" style="border-radius:0;"></div>
+    <div class="ig-skel-actions">
+      <div class="ig-skel-icon skel-line"></div>
+      <div class="ig-skel-icon skel-line"></div>
+      <div class="ig-skel-icon skel-line"></div>
+    </div>
+    <div class="ig-skel-line skel-line" style="width:40%;"></div>
+    <div class="ig-skel-line skel-line" style="width:75%;"></div>`;
+}
+function injectSkeletons(n=4){
   const grid=document.getElementById('mainGrid');
   for(let i=0;i<n;i++){
     const sk=document.createElement('div');
-    sk.className='pin-skeleton';
-    if(window.innerWidth < 640){
-      const heights=[200,260,220,240,200,280,220,260];
-      sk.style.height = heights[i%heights.length]+'px';
-    }
+    sk.className='ig-post-skeleton';
+    sk.innerHTML=ig_skeletonHTML();
     grid.appendChild(sk);
   }
-  window.runMasonry();
 }
-function clearSkeletons(){ document.querySelectorAll('.pin-skeleton').forEach(s=>s.remove()); }
+function clearSkeletons(){ document.querySelectorAll('.ig-post-skeleton').forEach(s=>s.remove()); }
 
 /* ══ MAIN LOADER ══ */
 async function fetchAllArticles(){
@@ -1976,27 +2541,14 @@ async function fetchAllArticles(){
   shuffledArts=weightedShuffle(allArticles);
 }
 
-// libExhausted tracks whether the paginated `.range()` library query has
-// run past the end of the table. Without this, once libOffset exceeds
-// the row count, PostgREST/Supabase returns a range error, the whole
-// try block throws, and execution jumps straight to catch — which never
-// restored the "Load more" button. That's the actual root cause of the
-// original "works once & then disappears" bug: the button was left
-// permanently stuck mid-spinner because a thrown error skipped the
-// re-enable code entirely. The real fix is two-fold: (1) never let the
-// libraries query run past what's available, and (2) make the catch
-// block always restore the button to a clickable state no matter what
-// failed, so a transient error never permanently breaks pagination.
 let libExhausted = false;
 
 async function loadBatch(isInitial=true){
   if(artLoading)return;
   if(!isInitial && !artHasMore) return;
   artLoading=true;
-  if(isInitial) injectSkeletons(10);
+  if(isInitial) injectSkeletons(4);
   const grid=document.getElementById('mainGrid');
-  const lmw=document.getElementById('loadMoreWrap');
-  const lmb=document.getElementById('loadMoreBtn');
   try{
     if(isInitial){
       await fetchAllArticles();
@@ -2009,8 +2561,22 @@ async function loadBatch(isInitial=true){
     else{
       const artIds=batch.map(a=>a.id);
       const{data:media}=await supabase.from('media').select('article_id,url,type')
-        .in('article_id',artIds).eq('type','image').order('display_order',{ascending:true});
-      const imgMap={};(media||[]).forEach(m=>{if(!imgMap[m.article_id])imgMap[m.article_id]=m.url;});
+        .in('article_id',artIds).order('display_order',{ascending:true});
+      (media||[]).forEach(m=>{
+        if(!mediaByArticle[m.article_id]) mediaByArticle[m.article_id]=[];
+        mediaByArticle[m.article_id].push(m);
+      });
+
+      const uids=[...new Set(batch.map(a=>a.firebase_user_id).filter(Boolean))];
+      let usersData=[];
+      if(uids.length){
+        const{data:u}=await supabase.from('users').select('firebase_uid,username,full_name,pfp,user_id:id').in('firebase_uid',uids);
+        usersData=u||[];
+      }
+      const enrichedBatch=batch.map(a=>{
+        const u=usersData.find(x=>x.firebase_uid===a.firebase_user_id);
+        return{...a,author:u?.username?`@${u.username}`:(u?.full_name||'Anonymous'),authorPfp:u?.pfp||null,authorUsername:u?.username||null,authorSupaUserId:u?.user_id||null};
+      });
 
       let libs=[];
       if(!libExhausted){
@@ -2018,8 +2584,6 @@ async function loadBatch(isInitial=true){
           .not('name','like','algotag(%')
           .order('created_at',{ascending:false}).range(libOffset,libOffset+LIB_PER_BATCH-1);
         if(libErr){
-          // Range exhausted or otherwise failed — stop paginating libraries
-          // going forward, but don't let it break article pagination.
           libExhausted=true;
         }else{
           libs=libData||[];
@@ -2042,64 +2606,77 @@ async function loadBatch(isInitial=true){
       }
       clearSkeletons();
       let libIdx=0;
-      const artIdToArticle={}; batch.forEach(a=>{artIdToArticle[a.id]=a;});
-      batch.forEach((art,i)=>{
-        grid.appendChild(buildArticlePin(art,imgMap[art.id]||null));
+      const LIB_SHELF_SIZE=3;
+      function nextLibGroup(){
+        const group=sortedLibs.slice(libIdx,libIdx+LIB_SHELF_SIZE).map(l=>({lib:l,articleCount:libCountMap[l.id]||0}));
+        libIdx+=group.length;
+        return group;
+      }
+      const artIdToArticle={}; enrichedBatch.forEach(a=>{artIdToArticle[a.id]=a;});
+      enrichedBatch.forEach((art,i)=>{
+        const post = isMCQ(art.content) ? buildMCQPost(art) : buildArticlePost(art);
+        grid.appendChild(post);
         if((i+1)%4===0&&libIdx<sortedLibs.length){
-          const lib=sortedLibs[libIdx++];
-          grid.appendChild(buildLibraryPin(lib,libCountMap[lib.id]||0));
+          const group=nextLibGroup();
+          const shelfPost=buildLibraryPost(group);
+          if(shelfPost) grid.appendChild(shelfPost);
         }
-        // Intersperse a media card (image/audio/youtube) every 5 items.
         if((i+1)%5===0 && mediaPool.length){
           const m=mediaPool[mediaPoolOffset % mediaPool.length];
           mediaPoolOffset++;
           const refArticle = artIdToArticle[m.article_id] || null;
           if(refArticle){
-            const mCard=buildMediaFeedCard(m, refArticle);
-            grid.appendChild(mCard);
+            const mPost=buildMediaFeedPost(m, refArticle);
+            if(mPost) grid.appendChild(mPost);
           }
         }
       });
       while(libIdx<sortedLibs.length){
-        const l=sortedLibs[libIdx++];
-        grid.appendChild(buildLibraryPin(l,libCountMap[l.id]||0));
+        const group=nextLibGroup();
+        const shelfPost=buildLibraryPost(group);
+        if(shelfPost) grid.appendChild(shelfPost);
       }
-      window.runMasonry();
     }
-    if(artHasMore){lmw.style.display='block';lmb.disabled=false;lmb.innerHTML='<i class="fas fa-chevron-down"></i> Load more';}
-    else lmw.style.display='none';
+    loadHomeCommentCounts();
+    updateScrollLoaderState();
   }catch(e){
     console.error(e);clearSkeletons();
     if(isInitial){
       grid.innerHTML+=`<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Failed to load</p></div>`;
     }
-    // Always restore the button to a working state on failure — a
-    // transient/one-off error should never permanently disable
-    // pagination. Re-check artHasMore so a real end-of-list still
-    // hides the button correctly instead of showing a dead-end retry.
-    if(lmw&&lmb){
-      if(artHasMore){
-        lmw.style.display='block';
-        lmb.disabled=false;
-        lmb.innerHTML='<i class="fas fa-chevron-down"></i> Load more';
-      }else{
-        lmw.style.display='none';
-      }
-    }
+    updateScrollLoaderState();
   }finally{
     artLoading=false;
   }
 }
 
-window.loadMore=async function(){
-  const btn=document.getElementById('loadMoreBtn');
-  btn.disabled=true;btn.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Loading…';
-  injectSkeletons(4);
-  await loadBatch(false);
-};
+/* ══ INFINITE SCROLL (replaces the manual Load More button) ══ */
+function updateScrollLoaderState(){
+  const loaderWrap=document.getElementById('scrollLoaderWrap');
+  const endMsg=document.getElementById('scrollEndMsg');
+  loaderWrap.classList.remove('active');
+  if(artHasMore){
+    endMsg.classList.remove('active');
+  }else{
+    endMsg.classList.add('active');
+  }
+}
+
+const scrollObserver = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting && artHasMore && !artLoading){
+      document.getElementById('scrollLoaderWrap').classList.add('active');
+      loadBatch(false);
+    }
+  });
+},{ rootMargin: '400px 0px 0px 0px' });
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const sentinel = document.getElementById('scrollSentinel');
+  if(sentinel) scrollObserver.observe(sentinel);
+});
 
 loadCreators();
-loadTopicsStrip();
 loadBatch(true);
 </script>
 
