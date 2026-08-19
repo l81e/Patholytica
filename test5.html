@@ -489,13 +489,23 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 }
 .ig-post-follow-btn:hover { opacity: 0.7; }
 .ig-post-follow-btn.following { color: var(--text-secondary); }
-.ig-post-more-btn {
-  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
-  background: none; border: none; color: var(--text-primary); cursor: pointer;
-  display: flex; align-items: center; justify-content: center; font-size: 14px;
-  transition: background 0.15s;
+
+/* Item 4: header follow pill — rectangular, labeled, replaces the
+   circular icon-only follow button when it sits in the post header. */
+.ig-post-follow-pill {
+  flex-shrink: 0; padding: 6px 14px; border-radius: 8px;
+  border: 1.5px solid var(--accent); background: var(--accent-soft);
+  color: var(--accent); font-size: 12px; font-weight: 700;
+  font-family: var(--font-ui); cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent; white-space: nowrap;
 }
-.ig-post-more-btn:hover { background: var(--hover-bg); }
+.ig-post-follow-pill:hover { background: rgba(200,169,110,0.22); }
+.ig-post-follow-pill:active { transform: scale(0.96); }
+.ig-post-follow-pill.following {
+  border-color: var(--border-color); background: none; color: var(--text-secondary);
+}
+.ig-post-follow-pill.following:hover { border-color: var(--accent); color: var(--accent); }
 
 .ig-post-media {
   position: relative; width: 100%;
@@ -522,26 +532,156 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 }
 .ig-post-yt-wrap { position: relative; width: 100%; background: #000; }
 .ig-post-yt-wrap iframe { width: 100%; aspect-ratio: 1/1; border: none; display: block; pointer-events: none; }
+/* Item 2: once a YouTube slide is the active carousel slide, the
+   iframe becomes genuinely interactive (playable) — the double-tap
+   listener is never bound over an active YouTube slide in JS, and
+   this class removes the click-passthrough veneer so taps reach the
+   player instead of the post underneath it. */
+.ig-post-yt-wrap.yt-interactive iframe { pointer-events: auto; }
+
+/* Item 3: swipeable per-article carousel. One slide-track that pages
+   horizontally; each slide is one media block (image / video-preview /
+   audio / text). Dots indicate position; a locked video slide shows a
+   short muted preview with an explicit "open to watch" overlay rather
+   than full playback inline. */
+.ig-post-carousel {
+  position: relative; width: 100%; overflow: hidden;
+}
+.ig-post-carousel-track {
+  display: flex; width: 100%;
+  overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.ig-post-carousel-track::-webkit-scrollbar { display: none; }
+.ig-post-carousel-slide {
+  flex: 0 0 100%; width: 100%; scroll-snap-align: start; scroll-snap-stop: always;
+  position: relative;
+}
+.ig-post-carousel-dots {
+  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); z-index: 3;
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 8px; border-radius: 20px;
+  background: rgba(0,0,0,0.4); backdrop-filter: blur(3px);
+  pointer-events: none;
+}
+.ig-post-carousel-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(255,255,255,0.45); transition: background 0.15s, transform 0.15s;
+  flex-shrink: 0;
+}
+.ig-post-carousel-dot.active { background: #fff; transform: scale(1.3); }
+.ig-post-carousel-counter {
+  position: absolute; top: 10px; right: 10px; z-index: 3;
+  font-size: 10px; font-weight: 700; color: #fff;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(3px);
+  border-radius: 10px; padding: 3px 8px; pointer-events: none;
+}
+/* Video-preview slide (any slide after the first, when that slide is
+   a video): short muted/looping preview only, with a locked overlay
+   that hands off to the full article rather than playing inline. */
+.ig-post-carousel-video-locked {
+  position: relative; width: 100%; aspect-ratio: 1/1; background: #000; overflow: hidden;
+}
+.ig-post-carousel-video-locked video {
+  width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none;
+}
+.ig-post-carousel-lock-overlay {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  background: rgba(0,0,0,0.42); cursor: pointer; text-align: center; padding: 20px;
+}
+.ig-post-carousel-lock-overlay i { font-size: 24px; color: #fff; opacity: 0.92; }
+.ig-post-carousel-lock-overlay span {
+  font-size: 12px; font-weight: 700; color: #fff;
+  background: rgba(0,0,0,0.35); border-radius: 20px; padding: 6px 14px;
+}
+.ig-post-carousel-slide-text {
+  padding: 16px 14px; min-height: 100px; display: flex; align-items: center;
+  background: var(--hover-bg);
+  font-size: 13px; line-height: 1.6; color: var(--text-primary);
+}
+
+/* Item 7: library shelf — a swipeable row of book-cover cards,
+   replacing the old single small-thumbnail library post. Each card
+   shows the library's own thumbnail_url filling a tall cover shape,
+   the way a shelf of book spines/covers would read. */
+.lib-shelf-carousel { padding: 4px 12px 12px; }
+.lib-shelf-track {
+  display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x proximity;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-bottom: 4px;
+}
+.lib-shelf-track::-webkit-scrollbar { display: none; }
+.lib-cover-card {
+  flex: 0 0 132px; width: 132px; scroll-snap-align: start;
+  display: flex; flex-direction: column;
+}
+.lib-cover-thumb {
+  position: relative; width: 132px; height: 176px; border-radius: 10px;
+  overflow: hidden; cursor: pointer; background: var(--hover-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+}
+.lib-cover-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lib-cover-fallback {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, rgba(106,159,207,0.18), rgba(106,159,207,0.05));
+  color: #6a9fcf; font-size: 30px;
+}
+.lib-cover-save {
+  position: absolute; top: 7px; right: 7px; z-index: 2;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); border: none;
+  color: #fff; font-size: 11px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.lib-cover-save:hover { background: rgba(0,0,0,0.7); }
+.lib-cover-save.saved { color: var(--accent); }
+.lib-cover-title {
+  font-size: 12.5px; font-weight: 700; color: var(--text-primary);
+  font-family: var(--font-article); line-height: 1.3; margin-top: 8px;
+  cursor: pointer; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.lib-cover-title:hover { color: var(--accent); }
+.lib-cover-meta { font-size: 10.5px; color: var(--text-secondary); margin-top: 2px; }
+.lib-cover-study-btn {
+  margin-top: 7px; padding: 7px; border-radius: 8px; width: 100%;
+  background: var(--accent-soft); border: 1px solid rgba(200,169,110,0.3);
+  color: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer;
+  font-family: var(--font-ui); transition: background 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.lib-cover-study-btn:hover { background: rgba(200,169,110,0.22); }
+.lib-shelf-dots { position: static; transform: none; margin: 8px auto 0; width: fit-content; background: none; padding: 0; backdrop-filter: none; }
+.lib-shelf-dots .ig-post-carousel-dot { background: var(--border-color); }
+.lib-shelf-dots .ig-post-carousel-dot.active { background: var(--accent); }
 
 .ig-post-actions {
-  display: flex; align-items: flex-start; justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between;
   padding: 9px 10px 6px;
 }
-.ig-post-actions-left { display: flex; align-items: flex-start; gap: 4px; }
+/* Item 1: icon and count sit side-by-side within a button (row, not
+   column), with visible internal gap; Item 5: actions-left now holds
+   only like/comment/view — share moves to its own right-aligned slot
+   below, separated from these three. */
+.ig-post-actions-left { display: flex; align-items: center; gap: 18px; }
 .ig-action-btn {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  min-width: 38px; padding: 4px 4px 0;
+  display: flex; flex-direction: row; align-items: center; gap: 6px;
+  min-width: 0; padding: 4px 4px;
   background: none; border: none; cursor: pointer; color: var(--text-primary);
   transition: transform 0.1s; flex-shrink: 0;
 }
 .ig-action-btn:active { transform: scale(0.9); }
-.ig-action-btn svg { width: 22px; height: 22px; stroke: var(--text-primary); fill: none; stroke-width: 1.8; }
+.ig-action-btn svg { width: 22px; height: 22px; stroke: var(--text-primary); fill: none; stroke-width: 1.8; flex-shrink: 0; }
 .ig-action-btn.like-btn.liked svg { fill: #d4845a; stroke: #d4845a; }
 .ig-action-btn.save-btn.saved svg { fill: var(--accent); stroke: var(--accent); }
 .ig-action-btn-count {
-  font-size: 10.5px; font-weight: 700; color: var(--text-secondary); line-height: 1;
+  font-size: 11px; font-weight: 700; color: var(--text-secondary); line-height: 1;
 }
 .ig-action-btn.like-btn.liked .ig-action-btn-count { color: #d4845a; }
+/* Item 5: share sits alone at the bottom-right, away from the other
+   three action buttons. */
+.ig-post-actions-right { display: flex; align-items: center; flex-shrink: 0; }
 
 .ig-post-caption {
   padding: 0 12px; font-size: 13px; line-height: 1.5; color: var(--text-primary);
@@ -596,52 +736,6 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 .ig-post-mcq-result { font-size: 12.5px; font-weight: 700; margin-top: 8px; min-height: 16px; }
 .ig-post-mcq-result.correct { color: #6abf85; }
 .ig-post-mcq-result.wrong   { color: #c46a4e; }
-
-.ig-post-lib-body { padding: 2px 12px 10px; }
-.ig-post-lib-desc { font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin-bottom: 12px; }
-.ig-post-lib-actions { display: flex; gap: 8px; }
-.ig-post-lib-btn-primary {
-  flex: 1; padding: 10px; border-radius: 10px;
-  background: var(--accent); color: #0f0e0b;
-  font-size: 12.5px; font-weight: 700; border: none; cursor: pointer;
-  font-family: var(--font-ui); transition: background 0.15s;
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-}
-.ig-post-lib-btn-primary:hover { background: var(--accent-hover); }
-.ig-post-lib-btn-save {
-  flex-shrink: 0; padding: 10px 14px; border-radius: 10px;
-  background: var(--hover-bg); color: var(--text-secondary);
-  border: 1px solid var(--border-color); cursor: pointer;
-  font-family: var(--font-ui); transition: all 0.15s;
-}
-.ig-post-lib-btn-save:hover { border-color: var(--accent); color: var(--accent); }
-.ig-post-lib-btn-save.saved { border-color: rgba(200,169,110,0.4); color: var(--accent); background: var(--accent-soft); }
-
-.ig-post-follow-actionbtn {
-  position: relative; width: 34px; height: 34px; margin-top: 4px;
-  border-radius: 50%; border: 1.5px solid var(--border-color);
-  background: var(--hover-bg); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
-  overflow: hidden; -webkit-tap-highlight-color: transparent;
-}
-.ig-post-follow-actionbtn:active { transform: scale(0.9); }
-.ig-post-follow-actionbtn .icon-plus, .ig-post-follow-actionbtn .icon-bell {
-  position: absolute; width: 14px; height: 14px;
-  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
-}
-.ig-post-follow-actionbtn .icon-plus { stroke: var(--text-secondary); fill: none; stroke-width: 2; opacity: 1; transform: scale(1) rotate(0deg); }
-.ig-post-follow-actionbtn .icon-bell { stroke: var(--accent); fill: none; stroke-width: 1.8; opacity: 0; transform: scale(0.4) rotate(-20deg); }
-.ig-post-follow-actionbtn.following { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 10px var(--accent-glow); }
-.ig-post-follow-actionbtn.following .icon-plus { opacity: 0; transform: scale(0.4) rotate(90deg); }
-.ig-post-follow-actionbtn.following .icon-bell { opacity: 1; transform: scale(1) rotate(0deg); }
-.ig-post-follow-actionbtn.ringing .icon-bell { animation: bellRingHome 0.5s ease forwards; }
-@keyframes bellRingHome {
-  0%{transform:scale(1) rotate(0deg)} 20%{transform:scale(1.1) rotate(-12deg)}
-  40%{transform:scale(1.1) rotate(10deg)} 60%{transform:scale(1.05) rotate(-6deg)}
-  80%{transform:scale(1) rotate(3deg)} 100%{transform:scale(1) rotate(0deg)}
-}
 
 .ig-post-textexcerpt {
   padding: 0 12px; margin-top: 2px; margin-bottom: 6px;
@@ -729,32 +823,6 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 .ig-post-audio-play:hover { background: var(--accent-hover); }
 .ig-post-audio-wave { flex: 1; height: 24px; display: flex; align-items: center; gap: 2px; }
 .ig-post-audio-bar { flex: 1; background: var(--border-color); border-radius: 2px; min-width: 2px; }
-
-.topics-strip { display: flex; gap: 8px; overflow-x: auto; padding: 10px 12px 12px; scrollbar-width: none; }
-.topics-strip::-webkit-scrollbar { display: none; }
-.topic-chip {
-  flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 15px; border-radius: 10px;
-  background: linear-gradient(135deg, var(--accent-soft), rgba(106,159,207,0.06));
-  border: 1px solid rgba(200,169,110,0.22);
-  color: var(--text-primary); font-size: 12px; font-weight: 700;
-  font-family: var(--font-ui); cursor: pointer; white-space: nowrap;
-  transition: border-color 0.18s, transform 0.15s, background 0.18s;
-}
-.topic-chip:hover { border-color: var(--accent); transform: translateY(-1px); background: linear-gradient(135deg, rgba(200,169,110,0.18), rgba(106,159,207,0.1)); }
-.topic-chip:active { transform: translateY(0) scale(0.97); }
-.topic-chip i { font-size: 9px; color: var(--accent); }
-.topic-chip .topic-count { font-size: 10px; font-weight: 600; color: var(--text-secondary); }
-.topics-strip-label {
-  font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--text-secondary); padding: 10px 12px 0; display: flex; align-items: center; gap: 6px;
-}
-.topics-strip-label i { color: var(--accent); font-size: 10px; }
-.topic-skel-chip {
-  flex-shrink: 0; width: 84px; height: 34px; border-radius: 10px;
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--hover-bg) 50%, var(--border-color) 75%);
-  background-size: 400px 100%; animation: skelShimmer 1.4s ease infinite;
-}
 
 .creators-strip { display: flex; gap: 14px; overflow-x: auto; padding: 12px 12px 10px; scrollbar-width: none; align-items: flex-start; }
 .creators-strip::-webkit-scrollbar { display: none; }
@@ -1052,15 +1120,6 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
     <div class="strip-skeleton-pill" id="creatorSkel3"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
     <div class="strip-skeleton-pill" id="creatorSkel4"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
     <div class="strip-skeleton-pill" id="creatorSkel5"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
-  </div>
-
-  <div class="topics-strip-label" id="topicsStripLabel" style="display:none;"><i class="fas fa-hashtag"></i> Explore Topics</div>
-  <div class="topics-strip" id="topicsStrip">
-    <div class="topic-skel-chip"></div>
-    <div class="topic-skel-chip"></div>
-    <div class="topic-skel-chip"></div>
-    <div class="topic-skel-chip"></div>
-    <div class="topic-skel-chip"></div>
   </div>
 
   <div class="ig-feed" id="mainGrid"></div>
@@ -1457,8 +1516,10 @@ async function loadUserFollowingHome(){
   try{
     const{data}=await supabase.from('subscriptions').select('author_id').eq('follower_id',currentSupaUser.user_id);
     userFollowingHome = new Set((data||[]).map(r=>String(r.author_id)));
-    document.querySelectorAll('.ig-post-follow-actionbtn[data-supa-uid]').forEach(btn=>{
-      btn.classList.toggle('following', userFollowingHome.has(String(btn.dataset.supaUid)));
+    document.querySelectorAll('.ig-post-follow-pill[data-supa-uid]').forEach(btn=>{
+      const following = userFollowingHome.has(String(btn.dataset.supaUid));
+      btn.classList.toggle('following', following);
+      btn.textContent = following ? 'Following' : 'Follow';
     });
   }catch(e){}
 }
@@ -1466,13 +1527,10 @@ async function loadUserFollowingHome(){
 function buildFollowBtnHTML(article){
   const aSupaId = article.authorSupaUserId || '';
   const aFbUid  = article.firebase_user_id || '';
-  if(!aSupaId) return `<div style="width:34px;flex-shrink:0;margin-top:4px;"></div>`;
-  if(currentSupaUser && String(currentSupaUser.user_id)===String(aSupaId)) return `<div style="width:34px;flex-shrink:0;margin-top:4px;"></div>`;
+  if(!aSupaId) return '';
+  if(currentSupaUser && String(currentSupaUser.user_id)===String(aSupaId)) return '';
   const isFollowing = userFollowingHome.has(String(aSupaId));
-  return `<button class="ig-post-follow-actionbtn${isFollowing?' following':''}" data-supa-uid="${aSupaId}" onclick="window._handleFollowHome(event,'${aFbUid}','${aSupaId}')">
-    <svg class="icon-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    <svg class="icon-bell" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-  </button>`;
+  return `<button class="ig-post-follow-pill${isFollowing?' following':''}" data-supa-uid="${aSupaId}" onclick="window._handleFollowHome(event,'${aFbUid}','${aSupaId}')">${isFollowing?'Following':'Follow'}</button>`;
 }
 
 window._handleFollowHome = async function(e,aFbUid,aSupaId){
@@ -1483,10 +1541,10 @@ window._handleFollowHome = async function(e,aFbUid,aSupaId){
   const supaUid=String(aSupaId);
   const wasFollowing=userFollowingHome.has(supaUid);
   if(wasFollowing) userFollowingHome.delete(supaUid); else userFollowingHome.add(supaUid);
-  document.querySelectorAll(`.ig-post-follow-actionbtn[data-supa-uid="${supaUid}"]`).forEach(b=>b.classList.toggle('following',!wasFollowing));
-  if(!wasFollowing){
-    setTimeout(()=>{ btn.classList.add('ringing'); btn.addEventListener('animationend',()=>btn.classList.remove('ringing'),{once:true}); },260);
-  }
+  document.querySelectorAll(`.ig-post-follow-pill[data-supa-uid="${supaUid}"]`).forEach(b=>{
+    b.classList.toggle('following',!wasFollowing);
+    b.textContent = !wasFollowing ? 'Following' : 'Follow';
+  });
   try{
     if(wasFollowing){
       const{error}=await supabase.rpc('unfollow_user',{p_author_id:parseInt(aSupaId),p_firebase_uid:currentSupaUser.firebase_uid});
@@ -1497,7 +1555,11 @@ window._handleFollowHome = async function(e,aFbUid,aSupaId){
     }
   }catch(err){
     if(wasFollowing) userFollowingHome.add(supaUid); else userFollowingHome.delete(supaUid);
-    document.querySelectorAll(`.ig-post-follow-actionbtn[data-supa-uid="${supaUid}"]`).forEach(b=>b.classList.toggle('following',userFollowingHome.has(supaUid)));
+    document.querySelectorAll(`.ig-post-follow-pill[data-supa-uid="${supaUid}"]`).forEach(b=>{
+      const stillFollowing=userFollowingHome.has(supaUid);
+      b.classList.toggle('following',stillFollowing);
+      b.textContent = stillFollowing ? 'Following' : 'Follow';
+    });
   }finally{ btn.dataset.processing='false'; }
 };
 
@@ -1684,7 +1746,7 @@ onAuthStateChanged(auth, async user=>{
         .from('users')
         .select('id, username, pfp, full_name, bio')
         .eq('firebase_uid', user.uid)
-        .single();
+        .maybeSingle();
 
       if(ud && !error){
         currentSupaUser = { user_id: ud.id, ...ud, firebase_uid: user.uid };
@@ -1803,9 +1865,16 @@ async function handleFeedLike(btn){
 }
 window._handleFeedLike = handleFeedLike;
 
+/* Item 2: double-tap-to-heart never fires over a YouTube embed — the
+   video needs real taps to reach its own player (play/pause/seek),
+   not to be swallowed by the heart gesture. Guards here defensively;
+   the carousel's own per-slide handler (added for Item 3) applies the
+   same exclusion at the slide level, since a single post can carry
+   both image and YouTube slides once the carousel is in place. */
 function setupDoubleTapLike(mediaEl,likeBtn){
   let lastTap=0;
   mediaEl.addEventListener('click',function(e){
+    if(e.target.closest('.ig-post-yt-wrap')) return;
     const now=Date.now();
     if(now-lastTap<320){
       if(!likeBtn.classList.contains('liked')) handleFeedLike(likeBtn);
@@ -1842,7 +1911,7 @@ window.openUserPopup = async function(firebaseUid){
     <div class="skel-line" style="height:42px;width:100%;border-radius:10px;"></div>`;
   overlay.classList.add('open');
   try{
-    const{data:user}=await supabase.from('users').select('*').eq('firebase_uid',firebaseUid).single();
+    const{data:user}=await supabase.from('users').select('*').eq('firebase_uid',firebaseUid).maybeSingle();
     const{data:articles}=await supabase.from('articles').select('id,views,likes').eq('firebase_user_id',firebaseUid);
     const{count:followerCount}=await supabase.from('subscriptions')
       .select('*',{count:'exact',head:true}).eq('author_id',user?.id||0);
@@ -1896,11 +1965,11 @@ window.openCardPreview = async function(type, id){
   overlay.classList.add('open');
   try{
     if(type==='article'||type==='mcq'){
-      const{data:art}=await supabase.from('articles').select('*').eq('id',id).single();
+      const{data:art}=await supabase.from('articles').select('*').eq('id',id).maybeSingle();
       if(!art){inner.innerHTML='<p style="padding:20px;color:var(--text-secondary);">Not found</p>';return;}
       let authorName='Unknown';
       if(art.firebase_user_id){
-        const{data:au}=await supabase.from('users').select('username').eq('firebase_uid',art.firebase_user_id).single();
+        const{data:au}=await supabase.from('users').select('username').eq('firebase_uid',art.firebase_user_id).maybeSingle();
         if(au) authorName=au.username?`@${au.username}`:'Unknown';
       }
       const mcq=isMCQ(art.content);
@@ -1945,14 +2014,14 @@ window.openCardPreview = async function(type, id){
         });
       }
     } else if(type==='library'){
-      const{data:lib}=await supabase.from('playlists').select('*').eq('id',id).single();
+      const{data:lib}=await supabase.from('playlists').select('*').eq('id',id).maybeSingle();
       if(!lib){inner.innerHTML='<p style="padding:20px;color:var(--text-secondary);">Not found</p>';return;}
       const{count:artCount}=await supabase.from('playlist_items').select('*',{count:'exact',head:true}).eq('playlist_id',id);
       _currentPreviewLib = { id:lib.id, name:lib.name, thumbnail_url:lib.thumbnail_url, _count:artCount||0 };
       const isSaved=isLibSaved(id);
       let creatorName='Unknown';
       if(lib.user_id){
-        const{data:cr}=await supabase.from('users').select('username').eq('id',lib.user_id).single();
+        const{data:cr}=await supabase.from('users').select('username').eq('id',lib.user_id).maybeSingle();
         if(cr) creatorName=cr.username?`@${cr.username}`:'Unknown';
       }
       inner.innerHTML=`
@@ -1983,7 +2052,7 @@ window._cpToggleSave=function(){
   const newState=toggleFavourite(_currentPreviewLib);
   btn.className=`cp-save-btn ${newState?'saved':''}`;
   btn.innerHTML=`<i class="fas fa-bookmark"></i> ${newState?'Saved':'Save Library'}`;
-  document.querySelectorAll(`.ig-post[data-lib-id="${_currentPreviewLib.id}"] .ig-post-lib-btn-save`).forEach(b=>{
+  document.querySelectorAll(`.lib-cover-card[data-lib-id="${_currentPreviewLib.id}"] .lib-cover-save`).forEach(b=>{
     b.classList.toggle('saved', newState);
     b.innerHTML = newState ? '<i class="fas fa-bookmark"></i>' : '<i class="far fa-bookmark"></i>';
   });
@@ -2024,44 +2093,6 @@ async function loadCreators(){
   }
 }
 
-/* ══ TOPICS STRIP (algotag(...) libraries) ══ */
-function algotagTitle(name){
-  const m=/^algotag\(([\s\S]*)\)\s*$/i.exec((name||'').trim());
-  if(!m) return null;
-  return m[1].trim();
-}
-
-async function loadTopicsStrip(){
-  const strip=document.getElementById('topicsStrip');
-  const label=document.getElementById('topicsStripLabel');
-  try{
-    const{data:libs}=await supabase.from('playlists').select('id,name').ilike('name','algotag(%');
-    const{data:countRows}=await supabase.from('playlist_items').select('playlist_id');
-    const countMap={};(countRows||[]).forEach(r=>{countMap[r.playlist_id]=(countMap[r.playlist_id]||0)+1;});
-    const topics=(libs||[])
-      .map(l=>({id:l.id, title:algotagTitle(l.name), count:countMap[l.id]||0}))
-      .filter(t=>t.title && t.count>0)
-      .sort((a,b)=>b.count-a.count);
-    strip.innerHTML='';
-    if(!topics.length){
-      label.style.display='none';
-      strip.style.display='none';
-      return;
-    }
-    label.style.display='flex';
-    topics.forEach(t=>{
-      const chip=document.createElement('div');
-      chip.className='topic-chip';
-      chip.innerHTML=`<i class="fas fa-hashtag"></i><span>${esc(t.title)}</span><span class="topic-count">${t.count}</span>`;
-      chip.addEventListener('click',()=>{ location.href=`https://patholytica.com/dailyfeed?playlist=${t.id}`; });
-      strip.appendChild(chip);
-    });
-  }catch(e){
-    label.style.display='none';
-    strip.style.display='none';
-  }
-}
-
 /* ══ MEDIA POOL (image / audio / youtube from `media` table) ══ */
 async function fetchMediaPool(){
   if(mediaPoolFetched) return;
@@ -2075,11 +2106,20 @@ async function fetchMediaPool(){
 }
 
 /* ══ COMMENT COUNTS ══ */
+/* ══ COMMENT COUNTS ══
+   Scoped to only the article IDs currently rendered — the previous
+   version selected article_id from the entire comments table with no
+   filter, meaning every batch load re-scanned every comment ever
+   posted platform-wide just to count them client-side. This now asks
+   only about the posts actually on screen. */
 async function loadHomeCommentCounts(){
   try{
-    const{data}=await supabase.from('comments').select('article_id');
+    const btns=[...document.querySelectorAll('.ig-action-btn.comment-btn[data-id]')];
+    const ids=[...new Set(btns.map(b=>b.dataset.id).filter(Boolean))];
+    if(!ids.length) return;
+    const{data}=await supabase.from('comments').select('article_id').in('article_id',ids);
     const counts={};(data||[]).forEach(c=>{counts[c.article_id]=(counts[c.article_id]||0)+1;});
-    document.querySelectorAll('.ig-action-btn.comment-btn').forEach(btn=>{
+    btns.forEach(btn=>{
       const c=counts[btn.dataset.id]||0;
       const span=btn.querySelector('[data-role="comment-count"]');
       if(span){ span.textContent=fmtNum(c); span.dataset.raw=c; }
@@ -2099,10 +2139,15 @@ function buildPostHeader(opts){
         <span class="ig-post-username" ${opts.usernameClick?`onclick="${opts.usernameClick}"`:''}>${esc(opts.username)}</span>
         ${opts.subtext?`<div class="ig-post-subtext">${opts.subtext}</div>`:''}
       </div>
-      ${opts.moreAction?`<button class="ig-post-more-btn" onclick="${opts.moreAction}"><i class="fas fa-ellipsis-h"></i></button>`:''}
+      ${opts.followHTML||''}
     </div>`;
 }
 
+/* Item 5: the action row's right slot is now the lone, separated share
+   button — like/comment/view stay together on the left; share sits
+   alone on the right, away from the other three. Item 4: the follow
+   affordance no longer renders here at all — it now lives in the post
+   header as a labeled pill (see buildPostHeader's followHTML slot). */
 function buildActionRow(article,isLibraryPost){
   const id=article.id;
   const isLiked=userLikesHome.has(String(id));
@@ -2111,7 +2156,10 @@ function buildActionRow(article,isLibraryPost){
     ? `<button class="ig-action-btn save-btn" onclick="location.href='https://patholytica.com/dailyfeed?playlist=${id}'">
         <svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
       </button>`
-    : buildFollowBtnHTML(article);
+    : `<button class="ig-action-btn share-btn" data-id="${id}" onclick="window._shareHomeArticle(${id},'${(article.title||'').replace(/'/g,"\\'")}')">
+        <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+        <span class="ig-action-btn-count">Share</span>
+      </button>`;
   return `
     <div class="ig-post-actions">
       <div class="ig-post-actions-left">
@@ -2119,20 +2167,16 @@ function buildActionRow(article,isLibraryPost){
           <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
           <span class="ig-action-btn-count" data-role="like-count">${fmtNum(article.likes||0)}</span>
         </button>
-        <button class="ig-action-btn share-btn" data-id="${id}" onclick="window._shareHomeArticle(${id},'${(article.title||'').replace(/'/g,"\\'")}')">
-          <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-          <span class="ig-action-btn-count">Share</span>
-        </button>
-        <button class="ig-action-btn expand-btn" data-id="${id}" onclick="location.href='https://patholytica.com/dailyfeed?article=${id}'" title="Open in Feed">
-          <svg viewBox="0 0 24 24"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
-          <span class="ig-action-btn-count"><i class="fas fa-eye" style="font-size:9px;"></i> ${fmtNum(article.views||0)}</span>
-        </button>
         <button class="ig-action-btn comment-btn" data-id="${id}" onclick="window.openCommentsModal('${id}')">
           <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
           <span class="ig-action-btn-count" data-role="comment-count" data-raw="${article._commentCount||0}">${commentCount}</span>
         </button>
+        <button class="ig-action-btn expand-btn" data-id="${id}" onclick="location.href='https://patholytica.com/dailyfeed?article=${id}'" title="Open in Feed">
+          <svg viewBox="0 0 24 24"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+          <span class="ig-action-btn-count">${fmtNum(article.views||0)}</span>
+        </button>
       </div>
-      ${rightSlot}
+      <div class="ig-post-actions-right">${rightSlot}</div>
     </div>`;
 }
 
@@ -2142,26 +2186,41 @@ window._shareHomeArticle=function(articleId,title){
   else{ navigator.clipboard.writeText(url).then(()=>showToast('🔗 Link copied!')).catch(()=>showToast('🔗 '+url)); }
 };
 
-/* Real no-image fallback: builds a media element from the article's own
-   media rows (image → img, youtube → iframe, audio → player), and if
-   truly none exist, renders a short text excerpt instead — never a
-   stock/placeholder photo. */
-function buildNoImageBody(article){
-  const own = mediaByArticle[article.id] || [];
-  const yt = own.find(m=>m.type==='youtube');
-  const au = own.find(m=>m.type==='audio');
+/* Item 3: renders one carousel slide's inner content for a given media
+   row. `isFirstSlide` controls video behavior — the first slide (if a
+   video) plays fully interactively; every later video slide is a
+   short muted/looped preview locked behind an overlay that hands off
+   to the full article rather than playing inline. Item 2's double-tap
+   exclusion is what keeps a first-slide YouTube video tappable — see
+   buildArticleCarousel's click handler below. */
+function buildCarouselSlideHTML(m,article,isFirstSlide){
   const title = article.title || (isMCQ(article.content)?'Quick Question':'Untitled');
-
-  if(yt){
-    return `<div class="ig-post-media" style="cursor:default;">
-      <div class="ig-post-yt-wrap">
-        <iframe src="${esc(yt.url)}" title="${esc(title)}" loading="lazy"
-          allow="accelerometer;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>
-        <div class="ig-post-media-badge"><i class="fab fa-youtube"></i> Video</div>
+  if(m.type==='image'){
+    return `<div class="ig-post-media" data-id="${article.id}">
+      <img src="${esc(m.url)}" alt="${esc(title)}" loading="lazy">
+    </div>`;
+  }
+  if(m.type==='youtube'){
+    if(isFirstSlide){
+      return `<div class="ig-post-media" style="cursor:default;">
+        <div class="ig-post-yt-wrap yt-interactive">
+          <iframe src="${esc(m.url)}" title="${esc(title)}" loading="lazy"
+            allow="accelerometer;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>
+          <div class="ig-post-media-badge"><i class="fab fa-youtube"></i> Video</div>
+        </div>
+      </div>`;
+    }
+    // Later video slide: preview only, locked behind an overlay —
+    // never full inline playback for a non-first video slide.
+    return `<div class="ig-post-carousel-video-locked" onclick="location.href='https://patholytica.com/dailyfeed?article=${article.id}'">
+      <div class="ig-post-media-badge"><i class="fab fa-youtube"></i> Video</div>
+      <div class="ig-post-carousel-lock-overlay">
+        <i class="fas fa-play-circle"></i>
+        <span>Open to watch</span>
       </div>
     </div>`;
   }
-  if(au){
+  if(m.type==='audio'){
     const bars=Array(24).fill(0).map(()=>`<div class="ig-post-audio-bar" style="height:${Math.random()*70+20}%"></div>`).join('');
     const aid='home_audio_'+Math.random().toString(36).substr(2,9);
     return `<div class="ig-post-audio-wrap">
@@ -2170,15 +2229,58 @@ function buildNoImageBody(article){
         <button class="ig-post-audio-play" type="button" onclick="window._toggleHomeAudio(this,'${aid}')"><i class="fas fa-play"></i></button>
         <div class="ig-post-audio-wave">${bars}</div>
       </div>
-      <audio id="${aid}" data-src="${esc(au.url)}" style="display:none;"></audio>
+      <audio id="${aid}" data-src="${esc(m.url)}" style="display:none;"></audio>
     </div>`;
   }
-  // No image, no youtube, no audio at all — text-only excerpt, no placeholder.
-  const excerpt = trunc((article.content||'').replace(/\n/g,' ').trim(), 140);
-  return excerpt ? `<div class="ig-post-textexcerpt">${esc(excerpt)}</div>` : '';
+  return '';
 }
 
-function buildArticlePost(article,imageUrl){
+/* Item 3: builds the full swipeable carousel for an article's media.
+   Falls back to a single text-excerpt slide (matching the previous
+   no-media behavior) when the article has no media at all. */
+function buildArticleCarousel(article){
+  const media = (mediaByArticle[article.id]||[]).filter(m=>m.type==='image'||m.type==='youtube'||m.type==='audio');
+  if(!media.length){
+    const excerpt = trunc((article.content||'').replace(/\n/g,' ').trim(), 140);
+    return excerpt ? `<div class="ig-post-textexcerpt">${esc(excerpt)}</div>` : '';
+  }
+  if(media.length===1){
+    return buildCarouselSlideHTML(media[0],article,true);
+  }
+  const slidesHTML = media.map((m,i)=>`<div class="ig-post-carousel-slide" data-slide-index="${i}" data-media-type="${m.type}">${buildCarouselSlideHTML(m,article,i===0)}</div>`).join('');
+  const dotsHTML = media.map((_,i)=>`<div class="ig-post-carousel-dot${i===0?' active':''}"></div>`).join('');
+  return `<div class="ig-post-carousel" data-carousel-id="${article.id}">
+    <div class="ig-post-carousel-track">${slidesHTML}</div>
+    <div class="ig-post-carousel-dots">${dotsHTML}</div>
+    <div class="ig-post-carousel-counter">1/${media.length}</div>
+  </div>`;
+}
+
+/* Item 3: tracks which slide is active as the user swipes, updating
+   the dot indicator and the "N/total" counter. Uses native scroll
+   position rather than custom drag math, so the gesture itself is the
+   browser's own touch-scrolling — reliable and platform-consistent. */
+function setupCarouselTracking(carouselEl){
+  const track = carouselEl.querySelector('.ig-post-carousel-track');
+  const dots = carouselEl.querySelectorAll('.ig-post-carousel-dot');
+  const counter = carouselEl.querySelector('.ig-post-carousel-counter');
+  const slideCount = dots.length;
+  if(!track||!slideCount) return;
+  let ticking=false;
+  track.addEventListener('scroll',()=>{
+    if(ticking) return;
+    ticking=true;
+    requestAnimationFrame(()=>{
+      const idx = Math.round(track.scrollLeft/track.clientWidth);
+      const clamped = Math.max(0,Math.min(slideCount-1,idx));
+      dots.forEach((d,i)=>d.classList.toggle('active',i===clamped));
+      if(counter) counter.textContent = `${clamped+1}/${slideCount}`;
+      ticking=false;
+    });
+  },{passive:true});
+}
+
+function buildArticlePost(article){
   const post=document.createElement('div'); post.className='ig-post'; post.dataset.articleId=article.id;
   const avatarHTML=article.authorPfp?`<img src="${esc(article.authorPfp)}" alt="">`:(article.authorUsername||article.author||'A').replace('@','').charAt(0).toUpperCase();
   const profileUrl=article.authorUsername?`profile.html?username=${encodeURIComponent(article.authorUsername)}`:'#';
@@ -2188,23 +2290,26 @@ function buildArticlePost(article,imageUrl){
     avatarHTML, username: article.author||'Anonymous',
     avatarClick: `location.href='${profileUrl}'`, usernameClick: `location.href='${profileUrl}'`,
     subtext: `<span>${relTime(article.created_at)}</span>`,
-    moreAction: `location.href='https://patholytica.com/dailyfeed?article=${article.id}'`
+    followHTML: buildFollowBtnHTML(article)
   });
 
-  const bodyHTML = imageUrl
-    ? `<div class="ig-post-media" data-id="${article.id}">
-        <img src="${esc(imageUrl)}" alt="${esc(title)}" loading="lazy">
-      </div>`
-    : buildNoImageBody(article);
+  const bodyHTML = buildArticleCarousel(article);
 
   post.innerHTML = headerHTML + bodyHTML +
     buildActionRow(article) +
     `<div class="ig-post-caption"><span class="cap-user" onclick="location.href='${profileUrl}'">${esc(article.author||'Anonymous')}</span><span class="ig-post-title-link" onclick="location.href='https://patholytica.com/dailyfeed?article=${article.id}'">${esc(trunc(stripEmoji(title),140))}</span></div>
     <div class="ig-post-timestamp">${relTime(article.created_at)}</div>`;
 
-  const mediaEl=post.querySelector('.ig-post-media');
+  const carouselEl=post.querySelector('.ig-post-carousel');
+  if(carouselEl) setupCarouselTracking(carouselEl);
+
+  // Double-tap-to-heart applies to a single non-carousel image slide
+  // (matching prior behavior) and to each image slide inside a
+  // carousel — never to a YouTube slide, per Item 2.
   const likeBtn=post.querySelector('.like-btn');
-  if(mediaEl&&likeBtn) setupDoubleTapLike(mediaEl,likeBtn);
+  if(likeBtn){
+    post.querySelectorAll('.ig-post-media').forEach(mediaEl=>setupDoubleTapLike(mediaEl,likeBtn));
+  }
   return post;
 }
 
@@ -2223,7 +2328,7 @@ function buildMCQPost(article){
     avatarHTML, username: article.author||'Anonymous',
     avatarClick: `location.href='${profileUrl}'`, usernameClick: `location.href='${profileUrl}'`,
     subtext: `<span>❔ Quick Question</span><span class="dot"></span><span>${relTime(article.created_at)}</span>`,
-    moreAction: `location.href='https://patholytica.com/dailyfeed?article=${article.id}'`
+    followHTML: buildFollowBtnHTML(article)
   }) + `
     <div class="ig-post-mcq-body">
       <div class="ig-post-mcq-badge"><i class="fas fa-question-circle"></i> Quick Question</div>
@@ -2256,32 +2361,73 @@ function buildMCQPost(article){
   return post;
 }
 
-function buildLibraryPost(lib,articleCount){
-  const post=document.createElement('div'); post.className='ig-post'; post.setAttribute('data-lib-id',lib.id);
+/* Item 7: renders one library as a book-cover card inside the shelf
+   carousel — the thumbnail fills the card like a book cover rather
+   than sitting as a small round avatar in a header. */
+function buildLibraryCoverHTML(lib,articleCount){
   const isSaved=isLibSaved(lib.id);
-  post.innerHTML = buildPostHeader({
-    avatarHTML: lib.thumbnail_url?`<img src="${esc(lib.thumbnail_url)}" alt="">`:'<i class="fas fa-layer-group"></i>',
-    avatarTint: true,
-    username: lib.name||'Untitled Library',
-    subtext: `<span><i class="fas fa-layer-group" style="font-size:9px;"></i> ${articleCount} article${articleCount!==1?'s':''}</span>`,
-    avatarClick: `window.openCardPreview('library','${lib.id}')`,
-    usernameClick: `window.openCardPreview('library','${lib.id}')`
-  }) + `
-    <div class="ig-post-lib-body">
-      ${lib.description?`<div class="ig-post-lib-desc">${esc(trunc(lib.description,160))}</div>`:''}
-      <div class="ig-post-lib-actions">
-        <button class="ig-post-lib-btn-primary" onclick="location.href='https://patholytica.com/dailyfeed?playlist=${lib.id}'"><i class="fas fa-play"></i> Study Now</button>
-        <button class="ig-post-lib-btn-save${isSaved?' saved':''}" onclick="window._toggleLibSaveInline(${lib.id},'${esc(lib.name||'Untitled Library').replace(/'/g,"\\'")}','${esc(lib.thumbnail_url||'')}',${articleCount})">
-          <i class="fa${isSaved?'s':'r'} fa-bookmark"></i>
-        </button>
+  const coverHTML = lib.thumbnail_url
+    ? `<img src="${esc(lib.thumbnail_url)}" alt="${esc(lib.name||'Library')}" loading="lazy">`
+    : `<div class="lib-cover-fallback"><i class="fas fa-layer-group"></i></div>`;
+  return `<div class="lib-cover-card" data-lib-id="${lib.id}">
+    <div class="lib-cover-thumb" onclick="window.openCardPreview('library','${lib.id}')">
+      ${coverHTML}
+      <button class="lib-cover-save${isSaved?' saved':''}" onclick="event.stopPropagation();window._toggleLibSaveInline(${lib.id},'${esc(lib.name||'Untitled Library').replace(/'/g,"\\'")}','${esc(lib.thumbnail_url||'')}',${articleCount})">
+        <i class="fa${isSaved?'s':'r'} fa-bookmark"></i>
+      </button>
+    </div>
+    <div class="lib-cover-title" onclick="window.openCardPreview('library','${lib.id}')">${esc(trunc(lib.name||'Untitled Library',48))}</div>
+    <div class="lib-cover-meta">${articleCount} article${articleCount!==1?'s':''}</div>
+    <button class="lib-cover-study-btn" onclick="location.href='https://patholytica.com/dailyfeed?playlist=${lib.id}'"><i class="fas fa-play"></i> Study</button>
+  </div>`;
+}
+
+/* Item 7: a swipeable shelf of book-cover cards, one post per group
+   of libraries rather than one post per library — the carousel is the
+   distinct, shelf-like display Item 7 asked for, replacing the old
+   single-thumbnail post. `libs` is an array of {lib, articleCount}. */
+function buildLibraryPost(libs){
+  if(!libs||!libs.length) return null;
+  const post=document.createElement('div'); post.className='ig-post ig-post-lib-shelf';
+  post.setAttribute('data-lib-ids',libs.map(x=>x.lib.id).join(','));
+  const cardsHTML = libs.map(x=>buildLibraryCoverHTML(x.lib,x.articleCount)).join('');
+  const dotsHTML = libs.length>1
+    ? `<div class="ig-post-carousel-dots lib-shelf-dots">${libs.map((_,i)=>`<div class="ig-post-carousel-dot${i===0?' active':''}"></div>`).join('')}</div>`
+    : '';
+  post.innerHTML = `
+    <div class="ig-post-header">
+      <div class="ig-post-avatar lib-avatar-tint"><i class="fas fa-book-open"></i></div>
+      <div class="ig-post-headertext">
+        <span class="ig-post-username">Libraries for you</span>
+        <div class="ig-post-subtext"><span>Swipe to browse</span></div>
       </div>
+    </div>
+    <div class="lib-shelf-carousel">
+      <div class="lib-shelf-track">${cardsHTML}</div>
+      ${dotsHTML}
     </div>`;
+  const trackEl=post.querySelector('.lib-shelf-track');
+  const dots=post.querySelectorAll('.lib-shelf-dots .ig-post-carousel-dot');
+  if(trackEl&&dots.length){
+    let ticking=false;
+    trackEl.addEventListener('scroll',()=>{
+      if(ticking) return;
+      ticking=true;
+      requestAnimationFrame(()=>{
+        const cardWidth = trackEl.querySelector('.lib-cover-card')?.offsetWidth || trackEl.clientWidth;
+        const idx = Math.round(trackEl.scrollLeft/(cardWidth+12));
+        const clamped = Math.max(0,Math.min(dots.length-1,idx));
+        dots.forEach((d,i)=>d.classList.toggle('active',i===clamped));
+        ticking=false;
+      });
+    },{passive:true});
+  }
   return post;
 }
 
 window._toggleLibSaveInline=function(id,name,thumb,count){
   const newState=toggleFavourite({id,name,thumbnail_url:thumb||null,_count:count});
-  document.querySelectorAll(`.ig-post[data-lib-id="${id}"] .ig-post-lib-btn-save`).forEach(b=>{
+  document.querySelectorAll(`.lib-cover-card[data-lib-id="${id}"] .lib-cover-save`).forEach(b=>{
     b.classList.toggle('saved', newState);
     b.innerHTML = newState ? '<i class="fas fa-bookmark"></i>' : '<i class="far fa-bookmark"></i>';
   });
@@ -2299,7 +2445,7 @@ function buildMediaFeedPost(m,article){
     avatarHTML, username: article.author||'Anonymous',
     avatarClick: `location.href='${profileUrl}'`, usernameClick: `location.href='${profileUrl}'`,
     subtext: `<span>${relTime(article.created_at)}</span>`,
-    moreAction: `location.href='${goHref}'`
+    followHTML: buildFollowBtnHTML(article)
   });
 
   if(m.type==='image'){
@@ -2416,11 +2562,9 @@ async function loadBatch(isInitial=true){
       const artIds=batch.map(a=>a.id);
       const{data:media}=await supabase.from('media').select('article_id,url,type')
         .in('article_id',artIds).order('display_order',{ascending:true});
-      const imgMap={};
       (media||[]).forEach(m=>{
         if(!mediaByArticle[m.article_id]) mediaByArticle[m.article_id]=[];
         mediaByArticle[m.article_id].push(m);
-        if(m.type==='image' && !imgMap[m.article_id]) imgMap[m.article_id]=m.url;
       });
 
       const uids=[...new Set(batch.map(a=>a.firebase_user_id).filter(Boolean))];
@@ -2462,13 +2606,20 @@ async function loadBatch(isInitial=true){
       }
       clearSkeletons();
       let libIdx=0;
+      const LIB_SHELF_SIZE=3;
+      function nextLibGroup(){
+        const group=sortedLibs.slice(libIdx,libIdx+LIB_SHELF_SIZE).map(l=>({lib:l,articleCount:libCountMap[l.id]||0}));
+        libIdx+=group.length;
+        return group;
+      }
       const artIdToArticle={}; enrichedBatch.forEach(a=>{artIdToArticle[a.id]=a;});
       enrichedBatch.forEach((art,i)=>{
-        const post = isMCQ(art.content) ? buildMCQPost(art) : buildArticlePost(art, imgMap[art.id]||null);
+        const post = isMCQ(art.content) ? buildMCQPost(art) : buildArticlePost(art);
         grid.appendChild(post);
         if((i+1)%4===0&&libIdx<sortedLibs.length){
-          const lib=sortedLibs[libIdx++];
-          grid.appendChild(buildLibraryPost(lib,libCountMap[lib.id]||0));
+          const group=nextLibGroup();
+          const shelfPost=buildLibraryPost(group);
+          if(shelfPost) grid.appendChild(shelfPost);
         }
         if((i+1)%5===0 && mediaPool.length){
           const m=mediaPool[mediaPoolOffset % mediaPool.length];
@@ -2481,8 +2632,9 @@ async function loadBatch(isInitial=true){
         }
       });
       while(libIdx<sortedLibs.length){
-        const l=sortedLibs[libIdx++];
-        grid.appendChild(buildLibraryPost(l,libCountMap[l.id]||0));
+        const group=nextLibGroup();
+        const shelfPost=buildLibraryPost(group);
+        if(shelfPost) grid.appendChild(shelfPost);
       }
     }
     loadHomeCommentCounts();
@@ -2525,7 +2677,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 loadCreators();
-loadTopicsStrip();
 loadBatch(true);
 </script>
 
