@@ -423,7 +423,7 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
   padding-bottom: calc(80px + env(safe-area-inset-bottom));
 }
 
-/* ══ Creators strip — bigger profile icons (edit 1) ══ */
+/* ══ Creators strip — bigger profile icons ══ */
 .creators-strip { display: flex; gap: 16px; overflow-x: auto; padding: 14px 12px 12px; scrollbar-width: none; align-items: flex-start; }
 .creators-strip::-webkit-scrollbar { display: none; }
 .strip-pill { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; width: 76px; transition: opacity 0.15s; }
@@ -461,15 +461,18 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 }
 .strip-pill:hover .create-strip-circle { border-color: var(--accent) !important; }
 
-/* ══ Library shelf rows (edit 2) — replaces the old post feed entirely.
-   Each row is its own horizontally-swipeable shelf with its own cover
-   size band, so consecutive rows read as visually distinct shelves
-   rather than a repeating grid, the way a shelf of book spines varies
-   from row to row on a reading app. ══ */
+/* ══ Library shelf rows.
+   FIX (edge-sticking): track padding bumped 14px → 16px on both
+   sides, and scroll-padding-left/right added so the browser's own
+   scroll-snap machinery respects that inset too — otherwise a
+   scroll-snap-align:start card can still settle flush against the
+   true scroll-container edge even though CSS padding is present,
+   which is what made the first/last card look like it was sticking
+   to the screen edge once a row had enough cards to overflow. ══ */
 .shelf-section { margin-bottom: 26px; }
 .shelf-section-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 14px 10px;
+  padding: 0 16px 10px;
 }
 .shelf-section-title {
   font-size: 15px; font-weight: 800; color: var(--text-primary);
@@ -481,13 +484,12 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 .shelf-row-track {
   display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x proximity;
   scrollbar-width: none; -webkit-overflow-scrolling: touch;
-  padding: 2px 14px 8px;
+  padding: 2px 16px 8px;
+  scroll-padding-left: 16px; scroll-padding-right: 16px;
 }
 .shelf-row-track::-webkit-scrollbar { display: none; }
 
 .shelf-cover-card { flex-shrink: 0; scroll-snap-align: start; display: flex; flex-direction: column; }
-/* size bands — each row is assigned one, producing rows of visibly
-   different cover dimensions, matching a shelf-of-books look */
 .shelf-cover-card.size-sm  .shelf-cover-thumb { width: 104px; height: 148px; }
 .shelf-cover-card.size-sm  { width: 104px; }
 .shelf-cover-card.size-md  .shelf-cover-thumb { width: 134px; height: 190px; }
@@ -542,8 +544,6 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 .shelf-skel-card { flex-shrink: 0; width: 134px; }
 .shelf-skel-thumb { width: 134px; height: 190px; border-radius: 10px; }
 .shelf-skel-line { height: 10px; margin-top: 8px; border-radius: 5px; }
-
-.creators-strip { display: flex; gap: 16px; overflow-x: auto; padding: 14px 12px 12px; scrollbar-width: none; align-items: flex-start; }
 
 .scroll-sentinel { height: 1px; width: 100%; }
 .scroll-loader-wrap { text-align: center; padding: 16px 12px; display: none; }
@@ -1095,25 +1095,37 @@ function syncFavouritesFromLocal(){
 window.userFavouritesLocalSync = syncFavouritesFromLocal;
 syncFavouritesFromLocal();
 
-/* ══ SIZE BANDS ══
-   Each row gets one of these bands so consecutive shelves visibly
-   differ in cover dimensions, the way a real bookshelf app varies
-   row to row rather than repeating a single card size everywhere. */
 const SIZE_BANDS = ['size-md','size-lg','size-sm','size-wide','size-square'];
 function bandForRow(rowIndex){ return SIZE_BANDS[rowIndex % SIZE_BANDS.length]; }
 
-const ROW_SIZE = 10;       // libraries per shelf row
-let allLibraries = [];     // full fetched library list (excluding saved)
-let libRowOffset = 0;      // how many non-saved libraries have been placed into rows so far
+const ROW_SIZE = 10;
+let libRowOffset = 0;
 let libsExhausted = false;
 let libCountMap = {};
-let firstRowRendered = false;
 
-/* ══ NOTIFICATIONS ══ */
+/* ══ NOTIFICATIONS ══
+   FIX (stuck-spinner / needs-several-taps): previously this function
+   started with `if(!currentSupaUser) return;` and did nothing else —
+   if the bell was tapped before Firebase auth resolved, the panel was
+   left showing whatever it last had (often the very first hardcoded
+   spinner markup from the HTML, which is never replaced or removed).
+   That's the "click several times to get it to load" symptom: only a
+   tap that happens to land *after* currentSupaUser is set actually
+   fetches anything. Now: (1) an unready-auth tap shows a spinner that
+   is guaranteed to be currently rendered (never silently a no-op), and
+   (2) onAuthStateChanged below proactively re-runs this loader once
+   auth resolves if the panel is already sitting open, so the person
+   doesn't have to close/reopen or re-tap at all. ══ */
 window._supabaseNotifLoader = async function(){
-  if(!currentSupaUser) return;
   const list  = document.getElementById('notifList');
   const badge = document.getElementById('headerNotifBadge');
+  if(!currentSupaUser){
+    // Auth hasn't resolved yet. Show a spinner now (rather than
+    // silently returning and leaving stale/empty content), and rely
+    // on onAuthStateChanged to re-call this once the user resolves.
+    list.innerHTML = communityNotifsHTML() + `<div class="notif-spinner-wrap"><div class="notif-spinner"></div></div>`;
+    return;
+  }
   list.innerHTML='<div class="notif-spinner-wrap"><div class="notif-spinner"></div></div>';
   try{
     const{data:notifs}=await supabase.from('notifications').select('*')
@@ -1195,7 +1207,6 @@ onAuthStateChanged(auth, async user=>{
         updateSpProfile(ud, true);
         document.getElementById('spAuthAction').innerHTML=
           `<button class="sp-logout" onclick="window._doLogout()"><i class="fas fa-sign-out-alt"></i> Log out</button>`;
-        await window._supabaseNotifLoader();
       } else {
         currentSupaUser = null;
         currentUserData = null;
@@ -1217,6 +1228,12 @@ onAuthStateChanged(auth, async user=>{
       `<button class="sp-login" onclick="location.href='login.html'"><i class="fas fa-sign-in-alt"></i> Log in</button>`;
     document.getElementById('headerNotifBadge').classList.remove('show');
   }
+  // Auth state has now settled (logged in, resolved-but-no-row, or
+  // logged out). Refresh notifications unconditionally here — this
+  // covers both the normal case and the case where the person opened
+  // the bell before this resolved and is currently staring at the
+  // fallback spinner from the guard above.
+  await window._supabaseNotifLoader();
 });
 
 window._doLogout = async function(){
@@ -1263,7 +1280,7 @@ function toggleFavourite(lib){
   return !wasFaved;
 }
 
-/* ══ USER PREVIEW POPUP (kept for creator strip taps) ══ */
+/* ══ USER PREVIEW POPUP ══ */
 window.openUserPopup = async function(firebaseUid){
   const overlay = document.getElementById('userFloatOverlay');
   const content = document.getElementById('userPopupContent');
@@ -1419,8 +1436,7 @@ async function loadCreators(){
 }
 
 /* ══════════════════════════════════════════════════════════
-   LIBRARY SHELF BUILDERS (edit 2 — replaces the entire article/
-   MCQ/media post feed; only libraries are ever rendered now)
+   LIBRARY SHELF BUILDERS
 ══════════════════════════════════════════════════════════ */
 
 function libraryCoverCardHTML(lib,articleCount,sizeClass){
@@ -1441,10 +1457,6 @@ function libraryCoverCardHTML(lib,articleCount,sizeClass){
   </div>`;
 }
 
-/* Builds one full shelf row (header + swipeable track of cover
-   cards). `titleHTML`/`icon` distinguish the pinned "Saved" row from
-   ordinary discovery rows. `sizeClass` gives the row its own cover
-   dimension band so rows read as visually distinct shelves. */
 function buildShelfRowSection(rowKey,titleText,iconClass,libsWithCounts,sizeClass){
   if(!libsWithCounts.length) return null;
   const section=document.createElement('div');
@@ -1490,8 +1502,6 @@ window._toggleLibSaveInline=function(id,name,thumb,count){
     b.classList.toggle('saved', newState);
     b.innerHTML = newState ? '<i class="fas fa-bookmark"></i>' : '<i class="far fa-bookmark"></i>';
   });
-  // Saved-row membership changes the moment something is saved/unsaved,
-  // so refresh that pinned row in place if it's already rendered.
   refreshSavedRow();
 };
 
@@ -1519,7 +1529,6 @@ async function loadLibraryBatch(isInitial=true){
   const grid=document.getElementById('mainGrid');
   try{
     if(isInitial){
-      // Pinned first row: saved libraries, refreshed against localStorage.
       syncFavouritesFromLocal();
       const savedLibs=getSavedLibs();
       if(savedLibs.length){
@@ -1546,7 +1555,7 @@ async function loadLibraryBatch(isInitial=true){
       (irows||[]).forEach(r=>{libCountMap[r.playlist_id]=(libCountMap[r.playlist_id]||0)+1;});
 
       const withCounts=libs
-        .filter(l=>!userFavourites.has(String(l.id))) // saved ones already shown in the pinned row
+        .filter(l=>!userFavourites.has(String(l.id)))
         .map(l=>({lib:l,articleCount:libCountMap[l.id]||0}));
 
       clearShelfSkeletons();
