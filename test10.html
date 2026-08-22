@@ -607,6 +607,40 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
       if (result.error) throw result.error;
 
       articles = result.data || [];
+
+      // Articles carry no image column of their own — images live in a
+      // separate `media` table (article_id, url, type, display_order,
+      // caption). One extra query covering every loaded article at once,
+      // filtered to type='image' and sorted by display_order, then we keep
+      // only the first (lowest display_order) image per article and attach
+      // it directly onto the in-memory article object so the rest of the
+      // tagging flow can read it like a normal field.
+      var articleIds = articles.map(function(a) { return a.id; });
+      if (articleIds.length > 0) {
+        var mediaResult = await sbClient
+          .from('media')
+          .select('article_id,url,type,display_order,caption')
+          .in('article_id', articleIds)
+          .eq('type', 'image')
+          .order('display_order', { ascending: true });
+
+        if (mediaResult.error) {
+          console.error('Media load failed (continuing without images):', mediaResult.error);
+        } else {
+          var firstImageByArticle = {};
+          (mediaResult.data || []).forEach(function(m) {
+            if (!firstImageByArticle[m.article_id]) {
+              firstImageByArticle[m.article_id] = { url: m.url, caption: m.caption || '' };
+            }
+          });
+          articles.forEach(function(a) {
+            var img = firstImageByArticle[a.id];
+            a._coverImageUrl = img ? img.url : null;
+            a._coverImageCaption = img ? img.caption : '';
+          });
+        }
+      }
+
       cardTags = {};
       taggedCount = 0;
       renderCardsStudio(articles);
@@ -631,16 +665,17 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
     }
 
     container.innerHTML = data.map(function(article, i) {
-      var title   = article.title || article.name || article.heading || '(Untitled)';
-      var content = article.content || article.body || article.text || article.summary || article.excerpt || '';
+      var title   = article.title || '(Untitled)';
+      var content = article.content || '';
       var snippet = (typeof content === 'string' ? content : JSON.stringify(content)).slice(0, 220);
       var id      = String(article.id);
+      var hasImg  = !!article._coverImageUrl;
 
       return '<div class="article-card" id="card-' + id + '" data-id="' + id + '">' +
         '<div class="card-header">' +
           '<div class="card-index">' + String(i+1).padStart(2,'0') + '</div>' +
           '<div class="card-meta">' +
-            '<div class="card-title">' + escHtml(title) + '</div>' +
+            '<div class="card-title">' + escHtml(title) + (hasImg ? ' <i class="fa fa-image" style="font-size:11px;color:var(--gold-dim)" title="Has image"></i>' : '') + '</div>' +
             (snippet ? '<div class="card-excerpt">' + escHtml(snippet) + '</div>' : '') +
           '</div>' +
           '<span class="card-badge badge-pending" id="badge-' + id + '">Untagged</span>' +
@@ -723,10 +758,14 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
     }
   }
 
-  function buildTagPrompt(title, snippet, maxTags) {
+  function buildTagPrompt(title, snippet, maxTags, hasImage, imageCaption) {
+    var imageNote = hasImage
+      ? '\nAn image from this article is attached' + (imageCaption ? ' (caption: "' + imageCaption + '")' : '') + '. Consider its visual content (diagrams, charts, clinical photos, ECGs, imaging studies, etc.) alongside the text when choosing tags.\n'
+      : '';
     return 'You are an algorithm content tagger for Patholytica, an adaptive learning/ reading platform.\n\n' +
       'Article title: "' + title + '"\n' +
-      'Article content (excerpt): "' + snippet + '"\n\n' +
+      'Article content (excerpt): "' + snippet + '"\n' +
+      imageNote + '\n' +
       'Generate up to ' + maxTags + ' precise, lowercase, hyphenated tags for this article.\n' +
       'tags should reflect the topics of relation to the article from extreme to modrate relation. or learning topic.\n' +
       'Examples of good tags: nephrology, aki, fluid-overload, ecg-interpretation, pharmacology, type-2-diabetes\n\n' +
@@ -741,8 +780,22 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
     return tags;
   }
 
-  async function callPuter(prompt, model) {
-    var response = await puter.ai.chat(prompt, { model: model });
+  // Shared across providers — both puter.ai.chat and OpenRouter's chat
+  // endpoint accept the same OpenAI-style content-array shape for multimodal
+  // messages: [{type:'text',text:...}, {type:'image_url',image_url:{url:...}}].
+  // When there's no image, we keep sending a plain string, matching prior
+  // behavior exactly and avoiding any provider quirks with single-block arrays.
+  function buildMessageContent(prompt, imageUrl) {
+    if (!imageUrl) return prompt;
+    return [
+      { type: 'text', text: prompt },
+      { type: 'image_url', image_url: { url: imageUrl } }
+    ];
+  }
+
+  async function callPuter(prompt, model, imageUrl) {
+    var content = buildMessageContent(prompt, imageUrl);
+    var response = await puter.ai.chat(content, { model: model });
     var raw = '';
     if (typeof response === 'string') {
       raw = response;
@@ -756,9 +809,11 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
     return raw;
   }
 
-  async function callOpenRouter(prompt, model) {
+  async function callOpenRouter(prompt, model, imageUrl) {
     var apiKey = document.getElementById('orKey').value.trim();
     if (!apiKey) throw new Error('Enter an OpenRouter API key in the sidebar first');
+
+    var content = buildMessageContent(prompt, imageUrl);
 
     var res = await fetch(OPENROUTER_ENDPOINT, {
       method: 'POST',
@@ -769,7 +824,7 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
       },
       body: JSON.stringify({
         model: model,
-        messages: [{ role: 'user', content: prompt }],
+        messages: [{ role: 'user', content: content }],
         max_tokens: 300
       })
     });
@@ -779,11 +834,11 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
       var msg = (data && data.error && data.error.message) ? data.error.message : ('OpenRouter request failed (' + res.status + ')');
       throw new Error(msg);
     }
-    var content = data && data.choices && data.choices[0] && data.choices[0].message
+    var responseContent = data && data.choices && data.choices[0] && data.choices[0].message
       ? data.choices[0].message.content
       : null;
-    if (!content) throw new Error('OpenRouter returned no content');
-    return content;
+    if (!responseContent) throw new Error('OpenRouter returned no content');
+    return responseContent;
   }
 
   async function tagArticleWithAI(id) {
@@ -803,28 +858,30 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
       return;
     }
 
+    var imageUrl = article._coverImageUrl || null;
+
     card.classList.add('tagging');
     badge.className = 'card-badge badge-tagging';
     badge.textContent = 'Tagging…';
     aibtn.disabled = true;
-    tagArea.innerHTML = '<div class="thinking-pulse">AI is reading…</div>';
+    tagArea.innerHTML = '<div class="thinking-pulse">' + (imageUrl ? 'AI is reading text + image…' : 'AI is reading…') + '</div>';
 
-    var title   = article.title || article.name || article.heading || '';
-    var content = article.content || article.body || article.text || article.summary || '';
+    var title   = article.title || '';
+    var content = article.content || '';
     var snippet = (typeof content === 'string' ? content : JSON.stringify(content)).slice(0, 1200);
-    var prompt  = buildTagPrompt(title, snippet, maxTags);
+    var prompt  = buildTagPrompt(title, snippet, maxTags, !!imageUrl, article._coverImageCaption);
 
     try {
       var raw = provider === 'openrouter'
-        ? await callOpenRouter(prompt, model)
-        : await callPuter(prompt, model);
+        ? await callOpenRouter(prompt, model, imageUrl)
+        : await callPuter(prompt, model, imageUrl);
 
       var tags = extractTagArray(raw);
 
       setTags(id, tags);
       card.classList.remove('tagging');
       badge.className = 'card-badge badge-done';
-      badge.textContent = 'AI Tagged';
+      badge.textContent = imageUrl ? 'AI Tagged (+image)' : 'AI Tagged';
     } catch (err) {
       console.error('AI error:', err);
       card.classList.remove('tagging');
@@ -1341,7 +1398,7 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
       if (aE) throw aE;
 
       var byId = {};
-      (arts || []).forEach(function(a) { byId[a.id] = a.title || a.name || ('Article #' + a.id); });
+      (arts || []).forEach(function(a) { byId[a.id] = a.title || ('Article #' + a.id); });
 
       var rowsHtml = ids.map(function(id) {
         var title = byId[id] || ('Article #' + id + ' (title unavailable)');
