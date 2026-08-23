@@ -461,6 +461,54 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 }
 .strip-pill:hover .create-strip-circle { border-color: var(--accent) !important; }
 
+/* ══ Reading Lobbies bug button (item 3) ══ */
+.lobby-bug-wrap { padding: 4px 16px 18px; }
+.lobby-bug-btn {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 12px 14px; border-radius: 14px;
+  background: linear-gradient(135deg, rgba(200,169,110,0.14), rgba(200,169,110,0.05));
+  border: 1px solid rgba(200,169,110,0.28);
+  color: var(--text-primary); cursor: pointer;
+  font-family: var(--font-ui); transition: border-color 0.15s, transform 0.1s;
+  text-align: left;
+}
+.lobby-bug-btn:hover { border-color: var(--accent); }
+.lobby-bug-btn:active { transform: scale(0.99); }
+.lobby-bug-icon {
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  background: var(--accent-soft); border: 1px solid rgba(200,169,110,0.3);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent); font-size: 14px;
+}
+.lobby-bug-text { flex: 1; min-width: 0; }
+.lobby-bug-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.lobby-bug-sub { font-size: 10.5px; color: var(--text-secondary); margin-top: 1px; }
+.lobby-bug-btn i.chev { color: var(--text-secondary); font-size: 11px; flex-shrink: 0; }
+
+/* ══ Tune Your Feed bug button — matches Reading Lobbies styling ══ */
+.tune-bug-wrap { padding: 0 16px 18px; }
+.tune-bug-btn {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 12px 14px; border-radius: 14px;
+  background: linear-gradient(135deg, rgba(200,169,110,0.14), rgba(200,169,110,0.05));
+  border: 1px solid rgba(200,169,110,0.28);
+  color: var(--text-primary); cursor: pointer;
+  font-family: var(--font-ui); transition: border-color 0.15s, transform 0.1s;
+  text-align: left;
+}
+.tune-bug-btn:hover { border-color: var(--accent); }
+.tune-bug-btn:active { transform: scale(0.99); }
+.tune-bug-icon {
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  background: var(--accent-soft); border: 1px solid rgba(200,169,110,0.3);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent); font-size: 14px;
+}
+.tune-bug-text { flex: 1; min-width: 0; }
+.tune-bug-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.tune-bug-sub { font-size: 10.5px; color: var(--text-secondary); margin-top: 1px; }
+.tune-bug-btn i.chev { color: var(--text-secondary); font-size: 11px; flex-shrink: 0; }
+
 /* ══ Library shelf rows.
    FIX (edge-sticking): track padding bumped 14px → 16px on both
    sides, and scroll-padding-left/right added so the browser's own
@@ -764,10 +812,34 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
     <div class="strip-skeleton-pill" id="creatorSkel2"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
     <div class="strip-skeleton-pill" id="creatorSkel3"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
     <div class="strip-skeleton-pill" id="creatorSkel4"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
-    <div class="strip-skeleton-pill" id="creatorSkel5"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
+  </div>
+
+  <!-- Item 3: Reading Lobbies bug button -->
+  <div class="lobby-bug-wrap">
+    <button class="lobby-bug-btn" onclick="location.href='https://Patholytica.com/lobby'">
+      <div class="lobby-bug-icon"><i class="fas fa-users"></i></div>
+      <div class="lobby-bug-text">
+        <div class="lobby-bug-title">Reading Lobbies</div>
+        <div class="lobby-bug-sub">Study together in real time</div>
+      </div>
+      <i class="fas fa-chevron-right chev"></i>
+    </button>
+  </div>
+
+  <!-- Tune Your Feed bug button -->
+  <div class="tune-bug-wrap">
+    <button class="tune-bug-btn" onclick="location.href='https://Patholytica.com/tune'">
+      <div class="tune-bug-icon"><i class="fas fa-sliders-h"></i></div>
+      <div class="tune-bug-text">
+        <div class="tune-bug-title">Tune Your Feed</div>
+        <div class="tune-bug-sub">Pick topics to bring into or remove from your picks</div>
+      </div>
+      <i class="fas fa-chevron-right chev"></i>
+    </button>
   </div>
 
   <div class="ig-feed" id="mainGrid"></div>
+
   <div class="scroll-sentinel" id="scrollSentinel"></div>
   <div class="scroll-loader-wrap" id="scrollLoaderWrap"><div class="scroll-loader-spinner"></div></div>
   <div class="scroll-end-msg" id="scrollEndMsg">You're all caught up</div>
@@ -1091,6 +1163,7 @@ let userFavourites  = new Set();
 
 function syncFavouritesFromLocal(){
   userFavourites = new Set(getSavedLibs().map(l=>String(l.id)));
+  window.__debugFavs = userFavourites; // TEMP — remove after debugging
 }
 window.userFavouritesLocalSync = syncFavouritesFromLocal;
 syncFavouritesFromLocal();
@@ -1234,6 +1307,11 @@ onAuthStateChanged(auth, async user=>{
   // the bell before this resolved and is currently staring at the
   // fallback spinner from the guard above.
   await window._supabaseNotifLoader();
+
+  // Item 1: creators strip depends on knowing who the user follows,
+  // which depends on currentSupaUser — (re)build it now that auth has
+  // settled, whichever way it went.
+  loadCreators();
 });
 
 window._doLogout = async function(){
@@ -1405,29 +1483,69 @@ window.closeCardPreview=function(e){
     document.getElementById('cardFloatOverlay').classList.remove('open');
 };
 
-/* ══ CREATORS STRIP ══ */
+/* ══════════════════════════════════════════════════════════
+   CREATORS STRIP (item 1) — rewritten to prioritize accounts
+   the logged-in user follows via subscriptions. Falls back to
+   the existing "most prolific author" heuristic, capped at 5,
+   when the user isn't logged in or follows no one.
+══════════════════════════════════════════════════════════ */
 async function loadCreators(){
   const strip = document.getElementById('creatorsStrip');
+  strip.querySelectorAll('.creator-strip-pill').forEach(el=>el.remove());
+
   try{
-    const{data:arts}=await supabase.from('articles').select('firebase_user_id');
-    if(!arts) return;
-    const counts={};
-    arts.forEach(a=>{if(a.firebase_user_id)counts[a.firebase_user_id]=(counts[a.firebase_user_id]||0)+1;});
-    const topUids=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([u])=>u);
-    if(!topUids.length){ strip.querySelectorAll('[id^="creatorSkel"]').forEach(el=>el.remove()); return; }
-    const{data:users}=await supabase.from('users').select('firebase_uid,username,full_name,pfp').in('firebase_uid',topUids);
-    const um={};(users||[]).forEach(u=>{um[u.firebase_uid]=u;});
+    let followedUids = [];
+
+    if(currentSupaUser){
+      const{data:subs}=await supabase.from('subscriptions')
+        .select('author_id').eq('subscriber_id', currentSupaUser.user_id);
+      const authorIds = [...new Set((subs||[]).map(s=>s.author_id))];
+      if(authorIds.length){
+        const{data:followedUsers}=await supabase.from('users')
+          .select('firebase_uid,username,full_name,pfp').in('id',authorIds);
+        followedUids = (followedUsers||[]).map(u=>({
+          uid: u.firebase_uid, username: u.username, full_name: u.full_name, pfp: u.pfp
+        }));
+      }
+    }
+
+    let displayList = [];
+
+    if(followedUids.length){
+      displayList = followedUids;
+    } else {
+      // Fallback: most-prolific-authors pool, shuffled, capped at 5 —
+      // used both for guests and for logged-in users who follow no one.
+      const{data:arts}=await supabase.from('articles').select('firebase_user_id');
+      const counts={};
+      (arts||[]).forEach(a=>{if(a.firebase_user_id)counts[a.firebase_user_id]=(counts[a.firebase_user_id]||0)+1;});
+      const pool=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,20).map(([u])=>u);
+      // Fisher-Yates shuffle the candidate pool before slicing, so
+      // "maximum 5 random accounts" doesn't always show the same 5.
+      for(let i=pool.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [pool[i],pool[j]]=[pool[j],pool[i]];
+      }
+      const topUids=pool.slice(0,5);
+      if(topUids.length){
+        const{data:users}=await supabase.from('users').select('firebase_uid,username,full_name,pfp').in('firebase_uid',topUids);
+        displayList = (users||[]).map(u=>({
+          uid: u.firebase_uid, username: u.username, full_name: u.full_name, pfp: u.pfp
+        }));
+      }
+    }
+
     strip.querySelectorAll('[id^="creatorSkel"]').forEach(el=>el.remove());
-    topUids.forEach(uid=>{
-      const u=um[uid];
-      const name=u?.username?'@'+u.username:(u?.full_name||'?');
+
+    displayList.forEach(u=>{
+      const name=u.username?'@'+u.username:(u.full_name||'?');
       const init=(name.replace(/^@/,'')||'?')[0].toUpperCase();
       const pill=document.createElement('div');
       pill.className='strip-pill creator-strip-pill';
       pill.innerHTML=`
-        <div class="creator-pill-circle">${u?.pfp?`<img src="${esc(u.pfp)}" alt="${init}">`:`${init}`}</div>
+        <div class="creator-pill-circle">${u.pfp?`<img src="${esc(u.pfp)}" alt="${init}">`:`${init}`}</div>
         <div class="strip-pill-name">${esc(name)}</div>`;
-      pill.addEventListener('click',()=>openUserPopup(uid));
+      pill.addEventListener('click',()=>openUserPopup(u.uid));
       strip.appendChild(pill);
     });
   }catch(e){
@@ -1435,9 +1553,7 @@ async function loadCreators(){
   }
 }
 
-/* ══════════════════════════════════════════════════════════
-   LIBRARY SHELF BUILDERS
-══════════════════════════════════════════════════════════ */
+/* ══ CARD BUILDERS ══ */
 
 function libraryCoverCardHTML(lib,articleCount,sizeClass){
   const isSaved=isLibSaved(lib.id);
@@ -1614,7 +1730,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if(sentinel) scrollObserver.observe(sentinel);
 });
 
-loadCreators();
+// loadCreators() is now called from inside onAuthStateChanged (above)
+// once auth has actually resolved, rather than fired here immediately
+// — calling it before Firebase resolves would mean it always takes
+// the guest/fallback path even for a user who's about to be
+// recognized as logged in a moment later.
 loadLibraryBatch(true);
 </script>
 
