@@ -461,12 +461,12 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 }
 .strip-pill:hover .create-strip-circle { border-color: var(--accent) !important; }
 
-/* ══ Reading Lobbies bug button (item 3) ══ */
+/* ══ Reading Lobbies bug button — flat color, no gradient ══ */
 .lobby-bug-wrap { padding: 4px 16px 18px; }
 .lobby-bug-btn {
   display: flex; align-items: center; gap: 10px;
   width: 100%; padding: 12px 14px; border-radius: 14px;
-  background: linear-gradient(135deg, rgba(200,169,110,0.14), rgba(200,169,110,0.05));
+  background: var(--accent-soft);
   border: 1px solid rgba(200,169,110,0.28);
   color: var(--text-primary); cursor: pointer;
   font-family: var(--font-ui); transition: border-color 0.15s, transform 0.1s;
@@ -485,12 +485,12 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 .lobby-bug-sub { font-size: 10.5px; color: var(--text-secondary); margin-top: 1px; }
 .lobby-bug-btn i.chev { color: var(--text-secondary); font-size: 11px; flex-shrink: 0; }
 
-/* ══ Tune Your Feed bug button — matches Reading Lobbies styling ══ */
+/* ══ Tune Your Feed bug button — flat color, matches Reading Lobbies ══ */
 .tune-bug-wrap { padding: 0 16px 18px; }
 .tune-bug-btn {
   display: flex; align-items: center; gap: 10px;
   width: 100%; padding: 12px 14px; border-radius: 14px;
-  background: linear-gradient(135deg, rgba(200,169,110,0.14), rgba(200,169,110,0.05));
+  background: var(--accent-soft);
   border: 1px solid rgba(200,169,110,0.28);
   color: var(--text-primary); cursor: pointer;
   font-family: var(--font-ui); transition: border-color 0.15s, transform 0.1s;
@@ -814,7 +814,7 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
     <div class="strip-skeleton-pill" id="creatorSkel4"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
   </div>
 
-  <!-- Item 3: Reading Lobbies bug button -->
+  <!-- Reading Lobbies bug button -->
   <div class="lobby-bug-wrap">
     <button class="lobby-bug-btn" onclick="location.href='https://Patholytica.com/lobby'">
       <div class="lobby-bug-icon"><i class="fas fa-users"></i></div>
@@ -826,19 +826,11 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
     </button>
   </div>
 
-  <!-- Tune Your Feed bug button -->
-  <div class="tune-bug-wrap">
-    <button class="tune-bug-btn" onclick="location.href='https://Patholytica.com/tune'">
-      <div class="tune-bug-icon"><i class="fas fa-sliders-h"></i></div>
-      <div class="tune-bug-text">
-        <div class="tune-bug-title">Tune Your Feed</div>
-        <div class="tune-bug-sub">Pick topics to bring into or remove from your picks</div>
-      </div>
-      <i class="fas fa-chevron-right chev"></i>
-    </button>
-  </div>
-
   <div class="ig-feed" id="mainGrid"></div>
+
+  <!-- Tune Your Feed bug button is inserted here dynamically by JS,
+       right after the "Recently Added" row (the first real shelf row
+       to render) — see maybeInsertTuneBug() below. -->
 
   <div class="scroll-sentinel" id="scrollSentinel"></div>
   <div class="scroll-loader-wrap" id="scrollLoaderWrap"><div class="scroll-loader-spinner"></div></div>
@@ -1175,6 +1167,7 @@ const ROW_SIZE = 10;
 let libRowOffset = 0;
 let libsExhausted = false;
 let libCountMap = {};
+let tuneBugInserted = false;
 
 /* ══ NOTIFICATIONS ══
    FIX (stuck-spinner / needs-several-taps): previously this function
@@ -1553,6 +1546,38 @@ async function loadCreators(){
   }
 }
 
+/* ══════════════════════════════════════════════════════════
+   TUNE YOUR FEED BUG BUTTON
+   Inserted dynamically right after the "Recently Added" row —
+   i.e. the first non-"saved" shelf section to actually render —
+   since that row doesn't exist until data has loaded. Guarded
+   by tuneBugInserted so it only ever gets inserted once, even
+   though loadLibraryBatch can run again via infinite scroll.
+══════════════════════════════════════════════════════════ */
+function tuneBugElement(){
+  const wrap=document.createElement('div');
+  wrap.className='tune-bug-wrap';
+  wrap.innerHTML=`
+    <button class="tune-bug-btn" onclick="location.href='https://Patholytica.com/tune'">
+      <div class="tune-bug-icon"><i class="fas fa-sliders-h"></i></div>
+      <div class="tune-bug-text">
+        <div class="tune-bug-title">Tune Your Feed</div>
+        <div class="tune-bug-sub">Pick topics to bring into or remove from your picks</div>
+      </div>
+      <i class="fas fa-chevron-right chev"></i>
+    </button>`;
+  return wrap;
+}
+
+function maybeInsertTuneBug(){
+  if(tuneBugInserted) return;
+  const grid=document.getElementById('mainGrid');
+  const firstRealRow=grid.querySelector('.shelf-section:not([data-row-key="saved"])');
+  if(!firstRealRow) return;
+  firstRealRow.insertAdjacentElement('afterend', tuneBugElement());
+  tuneBugInserted=true;
+}
+
 /* ══ CARD BUILDERS ══ */
 
 function libraryCoverCardHTML(lib,articleCount,sizeClass){
@@ -1691,6 +1716,10 @@ async function loadLibraryBatch(isInitial=true){
       }
     }
 
+    // Tune Your Feed bug: insert right after the first real ("Recently
+    // Added") shelf row, once it exists.
+    maybeInsertTuneBug();
+
     updateScrollLoaderState();
   }catch(e){
     console.error(e);
@@ -1730,11 +1759,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if(sentinel) scrollObserver.observe(sentinel);
 });
 
-// loadCreators() is now called from inside onAuthStateChanged (above)
-// once auth has actually resolved, rather than fired here immediately
-// — calling it before Firebase resolves would mean it always takes
-// the guest/fallback path even for a user who's about to be
-// recognized as logged in a moment later.
+// loadCreators() is called from inside onAuthStateChanged (above) once
+// auth has actually resolved, rather than fired here immediately —
+// calling it before Firebase resolves would mean it always takes the
+// guest/fallback path even for a user who's about to be recognized as
+// logged in a moment later.
 loadLibraryBatch(true);
 </script>
 
