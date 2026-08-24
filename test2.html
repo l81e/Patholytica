@@ -1,704 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <title>Patholytica — My Feed</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-
-:root {
-  --bg-color: #0f0e0b;
-  --text-primary: #f5f0e8;
-  --text-secondary: #8a8070;
-  --hover-bg: #1a1810;
-  --border-color: #2a2518;
-  --accent: #c8a96e;
-  --accent-hover: #b8935a;
-  --accent-glow: rgba(200,169,110,0.25);
-  --accent-soft: rgba(200,169,110,0.12);
-  --danger: #c46a4e;
-  --danger-soft: rgba(196,106,78,0.12);
-  --success: #6abf85;
-  --font-article: 'Merriweather', serif;
-  --font-ui: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-body.theme-light {
-  --bg-color: #faf6ee; --text-primary: #1a1710; --text-secondary: #706050;
-  --hover-bg: #f0ebe0; --border-color: #e0d8c8;
-  --accent: #a07840; --accent-hover: #8a6430;
-  --accent-glow: rgba(160,120,64,0.2); --accent-soft: rgba(160,120,64,0.08);
-}
-
-* { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { min-height: 100%; }
-body {
-  font-family: var(--font-ui);
-  background: var(--bg-color);
-  color: var(--text-primary);
-  overflow-x: hidden;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-/* ══ Header ══ */
-.static-header {
-  background: var(--bg-color);
-  padding-top: env(safe-area-inset-top);
-  position: sticky; top: 0; z-index: 100;
-  border-bottom: 1px solid var(--border-color);
-}
-.static-header-inner {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 18px; max-width: 720px; margin: 0 auto; gap: 12px;
-}
-.header-back {
-  width: 36px; height: 36px; border-radius: 50%;
-  background: none; border: none; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 15px; color: var(--text-secondary);
-  transition: color 0.2s, background 0.2s; flex-shrink: 0;
-}
-.header-back:hover { color: var(--accent); background: var(--accent-soft); }
-.header-title-block { flex: 1; min-width: 0; }
-.header-title {
-  font-family: var(--font-article); font-size: 16px; font-weight: 800;
-  color: var(--text-primary); line-height: 1.2;
-}
-.header-sub { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
-
-/* ══ Auth gate ══ */
-.gate-wrap {
-  max-width: 400px; margin: 80px auto; padding: 0 24px;
-  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;
-}
-.gate-icon { font-size: 34px; color: var(--accent); opacity: 0.7; }
-.gate-title { font-family: var(--font-article); font-size: 18px; font-weight: 800; }
-.gate-sub { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
-.gate-btn {
-  margin-top: 6px; padding: 11px 24px; border-radius: 10px;
-  background: var(--accent); color: #0f0e0b; font-weight: 700; font-size: 13px;
-  border: none; cursor: pointer; font-family: var(--font-ui);
-}
-.gate-btn:hover { background: var(--accent-hover); }
-
-/* ══ Page body ══ */
-.page-body { max-width: 720px; margin: 0 auto; padding: 18px 16px 60px; }
-
-.section { margin-bottom: 22px; }
-.section-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 12px; gap: 10px; flex-wrap: wrap;
-}
-.section-title {
-  font-size: 15px; font-weight: 800; color: var(--text-primary);
-  font-family: var(--font-article); display: flex; align-items: center; gap: 8px;
-}
-.section-title i { font-size: 13px; color: var(--accent); }
-.section-sub { font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; font-weight: 500; }
-.section-count { font-size: 11px; color: var(--text-secondary); font-weight: 600; flex-shrink: 0; }
-
-.card {
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-radius: 16px; overflow: hidden;
-}
-
-/* ══ Pick rows ══ */
-.pick-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 12px 14px; border-bottom: 1px solid var(--border-color);
-  transition: background 0.3s ease, opacity 0.25s ease, transform 0.25s ease;
-}
-.pick-row:last-child { border-bottom: none; }
-.pick-row.flash { background: var(--accent-soft); }
-.pick-row.removing { opacity: 0; transform: translateX(12px); }
-.pick-rank {
-  width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
-  background: var(--bg-color); border: 1px solid var(--border-color);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 800; color: var(--text-secondary);
-  font-family: var(--font-article);
-}
-.pick-row:nth-child(-n+3) .pick-rank { color: var(--accent); border-color: rgba(200,169,110,0.35); }
-.pick-thumb {
-  width: 42px; height: 42px; border-radius: 9px; flex-shrink: 0;
-  background: var(--accent-soft); overflow: hidden;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--accent); font-size: 15px;
-}
-.pick-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.pick-info { flex: 1; min-width: 0; }
-.pick-title {
-  font-size: 13px; font-weight: 700; color: var(--text-primary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.pick-meta { display: flex; gap: 6px; margin-top: 3px; flex-wrap: wrap; }
-.pick-tag {
-  font-size: 9.5px; font-weight: 600; color: var(--text-secondary);
-  background: var(--bg-color); border: 1px solid var(--border-color);
-  border-radius: 5px; padding: 1px 6px;
-}
-.pick-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
-.pick-icon-btn {
-  width: 28px; height: 28px; border-radius: 8px; border: none; background: none;
-  color: var(--text-secondary); font-size: 11px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: background 0.15s, color 0.15s;
-}
-.pick-icon-btn:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
-.pick-icon-btn:disabled { opacity: 0.25; cursor: default; }
-.pick-icon-btn.danger:hover:not(:disabled) { background: var(--danger-soft); color: var(--danger); }
-
-.pick-skel { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--border-color); }
-.pick-skel:last-child { border-bottom: none; }
-@keyframes skelShimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
-.skel-box {
-  border-radius: 8px;
-  background: linear-gradient(90deg, var(--border-color) 25%, var(--hover-bg) 50%, var(--border-color) 75%);
-  background-size: 400px 100%; animation: skelShimmer 1.4s ease infinite; flex-shrink: 0;
-}
-
-.empty-mini {
-  display: flex; flex-direction: column; align-items: center; text-align: center;
-  padding: 36px 20px; gap: 8px; color: var(--text-secondary);
-}
-.empty-mini i { font-size: 26px; opacity: 0.25; color: var(--accent); }
-.empty-mini p { font-size: 12.5px; opacity: 0.65; line-height: 1.6; max-width: 280px; }
-
-/* ══ Add picks (article browser) ══ */
-.add-toggle-btn {
-  display: flex; align-items: center; gap: 8px;
-  padding: 9px 14px; border-radius: 20px; font-size: 12px; font-weight: 700;
-  border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-secondary);
-  cursor: pointer; font-family: var(--font-ui); transition: all 0.15s; flex-shrink: 0;
-}
-.add-toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
-.add-toggle-btn.open { background: var(--accent); color: #0f0e0b; border-color: var(--accent); }
-
-.add-panel { max-height: 0; overflow: hidden; transition: max-height 0.28s ease; }
-.add-panel.open { max-height: 640px; }
-.add-panel-inner { padding: 14px; border-top: 1px solid var(--border-color); }
-.add-search-row { position: relative; margin-bottom: 12px; }
-.add-search-row i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 12px; }
-.add-search-input {
-  width: 100%; padding: 10px 12px 10px 34px; border-radius: 10px;
-  background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-primary);
-  font-size: 13px; font-family: var(--font-ui); outline: none; transition: border-color 0.2s;
-}
-.add-search-input:focus { border-color: var(--accent); }
-.add-results { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
-.add-result-row {
-  display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px;
-  background: var(--bg-color); border: 1px solid var(--border-color); transition: border-color 0.15s;
-}
-.add-result-row:hover { border-color: rgba(200,169,110,0.3); }
-.add-result-thumb {
-  width: 34px; height: 34px; border-radius: 7px; flex-shrink: 0;
-  background: var(--accent-soft); display: flex; align-items: center; justify-content: center;
-  color: var(--accent); font-size: 12px; overflow: hidden;
-}
-.add-result-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.add-result-info { flex: 1; min-width: 0; }
-.add-result-title {
-  font-size: 12.5px; font-weight: 700; color: var(--text-primary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.add-result-meta { font-size: 10px; color: var(--text-secondary); margin-top: 1px; }
-.add-result-btn {
-  flex-shrink: 0; padding: 6px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;
-  border: 1px solid var(--border-color); background: none; color: var(--text-secondary);
-  cursor: pointer; font-family: var(--font-ui); transition: all 0.15s;
-}
-.add-result-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
-.add-result-btn:disabled { opacity: 0.5; cursor: default; border-color: rgba(106,191,133,0.4); color: var(--success); }
-.add-empty { text-align: center; padding: 20px; font-size: 12px; color: var(--text-secondary); opacity: 0.7; }
-.add-loading { display: flex; justify-content: center; padding: 18px; }
-.mini-spinner {
-  width: 20px; height: 20px; border: 2px solid var(--border-color); border-top-color: var(--accent);
-  border-radius: 50%; animation: spin 0.9s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ══ Tag preferences ══ */
-.tag-panel-body { padding: 4px 14px 14px; display: flex; flex-wrap: wrap; gap: 8px; }
-.fc-tag-pill {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 13px; border-radius: 20px; font-size: 12px; font-weight: 700;
-  border: 1px solid var(--border-color); background: var(--bg-color);
-  color: var(--text-secondary); cursor: pointer;
-  font-family: var(--font-ui); transition: all 0.15s;
-}
-.fc-tag-pill:hover:not(.on) { border-color: var(--accent); color: var(--accent); }
-.fc-tag-pill.on { background: var(--accent); color: #0f0e0b; border-color: var(--accent); }
-.fc-tag-pill.loading { opacity: 0.55; pointer-events: none; }
-.fc-tag-pill i { font-size: 10px; }
-.tag-panel-loading { padding: 20px; display: flex; justify-content: center; }
-.tag-panel-empty { padding: 18px 14px; text-align: center; font-size: 12px; color: var(--text-secondary); opacity: 0.7; }
-.tag-panel-hint { font-size: 11px; color: var(--text-secondary); padding: 0 14px 12px; line-height: 1.5; }
-
-/* ══ Toast ══ */
-.toast {
-  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(10px);
-  background: var(--hover-bg); border: 1px solid var(--border-color);
-  border-radius: 14px; padding: 10px 18px;
-  font-size: 13px; font-weight: 700; color: var(--text-primary);
-  z-index: 9999; opacity: 0; transition: opacity 0.2s ease, transform 0.2s ease;
-  pointer-events: none; white-space: nowrap; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-  max-width: calc(100vw - 40px); overflow: hidden; text-overflow: ellipsis;
-}
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-.toast.error { border-color: rgba(196,106,78,0.4); }
-
-@media (min-width: 700px) {
-  .page-body { padding-top: 24px; }
-}
-
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Random Image</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+  }
+  #img {
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    display: none;
+    cursor: pointer;
+  }
+  #status {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #888;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+  }
+  #hint {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    color: rgba(255,255,255,0.4);
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 12px;
+    pointer-events: none;
+  }
+</style>
 </head>
-<body class="theme-dark">
+<body>
+  <div id="status">loading…</div>
+  <img id="img" alt="Random image">
+  <div id="hint">click for another</div>
 
-<div class="toast" id="toast"></div>
+<script>
+  const img = document.getElementById('img');
+  const status = document.getElementById('status');
 
-<div class="static-header">
-  <div class="static-header-inner">
-    <button class="header-back" onclick="history.length>1?history.back():location.href='index.html'" title="Back">
-      <i class="fas fa-arrow-left"></i>
-    </button>
-    <div class="header-title-block">
-      <div class="header-title">My Feed</div>
-      <div class="header-sub" id="headerSub">Loading…</div>
-    </div>
-  </div>
-</div>
+  async function loadRandomImage() {
+    img.style.display = 'none';
+    status.style.display = 'block';
+    status.textContent = 'loading…';
 
-<!-- Shown until Firebase resolves a logged-in user -->
-<div class="gate-wrap" id="gateWrap" style="display:none;">
-  <div class="gate-icon"><i class="fas fa-lock"></i></div>
-  <div class="gate-title">Log in to manage your feed</div>
-  <div class="gate-sub">Your picks are tied to your account, so you'll need to be logged in to view or change them.</div>
-  <button class="gate-btn" onclick="location.href='login.html'">Log in</button>
-</div>
-
-<div class="page-body" id="pageBody" style="display:none;">
-
-  <!-- ══ Your Picks ══ -->
-  <div class="section">
-    <div class="section-header">
-      <div>
-        <div class="section-title"><i class="fas fa-list-ol"></i>Your Picks</div>
-        <div class="section-sub">Reorder, remove, or add articles by hand — lower number shows first in your feed</div>
-      </div>
-      <div class="section-count" id="picksCount">—</div>
-    </div>
-    <div class="card">
-      <div id="picksListWrap">
-        <div class="pick-skel"><div class="skel-box" style="width:26px;height:26px;"></div><div class="skel-box" style="width:42px;height:42px;"></div><div style="flex:1;"><div class="skel-box" style="height:11px;width:70%;margin-bottom:6px;"></div><div class="skel-box" style="height:9px;width:40%;"></div></div></div>
-        <div class="pick-skel"><div class="skel-box" style="width:26px;height:26px;"></div><div class="skel-box" style="width:42px;height:42px;"></div><div style="flex:1;"><div class="skel-box" style="height:11px;width:55%;margin-bottom:6px;"></div><div class="skel-box" style="height:9px;width:30%;"></div></div></div>
-        <div class="pick-skel"><div class="skel-box" style="width:26px;height:26px;"></div><div class="skel-box" style="width:42px;height:42px;"></div><div style="flex:1;"><div class="skel-box" style="height:11px;width:60%;margin-bottom:6px;"></div><div class="skel-box" style="height:9px;width:35%;"></div></div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ Add picks ══ -->
-  <div class="section">
-    <div class="section-header">
-      <div>
-        <div class="section-title"><i class="fas fa-plus-circle"></i>Add to Your Picks</div>
-        <div class="section-sub">Search your library and drop an article straight into your feed</div>
-      </div>
-      <button class="add-toggle-btn" id="addToggleBtn" onclick="toggleAddPanel()">
-        <i class="fas fa-search"></i><span>Browse</span>
-      </button>
-    </div>
-    <div class="card">
-      <div class="add-panel" id="addPanel">
-        <div class="add-panel-inner">
-          <div class="add-search-row">
-            <i class="fas fa-search"></i>
-            <input type="text" class="add-search-input" id="addSearchInput" placeholder="Search articles by title or tag…">
-          </div>
-          <div class="add-results" id="addResults">
-            <div class="add-empty">Start typing to search, or leave blank to browse recent articles</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ Tune Your Feed (tag preferences) ══ -->
-  <div class="section">
-    <div class="section-header">
-      <div>
-        <div class="section-title"><i class="fas fa-sliders-h"></i>Tune Your Feed</div>
-        <div class="section-sub">Pick topics you want to see more of</div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="tag-panel-hint">These don't move anything in the list above — they shape what gets suggested to you automatically as you read.</div>
-      <div id="tagPanelBody" class="tag-panel-loading"><div class="mini-spinner"></div></div>
-    </div>
-  </div>
-
-</div>
-
-<script type="module">
-import { initializeApp }        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-const firebaseConfig={
-  apiKey:"AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
-  authDomain:"patholytica.firebaseapp.com",
-  databaseURL:"https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId:"patholytica",
-  storageBucket:"patholytica.firebasestorage.app",
-  messagingSenderId:"738430635282",
-  appId:"1:738430635282:web:8451ef380447c7611137cb"
-};
-const app  = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const supabase = window.supabase.createClient(
-  "https://ltxgafwywkdcxdlobcah.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0eGdhZnd5d2tkY3hkbG9iY2FoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5MjU3NzUsImV4cCI6MjEwMDUwMTc3NX0.CR-FvlL1HODWjsD7VrZkWQvg_pEasIhPQBXbSHbbNoE"
-);
-
-function esc(s){ const d=document.createElement('div'); d.textContent = s==null ? '' : String(s); return d.innerHTML; }
-function trunc(s,n){ s=s||''; return s.length>n?s.slice(0,n)+'…':s; }
-
-let currentSupaUser = null;   // { user_id, username, full_name, firebase_uid }
-let pickItems = [];           // [{ id, article_id, position, articles:{title,tags} }]
-let searchDebounce = null;
-
-/* ══════════════════════════════════════════════════════════
-   AUTH GATE
-══════════════════════════════════════════════════════════ */
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    document.getElementById('gateWrap').style.display = 'flex';
-    document.getElementById('pageBody').style.display = 'none';
-    document.getElementById('headerSub').textContent = 'Not logged in';
-    return;
-  }
-  try {
-    const { data: ud, error } = await supabase
-      .from('users')
-      .select('id, username, full_name')
-      .eq('firebase_uid', user.uid)
-      .maybeSingle();
-
-    if (!ud || error) {
-      // Firebase says logged in, but no matching Supabase row —
-      // treat as gated rather than guessing at a user_id.
-      document.getElementById('gateWrap').style.display = 'flex';
-      document.getElementById('pageBody').style.display = 'none';
-      document.getElementById('headerSub').textContent = 'Account not found';
-      return;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      try {
+        const res = await fetch('https://en.wikipedia.org/api/rest_v1/page/random/summary');
+        if (!res.ok) continue;
+        const data = await res.json();
+        const src = (data.originalimage && data.originalimage.source)
+                 || (data.thumbnail && data.thumbnail.source);
+        if (src) {
+          await setImage(src);
+          return;
+        }
+      } catch (e) {
+        // network hiccup, try again
+      }
     }
-
-    currentSupaUser = { user_id: ud.id, ...ud, firebase_uid: user.uid };
-    document.getElementById('gateWrap').style.display = 'none';
-    document.getElementById('pageBody').style.display = 'block';
-    document.getElementById('headerSub').textContent = ud.username ? `@${ud.username}` : (ud.full_name || 'Your feed');
-
-    loadPicks();
-    loadTagPreferences();
-  } catch (e) {
-    console.error('Auth resolve error:', e);
-    document.getElementById('gateWrap').style.display = 'flex';
-    document.getElementById('pageBody').style.display = 'none';
-  }
-});
-
-/* ══════════════════════════════════════════════════════════
-   TOAST
-══════════════════════════════════════════════════════════ */
-window.showToast = function(msg, isError){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.toggle('error', !!isError);
-  t.classList.add('show');
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => t.classList.remove('show'), 2600);
-};
-
-/* ══════════════════════════════════════════════════════════
-   YOUR PICKS — load, render, reorder, remove
-   All writes go through SECURITY DEFINER RPCs (see SQL block
-   below the script) rather than direct table access, matching
-   the RLS-bypass pattern already used for insert_article etc.
-   Each RPC takes p_user_id and re-checks the pick_item actually
-   belongs to that user server-side — the browser is never
-   trusted to only ever pass its own ids.
-══════════════════════════════════════════════════════════ */
-async function loadPicks(){
-  const wrap = document.getElementById('picksListWrap');
-  try {
-    const { data: picksRow, error: picksErr } = await supabase
-      .from('picks').select('id').eq('user_id', currentSupaUser.user_id).maybeSingle();
-    if (picksErr) throw picksErr;
-
-    if (!picksRow) {
-      pickItems = [];
-      renderPicks();
-      return;
-    }
-
-    const { data: items, error: itemsErr } = await supabase
-      .from('pick_items')
-      .select('id, article_id, position, articles(title, tags, thumbnail_url)')
-      .eq('picks_id', picksRow.id)
-      .order('position', { ascending: true });
-    if (itemsErr) throw itemsErr;
-
-    pickItems = items || [];
-    renderPicks();
-  } catch (e) {
-    console.error(e);
-    wrap.innerHTML = `<div class="empty-mini"><i class="fas fa-exclamation-triangle"></i><p>Couldn't load your picks. Pull to refresh or try again in a moment.</p></div>`;
-  }
-}
-
-function renderPicks(flashArticleId){
-  const wrap = document.getElementById('picksListWrap');
-  document.getElementById('picksCount').textContent = `${pickItems.length} article${pickItems.length!==1?'s':''}`;
-
-  if (!pickItems.length) {
-    wrap.innerHTML = `<div class="empty-mini"><i class="fas fa-inbox"></i><p>No picks yet. Add one below, or keep reading — your feed builds itself as you view, like, and share.</p></div>`;
-    return;
+    status.textContent = 'having trouble — click to retry';
   }
 
-  wrap.innerHTML = pickItems.map((item, idx) => {
-    const art = item.articles || {};
-    const title = art.title && art.title.trim() ? art.title : `Article #${item.article_id}`;
-    const tags = (art.tags || []).slice(0, 2);
-    const thumb = art.thumbnail_url
-      ? `<img src="${esc(art.thumbnail_url)}" alt="">`
-      : `<i class="fas fa-file-alt"></i>`;
-    const isFirst = idx === 0;
-    const isLast = idx === pickItems.length - 1;
-    const isFlash = flashArticleId && item.article_id === flashArticleId;
-    return `<div class="pick-row${isFlash?' flash':''}" data-item-id="${item.id}">
-      <div class="pick-rank">${idx+1}</div>
-      <div class="pick-thumb">${thumb}</div>
-      <div class="pick-info">
-        <div class="pick-title">${esc(trunc(title,60))}</div>
-        <div class="pick-meta">${tags.map(t=>`<span class="pick-tag">${esc(t)}</span>`).join('')}</div>
-      </div>
-      <div class="pick-actions">
-        <button class="pick-icon-btn" ${isFirst?'disabled':''} title="Move up" onclick="movePick(${item.id}, 'up')"><i class="fas fa-chevron-up"></i></button>
-        <button class="pick-icon-btn" ${isLast?'disabled':''} title="Move down" onclick="movePick(${item.id}, 'down')"><i class="fas fa-chevron-down"></i></button>
-        <button class="pick-icon-btn danger" title="Remove from picks" onclick="removePick(${item.id})"><i class="fas fa-times"></i></button>
-      </div>
-    </div>`;
-  }).join('');
-
-  if (flashArticleId) {
-    setTimeout(() => wrap.querySelectorAll('.pick-row.flash').forEach(el => el.classList.remove('flash')), 1200);
-  }
-}
-
-window.movePick = async function(pickItemId, direction){
-  const idx = pickItems.findIndex(p => p.id === pickItemId);
-  if (idx === -1) return;
-  if (direction === 'up' && idx === 0) return;
-  if (direction === 'down' && idx === pickItems.length - 1) return;
-
-  // Optimistic local swap so the button feels instant; rolled back
-  // in the catch block if the server disagrees.
-  const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-  const before = pickItems.slice();
-  [pickItems[idx], pickItems[swapIdx]] = [pickItems[swapIdx], pickItems[idx]];
-  renderPicks();
-
-  try {
-    const { error } = await supabase.rpc('reorder_pick_item', {
-      p_user_id: currentSupaUser.user_id,
-      p_pick_item_id: pickItemId,
-      p_direction: direction
-    });
-    if (error) throw error;
-  } catch (e) {
-    console.error(e);
-    pickItems = before;
-    renderPicks();
-    showToast('Could not reorder — try again', true);
-  }
-};
-
-window.removePick = async function(pickItemId){
-  const row = document.querySelector(`[data-item-id="${pickItemId}"]`);
-  if (row) row.classList.add('removing');
-
-  const before = pickItems.slice();
-  try {
-    const { error } = await supabase.rpc('remove_pick_item', {
-      p_user_id: currentSupaUser.user_id,
-      p_pick_item_id: pickItemId
-    });
-    if (error) throw error;
-    setTimeout(() => {
-      pickItems = pickItems.filter(p => p.id !== pickItemId);
-      renderPicks();
-      showToast('Removed from your picks');
-    }, 220);
-  } catch (e) {
-    console.error(e);
-    if (row) row.classList.remove('removing');
-    pickItems = before;
-    showToast('Could not remove — try again', true);
-  }
-};
-
-/* ══════════════════════════════════════════════════════════
-   ADD TO PICKS — search + browse, backed by add_article_to_picks
-══════════════════════════════════════════════════════════ */
-window.toggleAddPanel = function(){
-  const panel = document.getElementById('addPanel');
-  const btn = document.getElementById('addToggleBtn');
-  const nowOpen = !panel.classList.contains('open');
-  panel.classList.toggle('open', nowOpen);
-  btn.classList.toggle('open', nowOpen);
-  btn.querySelector('span').textContent = nowOpen ? 'Close' : 'Browse';
-  if (nowOpen && !panel.dataset.loaded) {
-    panel.dataset.loaded = '1';
-    runArticleSearch('');
-    document.getElementById('addSearchInput').addEventListener('input', (e) => {
-      clearTimeout(searchDebounce);
-      searchDebounce = setTimeout(() => runArticleSearch(e.target.value.trim()), 320);
+  function setImage(src) {
+    return new Promise((resolve, reject) => {
+      const test = new Image();
+      test.onload = () => {
+        img.src = src;
+        status.style.display = 'none';
+        img.style.display = 'block';
+        resolve();
+      };
+      test.onerror = reject;
+      test.src = src;
     });
   }
-};
 
-async function runArticleSearch(query){
-  const results = document.getElementById('addResults');
-  results.innerHTML = `<div class="add-loading"><div class="mini-spinner"></div></div>`;
-  try {
-    let q = supabase.from('articles').select('id, title, tags, thumbnail_url').order('created_at', { ascending: false }).limit(25);
-    if (query) q = q.ilike('title', `%${query}%`);
-    const { data, error } = await q;
-    if (error) throw error;
+  img.addEventListener('click', loadRandomImage);
+  status.addEventListener('click', loadRandomImage);
 
-    const alreadyIn = new Set(pickItems.map(p => String(p.article_id)));
-    const articles = data || [];
-
-    if (!articles.length) {
-      results.innerHTML = `<div class="add-empty">No articles found${query ? ` for "${esc(query)}"` : ''}</div>`;
-      return;
-    }
-
-    results.innerHTML = articles.map(a => {
-      const title = a.title && a.title.trim() ? a.title : `Article #${a.id}`;
-      const tags = (a.tags || []).slice(0, 2).join(', ');
-      const isIn = alreadyIn.has(String(a.id));
-      const thumb = a.thumbnail_url ? `<img src="${esc(a.thumbnail_url)}" alt="">` : `<i class="fas fa-file-alt"></i>`;
-      return `<div class="add-result-row" data-article-id="${a.id}">
-        <div class="add-result-thumb">${thumb}</div>
-        <div class="add-result-info">
-          <div class="add-result-title">${esc(trunc(title,48))}</div>
-          ${tags ? `<div class="add-result-meta">${esc(tags)}</div>` : ''}
-        </div>
-        <button class="add-result-btn" ${isIn?'disabled':''} onclick="addArticleToPicks(${a.id}, this)">
-          ${isIn ? '<i class="fas fa-check"></i> Added' : 'Add'}
-        </button>
-      </div>`;
-    }).join('');
-  } catch (e) {
-    console.error(e);
-    results.innerHTML = `<div class="add-empty">Search failed — try again</div>`;
-  }
-}
-
-window.addArticleToPicks = async function(articleId, btnEl){
-  btnEl.disabled = true;
-  btnEl.textContent = '…';
-  try {
-    const { error } = await supabase.rpc('add_article_to_picks', {
-      p_user_id: currentSupaUser.user_id,
-      p_article_id: articleId
-    });
-    if (error) throw error;
-    btnEl.innerHTML = '<i class="fas fa-check"></i> Added';
-    showToast('Added to your picks');
-    await loadPicks();
-    renderPicks(articleId);
-  } catch (e) {
-    console.error(e);
-    btnEl.disabled = false;
-    btnEl.textContent = 'Add';
-    showToast(e.message && e.message.includes('duplicate') ? 'Already in your picks' : 'Could not add — try again', true);
-  }
-};
-
-/* ══════════════════════════════════════════════════════════
-   TAG PREFERENCES — ported from the index.html feed-control
-   panel; ties into user_tag_preferences + apply_tag_preference,
-   which as-is only records the on/off state and does not touch
-   pick_items (kept separate per product decision).
-══════════════════════════════════════════════════════════ */
-let userTagPreferences = {};
-
-async function loadTagPreferences(){
-  const body = document.getElementById('tagPanelBody');
-  try {
-    const { data: prefRows } = await supabase
-      .from('user_tag_preferences').select('tag,enabled').eq('user_id', currentSupaUser.user_id);
-    userTagPreferences = {};
-    (prefRows || []).forEach(r => { userTagPreferences[r.tag] = r.enabled; });
-  } catch (e) {
-    // Table may not exist yet — degrade to "everything untouched" rather than erroring the page.
-    userTagPreferences = {};
-  }
-
-  try {
-    const { data: rows, error } = await supabase.from('articles').select('tags').not('tags', 'is', null);
-    if (error) throw error;
-    const tagSet = new Set();
-    (rows || []).forEach(r => (r.tags || []).forEach(t => { if (t && t.trim()) tagSet.add(t.trim()); }));
-    const allTags = [...tagSet].sort((a,b) => a.localeCompare(b));
-
-    if (!allTags.length) {
-      body.innerHTML = `<div class="tag-panel-empty">No tags found yet</div>`;
-      return;
-    }
-
-    body.className = 'tag-panel-body';
-    body.innerHTML = allTags.map(tag => {
-      const state = userTagPreferences[tag];
-      return `<button class="fc-tag-pill${state===true?' on':''}" data-tag="${esc(tag)}" onclick="onTagPillClick(this)">
-        <i class="fas ${state===true?'fa-check':'fa-plus'}"></i>${esc(tag)}
-      </button>`;
-    }).join('');
-  } catch (e) {
-    console.error(e);
-    body.innerHTML = `<div class="tag-panel-empty">Couldn't load tags right now</div>`;
-  }
-}
-
-window.onTagPillClick = async function(btn){
-  const tag = btn.dataset.tag;
-  const currentlyOn = userTagPreferences[tag] === true;
-  const nextState = !currentlyOn;
-
-  btn.classList.add('loading');
-  try {
-    const { error } = await supabase.rpc('apply_tag_preference', {
-      p_user_id: currentSupaUser.user_id,
-      p_tag: tag,
-      p_enabled: nextState
-    });
-    if (error) throw error;
-    userTagPreferences[tag] = nextState;
-    btn.classList.toggle('on', nextState);
-    btn.querySelector('i').className = nextState ? 'fas fa-check' : 'fas fa-plus';
-    showToast(nextState ? `Added "${tag}" to your interests` : `Removed "${tag}"`);
-  } catch (e) {
-    console.error(e);
-    showToast('Could not update — try again', true);
-  } finally {
-    btn.classList.remove('loading');
-  }
-};
+  loadRandomImage();
 </script>
-
 </body>
 </html>
