@@ -384,13 +384,6 @@ display:flex;align-items:center;justify-content:center;gap:6px;
 font-family:"DM Sans",sans-serif;width:100%;
 }
 
-/* Validation note per card */
-.card-issue{
-margin:6px 18px 0;padding:8px 12px;border-radius:9px;
-background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.25);
-font-size:11px;color:var(--warning);display:flex;align-items:center;gap:7px;
-}
-
 /* ── Bottom toolbar (article block tools) ── */
 .bottom-toolbar{
 position:fixed;bottom:0;left:50%;transform:translateX(-50%);
@@ -612,7 +605,6 @@ display:flex;align-items:center;gap:8px;
     <div class="hdr-sub" id="hdrSub">1 card</div>
   </div>
   <div class="hdr-actions">
-    <button class="hdr-btn hdr-ghost" id="previewBtn" onclick="openReview()"><i class="fas fa-eye"></i></button>
     <button class="hdr-btn hdr-lib" id="libraryBtn" onclick="openLibSheet()"><i class="fas fa-book-open"></i></button>
     <button class="hdr-btn hdr-primary" id="publishBtn" onclick="publishAll()"><i class="fas fa-paper-plane"></i> Publish</button>
   </div>
@@ -679,22 +671,6 @@ display:flex;align-items:center;gap:8px;
   <div class="sheet-footer">
     <button class="hdr-btn hdr-ghost" style="flex:.5" onclick="closeLibSheet()">Cancel</button>
     <button class="hdr-btn hdr-primary" style="flex:1" onclick="closeLibSheet()"><i class="fas fa-check"></i> Set</button>
-  </div>
-</div>
-</div>
-
-<!-- Review sheet -->
-<div class="sheet-overlay" id="reviewSheetOverlay">
-<div class="sheet">
-  <div class="sheet-handle"></div>
-  <div class="sheet-header">
-    <span class="sheet-title">Review All Cards</span>
-    <button class="sheet-close" onclick="closeReview()"><i class="fas fa-times"></i></button>
-  </div>
-  <div class="sheet-body" id="reviewBody"></div>
-  <div class="sheet-footer">
-    <button class="hdr-btn hdr-ghost" style="flex:.5;" onclick="closeReview()"><i class="fas fa-pencil"></i> Edit</button>
-    <button class="hdr-btn hdr-primary" style="flex:1" onclick="closeReview();publishAll();"><i class="fas fa-paper-plane"></i> Publish All</button>
   </div>
 </div>
 </div>
@@ -946,7 +922,6 @@ function syncToolbarVisibility(){
 
 function syncGlobalButtons(){
   const hasAny=cards.length>0;
-  document.getElementById('previewBtn').disabled=!hasAny;
   document.getElementById('libraryBtn').disabled=!hasAny;
   document.getElementById('publishBtn').disabled=!hasAny;
 }
@@ -979,20 +954,19 @@ function renderCardViewport(){
   `;
   wrap.appendChild(toolRow);
 
-  if(!cardIsValid(c)){
-    const issue=document.createElement('div');
-    issue.className='card-issue';
-    issue.innerHTML=`<i class="fas fa-exclamation-triangle"></i> ${c.type==='article'?'Needs a title and some content':'Needs a question, 2+ options, and one marked correct'}`;
-    wrap.appendChild(issue);
-  }
-
+  let mount;
   if(c.type==='article'){
-    wrap.appendChild(renderArticleCardBody(c));
+    const built=renderArticleCardBody(c);
+    wrap.appendChild(built.frag);
+    mount=built.mount;
   } else {
-    wrap.appendChild(renderMcqCardBody(c));
+    const built=renderMcqCardBody(c);
+    wrap.appendChild(built.frag);
+    mount=built.mount;
   }
 
   vp.appendChild(wrap);
+  if(mount)mount();
 }
 
 function switchCardType(cardId,type){
@@ -1005,8 +979,9 @@ function switchCardType(cardId,type){
 }
 
 /* ── Article card body ── */
+/* ── Article card body ── */
 function renderArticleCardBody(c){
-  const frag=document.createDocumentFragment ? document.createElement('div') : document.createElement('div');
+  const frag=document.createElement('div');
 
   const authorBar=document.createElement('div');
   authorBar.className='preview-author-bar';
@@ -1032,7 +1007,6 @@ function renderArticleCardBody(c){
   });
   titleArea.appendChild(titleTa);
   frag.appendChild(titleArea);
-  requestAnimationFrame(()=>autoResize(titleTa));
 
   const blocksWrap=document.createElement('div');
   blocksWrap.className='blocks-wrap';
@@ -1051,10 +1025,14 @@ function renderArticleCardBody(c){
   const spacer=document.createElement('div');spacer.style.height='10px';
   frag.appendChild(spacer);
 
-  populateUser(c.id,'article');
-  renderBlocks(c);
-
-  return frag;
+  return {
+    frag,
+    mount:()=>{
+      autoResize(titleTa);
+      populateUser(c.id,'article');
+      renderBlocks(c);
+    }
+  };
 }
 
 /* ── MCQ card body ── */
@@ -1085,23 +1063,23 @@ function renderMcqCardBody(c){
   const spacer=document.createElement('div');spacer.style.height='16px';
   frag.appendChild(spacer);
 
-  populateUser(c.id,'mcq');
-
-  requestAnimationFrame(()=>{
-    const qEl=document.getElementById('mcqQuestion_'+c.id);
-    if(qEl){
-      qEl.value=c.question||'';
-      autoResize(qEl);
-      qEl.addEventListener('input',function(){c.question=this.value;autoResize(this);refreshThumbValidity();});
+  return {
+    frag,
+    mount:()=>{
+      populateUser(c.id,'mcq');
+      const qEl=document.getElementById('mcqQuestion_'+c.id);
+      if(qEl){
+        qEl.value=c.question||'';
+        autoResize(qEl);
+        qEl.addEventListener('input',function(){c.question=this.value;autoResize(this);refreshThumbValidity();});
+      }
+      const optsWrap=document.getElementById('mcqOptionsWrap_'+c.id);
+      if(optsWrap){
+        optsWrap.innerHTML='';
+        c.options.forEach((opt,i)=>renderMcqOptionRow(c,i));
+      }
     }
-    const optsWrap=document.getElementById('mcqOptionsWrap_'+c.id);
-    if(optsWrap){
-      optsWrap.innerHTML='';
-      c.options.forEach((opt,i)=>renderMcqOptionRow(c,i));
-    }
-  });
-
-  return frag;
+  };
 }
 
 function renderMcqOptionRow(c,i){
@@ -1461,37 +1439,6 @@ function closeLibSheet(){document.getElementById('libSheetOverlay').classList.re
 document.getElementById('libSheetOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeLibSheet();});
 
 /* ══════════════════════════════════════
- REVIEW SHEET (final check across all cards before publish)
-══════════════════════════════════════ */
-function openReview(){
-  commitActiveTextBlocks();
-  const body=document.getElementById('reviewBody');
-  body.innerHTML='';
-  cards.forEach((c,i)=>{
-    const card=document.createElement('div');
-    card.className='preview-mini-card'+(c.type==='mcq'?' mcq':'');
-    if(c.type==='article'){
-      const excerpt=(c.blocks.filter(b=>b.type==='text').map(b=>b.text||'').join(' ').trim()).slice(0,140);
-      card.innerHTML=`
-        <div class="preview-mini-badge">ART ${i+1}</div>
-        <div class="preview-mini-title">${escHtml(c.title||'(no title)')}</div>
-        <div class="preview-mini-sub">${escHtml(excerpt||'(no content yet)')}${excerpt.length>=140?'…':''}${!cardIsValid(c)?' ⚠️ incomplete':''}</div>`;
-    } else {
-      const correct=c.options.find(o=>o.correct);
-      card.innerHTML=`
-        <div class="preview-mini-badge">MCQ ${i+1}</div>
-        <div class="preview-mini-title">${escHtml(c.question||'(no question)')}</div>
-        <div class="preview-mini-sub">${c.options.filter(o=>o.label&&o.label.trim()).length} options · correct: ${escHtml(correct?correct.label||'—':'none set')}${!cardIsValid(c)?' ⚠️ incomplete':''}</div>`;
-    }
-    card.onclick=()=>{closeReview();jumpTo(i);};
-    body.appendChild(card);
-  });
-  document.getElementById('reviewSheetOverlay').classList.add('show');
-}
-function closeReview(){document.getElementById('reviewSheetOverlay').classList.remove('show');}
-document.getElementById('reviewSheetOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeReview();});
-
-/* ══════════════════════════════════════
  SUPABASE / FIREBASE (same pattern as batch.html)
 ══════════════════════════════════════ */
 
@@ -1746,7 +1693,7 @@ window.populateUser=function(){window._paintUserOnMountedCards();};
  UI lock/unlock + reset (called from the module script above)
 ══════════════════════════════════════ */
 function lockUI(){
-  ['publishBtn','previewBtn','libraryBtn'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=true;});
+  ['publishBtn','libraryBtn'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=true;});
   document.getElementById('progressOverlay').classList.add('show');
 }
 function unlockUI(){
