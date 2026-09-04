@@ -1,1 +1,1651 @@
-thx
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Patholytica · Decoy Studio</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://js.puter.com/v2/"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0e0b;--bg2:#161410;--bg3:#1c1a14;--border:#2a2518;--border2:#352e1e;
+  --gold:#c8a96e;--gold-dim:#8a7249;--gold-glow:rgba(200,169,110,0.12);
+  --text:#e8e0cc;--muted:#7a7060;--danger:#c0624a;--success:#5a9e72;--warning:#c8943e;
+  --tag-bg:rgba(200,169,110,0.1);
+}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;font-size:15px}
+
+/* ── header ── */
+.header{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:100;gap:20px;flex-wrap:wrap}
+.header-left{display:flex;align-items:center;gap:22px}
+.header-logo{font-family:'Merriweather',serif;font-size:18px;font-weight:700;color:var(--gold);letter-spacing:.03em}
+.header-logo span{color:var(--muted);font-weight:300;font-size:14px;margin-left:10px;font-family:'DM Sans',sans-serif}
+.tab-switch{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px}
+.tab-btn{background:transparent;border:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:7px 16px;border-radius:6px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:7px}
+.tab-btn.active{background:var(--gold);color:#0f0e0b;font-weight:600}
+.tab-btn:not(.active):hover{color:var(--text)}
+.header-status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s,box-shadow .3s}
+.status-dot.connected{background:var(--success);box-shadow:0 0 6px var(--success)}
+.status-dot.error{background:var(--danger);box-shadow:0 0 6px var(--danger)}
+
+/* ── layout ── */
+.layout{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 61px)}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:24px 20px;display:flex;flex-direction:column;gap:24px;position:sticky;top:61px;height:calc(100vh - 61px);overflow-y:auto}
+.sidebar-section-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.config-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.config-field label{font-size:12px;color:var(--muted)}
+.config-field input,.config-field select,.config-field textarea{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%;transition:border-color .2s;resize:none}
+.config-field input:focus,.config-field select:focus,.config-field textarea:focus{border-color:var(--gold-dim)}
+.config-field input::placeholder,.config-field textarea::placeholder{color:var(--muted)}
+.config-field-hint{font-size:11px;color:var(--muted);line-height:1.5}
+.config-field-hint a{color:var(--gold-dim)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 16px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .2s}
+.btn-primary{background:var(--gold);color:#0f0e0b;width:100%}
+.btn-primary:hover{background:#d4b87a}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text)}
+.divider{border:none;border-top:1px solid var(--border)}
+.admin-key-warning{background:rgba(192,98,74,.08);border:1px solid rgba(192,98,74,.3);border-radius:7px;padding:9px 11px;font-size:11px;color:var(--danger);line-height:1.6;margin-top:8px;display:flex;gap:8px;align-items:flex-start}
+.admin-key-warning i{margin-top:1px;flex-shrink:0}
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat-box{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}
+.stat-num{font-family:'Merriweather',serif;font-size:22px;font-weight:700;color:var(--gold);line-height:1}
+.stat-label{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* ── main ── */
+.main{display:flex;flex-direction:column}
+.main-toolbar{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid var(--border);gap:12px;flex-wrap:wrap}
+.toolbar-left{display:flex;align-items:center;gap:12px}
+.queue-title{font-family:'Merriweather',serif;font-size:16px;font-weight:700;color:var(--text)}
+.queue-count{background:var(--tag-bg);color:var(--gold);border:1px solid var(--border);border-radius:99px;padding:2px 10px;font-size:12px;font-weight:500}
+.content-area{padding:28px 32px;display:flex;flex-direction:column;gap:22px;overflow-y:auto;flex:1}
+.tab-panel{display:none;flex-direction:column;flex:1}
+.tab-panel.active{display:flex}
+
+/* ── decoy users grid/cards ── */
+.users-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.users-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.user-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;transition:border-color .2s}
+.user-card:hover{border-color:var(--border2)}
+.user-card-top{display:flex;align-items:center;gap:12px}
+.user-avatar{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#7a5a30);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#0f0e0b;flex-shrink:0;overflow:hidden}
+.user-avatar img{width:100%;height:100%;object-fit:cover}
+.user-card-name{font-family:'Merriweather',serif;font-size:14px;font-weight:700;color:var(--text);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-card-handle{font-size:12px;color:var(--gold-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-card-bio{font-size:12px;color:var(--muted);line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:32px}
+.user-card-meta{display:flex;gap:10px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:9px}
+.user-card-meta span{display:flex;align-items:center;gap:4px}
+.user-card-meta i{color:var(--gold-dim);font-size:10px}
+.user-card-actions{display:flex;gap:7px;margin-top:2px}
+.user-card-actions .btn-ghost{flex:1;padding:6px 8px;font-size:11px}
+.user-card-actions .btn-danger-ghost{flex:0 0 auto;padding:6px 9px;font-size:11px;background:transparent;border:1px solid rgba(192,98,74,.3);color:var(--danger);border-radius:7px;cursor:pointer;transition:all .2s}
+.user-card-actions .btn-danger-ghost:hover{background:rgba(192,98,74,.12)}
+.badge-decoy{position:absolute;top:10px;right:10px;font-size:9px;letter-spacing:.06em;text-transform:uppercase;background:rgba(200,169,110,.15);color:var(--gold);border:1px solid var(--gold-dim);padding:2px 7px;border-radius:5px}
+.user-card{position:relative}
+
+/* ── new user form sheet ── */
+.form-sheet-backdrop{position:fixed;inset:0;background:rgba(10,9,6,.72);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:500;padding:20px}
+.form-sheet-backdrop.show{display:flex}
+.form-sheet{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;width:100%;max-width:540px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.form-sheet-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border)}
+.form-sheet-title{font-family:'Merriweather',serif;font-size:15px;font-weight:700;color:var(--gold)}
+.form-sheet-close{background:transparent;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:all .15s}
+.form-sheet-close:hover{color:var(--text);background:var(--bg3)}
+.form-sheet-body{padding:18px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.form-sheet-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.avatar-picker-row{display:flex;align-items:center;gap:14px}
+.avatar-picker-preview{width:64px;height:64px;border-radius:50%;background:var(--bg3);border:2px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--muted);overflow:hidden;flex-shrink:0}
+.avatar-picker-preview img{width:100%;height:100%;object-fit:cover}
+.avatar-picker-btns{display:flex;flex-direction:column;gap:6px;flex:1}
+.avatar-picker-btns .btn-ghost{justify-content:flex-start;padding:7px 10px}
+.pw-note{font-size:11px;color:var(--muted);line-height:1.6;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 11px}
+
+/* ── content studio (article/library gen) ── */
+.studio-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.studio-grid{grid-template-columns:1fr}}
+.studio-panel{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px}
+.studio-panel-title{font-family:'Merriweather',serif;font-size:14px;font-weight:700;color:var(--gold);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.studio-panel-title i{font-size:13px}
+.author-select-wrap{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:8px 10px;cursor:pointer;transition:border-color .2s}
+.author-select-wrap:hover{border-color:var(--gold-dim)}
+.author-select-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#7a5a30);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#0f0e0b;flex-shrink:0;overflow:hidden}
+.author-select-avatar img{width:100%;height:100%;object-fit:cover}
+.author-select-info{flex:1;min-width:0}
+.author-select-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.author-select-empty{font-size:12px;color:var(--muted);font-style:italic}
+.author-select-chevron{color:var(--muted);font-size:11px;flex-shrink:0}
+.random-author-toggle{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--muted)}
+.random-author-toggle input{width:14px;height:14px;accent-color:var(--gold)}
+
+.topic-chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.topic-chip{background:var(--tag-bg);border:1px solid rgba(200,169,110,.25);color:var(--gold);font-size:11px;padding:4px 10px;border-radius:20px;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.topic-chip:hover{background:rgba(200,169,110,.22)}
+.btn-suggest-topic{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--border2);color:var(--muted);border-radius:7px;padding:7px 12px;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.btn-suggest-topic:hover{border-color:var(--gold-dim);color:var(--gold)}
+.btn-suggest-topic:disabled{opacity:.4;cursor:not-allowed}
+.topic-input-row{display:flex;gap:8px;margin-top:8px}
+
+.media-toggle-row{display:flex;gap:14px;margin-top:6px}
+.media-toggle{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+.media-toggle input{width:14px;height:14px;accent-color:var(--gold)}
+
+.mode-toggle-inline{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px;margin-top:6px}
+.mode-toggle-inline button{flex:1;background:transparent;border:none;color:var(--muted);font-size:12px;font-weight:600;padding:7px;border-radius:6px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.mode-toggle-inline button.active{background:var(--gold);color:#0f0e0b}
+
+.btn-generate{width:100%;background:var(--gold);color:#0f0e0b;padding:12px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;border:none;display:flex;align-items:center;justify-content:center;gap:8px;font-family:'DM Sans',sans-serif;margin-top:16px;transition:background .2s}
+.btn-generate:hover{background:#d4b87a}
+.btn-generate:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── generation queue / preview cards ── */
+.gen-queue{display:flex;flex-direction:column;gap:12px;margin-top:4px}
+.gen-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .2s}
+.gen-card.working{border-color:var(--gold-dim);box-shadow:0 0 0 2px var(--gold-glow)}
+.gen-card.done{border-color:rgba(90,158,114,.35)}
+.gen-card.error{border-color:rgba(192,98,74,.35)}
+.gen-card-header{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.gen-card-icon{width:34px;height:34px;border-radius:8px;background:var(--tag-bg);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--gold);flex-shrink:0}
+.gen-card-meta{flex:1;min-width:0}
+.gen-card-title{font-family:'Merriweather',serif;font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gen-card-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.gen-card-badge{font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:4px;white-space:nowrap;flex-shrink:0}
+.badge-queued{background:rgba(122,112,96,.15);color:var(--muted);border:1px solid var(--border)}
+.badge-working{background:rgba(200,169,110,.12);color:var(--gold);border:1px solid var(--gold-dim)}
+.badge-done{background:rgba(90,158,114,.12);color:var(--success);border:1px solid rgba(90,158,114,.3)}
+.badge-error{background:rgba(192,98,74,.12);color:var(--danger);border:1px solid rgba(192,98,74,.3)}
+.gen-card-body{padding:0 16px 14px 62px;font-size:12px;color:var(--muted);line-height:1.6}
+.gen-card-body .excerpt{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.gen-card-thumbs{display:flex;gap:6px;margin-top:8px}
+.gen-card-thumb{width:44px;height:44px;border-radius:6px;overflow:hidden;background:var(--bg3);flex-shrink:0}
+.gen-card-thumb img{width:100%;height:100%;object-fit:cover}
+.gen-card-yt{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:#c97a5a}
+
+.progress-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:14px}
+.progress-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:8px}
+.progress-bar-bg{background:var(--border);border-radius:99px;height:5px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));border-radius:99px;transition:width .5s ease;width:0%}
+
+.log-panel{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;max-height:150px;overflow-y:auto;font-size:11px;color:var(--muted);font-family:'Courier New',monospace;margin-top:12px;display:none}
+.log-panel.visible{display:block}
+.log-entry{padding:2px 0;line-height:1.6}
+.log-entry.ok{color:var(--success)}.log-entry.warn{color:var(--warning)}.log-entry.err{color:var(--danger)}.log-entry.info{color:var(--gold-dim)}
+
+.state-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 30px;text-align:center;gap:14px;flex:1}
+.state-icon{font-size:32px;color:var(--border2)}
+.state-title{font-family:'Merriweather',serif;font-size:15px;color:var(--muted)}
+.state-sub{font-size:12px;color:var(--border2);max-width:320px;line-height:1.6}
+
+#toast{position:fixed;bottom:28px;right:28px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:12px 18px;border-radius:9px;font-size:13px;box-shadow:0 8px 28px rgba(0,0,0,.5);display:none;align-items:center;gap:9px;z-index:999;max-width:360px}
+#toast.show{display:flex;animation:slideUp .25s ease}
+#toast.success{border-left:3px solid var(--success)}
+#toast.error{border-left:3px solid var(--danger)}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.thinking-pulse{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--gold-dim);font-style:italic}
+.thinking-pulse::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 1s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+.skel-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px}
+.skeleton{background:linear-gradient(90deg,var(--bg3) 25%,var(--border) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:5px}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+.skel-icon{width:34px;height:34px;border-radius:8px;flex-shrink:0}
+.skel-line{height:11px}
+
+/* ── author picker modal ── */
+.author-modal-backdrop{position:fixed;inset:0;background:rgba(10,9,6,.72);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:600;padding:20px}
+.author-modal-backdrop.show{display:flex}
+.author-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;width:100%;max-width:420px;max-height:70vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.author-modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.author-modal-title{font-family:'Merriweather',serif;font-size:14px;font-weight:700;color:var(--gold)}
+.author-modal-body{padding:10px;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+.author-modal-row{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:8px;cursor:pointer;transition:background .15s}
+.author-modal-row:hover{background:var(--bg3)}
+.author-modal-empty{text-align:center;padding:30px 14px;color:var(--muted);font-size:13px}
+
+.tab-panel-inner-scroll{overflow-y:auto;flex:1}
+
+@media (max-width:768px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}
+  .header{padding:14px 18px}
+  .content-area{padding:16px}
+  .main-toolbar{padding:14px 16px}
+  .form-row-2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="header-logo">Patholytica <span>Decoy Studio</span></div>
+    <div class="tab-switch">
+      <button class="tab-btn active" id="tabBtnUsers" data-tab="users"><i class="fa fa-user-astronaut"></i> Decoy Users</button>
+      <button class="tab-btn" id="tabBtnContent" data-tab="content"><i class="fa fa-feather-pointed"></i> Content Studio</button>
+    </div>
+  </div>
+  <div class="header-status">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Not connected</span>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div>
+      <div class="sidebar-section-label">Supabase Config</div>
+      <div class="config-field">
+        <label>Project URL</label>
+        <input id="sbUrl" type="text" placeholder="https://xxx.supabase.co" />
+      </div>
+      <div class="config-field">
+        <label>Service Role Key (admin only — do not share)</label>
+        <input id="sbKey" type="password" placeholder="eyJ..." />
+      </div>
+      <div class="config-field">
+        <label>Users table</label>
+        <input id="usersTable" type="text" value="users" />
+      </div>
+      <div class="config-field">
+        <label>Articles table</label>
+        <input id="articlesTable" type="text" value="articles" />
+      </div>
+      <div class="config-field">
+        <label>Playlists table</label>
+        <input id="plTable" type="text" value="playlists" />
+      </div>
+      <div class="config-field">
+        <label>Playlist items table</label>
+        <input id="plItemsTable" type="text" value="playlist_items" />
+      </div>
+      <div class="config-field">
+        <label>Media table</label>
+        <input id="mediaTable" type="text" value="media" />
+      </div>
+      <div class="config-field">
+        <label>Media storage bucket</label>
+        <input id="mediaBucket" type="text" value="article-media" />
+      </div>
+      <button class="btn btn-primary" id="btnConnect">
+        <i class="fa fa-plug"></i> Connect
+      </button>
+      <div class="config-field-hint" style="margin-top:8px">Credentials are stored only in this browser's local storage.</div>
+      <div class="admin-key-warning"><i class="fa fa-triangle-exclamation"></i><span>This field takes the Supabase <strong>service role key</strong>, not the anon key. It bypasses row-level security entirely on every table. Local, trusted-admin use only — never deploy this page publicly or share this key. Decoy users created here have <strong>no real auth account</strong> — they exist only as rows in your users table for seeding content, and can never sign in.</span></div>
+    </div>
+
+    <hr class="divider" />
+
+    <div>
+      <div class="sidebar-section-label">AI Provider</div>
+      <div class="config-field">
+        <label>Provider</label>
+        <select id="aiProvider">
+          <option value="puter" selected>Puter.js (no key needed)</option>
+          <option value="openrouter">OpenRouter (bring your own key)</option>
+        </select>
+      </div>
+      <div class="config-field" id="modelFieldPuter">
+        <label>Model via Puter.js</label>
+        <select id="aiModelPuter">
+          <option value="anthropic/claude-opus-4-8">Claude Opus 4.8</option>
+          <option value="anthropic/claude-sonnet-4-6" selected>Claude Sonnet 4.6</option>
+          <option value="openai/gpt-5.5">GPT-5.5</option>
+          <option value="google/gemini-3.5-flash">Gemini 3.5 Flash</option>
+          <option value="deepseek/deepseek-v4-pro">DeepSeek V4 Pro</option>
+        </select>
+      </div>
+      <div class="config-field" id="modelFieldOpenrouter" style="display:none">
+        <label>Model via OpenRouter</label>
+        <select id="aiModelOpenrouter">
+          <option value="~openai/gpt-latest" selected>GPT (latest)</option>
+          <option value="~anthropic/claude-sonnet-latest">Claude Sonnet (latest)</option>
+          <option value="anthropic/claude-opus-4.8">Claude Opus 4.8</option>
+          <option value="google/gemini-3.5-flash">Gemini 3.5 Flash</option>
+          <option value="deepseek/deepseek-v4-pro">DeepSeek V4 Pro</option>
+        </select>
+      </div>
+      <div class="config-field" id="keyFieldOpenrouter" style="display:none">
+        <label>OpenRouter API Key</label>
+        <input id="orKey" type="password" placeholder="sk-or-v1-..." autocomplete="off" />
+        <div class="config-field-hint">Stored only in this browser's local storage. Get a key at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>.</div>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <div>
+      <div class="sidebar-section-label">About images</div>
+      <div class="config-field-hint" style="line-height:1.7">
+        Images are pulled from Wikimedia Commons — public domain / openly licensed only, no key required. YouTube embeds use AI-suggested search terms; you confirm the actual video link per article before publishing (no YouTube API key is wired up here).
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <div id="sidebarStats">
+      <div class="sidebar-section-label">This Session</div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-num" id="statUsersTotal">&mdash;</div><div class="stat-label">Decoy users</div></div>
+        <div class="stat-box"><div class="stat-num" id="statArticlesGen">0</div><div class="stat-label">Articles made</div></div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ═══════════════ DECOY USERS TAB ═══════════════ -->
+    <div class="tab-panel active" id="panelUsers">
+      <div class="main-toolbar">
+        <div class="toolbar-left">
+          <span class="queue-title">Decoy Users</span>
+          <span class="queue-count" id="queueCountUsers">0 users</span>
+        </div>
+        <div class="toolbar-right" style="display:flex;gap:8px">
+          <button class="btn btn-ghost" id="btnRefreshUsers" style="display:none">
+            <i class="fa fa-rotate-right"></i> Refresh
+          </button>
+          <button class="btn btn-ghost" id="btnRandomUser" style="display:none">
+            <i class="fa fa-dice"></i> Quick Random User
+          </button>
+          <button class="btn-run-all" id="btnNewUser" style="background:var(--gold);color:#0f0e0b;padding:8px 16px;border-radius:7px;font-size:13px;font-weight:600;border:none;cursor:pointer;display:flex;align-items:center;gap:7px" disabled>
+            <i class="fa fa-user-plus"></i> New Decoy User
+          </button>
+        </div>
+      </div>
+      <div class="content-area tab-panel-inner-scroll" id="usersContentArea">
+        <div class="state-panel">
+          <div class="state-icon"><i class="fa fa-database"></i></div>
+          <div class="state-title">Connect to get started</div>
+          <div class="state-sub">Enter your Supabase credentials in the sidebar and click Connect to start creating decoy users.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ CONTENT STUDIO TAB ═══════════════ -->
+    <div class="tab-panel" id="panelContent">
+      <div class="main-toolbar">
+        <div class="toolbar-left">
+          <span class="queue-title">Content Studio</span>
+          <span class="queue-count" id="queueCountContent">AI article &amp; library generator</span>
+        </div>
+      </div>
+      <div class="content-area tab-panel-inner-scroll" id="contentContentArea">
+        <div class="state-panel">
+          <div class="state-icon"><i class="fa fa-database"></i></div>
+          <div class="state-title">Connect to get started</div>
+          <div class="state-sub">Connect to Supabase first — you'll also want at least one decoy user to publish content as.</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- New / Edit decoy user sheet -->
+<div class="form-sheet-backdrop" id="userFormBackdrop">
+  <div class="form-sheet">
+    <div class="form-sheet-header">
+      <span class="form-sheet-title" id="userFormTitle">New Decoy User</span>
+      <button class="form-sheet-close" id="userFormClose"><i class="fa fa-xmark"></i></button>
+    </div>
+    <div class="form-sheet-body">
+      <div class="config-field">
+        <label>Profile Picture</label>
+        <div class="avatar-picker-row">
+          <div class="avatar-picker-preview" id="userFormAvatarPreview"><i class="fa fa-user"></i></div>
+          <div class="avatar-picker-btns">
+            <button class="btn btn-ghost" id="btnUploadAvatar"><i class="fa fa-upload"></i> Upload image</button>
+            <button class="btn btn-ghost" id="btnGenAvatar"><i class="fa fa-wand-magic-sparkles"></i> AI-generate avatar</button>
+            <button class="btn btn-ghost" id="btnClearAvatar"><i class="fa fa-trash"></i> Remove</button>
+            <input type="file" id="userFormAvatarFile" accept="image/*" style="display:none" />
+          </div>
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="config-field">
+          <label>Full Name</label>
+          <input id="userFormFullName" type="text" placeholder="e.g. Dr. Amara Osei" />
+        </div>
+        <div class="config-field">
+          <label>Username</label>
+          <input id="userFormUsername" type="text" placeholder="e.g. dr_amara_o" />
+        </div>
+      </div>
+      <div class="config-field">
+        <label>Email <span style="opacity:.5;text-transform:none;letter-spacing:0">— internal only, not a real inbox</span></label>
+        <input id="userFormEmail" type="text" placeholder="auto-filled from username" />
+      </div>
+      <div class="config-field">
+        <label>Bio</label>
+        <textarea id="userFormBio" rows="3" placeholder="e.g. Nephrology resident sharing bite-sized clinical notes."></textarea>
+      </div>
+      <button class="btn btn-ghost" id="btnAiBio" style="align-self:flex-start">
+        <i class="fa fa-wand-magic-sparkles"></i> Generate name + bio with AI
+      </button>
+      <div class="pw-note"><i class="fa fa-circle-info" style="color:var(--gold-dim);margin-right:5px"></i>Decoy users are inserted directly into your users table with a synthetic <code style="color:var(--gold)">firebase_uid</code> (prefixed <code style="color:var(--gold)">decoy_</code>). They have no Firebase Auth account and cannot log in — they exist purely so articles/libraries can be attributed to a distinct author.</div>
+    </div>
+    <div class="form-sheet-footer">
+      <button class="btn btn-ghost" id="userFormCancel" style="padding:9px 16px">Cancel</button>
+      <button class="btn btn-primary" id="userFormSave" style="width:auto;padding:9px 20px"><i class="fa fa-check"></i> Save Decoy User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Author picker modal (used by Content Studio) -->
+<div class="author-modal-backdrop" id="authorModalBackdrop">
+  <div class="author-modal">
+    <div class="author-modal-header">
+      <span class="author-modal-title">Choose an author</span>
+      <button class="form-sheet-close" id="authorModalClose"><i class="fa fa-xmark"></i></button>
+    </div>
+    <div class="author-modal-body" id="authorModalBody"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function() {
+  // ══════════════════════════════════════════════════════════
+  // SHARED STATE
+  // ══════════════════════════════════════════════════════════
+  var sbClient = null;
+  var connected = false;
+  var activeTab = 'users';
+  var toastTimer = null;
+
+  var decoyUsers = [];       // rows from users table (decoys only, filtered by firebase_uid prefix)
+  var editingUserId = null;  // set when the form sheet is editing rather than creating
+  var pendingAvatarDataUrl = null; // null = unchanged, '' = explicit remove, string = new image
+
+  var selectedAuthor = null; // the decoy user object currently chosen in Content Studio
+  var useRandomAuthor = false;
+  var currentTopic = '';
+  var suggestedTopics = [];
+
+  var genQueue = [];         // { id, title, content, image, ytUrl, status, error }
+  var isGenerating = false;
+  var articlesGenCount = 0;
+
+  var OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
+  var WIKIMEDIA_ENDPOINT = 'https://commons.wikimedia.org/w/api.php';
+
+  var FALLBACK_AVATAR_SEED_COLORS = ['#c8a96e','#8a7249','#5a9e72','#8aa0c0','#c97a5a','#a08050'];
+
+  // ══════════════════════════════════════════════════════════
+  // BOOT
+  // ══════════════════════════════════════════════════════════
+  document.addEventListener('DOMContentLoaded', function() {
+    var savedUrl = localStorage.getItem('patholytica_sb_url');
+    if (savedUrl) document.getElementById('sbUrl').value = savedUrl;
+    var savedKey = localStorage.getItem('patholytica_sb_key');
+    if (savedKey) document.getElementById('sbKey').value = savedKey;
+    var savedOrKey = localStorage.getItem('patholytica_or_key');
+    if (savedOrKey) document.getElementById('orKey').value = savedOrKey;
+    var savedProvider = localStorage.getItem('patholytica_ai_provider');
+    if (savedProvider === 'openrouter' || savedProvider === 'puter') {
+      document.getElementById('aiProvider').value = savedProvider;
+    }
+    updateProviderVisibility();
+
+    document.getElementById('sbUrl').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_sb_url', e.target.value.trim());
+    });
+    document.getElementById('sbKey').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_sb_key', e.target.value.trim());
+    });
+    document.getElementById('orKey').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_or_key', e.target.value.trim());
+    });
+    document.getElementById('aiProvider').addEventListener('change', function(e) {
+      localStorage.setItem('patholytica_ai_provider', e.target.value);
+      updateProviderVisibility();
+    });
+
+    document.getElementById('btnConnect').addEventListener('click', connectSupabase);
+    document.getElementById('tabBtnUsers').addEventListener('click', function(){ switchTab('users'); });
+    document.getElementById('tabBtnContent').addEventListener('click', function(){ switchTab('content'); });
+
+    document.getElementById('btnRefreshUsers').addEventListener('click', loadDecoyUsers);
+    document.getElementById('btnNewUser').addEventListener('click', function(){ openUserForm(null); });
+    document.getElementById('btnRandomUser').addEventListener('click', quickRandomUser);
+
+    document.getElementById('userFormClose').addEventListener('click', closeUserForm);
+    document.getElementById('userFormCancel').addEventListener('click', closeUserForm);
+    document.getElementById('userFormSave').addEventListener('click', saveUserForm);
+    document.getElementById('btnUploadAvatar').addEventListener('click', function(){ document.getElementById('userFormAvatarFile').click(); });
+    document.getElementById('userFormAvatarFile').addEventListener('change', handleAvatarFileSelect);
+    document.getElementById('btnClearAvatar').addEventListener('click', clearAvatarPreview);
+    document.getElementById('btnGenAvatar').addEventListener('click', generateAvatarWithAI);
+    document.getElementById('btnAiBio').addEventListener('click', generateNameBioWithAI);
+    document.getElementById('userFormBackdrop').addEventListener('click', function(e){ if (e.target === e.currentTarget) closeUserForm(); });
+
+    document.getElementById('authorModalClose').addEventListener('click', closeAuthorModal);
+    document.getElementById('authorModalBackdrop').addEventListener('click', function(e){ if (e.target === e.currentTarget) closeAuthorModal(); });
+  });
+
+  function updateProviderVisibility() {
+    var provider = document.getElementById('aiProvider').value;
+    var isOpenRouter = provider === 'openrouter';
+    document.getElementById('modelFieldPuter').style.display      = isOpenRouter ? 'none' : 'flex';
+    document.getElementById('modelFieldOpenrouter').style.display = isOpenRouter ? 'flex' : 'none';
+    document.getElementById('keyFieldOpenrouter').style.display   = isOpenRouter ? 'flex' : 'none';
+  }
+  function getActiveModel() {
+    var provider = document.getElementById('aiProvider').value;
+    return provider === 'openrouter'
+      ? document.getElementById('aiModelOpenrouter').value
+      : document.getElementById('aiModelPuter').value;
+  }
+  function ensureAiReady() {
+    var provider = document.getElementById('aiProvider').value;
+    if (provider === 'openrouter' && !document.getElementById('orKey').value.trim()) {
+      showToast('Enter an OpenRouter API key in the sidebar first', 'error');
+      return false;
+    }
+    return true;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // TAB SWITCHING
+  // ══════════════════════════════════════════════════════════
+  function switchTab(tab) {
+    activeTab = tab;
+    document.getElementById('tabBtnUsers').classList.toggle('active', tab === 'users');
+    document.getElementById('tabBtnContent').classList.toggle('active', tab === 'content');
+    document.getElementById('panelUsers').classList.toggle('active', tab === 'users');
+    document.getElementById('panelContent').classList.toggle('active', tab === 'content');
+    if (tab === 'content' && connected) renderContentStudio();
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // SUPABASE CONNECTION
+  // ══════════════════════════════════════════════════════════
+  function getClient() {
+    var url = document.getElementById('sbUrl').value.trim().replace(/\/$/, '');
+    var key = document.getElementById('sbKey').value.trim();
+    if (!url || !key) { showToast('Enter Supabase URL and service role key first', 'error'); return null; }
+    sbClient = window.supabase.createClient(url, key);
+    return sbClient;
+  }
+
+  async function connectSupabase() {
+    var client = getClient();
+    if (!client) return;
+
+    var btn = document.getElementById('btnConnect');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Connecting…';
+    setStatus('connecting');
+
+    try {
+      var table = document.getElementById('usersTable').value.trim() || 'users';
+      var ping = await client.from(table).select('id', { count: 'exact', head: true });
+      if (ping.error) throw ping.error;
+
+      connected = true;
+      setStatus('connected');
+      showToast('Connected to Supabase', 'success');
+
+      document.getElementById('btnNewUser').disabled = false;
+      document.getElementById('btnRandomUser').style.display = 'flex';
+      await loadDecoyUsers();
+      if (activeTab === 'content') renderContentStudio();
+      else document.getElementById('contentContentArea').innerHTML = contentEmptyState('Switch to Content Studio', 'Everything is connected — click the Content Studio tab above to start generating articles.');
+    } catch (err) {
+      console.error(err);
+      connected = false;
+      setStatus('error');
+      showToast('Connection failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-plug"></i> Connect';
+    }
+  }
+
+  function setStatus(state) {
+    var dot = document.getElementById('statusDot');
+    var text = document.getElementById('statusText');
+    dot.className = 'status-dot';
+    if (state === 'connected') { dot.classList.add('connected'); text.textContent = 'Connected'; }
+    else if (state === 'connecting') { text.textContent = 'Connecting…'; }
+    else if (state === 'error') { dot.classList.add('error'); text.textContent = 'Connection error'; }
+    else { text.textContent = 'Not connected'; }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // DECOY USERS — LOAD / RENDER
+  // ══════════════════════════════════════════════════════════
+  // Decoys are identified by a firebase_uid that starts with 'decoy_' — this
+  // keeps them clearly separable from real accounts (which get a genuine
+  // Firebase uid) without needing a schema change or a new column.
+  function isDecoyRow(row) {
+    return typeof row.firebase_uid === 'string' && row.firebase_uid.indexOf('decoy_') === 0;
+  }
+
+  async function loadDecoyUsers() {
+    if (!sbClient) { showToast('Connect to Supabase first', 'error'); return; }
+    var table = document.getElementById('usersTable').value.trim() || 'users';
+
+    showSkeletonsUsers();
+
+    try {
+      var result = await sbClient
+        .from(table)
+        .select('*')
+        .like('firebase_uid', 'decoy_%')
+        .order('created_at', { ascending: false });
+      if (result.error) throw result.error;
+
+      decoyUsers = result.data || [];
+      renderUsersGrid();
+      document.getElementById('statUsersTotal').textContent = decoyUsers.length;
+      document.getElementById('btnRefreshUsers').style.display = 'flex';
+
+      if (selectedAuthor) {
+        var stillExists = decoyUsers.find(function(u){ return u.id === selectedAuthor.id; });
+        if (!stillExists) selectedAuthor = null;
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to load decoy users: ' + err.message, 'error');
+      document.getElementById('usersContentArea').innerHTML = contentEmptyState('Load failed', err.message, true);
+    }
+  }
+
+  function renderUsersGrid() {
+    var area = document.getElementById('usersContentArea');
+    document.getElementById('queueCountUsers').textContent = decoyUsers.length + ' user' + (decoyUsers.length !== 1 ? 's' : '');
+
+    if (decoyUsers.length === 0) {
+      area.innerHTML = '<div class="state-panel"><div class="state-icon"><i class="fa fa-user-astronaut"></i></div><div class="state-title">No decoy users yet</div><div class="state-sub">Create your first decoy user to start attributing seeded content to a distinct author.</div></div>';
+      return;
+    }
+
+    var grid = document.createElement('div');
+    grid.className = 'users-grid';
+    grid.innerHTML = decoyUsers.map(function(u) {
+      var initials = (u.username || u.full_name || '?')[0].toUpperCase();
+      var avatarHtml = u.pfp ? '<img src="' + escHtml(u.pfp) + '" alt="">' : initials;
+      var joined = u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '';
+      return '<div class="user-card" data-user-id="' + u.id + '">' +
+        '<span class="badge-decoy"><i class="fa fa-ghost" style="margin-right:3px"></i>Decoy</span>' +
+        '<div class="user-card-top">' +
+          '<div class="user-avatar">' + avatarHtml + '</div>' +
+          '<div style="min-width:0;flex:1">' +
+            '<div class="user-card-name">' + escHtml(u.full_name || u.username || 'Unnamed') + '</div>' +
+            '<div class="user-card-handle">@' + escHtml(u.username || 'user') + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="user-card-bio">' + (u.bio ? escHtml(u.bio) : '<span style="font-style:italic">No bio</span>') + '</div>' +
+        '<div class="user-card-meta">' +
+          (joined ? '<span><i class="fa fa-calendar"></i> ' + joined + '</span>' : '') +
+        '</div>' +
+        '<div class="user-card-actions">' +
+          '<button class="btn btn-ghost" data-edit-user="' + u.id + '"><i class="fa fa-pen"></i> Edit</button>' +
+          '<button class="btn btn-ghost" data-use-author="' + u.id + '"><i class="fa fa-feather-pointed"></i> Use in Studio</button>' +
+          '<button class="btn-danger-ghost" data-delete-user="' + u.id + '" title="Delete decoy user"><i class="fa fa-trash"></i></button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    area.innerHTML = '';
+    area.appendChild(grid);
+
+    grid.removeEventListener('click', onUsersGridClick);
+    grid.addEventListener('click', onUsersGridClick);
+  }
+
+  function onUsersGridClick(e) {
+    var editBtn = e.target.closest('[data-edit-user]');
+    var useBtn = e.target.closest('[data-use-author]');
+    var delBtn = e.target.closest('[data-delete-user]');
+    if (editBtn) openUserForm(editBtn.dataset.editUser);
+    if (useBtn) {
+      var u = decoyUsers.find(function(x){ return String(x.id) === useBtn.dataset.useAuthor; });
+      if (u) {
+        selectedAuthor = u;
+        useRandomAuthor = false;
+        switchTab('content');
+        showToast('Selected "' + (u.full_name || u.username) + '" as author', 'success');
+      }
+    }
+    if (delBtn) deleteDecoyUser(delBtn.dataset.deleteUser);
+  }
+
+  async function deleteDecoyUser(id) {
+    var u = decoyUsers.find(function(x){ return String(x.id) === String(id); });
+    if (!u) return;
+    var name = u.full_name || u.username || 'this user';
+    if (!confirm('Delete decoy user "' + name + '"? Their published articles/libraries will remain in the database but keep pointing at a now-deleted author row.')) return;
+
+    var table = document.getElementById('usersTable').value.trim() || 'users';
+    try {
+      var res = await sbClient.from(table).delete().eq('id', id);
+      if (res.error) throw res.error;
+      decoyUsers = decoyUsers.filter(function(x){ return String(x.id) !== String(id); });
+      if (selectedAuthor && String(selectedAuthor.id) === String(id)) selectedAuthor = null;
+      renderUsersGrid();
+      document.getElementById('statUsersTotal').textContent = decoyUsers.length;
+      showToast('Decoy user deleted', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Delete failed: ' + err.message, 'error');
+    }
+  }
+
+  function showSkeletonsUsers() {
+    var html = '<div class="users-grid">';
+    for (var i = 0; i < 4; i++) {
+      html += '<div class="skel-card"><div class="skel-icon skeleton" style="border-radius:50%;width:46px;height:46px"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px"><div class="skel-line skeleton" style="width:70%"></div><div class="skel-line skeleton" style="width:45%"></div></div></div>';
+    }
+    html += '</div>';
+    document.getElementById('usersContentArea').innerHTML = html;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // DECOY USER FORM (create / edit)
+  // ══════════════════════════════════════════════════════════
+  function openUserForm(userId) {
+    editingUserId = userId;
+    pendingAvatarDataUrl = null;
+
+    var title = document.getElementById('userFormTitle');
+    var preview = document.getElementById('userFormAvatarPreview');
+
+    if (userId) {
+      var u = decoyUsers.find(function(x){ return String(x.id) === String(userId); });
+      if (!u) return;
+      title.textContent = 'Edit Decoy User';
+      document.getElementById('userFormFullName').value = u.full_name || '';
+      document.getElementById('userFormUsername').value = u.username || '';
+      document.getElementById('userFormEmail').value = u.email || '';
+      document.getElementById('userFormBio').value = u.bio || '';
+      preview.innerHTML = u.pfp ? '<img src="' + escHtml(u.pfp) + '" alt="">' : '<i class="fa fa-user"></i>';
+    } else {
+      title.textContent = 'New Decoy User';
+      document.getElementById('userFormFullName').value = '';
+      document.getElementById('userFormUsername').value = '';
+      document.getElementById('userFormEmail').value = '';
+      document.getElementById('userFormBio').value = '';
+      preview.innerHTML = '<i class="fa fa-user"></i>';
+    }
+
+    document.getElementById('userFormBackdrop').classList.add('show');
+  }
+
+  function closeUserForm() {
+    document.getElementById('userFormBackdrop').classList.remove('show');
+    editingUserId = null;
+    pendingAvatarDataUrl = null;
+    document.getElementById('userFormAvatarFile').value = '';
+  }
+
+  function handleAvatarFileSelect(e) {
+    var f = e.target.files[0];
+    if (!f) return;
+    if (f.size > 2 * 1024 * 1024) { showToast('Image too large — max 2MB', 'error'); e.target.value = ''; return; }
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      pendingAvatarDataUrl = ev.target.result;
+      document.getElementById('userFormAvatarPreview').innerHTML = '<img src="' + ev.target.result + '" alt="">';
+    };
+    reader.readAsDataURL(f);
+  }
+
+  function clearAvatarPreview() {
+    pendingAvatarDataUrl = '';
+    document.getElementById('userFormAvatarPreview').innerHTML = '<i class="fa fa-user"></i>';
+    document.getElementById('userFormAvatarFile').value = '';
+  }
+
+  // AI-generated "avatar" here means a clean SVG initials badge with a random
+  // gradient — there's no image-generation model wired into this page, so
+  // rather than pretending otherwise, this gives every decoy a distinct,
+  // presentable placeholder without a real photo. This keeps the tool honest
+  // about what it can actually produce client-side.
+  function generateAvatarWithAI() {
+    var name = document.getElementById('userFormFullName').value.trim() || document.getElementById('userFormUsername').value.trim() || 'D';
+    var initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map(function(w){ return w[0].toUpperCase(); }).join('') || 'D';
+    var c1 = FALLBACK_AVATAR_SEED_COLORS[Math.floor(Math.random() * FALLBACK_AVATAR_SEED_COLORS.length)];
+    var c2 = FALLBACK_AVATAR_SEED_COLORS[Math.floor(Math.random() * FALLBACK_AVATAR_SEED_COLORS.length)];
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + c1 + '"/><stop offset="1" stop-color="' + c2 + '"/></linearGradient></defs><rect width="200" height="200" fill="url(#g)"/><text x="100" y="118" font-family="Merriweather, serif" font-size="76" font-weight="700" fill="#0f0e0b" text-anchor="middle">' + initials + '</text></svg>';
+    var dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+    pendingAvatarDataUrl = dataUrl;
+    document.getElementById('userFormAvatarPreview').innerHTML = '<img src="' + dataUrl + '" alt="">';
+    showToast('Generated a placeholder avatar (no image-gen model is wired up — this is a styled initials badge)', 'success');
+  }
+
+  async function generateNameBioWithAI() {
+    if (!ensureAiReady()) return;
+    var btn = document.getElementById('btnAiBio');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Thinking…';
+
+    var prompt = 'Invent one plausible, distinct persona for a medical-education content creator on a mobile learning app called Patholytica. ' +
+      'Return ONLY JSON, no markdown fences, in exactly this shape: {"fullName":"string","username":"string (lowercase, letters/numbers/underscores only, no spaces)","bio":"one or two sentence bio, under 140 characters, written in first person or third person, professional but warm"}. ' +
+      'Vary specialty/role each time (e.g. resident, attending, nursing educator, PA student, retired professor) — pick one at random. Do not use any real, identifiable person\'s name.';
+
+    try {
+      var raw = document.getElementById('aiProvider').value === 'openrouter'
+        ? await callOpenRouterText(prompt, getActiveModel(), 300)
+        : await callPuterText(prompt, getActiveModel());
+      var match = raw.replace(/```json/gi,'').replace(/```/g,'').match(/\{[\s\S]*\}/);
+      if (!match) throw new Error('AI did not return JSON');
+      var parsed = JSON.parse(match[0]);
+      document.getElementById('userFormFullName').value = parsed.fullName || '';
+      document.getElementById('userFormUsername').value = (parsed.username || '').toLowerCase().replace(/[^a-z0-9_]/g, '');
+      document.getElementById('userFormBio').value = parsed.bio || '';
+      if (!document.getElementById('userFormEmail').value.trim() && parsed.username) {
+        document.getElementById('userFormEmail').value = parsed.username.toLowerCase().replace(/[^a-z0-9_]/g, '') + '@decoy.patholytica.local';
+      }
+      showToast('Generated a persona', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('AI generation failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-wand-magic-sparkles"></i> Generate name + bio with AI';
+    }
+  }
+
+  async function saveUserForm() {
+    var fullName = document.getElementById('userFormFullName').value.trim();
+    var username = document.getElementById('userFormUsername').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+    var email = document.getElementById('userFormEmail').value.trim();
+    var bio = document.getElementById('userFormBio').value.trim();
+
+    if (!username) { showToast('Username is required', 'error'); return; }
+    if (username.length < 3) { showToast('Username must be at least 3 characters', 'error'); return; }
+    if (!email) email = username + '@decoy.patholytica.local';
+
+    var table = document.getElementById('usersTable').value.trim() || 'users';
+    var btn = document.getElementById('userFormSave');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving…';
+
+    try {
+      var pfpUrl = undefined; // undefined = leave untouched on edit
+      if (pendingAvatarDataUrl === '') {
+        pfpUrl = null;
+      } else if (pendingAvatarDataUrl) {
+        pfpUrl = pendingAvatarDataUrl; // stored directly as a data URL, matching how the rest of the app already stores small avatar images inline
+      }
+
+      if (editingUserId) {
+        var clash = await sbClient.from(table).select('id').eq('username', username).neq('id', editingUserId).maybeSingle();
+        if (clash.data) { showToast('That username is already taken', 'error'); btn.disabled = false; btn.innerHTML = '<i class="fa fa-check"></i> Save Decoy User'; return; }
+
+        var update = { full_name: fullName || null, username: username, email: email, bio: bio || null };
+        if (pfpUrl !== undefined) update.pfp = pfpUrl;
+
+        var updRes = await sbClient.from(table).update(update).eq('id', editingUserId);
+        if (updRes.error) throw updRes.error;
+
+        var idx = decoyUsers.findIndex(function(x){ return String(x.id) === String(editingUserId); });
+        if (idx !== -1) decoyUsers[idx] = Object.assign({}, decoyUsers[idx], update);
+        showToast('Decoy user updated', 'success');
+      } else {
+        var clash2 = await sbClient.from(table).select('id').eq('username', username).maybeSingle();
+        if (clash2.data) { showToast('That username is already taken', 'error'); btn.disabled = false; btn.innerHTML = '<i class="fa fa-check"></i> Save Decoy User'; return; }
+
+        var syntheticUid = 'decoy_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+        var insertRow = {
+          firebase_uid: syntheticUid,
+          username: username,
+          email: email,
+          full_name: fullName || null,
+          bio: bio || null,
+          pfp: pfpUrl || null
+        };
+        var insRes = await sbClient.from(table).insert([insertRow]).select().single();
+        if (insRes.error) throw insRes.error;
+        decoyUsers.unshift(insRes.data);
+        showToast('Decoy user created', 'success');
+      }
+
+      renderUsersGrid();
+      document.getElementById('statUsersTotal').textContent = decoyUsers.length;
+      closeUserForm();
+    } catch (err) {
+      console.error(err);
+      showToast('Save failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-check"></i> Save Decoy User';
+    }
+  }
+
+  async function quickRandomUser() {
+    if (!ensureAiReady()) return;
+    var btn = document.getElementById('btnRandomUser');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Creating…';
+
+    var table = document.getElementById('usersTable').value.trim() || 'users';
+
+    try {
+      var prompt = 'Invent one plausible, distinct persona for a medical-education content creator on a mobile learning app called Patholytica. ' +
+        'Return ONLY JSON, no markdown fences, in exactly this shape: {"fullName":"string","username":"string (lowercase, letters/numbers/underscores only, no spaces)","bio":"one or two sentence bio, under 140 characters"}. ' +
+        'Vary specialty/role each time. Do not use any real, identifiable person\'s name.';
+
+      var raw = document.getElementById('aiProvider').value === 'openrouter'
+        ? await callOpenRouterText(prompt, getActiveModel(), 300)
+        : await callPuterText(prompt, getActiveModel());
+      var match = raw.replace(/```json/gi,'').replace(/```/g,'').match(/\{[\s\S]*\}/);
+      if (!match) throw new Error('AI did not return JSON');
+      var parsed = JSON.parse(match[0]);
+
+      var username = (parsed.username || 'user' + Date.now()).toLowerCase().replace(/[^a-z0-9_]/g, '');
+      var attempt = 0;
+      var finalUsername = username;
+      while (attempt < 5) {
+        var clash = await sbClient.from(table).select('id').eq('username', finalUsername).maybeSingle();
+        if (!clash.data) break;
+        attempt++;
+        finalUsername = username + attempt;
+      }
+
+      var initials = (parsed.fullName || finalUsername).split(/\s+/).filter(Boolean).slice(0,2).map(function(w){return w[0].toUpperCase();}).join('') || 'D';
+      var c1 = FALLBACK_AVATAR_SEED_COLORS[Math.floor(Math.random() * FALLBACK_AVATAR_SEED_COLORS.length)];
+      var c2 = FALLBACK_AVATAR_SEED_COLORS[Math.floor(Math.random() * FALLBACK_AVATAR_SEED_COLORS.length)];
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + c1 + '"/><stop offset="1" stop-color="' + c2 + '"/></linearGradient></defs><rect width="200" height="200" fill="url(#g)"/><text x="100" y="118" font-family="Merriweather, serif" font-size="76" font-weight="700" fill="#0f0e0b" text-anchor="middle">' + initials + '</text></svg>';
+      var avatarDataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+
+      var syntheticUid = 'decoy_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+      var insertRow = {
+        firebase_uid: syntheticUid,
+        username: finalUsername,
+        email: finalUsername + '@decoy.patholytica.local',
+        full_name: parsed.fullName || null,
+        bio: parsed.bio || null,
+        pfp: avatarDataUrl
+      };
+      var insRes = await sbClient.from(table).insert([insertRow]).select().single();
+      if (insRes.error) throw insRes.error;
+
+      decoyUsers.unshift(insRes.data);
+      renderUsersGrid();
+      document.getElementById('statUsersTotal').textContent = decoyUsers.length;
+      showToast('Created "' + (parsed.fullName || finalUsername) + '"', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Quick create failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-dice"></i> Quick Random User';
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // CONTENT STUDIO
+  // ══════════════════════════════════════════════════════════
+  function contentEmptyState(title, sub, isError) {
+    return '<div class="state-panel"><div class="state-icon"><i class="fa ' + (isError ? 'fa-triangle-exclamation" style="color:var(--danger)' : 'fa-feather-pointed') + '"></i></div><div class="state-title">' + escHtml(title) + '</div><div class="state-sub">' + escHtml(sub) + '</div></div>';
+  }
+
+  function renderContentStudio() {
+    var area = document.getElementById('contentContentArea');
+    area.innerHTML =
+      '<div class="studio-grid">' +
+        '<div class="studio-panel">' +
+          '<div class="studio-panel-title"><i class="fa fa-user-astronaut"></i> Author</div>' +
+          '<div class="author-select-wrap" id="authorSelectWrap"></div>' +
+          '<label class="random-author-toggle"><input type="checkbox" id="randomAuthorCheck" ' + (useRandomAuthor ? 'checked' : '') + '> Pick a random decoy user for each article</label>' +
+        '</div>' +
+        '<div class="studio-panel">' +
+          '<div class="studio-panel-title"><i class="fa fa-lightbulb"></i> Topic</div>' +
+          '<div class="topic-input-row">' +
+            '<input class="config-field" id="topicInput" type="text" placeholder="e.g. Acute Kidney Injury basics" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px;outline:none" value="' + escHtml(currentTopic) + '" />' +
+            '<button class="btn-suggest-topic" id="btnSuggestTopic"><i class="fa fa-shuffle"></i> Suggest</button>' +
+          '</div>' +
+          '<div class="topic-chip-row" id="topicChipRow"></div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="studio-grid">' +
+        '<div class="studio-panel">' +
+          '<div class="studio-panel-title"><i class="fa fa-layer-group"></i> Output</div>' +
+          '<div class="config-field" style="margin-bottom:0">' +
+            '<label>Number of articles</label>' +
+            '<input id="articleCount" type="number" value="5" min="1" max="20" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;width:100%" />' +
+          '</div>' +
+          '<div class="mode-toggle-inline" id="publishModeToggle">' +
+            '<button class="active" data-mode="library" id="modeLibraryBtn"><i class="fa fa-book-open"></i> As one library</button>' +
+            '<button data-mode="individual" id="modeIndividualBtn"><i class="fa fa-file-lines"></i> Individually</button>' +
+          '</div>' +
+          '<div class="config-field" id="libraryNameField" style="margin-top:12px;margin-bottom:0">' +
+            '<label>Library name <span style="opacity:.5;text-transform:none;letter-spacing:0">— optional, AI will suggest one</span></label>' +
+            '<input id="libraryNameInput" type="text" placeholder="Auto-suggested from topic" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;width:100%" />' +
+          '</div>' +
+        '</div>' +
+        '<div class="studio-panel">' +
+          '<div class="studio-panel-title"><i class="fa fa-photo-film"></i> Media</div>' +
+          '<div class="media-toggle-row">' +
+            '<label class="media-toggle"><input type="checkbox" id="mediaImagesCheck" checked> Attach images (Wikimedia)</label>' +
+          '</div>' +
+          '<div class="media-toggle-row" style="margin-top:8px">' +
+            '<label class="media-toggle"><input type="checkbox" id="mediaYtCheck"> Suggest YouTube embeds</label>' +
+          '</div>' +
+          '<div class="config-field-hint" style="margin-top:10px;line-height:1.6" id="ytHint" style="display:none">When enabled, each article gets an AI-suggested search query — you\'ll confirm the actual video link per article before it\'s embedded (no auto-linking to unverified videos).</div>' +
+          '<div class="config-field" style="margin-top:10px;margin-bottom:0">' +
+            '<label>Article length</label>' +
+            '<select id="articleLengthSelect" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;width:100%">' +
+              '<option value="short">Short — bite-sized</option>' +
+              '<option value="medium" selected>Medium — balanced</option>' +
+              '<option value="long">Long — comprehensive</option>' +
+            '</select>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<button class="btn-generate" id="btnGenerate"><i class="fa fa-wand-magic-sparkles"></i> Generate &amp; Review</button>' +
+
+      '<div class="progress-wrap" id="genProgressWrap" style="display:none">' +
+        '<div class="progress-label"><span id="genProgressLabel">Generating…</span><span id="genProgressPct">0%</span></div>' +
+        '<div class="progress-bar-bg"><div class="progress-bar-fill" id="genProgressFill"></div></div>' +
+      '</div>' +
+      '<div class="log-panel" id="genLogPanel"></div>' +
+
+      '<div id="genQueueArea"></div>';
+
+    renderAuthorSelectWrap();
+    renderTopicChips();
+
+    document.getElementById('randomAuthorCheck').addEventListener('change', function(e) {
+      useRandomAuthor = e.target.checked;
+      renderAuthorSelectWrap();
+    });
+    document.getElementById('authorSelectWrap').addEventListener('click', function() {
+      if (!useRandomAuthor) openAuthorModal();
+    });
+    document.getElementById('topicInput').addEventListener('input', function(e){ currentTopic = e.target.value; });
+    document.getElementById('btnSuggestTopic').addEventListener('click', suggestTopics);
+    document.getElementById('modeLibraryBtn').addEventListener('click', function(){ setPublishMode('library'); });
+    document.getElementById('modeIndividualBtn').addEventListener('click', function(){ setPublishMode('individual'); });
+    document.getElementById('mediaYtCheck').addEventListener('change', function(e) {
+      document.getElementById('ytHint').style.display = e.target.checked ? 'block' : 'none';
+    });
+    document.getElementById('btnGenerate').addEventListener('click', startGeneration);
+
+    renderGenQueue();
+  }
+
+  function setPublishMode(mode) {
+    document.getElementById('modeLibraryBtn').classList.toggle('active', mode === 'library');
+    document.getElementById('modeIndividualBtn').classList.toggle('active', mode === 'individual');
+    document.getElementById('libraryNameField').style.display = mode === 'library' ? 'flex' : 'none';
+  }
+
+  function getPublishMode() {
+    return document.getElementById('modeLibraryBtn').classList.contains('active') ? 'library' : 'individual';
+  }
+
+  function renderAuthorSelectWrap() {
+    var wrap = document.getElementById('authorSelectWrap');
+    if (!wrap) return;
+    if (useRandomAuthor) {
+      wrap.style.cursor = 'default';
+      wrap.innerHTML = '<div class="author-select-avatar"><i class="fa fa-dice"></i></div><div class="author-select-info"><div class="author-select-name">Random decoy user per article</div></div>';
+      return;
+    }
+    wrap.style.cursor = 'pointer';
+    if (!selectedAuthor) {
+      wrap.innerHTML = '<div class="author-select-avatar"><i class="fa fa-user"></i></div><div class="author-select-info"><div class="author-select-empty">Click to choose a decoy user…</div></div><i class="fa fa-chevron-down author-select-chevron"></i>';
+    } else {
+      var u = selectedAuthor;
+      var avatarHtml = u.pfp ? '<img src="' + escHtml(u.pfp) + '" alt="">' : (u.username || '?')[0].toUpperCase();
+      wrap.innerHTML = '<div class="author-select-avatar">' + avatarHtml + '</div><div class="author-select-info"><div class="author-select-name">' + escHtml(u.full_name || u.username) + '</div></div><i class="fa fa-chevron-down author-select-chevron"></i>';
+    }
+  }
+
+  function openAuthorModal() {
+    if (decoyUsers.length === 0) {
+      document.getElementById('authorModalBody').innerHTML = '<div class="author-modal-empty">No decoy users yet.<br>Create one in the Decoy Users tab first.</div>';
+    } else {
+      document.getElementById('authorModalBody').innerHTML = decoyUsers.map(function(u) {
+        var avatarHtml = u.pfp ? '<img src="' + escHtml(u.pfp) + '" alt="">' : (u.username || '?')[0].toUpperCase();
+        return '<div class="author-modal-row" data-pick-author="' + u.id + '">' +
+          '<div class="author-select-avatar">' + avatarHtml + '</div>' +
+          '<div class="author-select-info"><div class="author-select-name">' + escHtml(u.full_name || u.username) + '</div><div style="font-size:11px;color:var(--muted)">@' + escHtml(u.username) + '</div></div>' +
+        '</div>';
+      }).join('');
+      document.getElementById('authorModalBody').removeEventListener('click', onAuthorModalClick);
+      document.getElementById('authorModalBody').addEventListener('click', onAuthorModalClick);
+    }
+    document.getElementById('authorModalBackdrop').classList.add('show');
+  }
+
+  function onAuthorModalClick(e) {
+    var row = e.target.closest('[data-pick-author]');
+    if (!row) return;
+    var u = decoyUsers.find(function(x){ return String(x.id) === row.dataset.pickAuthor; });
+    if (u) {
+      selectedAuthor = u;
+      renderAuthorSelectWrap();
+      closeAuthorModal();
+    }
+  }
+
+  function closeAuthorModal() {
+    document.getElementById('authorModalBackdrop').classList.remove('show');
+  }
+
+  // ── Topic suggestions ──
+  async function suggestTopics() {
+    if (!ensureAiReady()) return;
+    var btn = document.getElementById('btnSuggestTopic');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Thinking…';
+
+    var prompt = 'Suggest 6 short, specific medical/pathology education topics currently relevant for a mobile learning app aimed at students and clinicians (things trending in med-ed discourse, board-exam-relevant, or commonly searched clinical topics). ' +
+      'Each should be 2-6 words, specific enough to write a focused article series on (not a whole organ system). ' +
+      'Return ONLY a JSON array of strings, no markdown fences, no explanation. Example: ["Acute Kidney Injury Staging","Sepsis Bundle Updates","Beta-Blocker Pharmacology"]';
+
+    try {
+      var raw = document.getElementById('aiProvider').value === 'openrouter'
+        ? await callOpenRouterText(prompt, getActiveModel(), 400)
+        : await callPuterText(prompt, getActiveModel());
+      var match = raw.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error('AI did not return a JSON array');
+      var arr = JSON.parse(match[0]);
+      if (!Array.isArray(arr)) throw new Error('AI did not return an array');
+      suggestedTopics = arr.filter(Boolean).slice(0, 8);
+      renderTopicChips();
+      showToast('Suggested ' + suggestedTopics.length + ' topics', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Topic suggestion failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-shuffle"></i> Suggest';
+    }
+  }
+
+  function renderTopicChips() {
+    var row = document.getElementById('topicChipRow');
+    if (!row) return;
+    if (suggestedTopics.length === 0) { row.innerHTML = ''; return; }
+    row.innerHTML = suggestedTopics.map(function(t) {
+      return '<button class="topic-chip" data-pick-topic="' + escHtml(t) + '">' + escHtml(t) + '</button>';
+    }).join('');
+    row.removeEventListener('click', onTopicChipClick);
+    row.addEventListener('click', onTopicChipClick);
+  }
+
+  function onTopicChipClick(e) {
+    var chip = e.target.closest('[data-pick-topic]');
+    if (!chip) return;
+    currentTopic = chip.dataset.pickTopic;
+    document.getElementById('topicInput').value = currentTopic;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // AI CALL HELPERS (text-only, shared by user-gen + article-gen)
+  // ══════════════════════════════════════════════════════════
+  async function callPuterText(prompt, model) {
+    var response = await puter.ai.chat(prompt, { model: model });
+    var raw = '';
+    if (typeof response === 'string') {
+      raw = response;
+    } else if (response && response.message && response.message.content) {
+      raw = Array.isArray(response.message.content)
+        ? response.message.content.map(function(c){ return c.text || ''; }).join('')
+        : response.message.content;
+    } else {
+      raw = JSON.stringify(response);
+    }
+    return raw;
+  }
+
+  async function callOpenRouterText(prompt, model, maxTokens) {
+    var apiKey = document.getElementById('orKey').value.trim();
+    if (!apiKey) throw new Error('Enter an OpenRouter API key in the sidebar first');
+
+    var res = await fetch(OPENROUTER_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json',
+        'X-OpenRouter-Title': 'Patholytica Decoy Studio'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: maxTokens || 4000
+      })
+    });
+
+    var data = await res.json();
+    if (!res.ok) {
+      var msg = (data && data.error && data.error.message) ? data.error.message : ('OpenRouter request failed (' + res.status + ')');
+      throw new Error(msg);
+    }
+    var content = data && data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : null;
+    if (!content) throw new Error('OpenRouter returned no content');
+    return content;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // GENERATION PIPELINE
+  // ══════════════════════════════════════════════════════════
+  function buildBatchPrompt(topic, count, lengthPref, wantYt) {
+    var lengthGuide = lengthPref === 'short'
+      ? 'Keep each article bite-sized — a few short paragraphs.'
+      : lengthPref === 'long'
+      ? 'Make each article comprehensive — several well-developed paragraphs.'
+      : 'Keep each article a balanced medium length — enough to be substantive without being exhausting on a mobile feed.';
+
+    return 'You are a content generator for Patholytica, a medical education platform with a mobile bite-sized article feed. ' +
+      'Generate ' + count + ' distinct, standalone articles on the topic: "' + topic + '". Each article should cover a different angle or sub-topic so the set together forms a useful mini-series, with no duplication between them.\n\n' +
+      lengthGuide + ' Write in flowing educational prose (plain paragraphs separated by \\n\\n, no markdown headers or bullet lists). Be factually accurate and use correct clinical/medical terminology. Do not fabricate statistics or cite fake studies.\n\n' +
+      'Also propose one short, descriptive library name and one-sentence description that would fit this whole set.\n\n' +
+      'For each article, suggest 2-4 short image search terms (real visual/medical subject terms for finding a public-domain illustration on Wikimedia Commons — e.g. "nephron anatomy diagram").' +
+      (wantYt ? ' Also suggest one short YouTube search query that would plausibly find a good short explainer video for that specific article (this is only a suggested search query — no real video URL, a human will verify and pick the actual video).' : '') + '\n\n' +
+      'Return ONLY valid JSON, no markdown fences, no explanation, in exactly this shape:\n' +
+      '{\n' +
+      '  "libraryName": "string",\n' +
+      '  "libraryDescription": "string",\n' +
+      '  "articles": [\n' +
+      '    { "title": "string", "content": "string with \\n\\n paragraph breaks", "imageSearchTerms": ["term1","term2"]' + (wantYt ? ', "youtubeSearchQuery": "string"' : '') + ' }\n' +
+      '  ]\n' +
+      '}';
+  }
+
+  function extractBatchJSON(raw) {
+    var cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+    var match = cleaned.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('No JSON object found in AI response');
+    var parsed = JSON.parse(match[0]);
+    if (!parsed.articles || !Array.isArray(parsed.articles) || parsed.articles.length === 0) {
+      throw new Error('AI response did not include any articles');
+    }
+    return parsed;
+  }
+
+  async function startGeneration() {
+    if (isGenerating) return;
+    if (!ensureAiReady()) return;
+
+    var topic = document.getElementById('topicInput').value.trim();
+    if (!topic) { showToast('Enter or suggest a topic first', 'error'); return; }
+
+    if (!useRandomAuthor && !selectedAuthor) { showToast('Choose an author, or enable random author', 'error'); return; }
+    if (decoyUsers.length === 0) { showToast('Create at least one decoy user first', 'error'); return; }
+
+    var count = Math.max(1, Math.min(20, parseInt(document.getElementById('articleCount').value) || 5));
+    var lengthPref = document.getElementById('articleLengthSelect').value;
+    var wantImages = document.getElementById('mediaImagesCheck').checked;
+    var wantYt = document.getElementById('mediaYtCheck').checked;
+    var model = getActiveModel();
+    var provider = document.getElementById('aiProvider').value;
+
+    isGenerating = true;
+    var btn = document.getElementById('btnGenerate');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Generating…';
+
+    var progressWrap = document.getElementById('genProgressWrap');
+    var progressLabel = document.getElementById('genProgressLabel');
+    var progressFill = document.getElementById('genProgressFill');
+    var progressPct = document.getElementById('genProgressPct');
+    progressWrap.style.display = 'block';
+    progressFill.style.width = '5%';
+    progressPct.textContent = '5%';
+    progressLabel.textContent = 'Writing ' + count + ' article' + (count !== 1 ? 's' : '') + '…';
+
+    clearGenLog();
+    showGenLog();
+    appendGenLog('info', 'Generating ' + count + ' article(s) on "' + topic + '"…');
+
+    try {
+      var prompt = buildBatchPrompt(topic, count, lengthPref, wantYt);
+      var raw = provider === 'openrouter'
+        ? await callOpenRouterText(prompt, model, 8000)
+        : await callPuterText(prompt, model);
+      var parsed = extractBatchJSON(raw);
+
+      appendGenLog('ok', 'AI returned ' + parsed.articles.length + ' article(s)');
+      if (!document.getElementById('libraryNameInput').value.trim() && parsed.libraryName) {
+        document.getElementById('libraryNameInput').value = parsed.libraryName;
+      }
+
+      genQueue = parsed.articles.map(function(a) {
+        var author = useRandomAuthor
+          ? decoyUsers[Math.floor(Math.random() * decoyUsers.length)]
+          : selectedAuthor;
+        return {
+          id: 'gen_' + Math.random().toString(36).slice(2),
+          title: a.title || '(untitled)',
+          content: a.content || '',
+          imageSearchTerms: Array.isArray(a.imageSearchTerms) ? a.imageSearchTerms : [],
+          youtubeSearchQuery: a.youtubeSearchQuery || '',
+          wantImage: wantImages,
+          wantYt: wantYt,
+          author: author,
+          image: null,
+          ytUrl: '',
+          status: 'queued',
+          error: null
+        };
+      });
+
+      progressFill.style.width = '15%';
+      progressPct.textContent = '15%';
+      renderGenQueue();
+
+      if (wantImages) {
+        progressLabel.textContent = 'Fetching images…';
+        appendGenLog('info', 'Fetching public-domain images from Wikimedia Commons…');
+        for (var i = 0; i < genQueue.length; i++) {
+          var item = genQueue[i];
+          item.status = 'working';
+          renderGenQueue();
+          try {
+            var query = (item.imageSearchTerms && item.imageSearchTerms[0]) || item.title;
+            var results = await searchWikimedia(query);
+            if (results.length > 0) {
+              var picked = results[0];
+              var res = await fetch(picked.imageUrl);
+              var blob = await res.blob();
+              var dataUrl = await blobToDataUrl(blob);
+              item.image = { dataUrl: dataUrl, url: picked.imageUrl, credit: picked.creditHtml, creditUrl: picked.pageUrl };
+              appendGenLog('ok', '  "' + item.title.slice(0, 40) + '" — image found');
+            } else {
+              appendGenLog('warn', '  "' + item.title.slice(0, 40) + '" — no image found for "' + query + '"');
+            }
+          } catch (imgErr) {
+            console.error(imgErr);
+            appendGenLog('warn', '  "' + item.title.slice(0, 40) + '" — image fetch failed: ' + imgErr.message);
+          }
+          item.status = 'queued';
+          progressFill.style.width = (15 + Math.round(((i + 1) / genQueue.length) * 25)) + '%';
+          progressPct.textContent = progressFill.style.width;
+          renderGenQueue();
+        }
+      }
+
+      progressFill.style.width = '100%';
+      progressPct.textContent = '100%';
+      progressLabel.textContent = 'Ready for review';
+      appendGenLog('ok', 'Batch ready — review below, then publish.');
+      showToast('Generated ' + genQueue.length + ' article(s) — review before publishing', 'success');
+      renderGenQueue();
+    } catch (err) {
+      console.error(err);
+      appendGenLog('err', 'Generation failed: ' + err.message);
+      showToast('Generation failed: ' + err.message, 'error');
+    } finally {
+      isGenerating = false;
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-wand-magic-sparkles"></i> Generate &amp; Review';
+    }
+  }
+
+  // ── Wikimedia Commons image search (public domain / openly licensed, no key) ──
+  async function searchWikimedia(query) {
+    var params = new URLSearchParams({
+      action: 'query',
+      generator: 'search',
+      gsrsearch: 'filetype:bitmap ' + query,
+      gsrnamespace: '6',
+      gsrlimit: '6',
+      prop: 'imageinfo',
+      iiprop: 'url|extmetadata',
+      iiurlwidth: '400',
+      format: 'json',
+      origin: '*'
+    });
+    var res = await fetch(WIKIMEDIA_ENDPOINT + '?' + params.toString());
+    if (!res.ok) throw new Error('Wikimedia request failed (' + res.status + ')');
+    var data = await res.json();
+    var pages = data && data.query && data.query.pages ? data.query.pages : {};
+    var results = [];
+    Object.keys(pages).forEach(function(k) {
+      var p = pages[k];
+      var info = p.imageinfo && p.imageinfo[0];
+      if (!info) return;
+      var meta = info.extmetadata || {};
+      var artist = meta.Artist ? stripHtml(meta.Artist.value) : '';
+      var licenseShort = meta.LicenseShortName ? meta.LicenseShortName.value : '';
+      var creditHtml = 'Wikimedia Commons' + (artist ? ' · ' + escHtml(artist) : '') + (licenseShort ? ' · ' + escHtml(licenseShort) : '');
+      results.push({ title: p.title || '', thumbUrl: info.thumburl || info.url, imageUrl: info.url, pageUrl: info.descriptionurl || '', creditHtml: creditHtml });
+    });
+    return results;
+  }
+  function stripHtml(html) {
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  }
+  function blobToDataUrl(blob) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function(){ resolve(reader.result); };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+  function extractYtId(url) {
+    var m = url.match(/(?:youtu\.be\/|v=|\/v\/|embed\/|shorts\/)([A-Za-z0-9_\-]{11})/);
+    return m ? m[1] : null;
+  }
+
+  // ── Review queue rendering ──
+  function renderGenQueue() {
+    var area = document.getElementById('genQueueArea');
+    if (!area) return;
+    if (genQueue.length === 0) { area.innerHTML = ''; return; }
+
+    var header = '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;margin-bottom:2px">' +
+      '<span class="studio-panel-title" style="margin-bottom:0"><i class="fa fa-list-check"></i> Review (' + genQueue.length + ')</span>' +
+      '<button class="btn-generate" id="btnPublishQueue" style="width:auto;margin-top:0;padding:9px 18px"><i class="fa fa-paper-plane"></i> Publish ' + genQueue.length + '</button>' +
+    '</div>';
+
+    var cards = genQueue.map(function(item) {
+      var iconClass = item.status === 'error' ? 'fa-triangle-exclamation' : item.status === 'done' ? 'fa-check' : item.status === 'working' ? 'fa-spinner fa-spin' : 'fa-file-lines';
+      var badgeClass = 'badge-' + (item.status === 'error' ? 'error' : item.status === 'done' ? 'done' : item.status === 'working' ? 'working' : 'queued');
+      var badgeText = item.status === 'error' ? 'Error' : item.status === 'done' ? 'Published' : item.status === 'working' ? 'Publishing…' : 'Queued';
+      var authorLine = item.author ? (item.author.full_name || item.author.username) : 'No author';
+      var excerpt = (item.content || '').slice(0, 140);
+
+      var imgHtml = item.image ? '<div class="gen-card-thumbs"><div class="gen-card-thumb"><img src="' + escHtml(item.image.dataUrl) + '" alt=""></div></div>' : '';
+      var ytHtml = item.wantYt
+        ? '<div class="gen-card-yt"><i class="fab fa-youtube"></i><input type="text" placeholder="' + (item.youtubeSearchQuery ? 'Search: ' + escHtml(item.youtubeSearchQuery) : 'Paste confirmed YouTube URL…') + '" data-yt-url="' + item.id + '" value="' + escHtml(item.ytUrl) + '" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:4px 8px;color:var(--text);font-size:11px;outline:none"></div>'
+        : '';
+
+      return '<div class="gen-card ' + (item.status === 'working' ? 'working' : item.status === 'done' ? 'done' : item.status === 'error' ? 'error' : '') + '" data-gen-id="' + item.id + '">' +
+        '<div class="gen-card-header">' +
+          '<div class="gen-card-icon"><i class="fa ' + iconClass + '"></i></div>' +
+          '<div class="gen-card-meta">' +
+            '<div class="gen-card-title">' + escHtml(item.title) + '</div>' +
+            '<div class="gen-card-sub">by ' + escHtml(authorLine) + '</div>' +
+          '</div>' +
+          '<span class="gen-card-badge ' + badgeClass + '">' + badgeText + '</span>' +
+        '</div>' +
+        '<div class="gen-card-body">' +
+          '<div class="excerpt">' + escHtml(excerpt) + '</div>' +
+          imgHtml + ytHtml +
+          (item.error ? '<div style="color:var(--danger);margin-top:6px">' + escHtml(item.error) + '</div>' : '') +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    area.innerHTML = header + '<div class="gen-queue">' + cards + '</div>';
+
+    var pubBtn = document.getElementById('btnPublishQueue');
+    if (pubBtn) pubBtn.addEventListener('click', publishGenQueue);
+
+    area.removeEventListener('input', onGenQueueInput);
+    area.addEventListener('input', onGenQueueInput);
+  }
+
+  function onGenQueueInput(e) {
+    var ytField = e.target.closest('[data-yt-url]');
+    if (ytField) {
+      var item = genQueue.find(function(x){ return x.id === ytField.dataset.ytUrl; });
+      if (item) item.ytUrl = ytField.value;
+    }
+  }
+
+  // ── Publish the reviewed queue ──
+  async function publishGenQueue() {
+    if (genQueue.length === 0) return;
+
+    var articlesTable = document.getElementById('articlesTable').value.trim() || 'articles';
+    var plTable = document.getElementById('plTable').value.trim() || 'playlists';
+    var plItemsTable = document.getElementById('plItemsTable').value.trim() || 'playlist_items';
+    var mediaTable = document.getElementById('mediaTable').value.trim() || 'media';
+    var mediaBucket = document.getElementById('mediaBucket').value.trim() || 'article-media';
+    var mode = getPublishMode();
+    var libName = document.getElementById('libraryNameInput').value.trim() || (currentTopic ? currentTopic + ' — Library' : 'Untitled Library');
+
+    var btn = document.getElementById('btnPublishQueue');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Publishing…'; }
+
+    var progressWrap = document.getElementById('genProgressWrap');
+    var progressLabel = document.getElementById('genProgressLabel');
+    var progressFill = document.getElementById('genProgressFill');
+    var progressPct = document.getElementById('genProgressPct');
+    progressWrap.style.display = 'block';
+    appendGenLog('info', 'Publishing ' + genQueue.length + ' article(s) (' + (mode === 'library' ? 'as one library: "' + libName + '"' : 'individually') + ')…');
+
+    var createdIds = [];
+    var failCount = 0;
+
+    for (var i = 0; i < genQueue.length; i++) {
+      var item = genQueue[i];
+      item.status = 'working';
+      renderGenQueue();
+      progressLabel.textContent = 'Publishing ' + (i + 1) + '/' + genQueue.length + '…';
+      progressFill.style.width = Math.round(((i + 1) / genQueue.length) * 90) + '%';
+      progressPct.textContent = progressFill.style.width;
+
+      try {
+        if (!item.author) throw new Error('No author assigned to this article');
+
+        var insertRow = { title: item.title, content: item.content, firebase_user_id: item.author.firebase_uid };
+        var insRes = await sbClient.from(articlesTable).insert([insertRow]).select().single();
+        if (insRes.error) throw insRes.error;
+        var artId = insRes.data.id;
+        createdIds.push(artId);
+        appendGenLog('ok', '  "' + item.title.slice(0, 40) + '" published (id ' + artId + ')');
+
+        var mediaOrder = 0;
+
+        if (item.image && item.image.dataUrl) {
+          try {
+            var blob = await (await fetch(item.image.dataUrl)).blob();
+            var ext = (blob.type && blob.type.indexOf('png') !== -1) ? 'png' : 'jpg';
+            var path = artId + '/' + Date.now() + '_img.' + ext;
+            var upRes = await sbClient.storage.from(mediaBucket).upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: true });
+            if (upRes.error) throw upRes.error;
+            var pub = sbClient.storage.from(mediaBucket).getPublicUrl(path);
+            var mediaRes = await sbClient.from(mediaTable).insert([{ article_id: artId, type: 'image', url: pub.data.publicUrl, caption: stripHtml(item.image.credit || '') || null, display_order: mediaOrder }]);
+            if (mediaRes.error) throw mediaRes.error;
+            mediaOrder++;
+            appendGenLog('ok', '    image attached');
+          } catch (imgErr) {
+            appendGenLog('warn', '    image attach failed: ' + imgErr.message);
+          }
+        }
+
+        if (item.wantYt && item.ytUrl && item.ytUrl.trim()) {
+          var ytId = extractYtId(item.ytUrl.trim());
+          if (ytId) {
+            var ytRes = await sbClient.from(mediaTable).insert([{ article_id: artId, type: 'youtube', url: 'https://www.youtube.com/embed/' + ytId, caption: null, display_order: mediaOrder }]);
+            if (ytRes.error) appendGenLog('warn', '    YouTube embed failed: ' + ytRes.error.message);
+            else appendGenLog('ok', '    YouTube embed attached');
+            mediaOrder++;
+          } else {
+            appendGenLog('warn', '    "' + item.title.slice(0,40) + '" — YouTube URL didn\'t look valid, skipped');
+          }
+        }
+
+        item.status = 'done';
+        articlesGenCount++;
+        document.getElementById('statArticlesGen').textContent = articlesGenCount;
+      } catch (err) {
+        console.error(err);
+        item.status = 'error';
+        item.error = err.message;
+        appendGenLog('err', '  "' + item.title.slice(0, 40) + '" failed: ' + err.message);
+        failCount++;
+      }
+      renderGenQueue();
+    }
+
+    if (mode === 'library' && createdIds.length > 0) {
+      try {
+        appendGenLog('info', 'Creating library "' + libName + '"…');
+        var libOwner = useRandomAuthor ? decoyUsers[Math.floor(Math.random() * decoyUsers.length)] : selectedAuthor;
+        var libInsert = { name: libName, description: document.getElementById('libraryNameInput').dataset.desc || null };
+        if (libOwner && libOwner.id) libInsert.user_id = libOwner.id;
+        var libRes = await sbClient.from(plTable).insert([libInsert]).select().single();
+        if (libRes.error) throw libRes.error;
+        var libId = libRes.data.id;
+        appendGenLog('ok', 'Library created (id ' + libId + ')');
+
+        var itemRows = createdIds.map(function(articleId, pos) { return { playlist_id: libId, article_id: articleId, position: pos }; });
+        var itemsRes = await sbClient.from(plItemsTable).insert(itemRows);
+        if (itemsRes.error) throw itemsRes.error;
+        appendGenLog('ok', 'Linked ' + createdIds.length + ' article(s) to the library');
+      } catch (libErr) {
+        console.error(libErr);
+        appendGenLog('err', 'Library creation failed: ' + libErr.message);
+        showToast('Articles published but library creation failed: ' + libErr.message, 'error');
+      }
+    }
+
+    progressFill.style.width = '100%';
+    progressPct.textContent = '100%';
+    progressLabel.textContent = 'Done';
+    var summary = createdIds.length + ' published' + (failCount > 0 ? ', ' + failCount + ' failed' : '');
+    appendGenLog('ok', 'Finished — ' + summary);
+    showToast(summary, failCount > 0 ? 'warning' : 'success');
+
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa fa-paper-plane"></i> Publish ' + genQueue.length; }
+
+    // Clear only fully-succeeded items so failed ones remain visible for a retry
+    genQueue = genQueue.filter(function(x){ return x.status !== 'done'; });
+    renderGenQueue();
+  }
+
+  function showGenLog() { document.getElementById('genLogPanel').classList.add('visible'); }
+  function clearGenLog() { document.getElementById('genLogPanel').innerHTML = ''; }
+  function appendGenLog(type, msg) {
+    var el = document.createElement('div');
+    el.className = 'log-entry ' + type;
+    el.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+    var p = document.getElementById('genLogPanel');
+    if (!p) return;
+    p.appendChild(el);
+    p.scrollTop = p.scrollHeight;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // SHARED UI HELPERS
+  // ══════════════════════════════════════════════════════════
+  function showToast(msg, type) {
+    var el = document.getElementById('toast');
+    var icon = type === 'success' ? '✓' : type === 'error' ? '⚠' : type === 'warning' ? '!' : 'ℹ';
+    el.className = 'show ' + (type || '');
+    el.innerHTML = '<span>' + icon + '</span><span>' + escHtml(msg) + '</span>';
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { el.className = ''; }, 3600);
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+})();
+</script>
+</body>
+</html>
