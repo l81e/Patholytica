@@ -157,11 +157,6 @@ body {
 }
 .posts-wrapper::-webkit-scrollbar { display: none; }
 
-/* Item 1 fix: while the feed hasn't finished its very first paint,
-   nothing in the wrapper should be visible at all. JS removes this
-   class only once the first article/MCQ card is in the DOM AND the
-   scroll position has already been snapped past the picker, so the
-   user's very first frame is the article, never the picker. */
 .posts-wrapper.pre-reveal {
   visibility: hidden;
 }
@@ -249,9 +244,6 @@ body {
   }
   .ds-collapse-btn:hover { color: var(--accent); background: var(--accent-soft); }
 
-  /* Issue 3b fix: on desktop the mobile footer is hidden, so the
-     picker's Begin/Browse-All actions must live somewhere visible.
-     They render inside this in-card bar instead, only on desktop. */
   .footer-bar { display: none !important; }
 
   .lp-desktop-actionbar {
@@ -470,10 +462,6 @@ body.theme-light .action-btn span {
   transition: padding-right 0.4s cubic-bezier(0.4,0,0.2,1);
 }
 
-/* While in full-view mode (or mid long-press), disable native text
-   selection / callout so long-pressing text never opens the OS
-   text-selection or copy menu. Applied per-card via JS as well, but
-   declared here so the rule exists regardless of load order. */
 .article-card.no-select-lp,
 .mcq-card.no-select-lp,
 .article-card.no-select-lp *,
@@ -783,8 +771,7 @@ body.theme-light .action-btn span {
 .skeleton-line.w90{width:90%}.skeleton-line.w75{width:75%}.skeleton-line.w80{width:80%}.skeleton-line.w65{width:65%}.skeleton-line.w95{width:95%}
 
 /* ══════════════════════════════════════════════
-   FOOTER BAR — now dynamically swaps between default
-   nav (4 buttons) and picker actions (2 buttons) via JS
+   FOOTER BAR
 ══════════════════════════════════════════════ */
 .footer-bar {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
@@ -813,8 +800,6 @@ body.theme-light .action-btn span {
 .footer-btn i { font-size: 19px; }
 .footer-btn span { font-size: 10px; font-weight: 600; }
 
-/* Picker-mode footer content — replaces the 4 nav buttons while
-   libraries are selected in the picker card (mobile). */
 .footer-picker-actions {
   display: flex; align-items: center; gap: 10px; width: 100%;
   animation: footerSwapIn 0.25s cubic-bezier(0.2,0.8,0.2,1);
@@ -847,8 +832,6 @@ body.theme-light .action-btn span {
   .footer-btn span { font-size: 9px; }
 }
 
-/* Issue 3b fix: desktop-only in-card action bar for the picker, since
-   .footer-bar is display:none on desktop and can't host these buttons. */
 .lp-desktop-actionbar {
   display: none;
   align-items: center; gap: 10px;
@@ -934,7 +917,6 @@ body.theme-light .lp-topbar-logo img { filter: invert(1) grayscale(1); }
 .lp-body::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
 .lp-section-label { font-size: 10px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); display: flex; align-items: center; gap: 6px; padding: 6px 18px; flex-shrink: 0; }
 
-/* Library rows — matches explore.html's .result-item list pattern */
 .lib-row-list { display: flex; flex-direction: column; padding: 0 18px; margin-bottom: 10px; }
 .lib-row {
   display: flex; align-items: center; gap: 13px;
@@ -973,14 +955,6 @@ body.theme-light .lp-topbar-logo img { filter: invert(1) grayscale(1); }
 
 /* ══════════════════════════════════════════════
    UNIFIED FADE/BLUR FEED TRANSITION
-   One single mechanism used for: initial Begin from
-   the picker, Browse All, Browse-a-random-feed, and
-   any future full-feed swap. It fades opacity, adds a
-   gentle blur, and drops/lifts slightly — matching the
-   feel of the reference page's lp-card-exit animation,
-   but implemented as an explicit, always-unambiguous
-   class so it can never silently collide with any other
-   animation class an element might still be carrying.
 ══════════════════════════════════════════════ */
 .feed-fade-exit {
   animation: feedFadeOut 0.35s cubic-bezier(0.4,0,0.2,1) forwards !important;
@@ -1169,9 +1143,7 @@ body.theme-light .lp-topbar-logo img { filter: invert(1) grayscale(1); }
 .emo-calm { color: var(--accent); }
 .emo-surprised { color: #d4a86a; display: inline-block; }
 
-/* ── Light-mode overrides: three emoji styles hardcode dark-mode-only
-   backgrounds/text colors that go low-contrast or invisible against
-   the cream light background. ── */
+/* ── Light-mode overrides ── */
 body.theme-light .emo-dark { color: #4a4438; background: rgba(0,0,0,0.06); }
 body.theme-light .emo-cool { background: rgba(160,120,64,0.08); color: var(--accent); border-color: rgba(160,120,64,0.2); }
 body.theme-light .emo-lock { color: #8a7d68; background: rgba(160,120,64,0.08); border-color: var(--border-color); }
@@ -1574,11 +1546,7 @@ function showFeedToast(msg){const t=document.getElementById('shareToast');t.text
 <!-- 10. Long-press full-view toggle -->
 <script>
 (function(){
-  // How long (ms) a press must be held before it counts as a "long
-  // press" rather than a normal tap/click.
   const LP_DURATION = 480;
-  // If the finger/pointer moves more than this many px during the
-  // hold, treat it as a scroll/drag instead of a long-press.
   const LP_MOVE_TOLERANCE = 10;
 
   let lpTimer = null;
@@ -1596,17 +1564,9 @@ function showFeedToast(msg){const t=document.getElementById('shareToast');t.text
   }
 
   function armCard(card){
-    // Prevent the native text-selection / copy callout from appearing
-    // the moment a press begins on a card, so a long press never
-    // triggers the OS selection menu instead of our toggle.
     card.classList.add('no-select-lp');
   }
   function disarmCard(card){
-    // Only strip the no-select guard back off if the card isn't
-    // currently sitting in full-view mode (we still want selection
-    // disabled while expanded, per the request — long press is the
-    // only interaction on these cards, so this stays on either way,
-    // but we clean this up if the press was aborted before firing).
     if(!card.classList.contains('full-view-mode')){
       card.classList.remove('no-select-lp');
     }
@@ -1618,28 +1578,21 @@ function showFeedToast(msg){const t=document.getElementById('shareToast');t.text
       card.classList.remove('full-view-mode');
       card.classList.remove('no-select-lp');
     }else{
-      // Only one card in full-view at a time.
       document.querySelectorAll('.article-card.full-view-mode,.mcq-card.full-view-mode').forEach(c=>{
         if(c!==card){c.classList.remove('full-view-mode');c.classList.remove('no-select-lp');}
       });
       card.classList.add('full-view-mode');
       card.classList.add('no-select-lp');
     }
-    // Hide/restore the mobile footer bar in sync with the expand state
-    // so the freed-up screen at the bottom is consistent too.
     const footer = document.getElementById('footerBar');
     if(footer && !isDesktop()){
       const anyExpanded = !!document.querySelector('.article-card.full-view-mode,.mcq-card.full-view-mode');
       footer.classList.toggle('full-view-hidden', anyExpanded);
     }
-    // Light haptic-style feedback cue via a brief class flash could be
-    // added here later; not required for the toggle itself.
   }
 
   function onPressStart(e, card){
     if(isInteractive(e.target))return;
-    // Ignore additional touch points (multi-touch) — only track the
-    // first one for the long-press gesture.
     if(e.touches && e.touches.length > 1)return;
 
     const point = e.touches ? e.touches[0] : e;
@@ -1676,9 +1629,6 @@ function showFeedToast(msg){const t=document.getElementById('shareToast');t.text
     lpArmedCard = null;
   }
 
-  // Attach delegated listeners once; individual cards don't need their
-  // own handlers since they're created/destroyed dynamically as the
-  // feed scrolls and paginates.
   const wrapper = document.getElementById('postsWrapper');
 
   wrapper.addEventListener('touchstart', function(e){
@@ -1690,7 +1640,6 @@ function showFeedToast(msg){const t=document.getElementById('shareToast');t.text
   wrapper.addEventListener('touchend', onPressEnd, {passive:true});
   wrapper.addEventListener('touchcancel', onPressEnd, {passive:true});
 
-  // Mouse support (desktop click-and-hold).
   wrapper.addEventListener('mousedown', function(e){
     if(e.button !== 0)return;
     const card = e.target.closest('.article-card,.mcq-card');
@@ -1700,9 +1649,6 @@ function showFeedToast(msg){const t=document.getElementById('shareToast');t.text
   wrapper.addEventListener('mousemove', onPressMove);
   window.addEventListener('mouseup', onPressEnd);
 
-  // Prevent the native context menu (right-click / long-press menu on
-  // some browsers) from appearing on cards, since that's the same
-  // "text selection / copy" surface we're suppressing for touch.
   wrapper.addEventListener('contextmenu', function(e){
     const card = e.target.closest('.article-card,.mcq-card');
     if(card && !isInteractive(e.target)){
@@ -1710,9 +1656,6 @@ function showFeedToast(msg){const t=document.getElementById('shareToast');t.text
     }
   });
 
-  // If a long-press just fired, swallow the click/tap that browsers
-  // sometimes still dispatch right after touchend, so it doesn't
-  // accidentally trigger a like via double-tap logic or a link.
   wrapper.addEventListener('click', function(e){
     if(Date.now() < lpSuppressClickUntil){
       const card = e.target.closest('.article-card,.mcq-card');
@@ -1767,16 +1710,8 @@ let _dsCurrentArticleId=null;
 const _lpSelected=new Set();
 let _loadingGifEl=null;
 
-// Item 3 fix: explicit "already shown" tracking, independent of numeric
-// offset, so pagination survives picks rows being inserted mid-session.
 const shownArticleIds=new Set();
 
-// Issue 1 fix: tracks whether the very first paint has already happened.
-// Until this flips true, the posts-wrapper stays visibility:hidden via
-// the .pre-reveal class, so nothing — not the picker, not a skeleton,
-// not a flash of anything — is shown to the user. The very first thing
-// unhidden is always the first real article/MCQ card, scrolled into
-// place with zero animation, in the same paint.
 let _firstPaintRevealed=false;
 
 function isDesktop(){return window.innerWidth>=769;}
@@ -2076,8 +2011,6 @@ window.handleFollow=async function(e,aFbUid,aSupaId){
   }finally{btn.dataset.processing='false';}
 };
 
-// ── Footer / desktop-actionbar swap: default nav ⇄ picker
-// actions, on whichever surface is actually visible for the viewport. ──
 function showPickerActionSurface(){
   if(isDesktop()){
     let bar=document.getElementById('lpDesktopActionbar');
@@ -2116,27 +2049,6 @@ function updateFooterSelLabel(n){
   if(lbl)lbl.textContent=n>0?`(${n})`:'';
 }
 
-// ── Library Picker ──
-// Issue 1 fix (core of the rewrite): the picker card is now built and
-// its data fetched entirely in the background (invisible, since
-// #postsWrapper carries .pre-reveal from the very first line of HTML).
-// It is inserted above the feed in the DOM, but NOTHING is shown to the
-// user until the first batch of real feed cards has also been built
-// and appended, and the scroll position has already been jumped past
-// the picker to the first card. Only then does revealFeed() remove
-// .pre-reveal — so the very first pixel the user ever sees is the
-// first article, never the picker, never a skeleton, never a flash.
-//
-// LOADING-STATE FIX: the previous version never actually called
-// injectInitialSkeletons(), so the loading GIF (which is position:fixed
-// on <body>, not a child of #postsWrapper, and therefore NOT hidden by
-// pre-reveal) never appeared, and the wrapper sat blank during the
-// fetch. That call is added below, right before the fetch begins, so
-// the GIF is visible on top of the still-hidden wrapper for as long as
-// loadArticles() takes. pre-reveal itself is untouched — it still gates
-// the picker card exactly as before, and the skeleton cards it also
-// inserts stay invisible until reveal, same as everything else in the
-// wrapper.
 async function initLibraryPicker(){
   if(anchorArticleId!==null){
     showLoadingGif();
@@ -2158,21 +2070,11 @@ async function initLibraryPicker(){
   const pickerCard=buildPickerCard();
   wrapper.appendChild(pickerCard);
 
-  // Show the loading indicator now: the picker card just went into the
-  // DOM but is still visibility:hidden via pre-reveal on the wrapper,
-  // and the GIF itself lives on <body> so it renders regardless. This
-  // is the visible cue while authReady + loadArticles resolve below.
   showLoadingGif();
 
   await authReady;
   await loadArticles(true);
 
-  // At this point the first batch of real feed cards is already in the
-  // DOM (appended after the picker card by renderArticles). Jump the
-  // scroll position straight to the first feed card BEFORE anything is
-  // revealed, so that when .pre-reveal comes off there is no visible
-  // scroll jump either — the user's first frame already shows the
-  // first card sitting at scrollTop 0 of the viewport.
   snapToFirstFeedCard();
   revealFeed();
 }
@@ -2182,11 +2084,6 @@ function revealFeed(){
   _firstPaintRevealed=true;
   const wrapper=document.getElementById('postsWrapper');
   wrapper.classList.remove('pre-reveal');
-  // The loading GIF has served its purpose the moment real content is
-  // about to be shown — hide it here as a safety net in case
-  // loadArticles()'s own clearSkeletons()/hideLoadingGif() call, deep
-  // inside renderArticles(), was skipped on some code path (e.g. the
-  // filteredArticleIds-empty early return in loadArticles).
   hideLoadingGif();
 }
 
@@ -2199,8 +2096,6 @@ function snapToFirstFeedCard(){
 function buildPickerCard(){
   const card=document.createElement('div');card.className='library-picker-card';card.id='libraryPickerCard';
   const topbar=document.createElement('div');topbar.className='lp-topbar';
-  // Issue 2 fix: login chip / username button removed entirely from the
-  // picker topbar. Only the logo and the picks/settings buttons remain.
   topbar.innerHTML=`<div class="lp-topbar-logo"><img src="IMG_3220.png" alt="Patholytica"></div><div class="lp-topbar-right"><button class="lp-picks-btn" id="lpPicksBtn" onclick="openPicksPanel()" title="Your feed right now"><i class="fas fa-list-ol"></i></button><button class="lp-settings-btn" id="lpSettingsBtn" onclick="toggleSettingsPopover(this)"><i class="fas fa-sliders-h"></i></button></div>`;
   card.appendChild(topbar);
   const body=document.createElement('div');body.className='lp-body';body.id='lpBody';
@@ -2266,7 +2161,6 @@ async function loadPickerLibraries(body){
   }
 }
 
-// ── Picks preview panel ──
 window.openPicksPanel=async function(){
   document.getElementById('picksPanelOverlay').classList.add('open');
   document.getElementById('picksPanel').classList.add('open');
@@ -2334,25 +2228,12 @@ function clearFeedAndShowSkeletons(){
   injectInitialSkeletons(3);
 }
 
-// ── Unified fade/blur transition ──
-// One single helper used by "Begin" (from the picker), "Browse All",
-// and "Browse a random feed instead", so all three transitions look
-// and behave identically: the card currently on screen fades + blurs
-// out via the explicit .feed-fade-exit class (which always wins, since
-// it's the only animation-bearing class ever added at that moment —
-// any stale animation class from a previous transition is stripped
-// first), then the new feed's cards fade + blur in via .feed-fade-enter
-// once they've rendered.
 function transitionToNewFeed(loadFn){
   const wrapper=document.getElementById('postsWrapper');
   const visibleCard=wrapper.querySelector('.library-picker-card, .article-card, .mcq-card, .end-feed-card');
   if(!visibleCard){clearFeedAndShowSkeletons();loadFn();return;}
 
-  // Strip any leftover transition classes so the new one is never
-  // fighting a class it doesn't know about.
   visibleCard.classList.remove('feed-fade-exit','feed-fade-enter');
-  // Force a reflow so re-adding the class always restarts the animation
-  // even if this exact element was faded before.
   void visibleCard.offsetWidth;
   visibleCard.classList.add('feed-fade-exit');
 
@@ -2367,9 +2248,6 @@ function transitionToNewFeed(loadFn){
     });
   };
   visibleCard.addEventListener('animationend',finish,{once:true});
-  // Safety net: if for any reason animationend never fires (e.g. the
-  // element was already removed from the DOM elsewhere), don't leave
-  // the user stuck looking at a faded-out card forever.
   setTimeout(finish,450);
 }
 
@@ -2384,10 +2262,6 @@ function fadeInNewFeedCards(){
   });
 }
 
-// Item 3 fix: exclude already-shown article IDs explicitly rather than
-// trusting a numeric offset, since inserts into pick_items during the
-// session (from ongoing interactions) shift what a positional offset
-// window actually contains.
 async function loadUserPicks(userId,excludeIds,limit){
   const{data:pickRows,error}=await supabase.rpc('get_user_picks',{p_firebase_uid:currentFirebaseUser.uid});
   if(error){console.error('[loadUserPicks] RPC failed:',error);return[];}
@@ -2415,9 +2289,6 @@ function buildEndFeedCard(hasSeenAnyPicks){
   return div;
 }
 
-// Issue 4 fix: routed through the same transitionToNewFeed helper as
-// Begin/Browse All, so the random feed also fades+blurs identically
-// rather than swapping instantly.
 window.startRandomFeed=function(){
   randomModeForced=true;
   filteredArticleIds=null;
