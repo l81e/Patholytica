@@ -276,12 +276,14 @@ body {
   background: var(--bg-color);
   padding: 0;
   display: flex; flex-direction: column;
+  overflow-x: hidden;
 }
 
 .article-scroll-region {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 .article-scroll-region::-webkit-scrollbar { width: 2px; }
 .article-scroll-region::-webkit-scrollbar-track { background: transparent; }
@@ -386,6 +388,7 @@ body {
   letter-spacing: 0.01em; text-align: justify;
   font-family: var(--font-article);
   transition: font-size 0.3s ease, padding-right 0.4s cubic-bezier(0.4,0,0.2,1);
+  overflow-x: hidden;
 }
 
 /* ── FULL-WIDTH IMAGE ── */
@@ -500,7 +503,7 @@ body.theme-light .action-btn span {
   transition: font-size 0.3s ease;
 }
 .mcq-media { padding-right: 60px; flex-shrink: 0; margin-bottom: 14px; }
-.mcq-scroll-area { flex: 1; overflow-y: auto; padding-right: 60px; display: flex; flex-direction: column; }
+.mcq-scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; padding-right: 60px; display: flex; flex-direction: column; }
 .mcq-scroll-area::-webkit-scrollbar { width: 2px; }
 .mcq-scroll-area::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
 .mcq-options { display: flex; flex-direction: column; gap: 9px; }
@@ -1548,12 +1551,14 @@ function showFeedToast(msg){const t=document.getElementById('shareToast');t.text
 (function(){
   const LP_DURATION = 480;
   const LP_MOVE_TOLERANCE = 10;
+  const LP_DESELECT_GUARD = 400;
 
   let lpTimer = null;
   let lpStartX = 0, lpStartY = 0;
   let lpArmedCard = null;
   let lpFired = false;
   let lpSuppressClickUntil = 0;
+  let lpDeselectGuardTimer = null;
 
   function isInteractive(el){
     return !!el.closest('button,a,.term-link,.action-buttons,.author-name,.author-avatar,.follow-btn,.card-edit-btn,.mcq-option,input,.article-title-link,.mcq-question-link');
@@ -1576,10 +1581,27 @@ function showFeedToast(msg){const t=document.getElementById('shareToast');t.text
     const wasFullView = card.classList.contains('full-view-mode');
     if(wasFullView){
       card.classList.remove('full-view-mode');
-      card.classList.remove('no-select-lp');
+      // Keep selection/callout suppressed for a short guard window after
+      // turning full-view OFF. The long-press that triggers this toggle
+      // is still an active touch/press at this instant — if we strip
+      // user-select immediately, the OS can interpret the tail end of
+      // that same press as a text-selection / callout gesture, which is
+      // exactly the "text editor" popup bug. We release the guard on the
+      // same timescale as lpSuppressClickUntil below, once the physical
+      // press has actually ended.
+      if(lpDeselectGuardTimer){clearTimeout(lpDeselectGuardTimer);}
+      lpDeselectGuardTimer = setTimeout(()=>{
+        if(!card.classList.contains('full-view-mode')){
+          card.classList.remove('no-select-lp');
+        }
+        lpDeselectGuardTimer = null;
+      }, LP_DESELECT_GUARD);
     }else{
       document.querySelectorAll('.article-card.full-view-mode,.mcq-card.full-view-mode').forEach(c=>{
-        if(c!==card){c.classList.remove('full-view-mode');c.classList.remove('no-select-lp');}
+        if(c!==card){
+          c.classList.remove('full-view-mode');
+          c.classList.remove('no-select-lp');
+        }
       });
       card.classList.add('full-view-mode');
       card.classList.add('no-select-lp');
