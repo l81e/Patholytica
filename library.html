@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Patholytica — Libraries</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+--bg:#0f0e0b; --text:#f5f0e8; --sub:#8a8070;
+--hover:#1a1810; --border:#2a2518;
+--accent:#c8a96e; --accent-h:#b8935a;
+--accent-glow:rgba(200,169,110,0.25);
+--accent-soft:rgba(200,169,110,0.12);
+--green:#6abf85;
+--error:#c46a4e;
+--warning:#c8a040;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+font-family:"DM Sans",sans-serif;
+background:var(--bg);color:var(--text);
+position:fixed;width:100%;height:100%;
+overflow:hidden;
+}
+.app{
+position:fixed;top:0;left:50%;transform:translateX(-50%);
+width:100%;max-width:450px;height:100%;
+background:var(--bg);display:flex;flex-direction:column;
+overflow:hidden;
+}
+
+/* ── Header ── */
+.hdr{
+flex-shrink:0;display:flex;align-items:center;gap:9px;
+padding:10px 14px;
+padding-top:calc(10px + env(safe-area-inset-top));
+border-bottom:1px solid var(--border);
+background:rgba(15,14,11,0.97);
+backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+z-index:50;
+}
+.hdr-back{
+width:34px;height:34px;border-radius:50%;
+background:var(--hover);border:1px solid var(--border);
+color:var(--text);cursor:pointer;
+display:flex;align-items:center;justify-content:center;
+font-size:13px;flex-shrink:0;
+}
+.hdr-back:active{border-color:var(--accent);color:var(--accent);}
+.hdr-info{flex:1;min-width:0;}
+.hdr-title{font-size:14px;font-weight:700;font-family:'Merriweather',serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hdr-sub{font-size:10px;color:var(--sub);margin-top:1px;}
+.hdr-actions{display:flex;gap:6px;align-items:center;}
+.hdr-btn{
+padding:7px 12px;border-radius:20px;
+font-size:11px;font-weight:700;cursor:pointer;
+font-family:"DM Sans",sans-serif;
+display:flex;align-items:center;gap:5px;white-space:nowrap;
+border:none;transition:all .15s;
+}
+.hdr-ghost{background:var(--hover);border:1px solid var(--border)!important;color:var(--sub);}
+.hdr-ghost:hover{border-color:var(--accent)!important;color:var(--accent);}
+.hdr-primary{background:var(--accent);color:#0f0e0b;box-shadow:0 2px 10px var(--accent-glow);}
+.hdr-primary:hover{background:var(--accent-h);}
+.hdr-danger{background:rgba(196,106,78,.12);border:1px solid rgba(196,106,78,.3)!important;color:var(--error);}
+.hdr-btn:disabled{opacity:.35;cursor:not-allowed;}
+
+/* ── List view ── */
+.list-view{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 90px;}
+.list-view::-webkit-scrollbar{width:2px;}
+.list-view::-webkit-scrollbar-thumb{background:var(--border);}
+
+.lib-card{
+background:var(--hover);border:1px solid var(--border);
+border-radius:14px;padding:14px;margin-bottom:10px;
+display:flex;gap:12px;align-items:center;cursor:pointer;
+transition:border-color .15s;
+}
+.lib-card:active{border-color:var(--accent);}
+.lib-thumb{
+width:52px;height:52px;border-radius:10px;flex-shrink:0;
+background:linear-gradient(135deg,var(--accent),#8a6430);
+display:flex;align-items:center;justify-content:center;
+font-size:18px;color:#0f0e0b;overflow:hidden;
+}
+.lib-thumb img{width:100%;height:100%;object-fit:cover;}
+.lib-card-info{flex:1;min-width:0;}
+.lib-card-name{font-size:14px;font-weight:700;font-family:'Merriweather',serif;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lib-card-meta{font-size:11px;color:var(--sub);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.lib-badge{
+font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+padding:2px 7px;border-radius:6px;background:var(--accent-soft);color:var(--accent);
+}
+.lib-badge.collab{background:rgba(138,160,192,.12);color:#8aa0c0;}
+.lib-card-chevron{color:var(--sub);font-size:12px;flex-shrink:0;}
+
+.empty-state{
+text-align:center;padding:60px 24px;color:var(--sub);
+}
+.empty-state i{font-size:34px;margin-bottom:14px;opacity:.4;display:block;}
+.empty-state p{font-size:13px;line-height:1.6;}
+
+.fab{
+position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));
+left:50%;transform:translateX(calc(-50% + 165px));
+width:52px;height:52px;border-radius:50%;
+background:var(--accent);color:#0f0e0b;border:none;
+display:flex;align-items:center;justify-content:center;
+font-size:18px;cursor:pointer;box-shadow:0 4px 20px var(--accent-glow);
+z-index:100;
+}
+.fab:active{background:var(--accent-h);}
+
+/* ── Detail view ── */
+.detail-view{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;padding-bottom:100px;}
+.detail-view::-webkit-scrollbar{width:2px;}
+.detail-view::-webkit-scrollbar-thumb{background:var(--border);}
+.detail-view.show{display:block;}
+.list-view.hide{display:none;}
+
+.detail-hero{padding:18px 18px 6px;}
+.detail-name-input{
+font-size:20px;font-weight:800;color:var(--text);
+line-height:1.25;letter-spacing:-0.02em;font-family:'Merriweather',serif;
+border:none;outline:none;background:transparent;width:100%;
+resize:none;overflow:hidden;padding:0;min-height:1.25em;margin-bottom:6px;
+}
+.detail-name-input::placeholder{color:var(--sub);opacity:.5;}
+.detail-desc-input{
+font-size:13px;color:var(--sub);line-height:1.5;
+border:none;outline:none;background:transparent;width:100%;
+resize:none;overflow:hidden;padding:0;font-family:"DM Sans",sans-serif;
+}
+.detail-desc-input::placeholder{color:var(--sub);opacity:.5;}
+.detail-name-input:disabled,.detail-desc-input:disabled{opacity:.85;}
+
+.detail-meta-row{display:flex;align-items:center;gap:8px;padding:10px 18px 4px;flex-wrap:wrap;}
+.owner-chip{
+display:flex;align-items:center;gap:6px;
+background:var(--hover);border:1px solid var(--border);
+border-radius:20px;padding:5px 11px 5px 5px;font-size:11px;color:var(--sub);
+}
+.owner-chip-avatar{
+width:20px;height:20px;border-radius:50%;
+background:linear-gradient(135deg,var(--accent),#8a6430);
+display:flex;align-items:center;justify-content:center;
+font-size:9px;font-weight:700;color:#0f0e0b;overflow:hidden;flex-shrink:0;
+}
+.owner-chip-avatar img{width:100%;height:100%;object-fit:cover;}
+.owner-chip b{color:var(--text);font-weight:700;}
+
+/* Section header */
+.section-hdr{
+display:flex;align-items:center;justify-content:space-between;
+padding:16px 18px 8px;
+}
+.section-hdr-title{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);}
+.section-hdr-count{font-size:11px;color:var(--sub);opacity:.7;}
+.section-add-btn{
+width:26px;height:26px;border-radius:8px;
+background:var(--accent-soft);border:1px solid rgba(200,169,110,.3);
+color:var(--accent);cursor:pointer;font-size:11px;
+display:flex;align-items:center;justify-content:center;
+}
+.section-add-btn:active{background:rgba(200,169,110,.25);}
+
+/* Collaborators row */
+.collab-strip{display:flex;gap:8px;padding:2px 18px 4px;overflow-x:auto;scrollbar-width:none;}
+.collab-strip::-webkit-scrollbar{display:none;}
+.collab-chip{
+flex-shrink:0;display:flex;align-items:center;gap:7px;
+background:var(--hover);border:1px solid var(--border);
+border-radius:20px;padding:6px 10px 6px 6px;font-size:12px;font-weight:600;
+}
+.collab-chip-avatar{
+width:22px;height:22px;border-radius:50%;
+background:linear-gradient(135deg,#8aa0c0,#5a7090);
+display:flex;align-items:center;justify-content:center;
+font-size:9px;font-weight:700;color:#0f0e0b;overflow:hidden;flex-shrink:0;
+}
+.collab-chip-avatar img{width:100%;height:100%;object-fit:cover;}
+.collab-chip-remove{
+width:16px;height:16px;border-radius:50%;border:none;
+background:transparent;color:var(--sub);font-size:9px;cursor:pointer;
+display:flex;align-items:center;justify-content:center;margin-left:2px;
+}
+.collab-chip-remove:active{color:var(--error);}
+.collab-add-chip{
+flex-shrink:0;display:flex;align-items:center;gap:6px;
+border:1px dashed var(--border);border-radius:20px;
+padding:6px 12px 6px 10px;font-size:12px;font-weight:600;color:var(--sub);
+background:transparent;cursor:pointer;
+}
+.collab-add-chip:active{border-color:var(--accent);color:var(--accent);}
+.collab-empty-note{padding:4px 18px 4px;font-size:12px;color:var(--sub);opacity:.6;}
+
+/* Article items in library */
+.art-item-row{
+display:flex;align-items:center;gap:11px;
+padding:11px 18px;border-bottom:1px solid var(--border);
+}
+.art-item-num{
+width:22px;flex-shrink:0;font-size:11px;font-weight:700;color:var(--sub);opacity:.5;text-align:center;
+}
+.art-item-info{flex:1;min-width:0;}
+.art-item-title{font-size:13px;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.art-item-meta{font-size:10.5px;color:var(--sub);display:flex;align-items:center;gap:5px;}
+.art-item-remove{
+width:28px;height:28px;border-radius:8px;flex-shrink:0;
+background:transparent;border:1px solid var(--border);
+color:var(--sub);cursor:pointer;font-size:11px;
+display:flex;align-items:center;justify-content:center;
+}
+.art-item-remove:active{background:rgba(196,106,78,.15);border-color:var(--error);color:var(--error);}
+
+.detail-empty{padding:36px 24px;text-align:center;color:var(--sub);}
+.detail-empty i{font-size:26px;opacity:.4;margin-bottom:10px;display:block;}
+.detail-empty p{font-size:12.5px;line-height:1.5;}
+
+/* ── Bottom toolbar (detail view) ── */
+.bottom-toolbar{
+position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+width:100%;max-width:450px;
+background:rgba(15,14,11,0.97);
+border-top:1px solid var(--border);
+backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+padding:10px 14px;
+padding-bottom:calc(10px + env(safe-area-inset-bottom));
+display:none;gap:8px;z-index:200;
+}
+.bottom-toolbar.show{display:flex;}
+.bottom-toolbar .hdr-btn{flex:1;justify-content:center;padding:11px 6px;}
+
+/* ── Create library sheet ── */
+.sheet-overlay{
+position:fixed;inset:0;background:rgba(0,0,0,.85);
+z-index:300;display:none;align-items:flex-end;justify-content:center;
+backdrop-filter:blur(4px);
+}
+.sheet-overlay.show{display:flex;}
+.sheet{
+background:#141210;border-radius:20px 20px 0 0;
+border:1px solid var(--border);border-bottom:none;
+width:100%;max-width:450px;max-height:88vh;
+display:flex;flex-direction:column;
+animation:slideUp .3s cubic-bezier(.4,0,.2,1);
+padding-bottom:env(safe-area-inset-bottom);
+}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;flex-shrink:0;}
+.sheet-header{padding:12px 18px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0;}
+.sheet-title{font-size:14px;font-weight:700;font-family:'Merriweather',serif;}
+.sheet-close{width:28px;height:28px;border-radius:50%;background:var(--hover);border:1px solid var(--border);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;}
+.sheet-body{flex:1;overflow-y:auto;padding:14px 18px;-webkit-overflow-scrolling:touch;}
+.sheet-body::-webkit-scrollbar{width:2px;}
+.sheet-body::-webkit-scrollbar-thumb{background:var(--border);}
+.lib-field label{
+display:block;font-size:10px;font-weight:700;
+letter-spacing:.08em;text-transform:uppercase;
+color:var(--sub);margin-bottom:6px;
+}
+.lib-input{
+width:100%;padding:10px 14px;
+background:var(--hover);border:1px solid var(--border);
+border-radius:10px;color:var(--text);
+font-size:14px;outline:none;font-family:inherit;
+transition:border-color .2s;-webkit-appearance:none;
+margin-bottom:14px;
+}
+.lib-input:focus{border-color:var(--accent);}
+.lib-input::placeholder{color:var(--sub);opacity:.5;}
+.lib-textarea{
+width:100%;padding:10px 14px;
+background:var(--hover);border:1px solid var(--border);
+border-radius:10px;color:var(--text);
+font-size:13px;outline:none;resize:none;
+font-family:inherit;line-height:1.5;
+transition:border-color .2s;min-height:60px;
+-webkit-appearance:none;
+}
+.lib-textarea:focus{border-color:var(--accent);}
+.lib-textarea::placeholder{color:var(--sub);opacity:.5;}
+.sheet-footer{
+padding:10px 18px;border-top:1px solid var(--border);
+display:flex;gap:8px;flex-shrink:0;
+}
+
+/* Search results in sheet */
+.search-input-wrap{position:relative;margin-bottom:12px;}
+.search-input-wrap i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--sub);font-size:12px;}
+.search-input-wrap .lib-input{padding-left:36px;margin-bottom:0;}
+.search-result-row{
+display:flex;align-items:center;gap:10px;
+padding:10px 4px;border-bottom:1px solid var(--border);
+cursor:pointer;
+}
+.search-result-row:active{background:var(--hover);}
+.search-result-info{flex:1;min-width:0;}
+.search-result-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.search-result-meta{font-size:10.5px;color:var(--sub);}
+.search-result-add{
+width:28px;height:28px;border-radius:8px;flex-shrink:0;
+background:var(--accent-soft);border:1px solid rgba(200,169,110,.3);
+color:var(--accent);cursor:pointer;font-size:11px;
+display:flex;align-items:center;justify-content:center;
+}
+.search-result-add.added{background:rgba(106,191,133,.12);border-color:rgba(106,191,133,.3);color:var(--green);}
+.search-empty{padding:24px;text-align:center;color:var(--sub);font-size:12.5px;}
+.search-loading{padding:24px;text-align:center;color:var(--sub);font-size:12px;}
+
+/* Delete confirm */
+.confirm-body{padding:6px 4px 4px;font-size:13px;color:var(--sub);line-height:1.6;}
+.confirm-body b{color:var(--text);}
+
+/* Progress overlay */
+.progress-overlay{
+position:fixed;inset:0;background:rgba(0,0,0,.75);
+z-index:500;display:none;align-items:center;justify-content:center;
+backdrop-filter:blur(4px);
+}
+.progress-overlay.show{display:flex;}
+.progress-box{
+background:#141210;border:1px solid var(--border);
+border-radius:16px;padding:28px 24px;text-align:center;width:220px;
+}
+.progress-spinner{
+width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);
+border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.progress-label{font-size:13px;font-weight:700;font-family:'Merriweather',serif;}
+
+/* Toast */
+.toast{
+position:fixed;top:calc(60px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
+background:#141210;border:1px solid var(--border);border-radius:10px;
+padding:10px 16px;font-size:12px;font-weight:600;color:var(--text);
+z-index:9999;opacity:0;pointer-events:none;white-space:nowrap;
+transition:opacity .2s;box-shadow:0 8px 32px rgba(0,0,0,.5);
+display:flex;align-items:center;gap:8px;
+}
+.toast.success{border-left:3px solid var(--green);}
+.toast.error{border-left:3px solid var(--error);}
+.toast.warning{border-left:3px solid var(--warning);}
+.toast.show{opacity:1;}
+.toast i{font-size:13px;}
+.toast.success i{color:var(--green);}
+.toast.error i{color:var(--error);}
+.toast.warning i{color:var(--warning);}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<!-- ══════════ LIST VIEW ══════════ -->
+<div class="hdr" id="listHdr">
+  <button class="hdr-back" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
+  <div class="hdr-info">
+    <div class="hdr-title">Libraries</div>
+    <div class="hdr-sub" id="listHdrSub">Loading…</div>
+  </div>
+</div>
+
+<div class="list-view" id="listView">
+  <div class="search-loading">Loading libraries…</div>
+</div>
+
+<button class="fab" id="createFab" onclick="openCreateSheet()"><i class="fas fa-plus"></i></button>
+
+<!-- ══════════ DETAIL VIEW ══════════ -->
+<div class="hdr" id="detailHdr" style="display:none;">
+  <button class="hdr-back" onclick="closeDetail()"><i class="fas fa-arrow-left"></i></button>
+  <div class="hdr-info">
+    <div class="hdr-title" id="detailHdrTitle">Library</div>
+    <div class="hdr-sub" id="detailHdrSub"></div>
+  </div>
+  <div class="hdr-actions">
+    <button class="hdr-btn hdr-danger" id="deleteLibBtn" onclick="confirmDeleteLibrary()" style="display:none;"><i class="fas fa-trash"></i></button>
+  </div>
+</div>
+
+<div class="detail-view" id="detailView">
+  <div class="detail-hero">
+    <textarea class="detail-name-input" id="detailNameInput" placeholder="Library name" rows="1" maxlength="80"></textarea>
+    <textarea class="detail-desc-input" id="detailDescInput" placeholder="Add a description…" rows="1" maxlength="200"></textarea>
+  </div>
+
+  <div class="detail-meta-row">
+    <div class="owner-chip" id="ownerChip">
+      <div class="owner-chip-avatar" id="ownerChipAvatar">?</div>
+      <span>Owned by <b id="ownerChipName">—</b></span>
+    </div>
+  </div>
+
+  <div class="section-hdr">
+    <span class="section-hdr-title">Collaborators</span>
+    <span class="section-hdr-count" id="collabCount"></span>
+  </div>
+  <div class="collab-strip" id="collabStrip"></div>
+
+  <div class="section-hdr">
+    <span class="section-hdr-title">Articles</span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="section-hdr-count" id="articleCount"></span>
+      <button class="section-add-btn" id="addArticleBtn" onclick="openArticleSearchSheet()"><i class="fas fa-plus"></i></button>
+    </div>
+  </div>
+  <div id="articlesListWrap"></div>
+</div>
+
+<!-- Bottom toolbar for detail (unowned but collaborator context, kept minimal) -->
+<div class="bottom-toolbar" id="detailToolbar"></div>
+
+<!-- ══════════ CREATE LIBRARY SHEET ══════════ -->
+<div class="sheet-overlay" id="createSheetOverlay">
+<div class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">New Library</span>
+    <button class="sheet-close" onclick="closeCreateSheet()"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="sheet-body">
+    <div class="lib-field">
+      <label>Library Name</label>
+      <input class="lib-input" id="createLibName" placeholder="e.g. Pathology Week 1" maxlength="80">
+    </div>
+    <div class="lib-field">
+      <label>Description <span style="opacity:.45;font-weight:400;text-transform:none;letter-spacing:0">— optional</span></label>
+      <textarea class="lib-textarea" id="createLibDesc" placeholder="What is this library about?" rows="2"></textarea>
+    </div>
+  </div>
+  <div class="sheet-footer">
+    <button class="hdr-btn hdr-ghost" style="flex:.5" onclick="closeCreateSheet()">Cancel</button>
+    <button class="hdr-btn hdr-primary" style="flex:1" onclick="submitCreateLibrary()"><i class="fas fa-check"></i> Create</button>
+  </div>
+</div>
+</div>
+
+<!-- ══════════ ADD COLLABORATOR SHEET ══════════ -->
+<div class="sheet-overlay" id="collabSheetOverlay">
+<div class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">Add Collaborator</span>
+    <button class="sheet-close" onclick="closeCollabSheet()"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="sheet-body">
+    <div class="lib-field">
+      <label>Username</label>
+      <input class="lib-input" id="collabUsernameInput" placeholder="e.g. drsmith" maxlength="60" autocapitalize="none" autocorrect="off">
+    </div>
+    <div style="font-size:12px;color:var(--sub);line-height:1.6;">
+      Collaborators can add and remove any article in this library.
+    </div>
+  </div>
+  <div class="sheet-footer">
+    <button class="hdr-btn hdr-ghost" style="flex:.5" onclick="closeCollabSheet()">Cancel</button>
+    <button class="hdr-btn hdr-primary" style="flex:1" onclick="submitAddCollaborator()"><i class="fas fa-user-plus"></i> Add</button>
+  </div>
+</div>
+</div>
+
+<!-- ══════════ ARTICLE SEARCH SHEET ══════════ -->
+<div class="sheet-overlay" id="articleSheetOverlay">
+<div class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">Add Articles</span>
+    <button class="sheet-close" onclick="closeArticleSearchSheet()"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="sheet-body">
+    <div class="search-input-wrap">
+      <i class="fas fa-search"></i>
+      <input class="lib-input" id="articleSearchInput" placeholder="Search all articles by title…">
+    </div>
+    <div id="articleSearchResults"></div>
+  </div>
+  <div class="sheet-footer">
+    <button class="hdr-btn hdr-primary" style="flex:1" onclick="closeArticleSearchSheet()"><i class="fas fa-check"></i> Done</button>
+  </div>
+</div>
+</div>
+
+<!-- ══════════ CONFIRM DELETE SHEET ══════════ -->
+<div class="sheet-overlay" id="confirmSheetOverlay">
+<div class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">Delete Library</span>
+    <button class="sheet-close" onclick="closeConfirmSheet()"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="sheet-body">
+    <div class="confirm-body">Delete <b id="confirmLibName">this library</b>? This removes the library and its item list. Articles themselves are not deleted.</div>
+  </div>
+  <div class="sheet-footer">
+    <button class="hdr-btn hdr-ghost" style="flex:.5" onclick="closeConfirmSheet()">Cancel</button>
+    <button class="hdr-btn hdr-danger" style="flex:1" onclick="submitDeleteLibrary()"><i class="fas fa-trash"></i> Delete</button>
+  </div>
+</div>
+</div>
+
+<!-- Progress overlay -->
+<div class="progress-overlay" id="progressOverlay">
+<div class="progress-box">
+  <div class="progress-spinner"></div>
+  <div class="progress-label" id="progressLabel">Working…</div>
+</div>
+</div>
+
+<div class="toast" id="toast">
+  <i id="toastIcon"></i>
+  <span id="toastText"></span>
+</div>
+
+</div>
+
+<script>
+/* ══════════════════════════════════════
+ STATE
+══════════════════════════════════════ */
+let libraries=[];
+let activeLibrary=null;     // full detail object from get_playlist_detail
+let activeLibraryMeta=null; // row from get_user_playlists (has is_owner)
+let searchDebounce=null;
+let addedArticleIds=new Set(); // articles just added in this search-sheet session (for UI state)
+
+function escHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function goBack(){if(document.referrer&&document.referrer.includes(location.host))history.back();else location.href='index.html';}
+function autoResize(el){if(!el)return;el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  const icon=document.getElementById('toastIcon');
+  document.getElementById('toastText').textContent=msg;
+  t.className='toast '+type+' show';
+  icon.className=type==='success'?'fas fa-check-circle':type==='warning'?'fas fa-exclamation-triangle':'fas fa-exclamation-circle';
+  clearTimeout(t._t);
+  t._t=setTimeout(()=>t.classList.remove('show'),3500);
+}
+function showProgress(label){document.getElementById('progressLabel').textContent=label;document.getElementById('progressOverlay').classList.add('show');}
+function hideProgress(){document.getElementById('progressOverlay').classList.remove('show');}
+
+/* ══════════════════════════════════════
+ VIEW SWITCHING
+══════════════════════════════════════ */
+function showListView(){
+  document.getElementById('listHdr').style.display='flex';
+  document.getElementById('listView').classList.remove('hide');
+  document.getElementById('createFab').style.display='flex';
+  document.getElementById('detailHdr').style.display='none';
+  document.getElementById('detailView').classList.remove('show');
+  document.getElementById('detailToolbar').classList.remove('show');
+  activeLibrary=null;activeLibraryMeta=null;
+}
+function showDetailView(){
+  document.getElementById('listHdr').style.display='none';
+  document.getElementById('listView').classList.add('hide');
+  document.getElementById('createFab').style.display='none';
+  document.getElementById('detailHdr').style.display='flex';
+  document.getElementById('detailView').classList.add('show');
+}
+function closeDetail(){
+  commitDetailEdits().then(()=>{showListView();loadLibraries();});
+}
+
+/* ══════════════════════════════════════
+ LIST VIEW RENDER
+══════════════════════════════════════ */
+function renderLibraryList(){
+  const wrap=document.getElementById('listView');
+  document.getElementById('listHdrSub').textContent=`${libraries.length} librar${libraries.length!==1?'ies':'y'}`;
+  if(libraries.length===0){
+    wrap.innerHTML=`<div class="empty-state"><i class="fas fa-book"></i><p>No libraries yet.<br>Tap + to create your first one.</p></div>`;
+    return;
+  }
+  wrap.innerHTML='';
+  libraries.forEach(lib=>{
+    const card=document.createElement('div');
+    card.className='lib-card';
+    card.onclick=()=>openLibrary(lib.id);
+    const initial=(lib.name||'?')[0].toUpperCase();
+    card.innerHTML=`
+      <div class="lib-thumb">${lib.thumbnail_url?`<img src="${lib.thumbnail_url}">`:initial}</div>
+      <div class="lib-card-info">
+        <div class="lib-card-name">${escHtml(lib.name||'Untitled Library')}</div>
+        <div class="lib-card-meta">
+          <span>${lib.item_count} article${lib.item_count!==1?'s':''}</span>
+          <span>·</span>
+          <span>${lib.is_owner?'You':'@'+escHtml(lib.owner_username||'owner')}</span>
+          ${lib.is_owner?'<span class="lib-badge">Owner</span>':'<span class="lib-badge collab">Collaborator</span>'}
+        </div>
+      </div>
+      <i class="fas fa-chevron-right lib-card-chevron"></i>`;
+    wrap.appendChild(card);
+  });
+}
+
+/* ══════════════════════════════════════
+ CREATE LIBRARY
+══════════════════════════════════════ */
+function openCreateSheet(){
+  document.getElementById('createLibName').value='';
+  document.getElementById('createLibDesc').value='';
+  document.getElementById('createSheetOverlay').classList.add('show');
+  setTimeout(()=>document.getElementById('createLibName').focus(),150);
+}
+function closeCreateSheet(){document.getElementById('createSheetOverlay').classList.remove('show');}
+document.getElementById('createSheetOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeCreateSheet();});
+
+async function submitCreateLibrary(){
+  const name=document.getElementById('createLibName').value.trim();
+  if(!name){showToast('Please enter a name','error');return;}
+  if(!window._currentUser){showToast('Please log in first','error');return;}
+  const desc=document.getElementById('createLibDesc').value.trim();
+  closeCreateSheet();
+  showProgress('Creating library…');
+  try{
+    await ensureSupabaseAuth();
+    const{data:newId,error}=await supabase.rpc('insert_playlist',{
+      p_firebase_uid:window._currentUser.uid,
+      p_name:name,
+      p_description:desc||null
+    });
+    if(error)throw error;
+    hideProgress();
+    showToast('Library created','success');
+    await loadLibraries();
+    openLibrary(newId);
+  }catch(err){
+    console.error('[create library]',err);
+    hideProgress();
+    showToast('Failed to create library','error');
+  }
+}
+
+/* ══════════════════════════════════════
+ LOAD LIBRARIES (list)
+══════════════════════════════════════ */
+async function loadLibraries(){
+  if(!window._currentUser)return;
+  try{
+    await ensureSupabaseAuth();
+    const{data,error}=await supabase.rpc('get_user_playlists',{p_firebase_uid:window._currentUser.uid});
+    if(error)throw error;
+    libraries=data||[];
+    renderLibraryList();
+  }catch(err){
+    console.error('[load libraries]',err);
+    document.getElementById('listView').innerHTML=`<div class="empty-state"><i class="fas fa-triangle-exclamation"></i><p>Couldn't load libraries.</p></div>`;
+  }
+}
+
+/* ══════════════════════════════════════
+ OPEN / RENDER LIBRARY DETAIL
+══════════════════════════════════════ */
+async function openLibrary(id){
+  showProgress('Loading library…');
+  try{
+    await ensureSupabaseAuth();
+    const{data,error}=await supabase.rpc('get_playlist_detail',{p_playlist_id:id,p_firebase_uid:window._currentUser.uid});
+    if(error)throw error;
+    activeLibrary=data;
+    activeLibraryMeta=libraries.find(l=>l.id===id)||{is_owner:data.playlist.is_owner};
+    hideProgress();
+    showDetailView();
+    renderLibraryDetail();
+  }catch(err){
+    console.error('[open library]',err);
+    hideProgress();
+    showToast('Failed to open library','error');
+  }
+}
+
+function renderLibraryDetail(){
+  if(!activeLibrary)return;
+  const {playlist,items,collaborators}=activeLibrary;
+  const isOwner=playlist.is_owner;
+
+  document.getElementById('detailHdrTitle').textContent=playlist.name||'Untitled Library';
+  document.getElementById('detailHdrSub').textContent=`${items.length} article${items.length!==1?'s':''}`;
+  document.getElementById('deleteLibBtn').style.display=isOwner?'flex':'none';
+
+  const nameInput=document.getElementById('detailNameInput');
+  const descInput=document.getElementById('detailDescInput');
+  nameInput.value=playlist.name||'';
+  descInput.value=playlist.description||'';
+  nameInput.disabled=!isOwner;
+  descInput.disabled=!isOwner;
+  nameInput.placeholder=isOwner?'Library name':'Untitled Library';
+  descInput.placeholder=isOwner?'Add a description…':'';
+  autoResize(nameInput);autoResize(descInput);
+
+  document.getElementById('ownerChipAvatar').textContent=(playlist.owner_username||'?')[0].toUpperCase();
+  document.getElementById('ownerChipName').textContent=isOwner?'You':'@'+(playlist.owner_username||'owner');
+
+  renderCollaborators(collaborators,isOwner);
+  renderArticleItems(items,isOwner || true /* collaborators can also remove per requirements */);
+
+  document.getElementById('addArticleBtn').style.display='flex'; // owner + collaborators can add
+}
+
+function renderCollaborators(collaborators,isOwner){
+  document.getElementById('collabCount').textContent=collaborators.length?`${collaborators.length}`:'';
+  const strip=document.getElementById('collabStrip');
+  strip.innerHTML='';
+  if(collaborators.length===0){
+    const note=document.createElement('div');
+    note.className='collab-empty-note';
+    note.textContent=isOwner?'No collaborators yet.':'No other collaborators.';
+    strip.appendChild(note);
+  } else {
+    collaborators.forEach(c=>{
+      const chip=document.createElement('div');
+      chip.className='collab-chip';
+      chip.innerHTML=`<div class="collab-chip-avatar">${c.pfp?`<img src="${c.pfp}">`:(c.username||'?')[0].toUpperCase()}</div><span>@${escHtml(c.username||'user')}</span>`;
+      if(isOwner){
+        const rm=document.createElement('button');
+        rm.className='collab-chip-remove';
+        rm.innerHTML='<i class="fas fa-times"></i>';
+        rm.onclick=()=>removeCollaborator(c.user_id,c.username);
+        chip.appendChild(rm);
+      }
+      strip.appendChild(chip);
+    });
+  }
+  if(isOwner){
+    const addChip=document.createElement('button');
+    addChip.className='collab-add-chip';
+    addChip.innerHTML='<i class="fas fa-plus"></i> Add';
+    addChip.onclick=openCollabSheet;
+    strip.appendChild(addChip);
+  }
+}
+
+function renderArticleItems(items,canEdit){
+  document.getElementById('articleCount').textContent=items.length?`${items.length}`:'';
+  const wrap=document.getElementById('articlesListWrap');
+  wrap.innerHTML='';
+  if(items.length===0){
+    wrap.innerHTML=`<div class="detail-empty"><i class="fas fa-file-circle-plus"></i><p>No articles in this library yet.<br>Tap + above to add some.</p></div>`;
+    return;
+  }
+  items.forEach((it,idx)=>{
+    const row=document.createElement('div');
+    row.className='art-item-row';
+    row.innerHTML=`
+      <div class="art-item-num">${idx+1}</div>
+      <div class="art-item-info">
+        <div class="art-item-title">${escHtml(it.title||'(untitled)')}</div>
+        <div class="art-item-meta">
+          <span>by @${escHtml(it.author_username||'unknown')}</span>
+          <span>·</span>
+          <span><i class="fas fa-eye" style="font-size:9px;"></i> ${it.views||0}</span>
+          <span>·</span>
+          <span><i class="fas fa-heart" style="font-size:9px;"></i> ${it.likes||0}</span>
+        </div>
+      </div>
+      ${canEdit?`<button class="art-item-remove" onclick="removeArticleItem(${it.item_id})"><i class="fas fa-trash"></i></button>`:''}
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+/* ══════════════════════════════════════
+ EDIT NAME/DESC (debounced-ish: commit on blur / close)
+══════════════════════════════════════ */
+document.getElementById('detailNameInput').addEventListener('input',function(){autoResize(this);});
+document.getElementById('detailDescInput').addEventListener('input',function(){autoResize(this);});
+
+async function commitDetailEdits(){
+  if(!activeLibrary||!activeLibrary.playlist.is_owner)return;
+  const nameInput=document.getElementById('detailNameInput');
+  const descInput=document.getElementById('detailDescInput');
+  const newName=nameInput.value.trim();
+  const newDesc=descInput.value.trim();
+  if(newName===activeLibrary.playlist.name&&newDesc===(activeLibrary.playlist.description||''))return;
+  if(!newName)return; // don't save an empty name
+  try{
+    await ensureSupabaseAuth();
+    const{error}=await supabase.rpc('update_playlist_meta',{
+      p_playlist_id:activeLibrary.playlist.id,
+      p_firebase_uid:window._currentUser.uid,
+      p_name:newName,
+      p_description:newDesc||null
+    });
+    if(error)console.error('[update library meta]',error);
+  }catch(err){console.error('[update library meta]',err);}
+}
+
+/* ══════════════════════════════════════
+ COLLABORATORS: add / remove
+══════════════════════════════════════ */
+function openCollabSheet(){
+  document.getElementById('collabUsernameInput').value='';
+  document.getElementById('collabSheetOverlay').classList.add('show');
+  setTimeout(()=>document.getElementById('collabUsernameInput').focus(),150);
+}
+function closeCollabSheet(){document.getElementById('collabSheetOverlay').classList.remove('show');}
+document.getElementById('collabSheetOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeCollabSheet();});
+
+async function submitAddCollaborator(){
+  const username=document.getElementById('collabUsernameInput').value.trim().replace(/^@/,'');
+  if(!username){showToast('Enter a username','error');return;}
+  if(!activeLibrary){return;}
+  closeCollabSheet();
+  showProgress('Adding collaborator…');
+  try{
+    await ensureSupabaseAuth();
+    const{data,error}=await supabase.rpc('add_playlist_collaborator',{
+      p_playlist_id:activeLibrary.playlist.id,
+      p_username:username,
+      p_firebase_uid:window._currentUser.uid
+    });
+    if(error)throw error;
+    hideProgress();
+    showToast(`@${username} added`,'success');
+    await refreshActiveLibrary();
+  }catch(err){
+    console.error('[add collaborator]',err);
+    hideProgress();
+    const msg=(err&&err.message)||'';
+    showToast(msg.includes('No user found')?'No user with that username':'Failed to add collaborator','error');
+  }
+}
+
+async function removeCollaborator(userId,username){
+  if(!activeLibrary)return;
+  showProgress('Removing…');
+  try{
+    await ensureSupabaseAuth();
+    const{error}=await supabase.rpc('remove_playlist_collaborator',{
+      p_playlist_id:activeLibrary.playlist.id,
+      p_user_id:userId,
+      p_firebase_uid:window._currentUser.uid
+    });
+    if(error)throw error;
+    hideProgress();
+    showToast(`@${username} removed`,'success');
+    await refreshActiveLibrary();
+  }catch(err){
+    console.error('[remove collaborator]',err);
+    hideProgress();
+    showToast('Failed to remove collaborator','error');
+  }
+}
+
+/* ══════════════════════════════════════
+ ARTICLES: search / add / remove
+══════════════════════════════════════ */
+function openArticleSearchSheet(){
+  document.getElementById('articleSearchInput').value='';
+  document.getElementById('articleSearchResults').innerHTML='';
+  addedArticleIds=new Set((activeLibrary?.items||[]).map(it=>it.article_id));
+  document.getElementById('articleSheetOverlay').classList.add('show');
+  runArticleSearch('');
+  setTimeout(()=>document.getElementById('articleSearchInput').focus(),150);
+}
+function closeArticleSearchSheet(){
+  document.getElementById('articleSheetOverlay').classList.remove('show');
+  refreshActiveLibrary();
+}
+document.getElementById('articleSheetOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeArticleSearchSheet();});
+
+document.getElementById('articleSearchInput').addEventListener('input',function(){
+  clearTimeout(searchDebounce);
+  const q=this.value;
+  searchDebounce=setTimeout(()=>runArticleSearch(q),300);
+});
+
+async function runArticleSearch(query){
+  const wrap=document.getElementById('articleSearchResults');
+  wrap.innerHTML='<div class="search-loading">Searching…</div>';
+  try{
+    await ensureSupabaseAuth();
+    const{data,error}=await supabase.rpc('search_articles',{p_query:query||'',p_limit:30});
+    if(error)throw error;
+    renderArticleSearchResults(data||[]);
+  }catch(err){
+    console.error('[search articles]',err);
+    wrap.innerHTML='<div class="search-empty">Search failed. Try again.</div>';
+  }
+}
+
+function renderArticleSearchResults(results){
+  const wrap=document.getElementById('articleSearchResults');
+  wrap.innerHTML='';
+  if(results.length===0){
+    wrap.innerHTML='<div class="search-empty">No articles found.</div>';
+    return;
+  }
+  results.forEach(r=>{
+    const already=addedArticleIds.has(r.id);
+    const row=document.createElement('div');
+    row.className='search-result-row';
+    row.innerHTML=`
+      <div class="search-result-info">
+        <div class="search-result-title">${escHtml(r.title||'(untitled)')}</div>
+        <div class="search-result-meta">by @${escHtml(r.author_username||'unknown')} · ${r.views||0} views</div>
+      </div>
+      <button class="search-result-add ${already?'added':''}" data-art="${r.id}">
+        <i class="fas fa-${already?'check':'plus'}"></i>
+      </button>`;
+    row.querySelector('.search-result-add').addEventListener('click',(e)=>{
+      e.stopPropagation();
+      toggleArticleInLibrary(r.id,e.currentTarget);
+    });
+    wrap.appendChild(row);
+  });
+}
+
+async function toggleArticleInLibrary(articleId,btnEl){
+  if(!activeLibrary)return;
+  const alreadyAdded=addedArticleIds.has(articleId);
+  btnEl.disabled=true;
+  try{
+    await ensureSupabaseAuth();
+    if(!alreadyAdded){
+      const{error}=await supabase.rpc('add_article_to_playlist',{
+        p_playlist_id:activeLibrary.playlist.id,
+        p_article_id:articleId,
+        p_firebase_uid:window._currentUser.uid
+      });
+      if(error)throw error;
+      addedArticleIds.add(articleId);
+      btnEl.classList.add('added');
+      btnEl.querySelector('i').className='fas fa-check';
+    } else {
+      const item=activeLibrary.items.find(it=>it.article_id===articleId);
+      if(item){
+        const{error}=await supabase.rpc('remove_article_from_playlist',{
+          p_item_id:item.item_id,
+          p_firebase_uid:window._currentUser.uid
+        });
+        if(error)throw error;
+      }
+      addedArticleIds.delete(articleId);
+      btnEl.classList.remove('added');
+      btnEl.querySelector('i').className='fas fa-plus';
+    }
+    // keep local activeLibrary.items loosely in sync so counts feel live;
+    // full authoritative refresh happens when the sheet closes
+  }catch(err){
+    console.error('[toggle article]',err);
+    showToast('Action failed','error');
+  }finally{
+    btnEl.disabled=false;
+  }
+}
+
+async function removeArticleItem(itemId){
+  if(!activeLibrary)return;
+  showProgress('Removing article…');
+  try{
+    await ensureSupabaseAuth();
+    const{error}=await supabase.rpc('remove_article_from_playlist',{
+      p_item_id:itemId,
+      p_firebase_uid:window._currentUser.uid
+    });
+    if(error)throw error;
+    hideProgress();
+    showToast('Article removed','success');
+    await refreshActiveLibrary();
+  }catch(err){
+    console.error('[remove article]',err);
+    hideProgress();
+    showToast('Failed to remove article','error');
+  }
+}
+
+async function refreshActiveLibrary(){
+  if(!activeLibrary)return;
+  try{
+    await ensureSupabaseAuth();
+    const{data,error}=await supabase.rpc('get_playlist_detail',{p_playlist_id:activeLibrary.playlist.id,p_firebase_uid:window._currentUser.uid});
+    if(error)throw error;
+    activeLibrary=data;
+    renderLibraryDetail();
+  }catch(err){
+    console.error('[refresh library]',err);
+  }
+}
+
+/* ══════════════════════════════════════
+ DELETE LIBRARY
+══════════════════════════════════════ */
+function confirmDeleteLibrary(){
+  if(!activeLibrary)return;
+  document.getElementById('confirmLibName').textContent=`"${activeLibrary.playlist.name||'this library'}"`;
+  document.getElementById('confirmSheetOverlay').classList.add('show');
+}
+function closeConfirmSheet(){document.getElementById('confirmSheetOverlay').classList.remove('show');}
+document.getElementById('confirmSheetOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmSheet();});
+
+async function submitDeleteLibrary(){
+  if(!activeLibrary)return;
+  closeConfirmSheet();
+  showProgress('Deleting library…');
+  try{
+    await ensureSupabaseAuth();
+    const{error}=await supabase.rpc('delete_playlist',{
+      p_playlist_id:activeLibrary.playlist.id,
+      p_firebase_uid:window._currentUser.uid
+    });
+    if(error)throw error;
+    hideProgress();
+    showToast('Library deleted','success');
+    showListView();
+    await loadLibraries();
+  }catch(err){
+    console.error('[delete library]',err);
+    hideProgress();
+    showToast('Failed to delete library','error');
+  }
+}
+</script>
+
+<script type="module">
+import { initializeApp }               from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig={
+  apiKey:"AIzaSyBs6V0yY14cuLBXB1nciZ-X0eyAiodC-Ak",
+  authDomain:"patholytica.firebaseapp.com",
+  databaseURL:"https://patholytica-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:"patholytica",
+  storageBucket:"patholytica.firebasestorage.app",
+  messagingSenderId:"738430635282",
+  appId:"1:738430635282:web:8451ef380447c7611137cb"
+};
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+
+window.supabaseClient=window.supabase.createClient(
+  "https://ltxgafwywkdcxdlobcah.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0eGdhZnd5d2tkY3hkbG9iY2FoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5MjU3NzUsImV4cCI6MjEwMDUwMTc3NX0.CR-FvlL1HODWjsD7VrZkWQvg_pEasIhPQBXbSHbbNoE"
+);
+window.supabase=window.supabaseClient; // alias so the plain-script block above can call supabase.rpc(...)
+
+let currentUser=null;
+
+window.ensureSupabaseAuth=async function(){
+  if(!currentUser)return false;
+  try{
+    const{error}=await window.supabaseClient.rpc('set_current_user',{uid:currentUser.uid});
+    if(error){console.error('[RLS] set_current_user error:',error);return false;}
+    return true;
+  }catch(e){console.error('[RLS] set_current_user exception:',e);return false;}
+};
+
+onAuthStateChanged(auth,async(user)=>{
+  if(user){
+    currentUser=user;
+    window._currentUser=currentUser;
+    await window.loadLibraries();
+  } else {
+    location.href='login.html';
+  }
+});
+</script>
+
+</body>
+</html>
