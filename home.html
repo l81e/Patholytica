@@ -40,12 +40,27 @@ body.font-modern { --font-article: 'Inter', sans-serif; }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { min-height: 100%; }
+html {
+  touch-action: pan-x pan-y;
+}
 body {
   font-family: var(--font-ui);
   background: var(--bg-color);
   color: var(--text-primary);
   overflow-x: hidden;
   transition: background 0.2s ease, color 0.2s ease;
+  touch-action: pan-x pan-y;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+input, textarea {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
 }
 
 .static-header {
@@ -485,29 +500,12 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 .lobby-bug-sub { font-size: 10.5px; color: var(--text-secondary); margin-top: 1px; }
 .lobby-bug-btn i.chev { color: var(--text-secondary); font-size: 11px; flex-shrink: 0; }
 
-/* ══ Tune Your Feed bug button — flat color, matches Reading Lobbies ══ */
-.tune-bug-wrap { padding: 0 16px 18px; }
-.tune-bug-btn {
-  display: flex; align-items: center; gap: 10px;
-  width: 100%; padding: 12px 14px; border-radius: 14px;
-  background: var(--accent-soft);
-  border: 1px solid rgba(200,169,110,0.28);
-  color: var(--text-primary); cursor: pointer;
-  font-family: var(--font-ui); transition: border-color 0.15s, transform 0.1s;
-  text-align: left;
+.tune-strip-circle {
+  background: var(--accent-soft) !important;
+  border: 2.5px solid rgba(200,169,110,0.35) !important;
+  color: var(--accent) !important; font-size: 22px !important;
 }
-.tune-bug-btn:hover { border-color: var(--accent); }
-.tune-bug-btn:active { transform: scale(0.99); }
-.tune-bug-icon {
-  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
-  background: var(--accent-soft); border: 1px solid rgba(200,169,110,0.3);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--accent); font-size: 14px;
-}
-.tune-bug-text { flex: 1; min-width: 0; }
-.tune-bug-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
-.tune-bug-sub { font-size: 10.5px; color: var(--text-secondary); margin-top: 1px; }
-.tune-bug-btn i.chev { color: var(--text-secondary); font-size: 11px; flex-shrink: 0; }
+.strip-pill:hover .tune-strip-circle { border-color: var(--accent) !important; }
 
 /* ══ Library shelf rows.
    FIX (edge-sticking): track padding bumped 14px → 16px on both
@@ -592,20 +590,6 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 .shelf-skel-card { flex-shrink: 0; width: 134px; }
 .shelf-skel-thumb { width: 134px; height: 190px; border-radius: 10px; }
 .shelf-skel-line { height: 10px; margin-top: 8px; border-radius: 5px; }
-
-.scroll-sentinel { height: 1px; width: 100%; }
-.scroll-loader-wrap { text-align: center; padding: 16px 12px; display: none; }
-.scroll-loader-wrap.active { display: block; }
-.scroll-loader-spinner {
-  width: 24px; height: 24px; margin: 0 auto;
-  border: 2px solid var(--border-color); border-top-color: var(--accent);
-  border-radius: 50%; animation: spin 0.9s linear infinite;
-}
-.scroll-end-msg {
-  text-align: center; padding: 24px 20px; color: var(--text-secondary);
-  font-size: 12px; opacity: 0.6; display: none;
-}
-.scroll-end-msg.active { display: block; }
 
 .create-menu-overlay {
   position: fixed; inset: 0; z-index: 399;
@@ -807,6 +791,10 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
       <div class="creator-pill-circle create-strip-circle"><i class="fas fa-plus"></i></div>
       <div class="strip-pill-name">Create</div>
     </div>
+    <div class="strip-pill" id="tuneStripPill" onclick="location.href='https://Patholytica.com/tune'">
+      <div class="creator-pill-circle tune-strip-circle"><i class="fas fa-sliders-h"></i></div>
+      <div class="strip-pill-name">Tune Feed</div>
+    </div>
     <div class="strip-skeleton-pill" id="creatorSkel0"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
     <div class="strip-skeleton-pill" id="creatorSkel1"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
     <div class="strip-skeleton-pill" id="creatorSkel2"><div class="strip-skeleton-circle"></div><div class="strip-skeleton-label"></div></div>
@@ -828,13 +816,15 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 
   <div class="ig-feed" id="mainGrid"></div>
 
-  <!-- Tune Your Feed bug button is inserted here dynamically by JS,
-       right after the "Recently Added" row (the first real shelf row
-       to render) — see maybeInsertTuneBug() below. -->
-
-  <div class="scroll-sentinel" id="scrollSentinel"></div>
-  <div class="scroll-loader-wrap" id="scrollLoaderWrap"><div class="scroll-loader-spinner"></div></div>
-  <div class="scroll-end-msg" id="scrollEndMsg">You're all caught up</div>
+  <div class="shelf-section" id="inlineNotifSection">
+    <div class="shelf-section-header">
+      <div class="shelf-section-title"><i class="fas fa-bell"></i>Notifications</div>
+      <button class="notif-mark-all" id="inlineNotifMarkAll">Mark all read</button>
+    </div>
+    <div id="inlineNotifList">
+      <div class="notif-spinner-wrap"><div class="notif-spinner"></div></div>
+    </div>
+  </div>
 </div>
 
 <div class="create-menu-overlay" id="createMenuOverlay" onclick="closeCreateMenu(event)">
@@ -901,6 +891,47 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 </script>
 
 <script>
+/* ══ Block copying text + block zoom (pinch and double-tap) ══
+   - copy/cut/contextmenu/selectstart are prevented outright, except
+     inside actual form fields (input/textarea) where selection and
+     copy still need to work normally.
+   - Pinch-zoom is blocked via the 'gesturestart' event (Safari) and
+     by preventing multi-touch touchmove; double-tap-to-zoom is
+     blocked by intercepting fast repeated taps and calling
+     preventDefault before the browser turns them into a zoom. ══ */
+(function(){
+  function isFormField(el){
+    return el && (el.tagName==='INPUT' || el.tagName==='TEXTAREA' || el.isContentEditable);
+  }
+
+  document.addEventListener('copy', e=>{ if(!isFormField(e.target)) e.preventDefault(); });
+  document.addEventListener('cut', e=>{ if(!isFormField(e.target)) e.preventDefault(); });
+  document.addEventListener('contextmenu', e=>{ if(!isFormField(e.target)) e.preventDefault(); });
+  document.addEventListener('selectstart', e=>{ if(!isFormField(e.target)) e.preventDefault(); });
+  document.addEventListener('dragstart', e=>{ if(!isFormField(e.target)) e.preventDefault(); });
+
+  // iOS Safari pinch-zoom gesture events (non-standard, Safari-only).
+  document.addEventListener('gesturestart', e=>e.preventDefault());
+  document.addEventListener('gesturechange', e=>e.preventDefault());
+  document.addEventListener('gestureend', e=>e.preventDefault());
+
+  // Block two-finger pinch on browsers that expose it via touch events.
+  document.addEventListener('touchmove', e=>{
+    if(e.touches && e.touches.length > 1) e.preventDefault();
+  }, { passive:false });
+
+  // Block double-tap-to-zoom: if two touchend events land close
+  // together in time, treat the second as a zoom attempt and cancel it.
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', e=>{
+    const now = Date.now();
+    if(now - lastTouchEnd <= 300) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive:false });
+})();
+</script>
+
+<script>
 (function(){
   const THEMES=['theme-dark','theme-light'];
   const FONTS = ['font-serif','font-slab','font-modern'];
@@ -961,6 +992,7 @@ body.theme-light .header-logo img { filter: invert(1) grayscale(1); }
 
 <script>
 window._isLoggedIn = false;
+window._authResolved = false;
 
 const COMMUNITY_NOTIFS = [
   {
@@ -1160,14 +1192,7 @@ function syncFavouritesFromLocal(){
 window.userFavouritesLocalSync = syncFavouritesFromLocal;
 syncFavouritesFromLocal();
 
-const SIZE_BANDS = ['size-md','size-lg','size-sm','size-wide','size-square'];
-function bandForRow(rowIndex){ return SIZE_BANDS[rowIndex % SIZE_BANDS.length]; }
 
-const ROW_SIZE = 10;
-let libRowOffset = 0;
-let libsExhausted = false;
-let libCountMap = {};
-let tuneBugInserted = false;
 
 /* ══ NOTIFICATIONS ══
    FIX (stuck-spinner / needs-several-taps): previously this function
@@ -1182,17 +1207,40 @@ let tuneBugInserted = false;
    (2) onAuthStateChanged below proactively re-runs this loader once
    auth resolves if the panel is already sitting open, so the person
    doesn't have to close/reopen or re-tap at all. ══ */
+function notifRenderTargets(){
+  // The dropdown panel list plus the new inline on-page block under
+  // Saved Libraries — both are kept in sync from a single loader.
+  return [document.getElementById('notifList'), document.getElementById('inlineNotifList')]
+    .filter(Boolean);
+}
+
 window._supabaseNotifLoader = async function(){
-  const list  = document.getElementById('notifList');
+  const targets = notifRenderTargets();
   const badge = document.getElementById('headerNotifBadge');
   if(!currentSupaUser){
+    if(window._authResolved && !window._isLoggedIn){
+      // Auth has settled and the person is a guest — show the log-in
+      // prompt rather than spinning forever.
+      targets.forEach(list=>{
+        list.innerHTML = communityNotifsHTML() + `
+          <div class="notif-empty">
+            <i class="fas fa-bell"></i>
+            <p>Log in to see your notifications</p>
+            <a href="login.html">Log in</a>
+          </div>`;
+      });
+      badge.classList.remove('show');
+      return;
+    }
     // Auth hasn't resolved yet. Show a spinner now (rather than
     // silently returning and leaving stale/empty content), and rely
     // on onAuthStateChanged to re-call this once the user resolves.
-    list.innerHTML = communityNotifsHTML() + `<div class="notif-spinner-wrap"><div class="notif-spinner"></div></div>`;
+    targets.forEach(list=>{
+      list.innerHTML = communityNotifsHTML() + `<div class="notif-spinner-wrap"><div class="notif-spinner"></div></div>`;
+    });
     return;
   }
-  list.innerHTML='<div class="notif-spinner-wrap"><div class="notif-spinner"></div></div>';
+  targets.forEach(list=>{ list.innerHTML='<div class="notif-spinner-wrap"><div class="notif-spinner"></div></div>'; });
   try{
     const{data:notifs}=await supabase.from('notifications').select('*')
       .eq('recipient_id', currentSupaUser.user_id)
@@ -1226,19 +1274,23 @@ window._supabaseNotifLoader = async function(){
           </div>`;
         }).join('');
 
-    list.innerHTML = communityNotifsHTML() + userNotifHTML;
+    notifRenderTargets().forEach(list=>{ list.innerHTML = communityNotifsHTML() + userNotifHTML; });
   }catch(e){
-    list.innerHTML = communityNotifsHTML() +
-      `<div class="notif-empty"><i class="fas fa-exclamation-triangle"></i><p>Failed to load</p></div>`;
+    notifRenderTargets().forEach(list=>{
+      list.innerHTML = communityNotifsHTML() +
+        `<div class="notif-empty"><i class="fas fa-exclamation-triangle"></i><p>Failed to load</p></div>`;
+    });
   }
 };
 
 window._handleNotif=async function(el){
   const id=el.dataset.id, target=el.dataset.target;
-  el.classList.remove('unread');
-  const unread=document.querySelectorAll('.notif-item.unread').length;
+  // Clear the unread mark on every copy of this notification (the
+  // dropdown panel and the inline on-page block render the same ids).
+  document.querySelectorAll(`.notif-item[data-id="${id}"]`).forEach(n=>n.classList.remove('unread'));
+  const unread=document.querySelectorAll('.notif-item.unread').length / notifRenderTargets().length;
   const badge=document.getElementById('headerNotifBadge');
-  if(unread===0) badge.classList.remove('show');
+  if(unread<=0) badge.classList.remove('show');
   else{badge.textContent=unread>9?'9+':unread;}
   try{
     if(currentSupaUser) await supabase.rpc('mark_notification_read',{p_notification_id:parseInt(id),p_firebase_uid:currentSupaUser.firebase_uid});
@@ -1254,6 +1306,18 @@ document.getElementById('notifMarkAll').addEventListener('click',async function(
     await supabase.rpc('mark_all_notifications_read',{p_firebase_uid:currentSupaUser.firebase_uid});
   }catch(e){}
 });
+
+const inlineNotifMarkAll = document.getElementById('inlineNotifMarkAll');
+if(inlineNotifMarkAll){
+  inlineNotifMarkAll.addEventListener('click', async function(){
+    if(!currentSupaUser)return;
+    document.querySelectorAll('.notif-item.unread').forEach(el=>el.classList.remove('unread'));
+    document.getElementById('headerNotifBadge').classList.remove('show');
+    try{
+      await supabase.rpc('mark_all_notifications_read',{p_firebase_uid:currentSupaUser.firebase_uid});
+    }catch(e){}
+  });
+}
 
 /* ══ AUTH ══ */
 onAuthStateChanged(auth, async user=>{
@@ -1299,6 +1363,7 @@ onAuthStateChanged(auth, async user=>{
   // covers both the normal case and the case where the person opened
   // the bell before this resolved and is currently staring at the
   // fallback spinner from the guard above.
+  window._authResolved = true;
   await window._supabaseNotifLoader();
 
   // Item 1: creators strip depends on knowing who the user follows,
@@ -1538,44 +1603,18 @@ async function loadCreators(){
       pill.innerHTML=`
         <div class="creator-pill-circle">${u.pfp?`<img src="${esc(u.pfp)}" alt="${init}">`:`${init}`}</div>
         <div class="strip-pill-name">${esc(name)}</div>`;
-      pill.addEventListener('click',()=>openUserPopup(u.uid));
+      // Go straight to the profile page on first tap — no preview
+      // popup in between. Falls back to the popup only in the rare
+      // case a creator has no username to build a profile URL from.
+      pill.addEventListener('click',()=>{
+        if(u.username) location.href = `profile.html?username=${encodeURIComponent(u.username)}`;
+        else openUserPopup(u.uid);
+      });
       strip.appendChild(pill);
     });
   }catch(e){
     strip.querySelectorAll('[id^="creatorSkel"]').forEach(el=>el.remove());
   }
-}
-
-/* ══════════════════════════════════════════════════════════
-   TUNE YOUR FEED BUG BUTTON
-   Inserted dynamically right after the "Recently Added" row —
-   i.e. the first non-"saved" shelf section to actually render —
-   since that row doesn't exist until data has loaded. Guarded
-   by tuneBugInserted so it only ever gets inserted once, even
-   though loadLibraryBatch can run again via infinite scroll.
-══════════════════════════════════════════════════════════ */
-function tuneBugElement(){
-  const wrap=document.createElement('div');
-  wrap.className='tune-bug-wrap';
-  wrap.innerHTML=`
-    <button class="tune-bug-btn" onclick="location.href='https://Patholytica.com/tune'">
-      <div class="tune-bug-icon"><i class="fas fa-sliders-h"></i></div>
-      <div class="tune-bug-text">
-        <div class="tune-bug-title">Tune Your Feed</div>
-        <div class="tune-bug-sub">Pick topics to bring into or remove from your picks</div>
-      </div>
-      <i class="fas fa-chevron-right chev"></i>
-    </button>`;
-  return wrap;
-}
-
-function maybeInsertTuneBug(){
-  if(tuneBugInserted) return;
-  const grid=document.getElementById('mainGrid');
-  const firstRealRow=grid.querySelector('.shelf-section:not([data-row-key="saved"])');
-  if(!firstRealRow) return;
-  firstRealRow.insertAdjacentElement('afterend', tuneBugElement());
-  tuneBugInserted=true;
 }
 
 /* ══ CARD BUILDERS ══ */
@@ -1661,110 +1700,39 @@ async function refreshSavedRow(){
   else{ grid.insertBefore(freshSection, grid.firstChild); }
 }
 
-/* ══ MAIN LOADER — libraries only ══ */
-async function loadLibraryBatch(isInitial=true){
-  if(isInitial){
-    injectShelfSkeletons(3);
-  }
-  if(libsExhausted && !isInitial) { updateScrollLoaderState(); return; }
+/* ══ MAIN LOADER — Saved Libraries only ══
+   Simplified on request: the feed now shows only the person's own
+   Saved Libraries row. No fetching/paginating of other libraries
+   (Recently Added, Popular, etc.) and no infinite scroll — the
+   scroll sentinel/loader elements stay in the DOM but are never
+   driven by an IntersectionObserver anymore. ══ */
+async function loadLibraryBatch(){
+  injectShelfSkeletons(1);
   const grid=document.getElementById('mainGrid');
   try{
-    if(isInitial){
-      syncFavouritesFromLocal();
-      const savedLibs=getSavedLibs();
-      if(savedLibs.length){
-        const withCounts=savedLibs.map(l=>({lib:l,articleCount:l._count||0}));
-        const savedSection=buildShelfRowSection('saved','Saved Libraries','fa-bookmark',withCounts,'size-md');
-        clearShelfSkeletons();
-        if(savedSection) grid.appendChild(savedSection);
-        injectShelfSkeletons(2);
-      }
-    }
-
-    const{data:libData,error:libErr}=await supabase.from('playlists').select('*')
-      .not('name','like','algotag(%')
-      .order('created_at',{ascending:false}).range(libRowOffset,libRowOffset+ROW_SIZE-1);
-    if(libErr) throw libErr;
-
-    const libs=libData||[];
-    libRowOffset+=libs.length;
-    if(libs.length<ROW_SIZE) libsExhausted=true;
-
-    if(libs.length){
-      const libIds=libs.map(l=>l.id);
-      const{data:irows}=await supabase.from('playlist_items').select('playlist_id').in('playlist_id',libIds);
-      (irows||[]).forEach(r=>{libCountMap[r.playlist_id]=(libCountMap[r.playlist_id]||0)+1;});
-
-      const withCounts=libs
-        .filter(l=>!userFavourites.has(String(l.id)))
-        .map(l=>({lib:l,articleCount:libCountMap[l.id]||0}));
-
-      clearShelfSkeletons();
-
-      if(withCounts.length){
-        const rowIndex=[...grid.querySelectorAll('.shelf-section:not([data-row-key="saved"])')].length;
-        const sizeClass=bandForRow(rowIndex);
-        const titles=['Recently Added','Popular This Week','Editors\' Picks','Trending Libraries','Fresh Shelves','More to Explore'];
-        const titleText=titles[rowIndex % titles.length];
-        const section=buildShelfRowSection(`row_${libRowOffset}`,titleText,'fa-layer-group',withCounts,sizeClass);
-        if(section) grid.appendChild(section);
-      }
+    syncFavouritesFromLocal();
+    clearShelfSkeletons();
+    const savedLibs=getSavedLibs();
+    if(savedLibs.length){
+      const withCounts=savedLibs.map(l=>({lib:l,articleCount:l._count||0}));
+      const savedSection=buildShelfRowSection('saved','Saved Libraries','fa-bookmark',withCounts,'size-md');
+      if(savedSection) grid.appendChild(savedSection);
     } else {
-      clearShelfSkeletons();
-      if(isInitial && !grid.querySelector('.shelf-section')){
-        grid.innerHTML+=`<div class="empty-state"><i class="fas fa-layer-group"></i><p>No libraries yet</p></div>`;
-      }
+      grid.innerHTML+=`<div class="empty-state"><i class="fas fa-bookmark"></i><p>No saved libraries yet</p></div>`;
     }
-
-    // Tune Your Feed bug: insert right after the first real ("Recently
-    // Added") shelf row, once it exists.
-    maybeInsertTuneBug();
-
-    updateScrollLoaderState();
   }catch(e){
     console.error(e);
     clearShelfSkeletons();
-    if(isInitial && !grid.querySelector('.shelf-section')){
-      grid.innerHTML+=`<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Failed to load</p></div>`;
-    }
-    updateScrollLoaderState();
+    grid.innerHTML+=`<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Failed to load</p></div>`;
   }
 }
-
-/* ══ INFINITE SCROLL ══ */
-let scrollLoadingLock=false;
-function updateScrollLoaderState(){
-  const loaderWrap=document.getElementById('scrollLoaderWrap');
-  const endMsg=document.getElementById('scrollEndMsg');
-  loaderWrap.classList.remove('active');
-  if(!libsExhausted){
-    endMsg.classList.remove('active');
-  }else{
-    endMsg.classList.add('active');
-  }
-}
-
-const scrollObserver = new IntersectionObserver((entries)=>{
-  entries.forEach(entry=>{
-    if(entry.isIntersecting && !libsExhausted && !scrollLoadingLock){
-      scrollLoadingLock=true;
-      document.getElementById('scrollLoaderWrap').classList.add('active');
-      loadLibraryBatch(false).finally(()=>{ scrollLoadingLock=false; });
-    }
-  });
-},{ rootMargin: '400px 0px 0px 0px' });
-
-document.addEventListener('DOMContentLoaded', ()=>{
-  const sentinel = document.getElementById('scrollSentinel');
-  if(sentinel) scrollObserver.observe(sentinel);
-});
 
 // loadCreators() is called from inside onAuthStateChanged (above) once
 // auth has actually resolved, rather than fired here immediately —
 // calling it before Firebase resolves would mean it always takes the
 // guest/fallback path even for a user who's about to be recognized as
 // logged in a moment later.
-loadLibraryBatch(true);
+loadLibraryBatch();
 </script>
 
 </body>
