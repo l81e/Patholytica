@@ -1,886 +1,366 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="champagne">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Page Scanner</title>
+<title>Patholytica · Lexical Profile Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Merriweather:wght@400;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0f1115;
-    --panel: #181b22;
-    --panel-2: #20242d;
-    --text: #eef1f6;
-    --muted: #8b93a3;
-    --accent: #3b82f6;
-    --accent-2: #2563eb;
-    --danger: #ef4444;
-    --ok: #22c55e;
-    --radius: 14px;
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-  body { display: flex; flex-direction: column; min-height: 100vh; }
-
-  header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 16px; background: var(--panel); border-bottom: 1px solid #262b36;
-  }
-  header h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: .2px; }
-  .badge { background: var(--accent); color: #fff; border-radius: 999px; font-size: 12px;
-    padding: 3px 10px; font-weight: 600; }
-
-  main { flex: 1; display: flex; flex-direction: column; padding: 12px; gap: 12px; max-width: 900px;
-    width: 100%; margin: 0 auto; }
-
-  .screen { display: none; flex-direction: column; gap: 12px; flex: 1; }
-  .screen.active { display: flex; }
-
-  .stage {
-    position: relative; background: #000; border-radius: var(--radius); overflow: hidden;
-    display: flex; align-items: center; justify-content: center; min-height: 300px; flex: 1;
-    border: 1px solid #262b36;
-  }
-  video, canvas.view { max-width: 100%; max-height: 70vh; display: block; }
-  #overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-
-  .hint { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font-size: 13px;
-    color: #fff; text-shadow: 0 1px 4px #000; padding: 0 12px; pointer-events: none; }
-
-  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: center; }
-  button, .btn {
-    background: var(--panel-2); color: var(--text); border: 1px solid #2e3441; border-radius: 12px;
-    padding: 12px 16px; font-size: 15px; font-weight: 600; cursor: pointer; transition: .15s;
-    display: inline-flex; align-items: center; gap: 8px; justify-content: center;
-  }
-  button:hover { background: #292e39; }
-  button:active { transform: scale(.97); }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  button.primary:hover { background: var(--accent-2); }
-  button.danger { background: transparent; color: var(--danger); border-color: #4a2226; }
-  button:disabled { opacity: .4; cursor: not-allowed; }
-
-  .shutter {
-    width: 72px; height: 72px; border-radius: 50%; padding: 0; background: #fff; border: 5px solid #cbd5e1;
-    box-shadow: 0 0 0 3px #0f1115 inset;
-  }
-  .shutter:hover { background: #f1f5f9; }
-
-  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-  .chip { padding: 9px 14px; font-size: 14px; border-radius: 999px; }
-  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-
-  .slider-row { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 420px; margin: 0 auto;
-    color: var(--muted); font-size: 13px; }
-  .slider-row input { flex: 1; accent-color: var(--accent); }
-
-  .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
-  .thumb { position: relative; background: var(--panel); border: 1px solid #262b36; border-radius: 12px;
-    overflow: hidden; }
-  .thumb img { width: 100%; display: block; aspect-ratio: 3/4; object-fit: cover; background: #fff; }
-  .thumb .num { position: absolute; left: 6px; top: 6px; background: rgba(0,0,0,.7); color: #fff;
-    font-size: 12px; padding: 2px 8px; border-radius: 999px; }
-  .thumb .acts { display: flex; border-top: 1px solid #262b36; }
-  .thumb .acts button { flex: 1; border: 0; border-radius: 0; padding: 8px 4px; font-size: 13px;
-    background: var(--panel); }
-  .thumb .acts button + button { border-left: 1px solid #262b36; }
-
-  .empty { text-align: center; color: var(--muted); padding: 40px 10px; }
-  .msg { text-align: center; color: var(--muted); font-size: 14px; padding: 6px; }
-  .err { color: var(--danger); }
-
-  .loader { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; align-items: center;
-    justify-content: center; flex-direction: column; gap: 12px; z-index: 50; font-size: 15px; }
-  .loader.show { display: flex; }
-  .spin { width: 42px; height: 42px; border: 4px solid #333; border-top-color: var(--accent);
-    border-radius: 50%; animation: sp 0.9s linear infinite; }
-  @keyframes sp { to { transform: rotate(360deg); } }
-
-  select { background: var(--panel-2); color: var(--text); border: 1px solid #2e3441; border-radius: 10px;
-    padding: 10px 12px; font-size: 14px; }
-  label.small { font-size: 13px; color: var(--muted); }
-  input[type="file"] { display: none; }
+html[data-theme="champagne"]{--bg:#0f0e0b;--card:#17150f;--line:#2a2518;--text:#ece3cc;--muted:#9a917a;--gold:#c8a96e;--ink:#0f0e0b;--good:#8fbf7f;--bad:#d9826b}
+html[data-theme="dark"]{--bg:#000;--card:#0b0b0b;--line:#1f1f1f;--text:#f0f0f0;--muted:#8a8a8a;--gold:#c8a96e;--ink:#000;--good:#8fbf7f;--bad:#e0806a}
+html[data-theme="light"]{--bg:#fff;--card:#f7f5f0;--line:#e4dfd2;--text:#1a1915;--muted:#6f6a5c;--gold:#a8874a;--ink:#fff;--good:#3f8a4a;--bad:#bf4d35}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line)}
+.brand{font-family:'Source Serif 4',Georgia,serif;font-size:20px;font-weight:600;color:var(--gold);line-height:1}
+.brand small{display:block;font-family:'DM Sans',sans-serif;font-size:11px;color:var(--muted);font-weight:400;margin-top:3px}
+select{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px;font:inherit;font-size:13px}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tab{flex:1;background:none;border:0;color:var(--muted);padding:12px 4px;font:inherit;font-size:14px;font-weight:500;border-bottom:2px solid transparent}
+.tab.on{color:var(--gold);border-bottom-color:var(--gold)}
+.views{flex:1;min-height:0;position:relative}
+.view{position:absolute;inset:0;overflow-y:auto;display:none;padding:14px}
+.view.on{display:block}
+#v-feed{padding:0}
+#v-feed.on{display:flex;flex-direction:column}
+.fbar{display:flex;justify-content:space-between;gap:8px;padding:8px 14px;font-size:12px;color:var(--muted)}
+#feed{flex:1;min-height:0;overflow-y:auto;scroll-snap-type:y mandatory;padding:0 12px}
+.card{min-height:calc(100% - 12px);margin-bottom:12px;scroll-snap-align:start;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column;justify-content:center;gap:14px}
+.row{display:flex;justify-content:space-between;align-items:center}
+.row2{display:flex;gap:8px;align-items:center}
+.tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:3px 9px}
+.tag.ex{color:var(--gold);border-color:var(--gold)}
+.pct{color:var(--gold);font-size:13px}
+.txt{font-family:'Merriweather',Georgia,serif;font-size:17px;line-height:1.75}
+.term{border-bottom:1px dotted var(--gold);cursor:pointer}
+.term.known{color:var(--gold);border-bottom-style:solid}
+.term.unknown{background:color-mix(in srgb,var(--bad) 22%,transparent);border-bottom:1px solid var(--bad)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;padding:3px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+.chip.near{color:var(--good);border-color:var(--good)}
+.chip.far{color:var(--bad);border-color:var(--bad)}
+.bar{height:6px;background:var(--line);border-radius:9px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--gold)}
+.hint{font-size:12px;color:var(--muted);line-height:1.5}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{min-height:44px;background:transparent;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font:inherit;font-size:14px;font-weight:500}
+.btn.primary{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.empty{text-align:center;padding:60px 20px}
+h3{font-family:'Source Serif 4',Georgia,serif;font-weight:600;font-size:18px;margin:22px 0 8px;color:var(--gold)}
+h3:first-child{margin-top:0}
+.feat,.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+.fh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.meta{font-size:12px;color:var(--muted)}
+.viz{position:relative;height:10px;background:var(--line);border-radius:9px;margin:12px 0}
+.band{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--gold) 35%,transparent);border-radius:9px}
+.dot{position:absolute;top:-3px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:var(--gold)}
+label{display:block;font-size:13px;color:var(--muted);margin-top:8px}
+label span{color:var(--text);float:right}
+input[type=range]{width:100%;accent-color:var(--gold)}
+textarea{width:100%;min-height:90px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px;font:inherit;font-size:14px}
+pre{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:11px;overflow-x:auto;color:var(--muted)}
+.opt{display:block;width:100%;text-align:left;margin:8px 0;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:16px;font-family:'Merriweather',Georgia,serif;font-size:15px;line-height:1.6}
+.opt:active{border-color:var(--gold)}
 </style>
 </head>
 <body>
-
 <header>
-  <h1>📄 Page Scanner</h1>
-  <span class="badge" id="pageBadge">0 pages</span>
+  <div class="brand">Patholytica<small>Lexical profile lab</small></div>
+  <select id="theme">
+    <option value="champagne">Champagne</option>
+    <option value="dark">Absolute Dark</option>
+    <option value="light">Absolute Light</option>
+  </select>
 </header>
-
-<main>
-
-  <!-- CAMERA SCREEN -->
-  <section class="screen active" id="screenCamera">
-    <div class="stage" id="camStage">
-      <video id="video" playsinline muted autoplay></video>
-      <canvas id="overlay"></canvas>
-      <div class="hint" id="camHint">Point the camera at a page on a dark surface</div>
-    </div>
-    <div class="msg" id="camMsg"></div>
-    <div class="row">
-      <button id="btnGallery" title="Import a photo">🖼️ Import</button>
-      <button class="shutter" id="btnShutter" title="Capture"></button>
-      <button id="btnSwitch" title="Switch camera">🔄 Flip</button>
-    </div>
-    <div class="row">
-      <button id="btnTorch" style="display:none">🔦 Light</button>
-      <button id="btnToPages">📚 View pages (<span id="cntBtn">0</span>)</button>
-    </div>
-    <input type="file" id="fileInput" accept="image/*" multiple>
+<div class="tabs">
+  <button class="tab on" data-v="feed">Feed</button>
+  <button class="tab" data-v="profile">Profile</button>
+  <button class="tab" data-v="calib">Calibrate</button>
+</div>
+<div class="views">
+  <section class="view on" id="v-feed">
+    <div class="fbar"><span id="qinfo"></span><span>Tap terms: 1× don't know · 2× know</span></div>
+    <div id="feed"></div>
   </section>
 
-  <!-- ADJUST SCREEN -->
-  <section class="screen" id="screenAdjust">
-    <div class="stage" id="adjStage">
-      <canvas class="view" id="adjCanvas"></canvas>
+  <section class="view" id="v-profile">
+    <h3>Lexical profile</h3>
+    <p class="hint">Dot = preferred level, gold band = spread. Learned from your taps; drag a slider to override. Moving importance locks it.</p>
+    <div id="feats"></div>
+    <h3>Rules and exploration</h3>
+    <div class="box">
+      <label style="margin-top:0"><input type="checkbox" id="needdef"> Hard rule: only show texts with a plain-language definition</label>
+      <label>Explore share <span id="exv"></span><input type="range" id="explore" min="0" max="30"></label>
+      <p class="hint">Explore places a lower-ranked text into the feed so the profile can keep learning.</p>
     </div>
-    <div class="msg">Drag the blue corners to fit the page edges</div>
-    <div class="row">
-      <button id="btnAutoDetect">✨ Auto-detect</button>
-      <button id="btnFullImage">⬜ Full image</button>
-    </div>
-    <div class="row">
-      <button class="danger" id="btnRetake">✖ Retake</button>
-      <button class="primary" id="btnCrop">✔ Crop &amp; continue</button>
-    </div>
+    <h3>Known and unknown terms</h3>
+    <div class="box"><div class="hint">Known (tap to clear)</div><div id="known"></div><div class="hint" style="margin-top:10px">Unknown (tap to clear)</div><div id="unknown"></div></div>
+    <h3>Profile data</h3>
+    <pre id="json"></pre>
+    <button class="btn" id="resetprof" style="width:100%">Reset profile</button>
   </section>
 
-  <!-- FILTER SCREEN -->
-  <section class="screen" id="screenFilter">
-    <div class="stage">
-      <canvas class="view" id="filtCanvas"></canvas>
-    </div>
-    <div class="toolbar">
-      <button class="chip on" data-f="color">Color</button>
-      <button class="chip" data-f="gray">Grayscale</button>
-      <button class="chip" data-f="bw">Black &amp; White</button>
-      <button class="chip" data-f="enhance">Enhanced</button>
-    </div>
-    <div class="slider-row"><span>Brightness</span><input type="range" id="sBright" min="-60" max="60" value="0"></div>
-    <div class="slider-row"><span>Contrast</span><input type="range" id="sContrast" min="-50" max="80" value="0"></div>
-    <div class="row">
-      <button id="btnRotL">⟲ Rotate</button>
-      <button id="btnRotR">⟳ Rotate</button>
-      <button id="btnBackAdj">← Back</button>
-    </div>
-    <div class="row">
-      <button id="btnSaveScan" class="primary">✔ Save page</button>
-    </div>
+  <section class="view" id="v-calib">
+    <h3>Quick calibration</h3>
+    <p class="hint">Each pair differs in one feature only, so we know what caused your choice.</p>
+    <div id="pair"></div>
+    <h3>Test your own text</h3>
+    <textarea id="own" placeholder="Paste a paragraph from an article"></textarea>
+    <button class="btn primary" id="add" style="width:100%;margin-top:8px">Analyze and add to feed</button>
+    <p class="hint" id="addmsg"></p>
   </section>
-
-  <!-- PAGES SCREEN -->
-  <section class="screen" id="screenPages">
-    <div class="row">
-      <button class="primary" id="btnScanMore">＋ Scan another page</button>
-    </div>
-    <div id="thumbs" class="thumbs"></div>
-    <div id="emptyMsg" class="empty">No pages yet. Tap “Scan another page” to begin.</div>
-    <div class="row">
-      <label class="small">PDF size</label>
-      <select id="pdfSize">
-        <option value="a4">A4</option>
-        <option value="letter">US Letter</option>
-        <option value="fit">Fit to image</option>
-      </select>
-      <label class="small">Quality</label>
-      <select id="pdfQ">
-        <option value="0.92">High</option>
-        <option value="0.8" selected>Medium</option>
-        <option value="0.6">Small file</option>
-      </select>
-    </div>
-    <div class="row">
-      <button class="primary" id="btnPDF">⬇ Download PDF</button>
-      <button id="btnImgs">⬇ Download images</button>
-      <button class="danger" id="btnClear">🗑 Clear all</button>
-    </div>
-  </section>
-
-</main>
-
-<div class="loader" id="loader"><div class="spin"></div><div id="loaderTxt">Working…</div></div>
+</div>
 
 <script>
-(() => {
-  'use strict';
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 
-  /* ---------- Helpers ---------- */
-  const $ = id => document.getElementById(id);
-  const screens = ['screenCamera', 'screenAdjust', 'screenFilter', 'screenPages'];
-  function show(id) {
-    screens.forEach(s => $(s).classList.toggle('active', s === id));
-    if (id === 'screenCamera') startCamera(); else if (id !== 'screenCamera') stopCamera();
-  }
-  function loading(on, txt) { $('loader').classList.toggle('show', on); if (txt) $('loaderTxt').textContent = txt; }
-  function updateBadge() {
-    const n = pages.length;
-    $('pageBadge').textContent = n + (n === 1 ? ' page' : ' pages');
-    $('cntBtn').textContent = n;
-  }
+/* ---------- Word lists (starter lists; replace with real medical + frequency lists) ---------- */
+const TERMS=new Set("myocardial infarction occlusion occludes coronary atherosclerotic plaque thrombus ecg troponin reperfusion pci st sepsis lactate antibiotics beta-blockers metoprolol antagonizing β1 receptors contraindications decompensated hf bradycardia granulomas tuberculosis caseous necrosis homeostasis baroreceptor arterial dyspnea orthopnea jvd bibasilar crackles peripheral edema bnp echocardiography congestive setpoint catheter patency".split(" "));
+const COMMON=new Set("happens feeding blocked minutes breath remember microscope clusters doctors checks checked before standing should abnormal patient presents suggest confirm include adjusts against keeping negative feedback treated infection pressure response damaging organs conditions between because another through without following something everything nothing important usually results cheese-like middle-aged heart-strain".split(" "));
+const PERSON=new Set("you your yours yourself we us our ours".split(" "));
+const DEF=/\b(means|meaning|called|known as|refers to|happens when)\b|i\.e\./i;
 
-  /* ---------- State ---------- */
-  let stream = null, facing = 'environment', torchOn = false, track = null;
-  let srcCanvas = null;           // captured/imported full-size image
-  let corners = [];               // 4 points in source image coords [tl,tr,br,bl]
-  let croppedCanvas = null;       // warped page
-  let filter = 'color', bright = 0, contrast = 0, rotation = 0;
-  let pages = [];                 // {dataUrl, w, h}
-  let liveTimer = null;
-
-  /* ---------- Camera ---------- */
-  async function startCamera() {
-    stopCamera();
-    $('camMsg').textContent = '';
-    $('camMsg').classList.remove('err');
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      $('camMsg').textContent = 'Camera not available here. Use the Import button, or open this page over https.';
-      $('camMsg').classList.add('err');
-      return;
-    }
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: facing }, width: { ideal: 2560 }, height: { ideal: 1440 } },
-        audio: false
-      });
-      const v = $('video');
-      v.srcObject = stream;
-      await v.play().catch(() => {});
-      track = stream.getVideoTracks()[0];
-      const caps = track.getCapabilities ? track.getCapabilities() : {};
-      $('btnTorch').style.display = caps.torch ? '' : 'none';
-      torchOn = false;
-      startLiveDetect();
-    } catch (e) {
-      $('camMsg').textContent = 'Could not open camera: ' + (e.message || e.name) +
-        '. Allow camera permission, or use Import.';
-      $('camMsg').classList.add('err');
-    }
-  }
-  function stopCamera() {
-    if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
-    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-    track = null;
-    const o = $('overlay'); o.getContext('2d').clearRect(0, 0, o.width, o.height);
-  }
-
-  $('btnSwitch').onclick = () => { facing = facing === 'environment' ? 'user' : 'environment'; startCamera(); };
-  $('btnTorch').onclick = async () => {
-    if (!track) return;
-    torchOn = !torchOn;
-    try { await track.applyConstraints({ advanced: [{ torch: torchOn }] }); } catch (e) {}
-  };
-
-  function grabFrame() {
-    const v = $('video');
-    if (!v.videoWidth) return null;
-    const c = document.createElement('canvas');
-    c.width = v.videoWidth; c.height = v.videoHeight;
-    c.getContext('2d').drawImage(v, 0, 0);
-    return c;
-  }
-
-  $('btnShutter').onclick = () => {
-    const c = grabFrame();
-    if (!c) { $('camMsg').textContent = 'Camera is not ready yet.'; return; }
-    beginAdjust(c);
-  };
-
-  $('btnGallery').onclick = () => $('fileInput').click();
-  $('fileInput').onchange = async e => {
-    const files = [...e.target.files];
-    e.target.value = '';
-    if (!files.length) return;
-    // Load first one for adjusting, queue the rest as full-image pages
-    const first = files.shift();
-    const c = await fileToCanvas(first);
-    for (const f of files) {
-      const cc = await fileToCanvas(f);
-      addPage(cc);
-    }
-    beginAdjust(c);
-  };
-  function fileToCanvas(file) {
-    return new Promise((res, rej) => {
-      const img = new Image();
-      img.onload = () => {
-        const max = 3000;
-        let w = img.naturalWidth, h = img.naturalHeight;
-        const s = Math.min(1, max / Math.max(w, h));
-        w = Math.round(w * s); h = Math.round(h * s);
-        const c = document.createElement('canvas'); c.width = w; c.height = h;
-        c.getContext('2d').drawImage(img, 0, 0, w, h);
-        URL.revokeObjectURL(img.src);
-        res(c);
-      };
-      img.onerror = rej;
-      img.src = URL.createObjectURL(file);
-    });
-  }
-
-  /* ---------- Edge detection (pure JS) ----------
-     Pipeline: downscale -> grayscale -> blur -> Sobel -> threshold -> largest bright/contrast quad.
-     We use a robust approach: find the page as the largest region whose brightness differs from
-     the background, via Otsu threshold + bounding of the largest connected blob, then refine
-     corners as extreme points along diagonals. */
-  function detectCorners(canvas) {
-    const maxDim = 320;
-    const s = Math.min(1, maxDim / Math.max(canvas.width, canvas.height));
-    const w = Math.max(8, Math.round(canvas.width * s));
-    const h = Math.max(8, Math.round(canvas.height * s));
-    const t = document.createElement('canvas'); t.width = w; t.height = h;
-    const tctx = t.getContext('2d', { willReadFrequently: true });
-    tctx.drawImage(canvas, 0, 0, w, h);
-    const d = tctx.getImageData(0, 0, w, h).data;
-
-    // grayscale
-    let gray = new Float32Array(w * h);
-    for (let i = 0, j = 0; i < d.length; i += 4, j++) gray[j] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-
-    gray = boxBlur(gray, w, h, 2);
-
-    // Otsu
-    const hist = new Array(256).fill(0);
-    for (let i = 0; i < gray.length; i++) hist[Math.min(255, gray[i] | 0)]++;
-    const total = gray.length;
-    let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
-    let sumB = 0, wB = 0, best = 0, thr = 128;
-    for (let i = 0; i < 256; i++) {
-      wB += hist[i]; if (!wB) continue;
-      const wF = total - wB; if (!wF) break;
-      sumB += i * hist[i];
-      const mB = sumB / wB, mF = (sum - sumB) / wF;
-      const v = wB * wF * (mB - mF) * (mB - mF);
-      if (v > best) { best = v; thr = i; }
-    }
-
-    // Decide whether page is the brighter or darker class: page is usually brighter & central.
-    const cx0 = w * 0.3, cx1 = w * 0.7, cy0 = h * 0.3, cy1 = h * 0.7;
-    let cb = 0, cn = 0;
-    for (let y = cy0 | 0; y < cy1; y++) for (let x = cx0 | 0; x < cx1; x++) { cb += gray[y * w + x] > thr ? 1 : 0; cn++; }
-    const pageIsBright = cb / cn >= 0.5;
-
-    const mask = new Uint8Array(w * h);
-    for (let i = 0; i < mask.length; i++) mask[i] = (gray[i] > thr) === pageIsBright ? 1 : 0;
-
-    // largest connected component (4-neighbour, iterative flood fill)
-    const label = new Int32Array(w * h);
-    let bestLabel = 0, bestSize = 0, cur = 0;
-    const stack = new Int32Array(w * h);
-    for (let i = 0; i < mask.length; i++) {
-      if (mask[i] && !label[i]) {
-        cur++;
-        let sp = 0, size = 0;
-        stack[sp++] = i; label[i] = cur;
-        while (sp) {
-          const p = stack[--sp]; size++;
-          const x = p % w, y = (p / w) | 0;
-          if (x > 0 && mask[p - 1] && !label[p - 1]) { label[p - 1] = cur; stack[sp++] = p - 1; }
-          if (x < w - 1 && mask[p + 1] && !label[p + 1]) { label[p + 1] = cur; stack[sp++] = p + 1; }
-          if (y > 0 && mask[p - w] && !label[p - w]) { label[p - w] = cur; stack[sp++] = p - w; }
-          if (y < h - 1 && mask[p + w] && !label[p + w]) { label[p + w] = cur; stack[sp++] = p + w; }
-        }
-        if (size > bestSize) { bestSize = size; bestLabel = cur; }
-      }
-    }
-
-    if (bestSize < w * h * 0.12) return null;   // nothing convincing
-
-    // Extreme points using sum / difference of coordinates
-    let tl = null, tr = null, br = null, bl = null;
-    let minS = Infinity, maxS = -Infinity, minD = Infinity, maxD = -Infinity;
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      if (label[y * w + x] !== bestLabel) continue;
-      const sm = x + y, df = x - y;
-      if (sm < minS) { minS = sm; tl = [x, y]; }
-      if (sm > maxS) { maxS = sm; br = [x, y]; }
-      if (df > maxD) { maxD = df; tr = [x, y]; }
-      if (df < minD) { minD = df; bl = [x, y]; }
-    }
-    if (!tl || !tr || !br || !bl) return null;
-
-    const inv = 1 / s;
-    const pts = [tl, tr, br, bl].map(p => ({ x: p[0] * inv, y: p[1] * inv }));
-    // sanity: area of quad should be a decent fraction
-    const area = Math.abs(polyArea(pts));
-    if (area < canvas.width * canvas.height * 0.1) return null;
-    return pts;
-  }
-  function polyArea(p) {
-    let a = 0;
-    for (let i = 0; i < p.length; i++) { const j = (i + 1) % p.length; a += p[i].x * p[j].y - p[j].x * p[i].y; }
-    return a / 2;
-  }
-  function boxBlur(src, w, h, r) {
-    const tmp = new Float32Array(w * h), out = new Float32Array(w * h);
-    for (let y = 0; y < h; y++) {
-      let acc = 0, cnt = 0;
-      for (let x = -r; x <= r; x++) if (x >= 0 && x < w) { acc += src[y * w + x]; cnt++; }
-      for (let x = 0; x < w; x++) {
-        tmp[y * w + x] = acc / cnt;
-        const rem = x - r, add = x + r + 1;
-        if (rem >= 0) { acc -= src[y * w + rem]; cnt--; }
-        if (add < w) { acc += src[y * w + add]; cnt++; }
-      }
-    }
-    for (let x = 0; x < w; x++) {
-      let acc = 0, cnt = 0;
-      for (let y = -r; y <= r; y++) if (y >= 0 && y < h) { acc += tmp[y * w + x]; cnt++; }
-      for (let y = 0; y < h; y++) {
-        out[y * w + x] = acc / cnt;
-        const rem = y - r, add = y + r + 1;
-        if (rem >= 0) { acc -= tmp[rem * w + x]; cnt--; }
-        if (add < h) { acc += tmp[add * w + x]; cnt++; }
-      }
-    }
-    return out;
-  }
-
-  /* Live outline on camera view */
-  function startLiveDetect() {
-    if (liveTimer) clearInterval(liveTimer);
-    liveTimer = setInterval(() => {
-      const v = $('video'), o = $('overlay');
-      if (!v.videoWidth || !$('screenCamera').classList.contains('active')) return;
-      const r = v.getBoundingClientRect(), sr = $('camStage').getBoundingClientRect();
-      o.width = sr.width; o.height = sr.height;
-      const ctx = o.getContext('2d');
-      ctx.clearRect(0, 0, o.width, o.height);
-      const c = grabFrame(); if (!c) return;
-      const pts = detectCorners(c);
-      if (!pts) { $('camHint').textContent = 'Point the camera at a page on a contrasting surface'; return; }
-      $('camHint').textContent = 'Page detected — tap the shutter';
-      const kx = r.width / c.width, ky = r.height / c.height;
-      const ox = r.left - sr.left, oy = r.top - sr.top;
-      ctx.beginPath();
-      pts.forEach((p, i) => { const x = ox + p.x * kx, y = oy + p.y * ky; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(59,130,246,.18)'; ctx.fill();
-      ctx.lineWidth = 3; ctx.strokeStyle = '#3b82f6'; ctx.stroke();
-    }, 450);
-  }
-
-  /* ---------- Adjust screen ---------- */
-  let adjScale = 1, dragIdx = -1;
-  const adj = $('adjCanvas');
-
-  function beginAdjust(canvas) {
-    srcCanvas = canvas;
-    show('screenAdjust');
-    requestAnimationFrame(() => {
-      layoutAdjust();
-      const pts = detectCorners(srcCanvas);
-      corners = pts || fullCorners();
-      drawAdjust();
-    });
-  }
-  function fullCorners() {
-    const m = Math.min(srcCanvas.width, srcCanvas.height) * 0.05;
-    return [
-      { x: m, y: m }, { x: srcCanvas.width - m, y: m },
-      { x: srcCanvas.width - m, y: srcCanvas.height - m }, { x: m, y: srcCanvas.height - m }
-    ];
-  }
-  function layoutAdjust() {
-    const stage = $('adjStage').getBoundingClientRect();
-    const maxW = Math.max(200, stage.width - 4);
-    const maxH = Math.max(200, window.innerHeight * 0.62);
-    adjScale = Math.min(maxW / srcCanvas.width, maxH / srcCanvas.height, 1);
-    adj.width = Math.round(srcCanvas.width * adjScale);
-    adj.height = Math.round(srcCanvas.height * adjScale);
-  }
-  function drawAdjust() {
-    const ctx = adj.getContext('2d');
-    ctx.clearRect(0, 0, adj.width, adj.height);
-    ctx.drawImage(srcCanvas, 0, 0, adj.width, adj.height);
-    ctx.beginPath();
-    corners.forEach((p, i) => { const x = p.x * adjScale, y = p.y * adjScale; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(59,130,246,.18)'; ctx.fill();
-    ctx.lineWidth = 2.5; ctx.strokeStyle = '#3b82f6'; ctx.stroke();
-    corners.forEach(p => {
-      ctx.beginPath(); ctx.arc(p.x * adjScale, p.y * adjScale, 13, 0, Math.PI * 2);
-      ctx.fillStyle = '#fff'; ctx.fill();
-      ctx.lineWidth = 4; ctx.strokeStyle = '#3b82f6'; ctx.stroke();
-    });
-  }
-  function evtPos(e) {
-    const r = adj.getBoundingClientRect();
-    const t = e.touches ? e.touches[0] : e;
-    return { x: (t.clientX - r.left) * (adj.width / r.width) / adjScale,
-             y: (t.clientY - r.top) * (adj.height / r.height) / adjScale };
-  }
-  function down(e) {
-    const p = evtPos(e);
-    let best = -1, bd = Infinity;
-    corners.forEach((c, i) => { const d = Math.hypot(c.x - p.x, c.y - p.y); if (d < bd) { bd = d; best = i; } });
-    if (bd * adjScale < 50) { dragIdx = best; e.preventDefault(); }
-  }
-  function move(e) {
-    if (dragIdx < 0) return;
-    e.preventDefault();
-    const p = evtPos(e);
-    corners[dragIdx] = { x: Math.max(0, Math.min(srcCanvas.width, p.x)), y: Math.max(0, Math.min(srcCanvas.height, p.y)) };
-    drawAdjust();
-  }
-  function up() { dragIdx = -1; }
-  adj.addEventListener('mousedown', down); window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
-  adj.addEventListener('touchstart', down, { passive: false });
-  adj.addEventListener('touchmove', move, { passive: false });
-  adj.addEventListener('touchend', up);
-  window.addEventListener('resize', () => {
-    if ($('screenAdjust').classList.contains('active') && srcCanvas) { layoutAdjust(); drawAdjust(); }
+/* ---------- Lexical features (each normalized to 0..1) ---------- */
+const F=[
+ {id:'tech',label:'Technical terms',short:'Tech',lo:0,hi:.35,hard:true,hint:'Share of words found in the specialist term list.'},
+ {id:'rare',label:'Rare words',short:'Rare',lo:0,hi:.5,hard:true,hint:'Share of long words (7+ letters) outside the common-word list.'},
+ {id:'abbr',label:'Abbreviations',short:'Abbr',lo:0,hi:.12,hard:true,hint:'Share of ALL-CAPS tokens such as ECG or BNP.'},
+ {id:'len',label:'Word length',short:'Len',lo:3.8,hi:7.5,hard:true,hint:'Average letters per word. A cheap proxy for word difficulty.'},
+ {id:'person',label:'Direct address',short:'You/we',lo:0,hi:.08,hard:false,hint:'Share of you / your / we / our. Higher means more personal.'}
+];
+const tokens=t=>t.match(/[\p{L}\p{N}'’\-]+/gu)||[];
+function fxOf(text){
+  const tk=tokens(text).filter(w=>/\p{L}/u.test(w));
+  const N=tk.length||1;
+  const c={tech:0,rare:0,abbr:0,person:0,len:0};
+  const terms=[];
+  tk.forEach(w=>{
+    const l=w.toLowerCase();
+    if(TERMS.has(l)){c.tech++;terms.push(l)}
+    if(!COMMON.has(l)&&l.length>=7)c.rare++;
+    if(/^[A-Z]{2,6}$/.test(w))c.abbr++;
+    if(PERSON.has(l))c.person++;
+    c.len+=w.replace(/[-'’]/g,'').length;
   });
+  const raw={tech:c.tech/N,rare:c.rare/N,abbr:c.abbr/N,person:c.person/N,len:c.len/N};
+  const fx={};
+  F.forEach(f=>fx[f.id]=clamp((raw[f.id]-f.lo)/(f.hi-f.lo),0,1));
+  return {fx,terms:[...new Set(terms)]};
+}
 
-  $('btnAutoDetect').onclick = () => {
-    const p = detectCorners(srcCanvas);
-    if (p) corners = p; else alert('Could not find the page edges. Drag the corners manually.');
-    drawAdjust();
-  };
-  $('btnFullImage').onclick = () => {
-    corners = [
-      { x: 0, y: 0 }, { x: srcCanvas.width, y: 0 },
-      { x: srcCanvas.width, y: srcCanvas.height }, { x: 0, y: srcCanvas.height }
-    ];
-    drawAdjust();
-  };
-  $('btnRetake').onclick = () => show('screenCamera');
+/* ---------- Sample content and calibration pairs ---------- */
+let uid=0;
+function make(text,tag){const e=fxOf(text);return{id:++uid,tag,text,def:DEF.test(text),fx:e.fx,terms:e.terms}}
+const T=[
+ make("Myocardial infarction results from acute occlusion of a coronary artery, most often due to atherosclerotic plaque rupture. ST elevation on ECG, raised troponin, and reperfusion by PCI define the emergency pathway.","Cardiology"),
+ make("A heart attack happens when a blood vessel feeding the heart gets blocked. You may feel chest pain, sweat, or feel short of breath. Call for help right away, because minutes matter.","Cardiology"),
+ make("Sepsis, meaning your body's response to an infection starts harming its own organs, is treated with fluids and antibiotics within the first hour. Nurses check lactate and blood pressure to judge how sick the patient is.","Critical care"),
+ make("Beta-blockers such as metoprolol reduce heart rate and myocardial oxygen demand by antagonizing β1 receptors. Contraindications include decompensated HF and severe bradycardia.","Pharmacology"),
+ make("Under the microscope, granulomas look like small round clusters of immune cells. In tuberculosis the center dies in a cheese-like way called caseous necrosis, which you can remember as cheesy death.","Pathology"),
+ make("Homeostasis means keeping the body's inner conditions steady. Negative feedback loops, like the baroreceptor reflex that adjusts arterial pressure, push back against any drift from the setpoint.","Physiology"),
+ make("A middle-aged patient presents with dyspnea and orthopnea. JVD, bibasilar crackles, and peripheral edema suggest congestive HF; BNP and echocardiography confirm the diagnosis.","Clinical case")
+];
+const PAIRS=[
+ {f:'tech',a:"You have a heart attack when a blood clot blocks an artery feeding the heart.",b:"Myocardial infarction occurs when a thrombus occludes a coronary artery."},
+ {f:'abbr',a:"The heart tracing and heart-strain blood test came back abnormal.",b:"The ECG and BNP results came back abnormal."},
+ {f:'person',a:"You should check your pulse before you stand up.",b:"The pulse should be checked before standing up."},
+ {f:'rare',a:"Doctors use a small tube to open a blocked vessel.",b:"Clinicians utilize a catheter to reestablish vessel patency."}
+];
 
-  /* ---------- Perspective warp ---------- */
-  function orderCorners(pts) {
-    const sum = pts.map(p => p.x + p.y), dif = pts.map(p => p.x - p.y);
-    return [
-      pts[sum.indexOf(Math.min(...sum))],  // tl
-      pts[dif.indexOf(Math.max(...dif))],  // tr
-      pts[sum.indexOf(Math.max(...sum))],  // br
-      pts[dif.indexOf(Math.min(...dif))]   // bl
-    ];
+/* ---------- State ---------- */
+const KEY='patholytica_lexlab_v1';
+const fresh=()=>({mean:.5,W:1,Sv:.04,n:0,imp:.33,lock:false,bo:0});
+const S={theme:'champagne',explore:.1,needDef:false,feats:{},terms:{},queue:[]};
+function save(){try{localStorage.setItem(KEY,JSON.stringify({theme:S.theme,explore:S.explore,needDef:S.needDef,feats:S.feats,terms:S.terms}))}catch(e){}}
+function load(){try{const j=JSON.parse(localStorage.getItem(KEY)||'null');if(j)Object.assign(S,j)}catch(e){}}
+const spread=p=>Math.sqrt(Math.max(p.Sv/p.W,0));
+
+/* ---------- Learning: recency-weighted mean and variance ---------- */
+function learn(id,x,w){
+  const p=S.feats[id];
+  p.W*=.97;p.Sv*=.97;                       // older evidence fades
+  const W2=p.W+w, m2=p.mean+(w/W2)*(x-p.mean);
+  p.Sv+=w*(x-p.mean)*(x-m2);
+  p.mean=m2;p.W=W2;p.n++;
+  if(!p.lock)p.imp=clamp(1-spread(p)/.3+(p.bo||0),.15,1); // consistent likes => more important
+}
+function act(id,kind){
+  const t=T.find(x=>x.id===id);if(!t)return;
+  if(kind==='save'){
+    F.forEach(f=>learn(f.id,t.fx[f.id],1));
+    t.terms.forEach(w=>{if(!S.terms[w])S.terms[w]='known'});
   }
-  // Solve homography mapping dst rect -> src quad (so we can sample source for each output pixel)
-  function solveHomography(dst, src) {
-    const A = [], b = [];
-    for (let i = 0; i < 4; i++) {
-      const { x: X, y: Y } = dst[i], { x: x, y: y } = src[i];
-      A.push([X, Y, 1, 0, 0, 0, -X * x, -Y * x]); b.push(x);
-      A.push([0, 0, 0, X, Y, 1, -X * y, -Y * y]); b.push(y);
-    }
-    const n = 8;
-    for (let i = 0; i < n; i++) {
-      let max = i;
-      for (let r = i + 1; r < n; r++) if (Math.abs(A[r][i]) > Math.abs(A[max][i])) max = r;
-      [A[i], A[max]] = [A[max], A[i]]; [b[i], b[max]] = [b[max], b[i]];
-      for (let r = i + 1; r < n; r++) {
-        const f = A[r][i] / A[i][i];
-        for (let c = i; c < n; c++) A[r][c] -= f * A[i][c];
-        b[r] -= f * b[i];
-      }
-    }
-    const h = new Array(n);
-    for (let i = n - 1; i >= 0; i--) {
-      let s = b[i];
-      for (let c = i + 1; c < n; c++) s -= A[i][c] * h[c];
-      h[i] = s / A[i][i];
-    }
-    return h; // h0..h7, h8 = 1
+  if(kind==='skip'){ // weak negative: nudge away
+    F.forEach(f=>{const p=S.feats[f.id];p.mean=clamp(p.mean+(p.mean-t.fx[f.id])*.08,0,1);p.n++});
   }
-  function warp(srcC, quad) {
-    const [tl, tr, br, bl] = orderCorners(quad);
-    const wTop = Math.hypot(tr.x - tl.x, tr.y - tl.y), wBot = Math.hypot(br.x - bl.x, br.y - bl.y);
-    const hL = Math.hypot(bl.x - tl.x, bl.y - tl.y), hR = Math.hypot(br.x - tr.x, br.y - tr.y);
-    let W = Math.round(Math.max(wTop, wBot)), H = Math.round(Math.max(hL, hR));
-    const cap = 2400, sc = Math.min(1, cap / Math.max(W, H));
-    W = Math.max(50, Math.round(W * sc)); H = Math.max(50, Math.round(H * sc));
-
-    const dst = [{ x: 0, y: 0 }, { x: W, y: 0 }, { x: W, y: H }, { x: 0, y: H }];
-    const h = solveHomography(dst, [tl, tr, br, bl]);
-
-    const sctx = srcC.getContext('2d', { willReadFrequently: true });
-    const sd = sctx.getImageData(0, 0, srcC.width, srcC.height);
-    const sdat = sd.data, sw = srcC.width, sh = srcC.height;
-
-    const out = document.createElement('canvas'); out.width = W; out.height = H;
-    const octx = out.getContext('2d');
-    const od = octx.createImageData(W, H), odat = od.data;
-
-    for (let y = 0; y < H; y++) {
-      for (let x = 0; x < W; x++) {
-        const den = h[6] * x + h[7] * y + 1;
-        const sx = (h[0] * x + h[1] * y + h[2]) / den;
-        const sy = (h[3] * x + h[4] * y + h[5]) / den;
-        const o = (y * W + x) * 4;
-        // bilinear
-        const x0 = Math.floor(sx), y0 = Math.floor(sy);
-        if (x0 < 0 || y0 < 0 || x0 >= sw - 1 || y0 >= sh - 1) {
-          const cx = Math.max(0, Math.min(sw - 1, x0)), cy = Math.max(0, Math.min(sh - 1, y0));
-          const k = (cy * sw + cx) * 4;
-          odat[o] = sdat[k]; odat[o + 1] = sdat[k + 1]; odat[o + 2] = sdat[k + 2]; odat[o + 3] = 255;
-          continue;
-        }
-        const fx = sx - x0, fy = sy - y0;
-        const i00 = (y0 * sw + x0) * 4, i10 = i00 + 4, i01 = i00 + sw * 4, i11 = i01 + 4;
-        for (let c = 0; c < 3; c++) {
-          odat[o + c] = sdat[i00 + c] * (1 - fx) * (1 - fy) + sdat[i10 + c] * fx * (1 - fy) +
-                        sdat[i01 + c] * (1 - fx) * fy + sdat[i11 + c] * fx * fy;
-        }
-        odat[o + 3] = 255;
-      }
-    }
-    octx.putImageData(od, 0, 0);
-    return out;
+  if(kind==='hard'||kind==='easy'){
+    const d=kind==='hard'?-.15:.15;
+    F.filter(f=>f.hard).forEach(f=>{const p=S.feats[f.id];p.mean=clamp(p.mean+(t.fx[f.id]+d-p.mean)*.35,0,1);p.n++});
+    if(kind==='hard')t.terms.forEach(w=>{if(!S.terms[w])S.terms[w]='unknown'});
   }
+  S.queue=S.queue.filter(q=>q!==id);
+  save();renderAll();$('feed').scrollTo({top:0,behavior:'smooth'});
+}
 
-  $('btnCrop').onclick = () => {
-    loading(true, 'Flattening page…');
-    setTimeout(() => {
-      try {
-        croppedCanvas = warp(srcCanvas, corners);
-        filter = 'color'; bright = 0; contrast = 0; rotation = 0;
-        $('sBright').value = 0; $('sContrast').value = 0;
-        document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.f === 'color'));
-        show('screenFilter');
-        requestAnimationFrame(renderFilter);
-      } catch (e) { alert('Something went wrong: ' + e.message); }
-      loading(false);
-    }, 30);
-  };
-  $('btnBackAdj').onclick = () => { show('screenAdjust'); requestAnimationFrame(() => { layoutAdjust(); drawAdjust(); }); };
-
-  /* ---------- Filters ---------- */
-  function rotateCanvas(c, deg) {
-    deg = ((deg % 360) + 360) % 360;
-    if (!deg) return c;
-    const o = document.createElement('canvas');
-    if (deg === 90 || deg === 270) { o.width = c.height; o.height = c.width; } else { o.width = c.width; o.height = c.height; }
-    const x = o.getContext('2d');
-    x.translate(o.width / 2, o.height / 2);
-    x.rotate(deg * Math.PI / 180);
-    x.drawImage(c, -c.width / 2, -c.height / 2);
-    return o;
+/* ---------- Scoring and ranking ---------- */
+function match(t,f){const p=S.feats[f.id];const s=Math.max(spread(p),.12);const d=t.fx[f.id]-p.mean;return Math.exp(-d*d/(2*s*s))}
+function score(t){
+  let a=0,b=0;
+  F.forEach(f=>{const p=S.feats[f.id];a+=p.imp*match(t,f);b+=p.imp});
+  let sc=a/b;
+  const unk=t.terms.filter(w=>S.terms[w]==='unknown').length;
+  if(t.terms.length)sc-=.3*unk/t.terms.length;
+  return clamp(sc,0,1);
+}
+function ranked(){
+  let list=S.queue.map(id=>T.find(x=>x.id===id)).filter(Boolean).filter(t=>!S.needDef||t.def);
+  list.forEach(t=>{t.sc=score(t);t.explore=false});
+  list.sort((a,b)=>b.sc-a.sc);
+  const k=S.explore>0&&list.length>=4?Math.max(1,Math.round(list.length*S.explore)):0;
+  if(k){
+    const picked=list.splice(Math.floor(list.length*.6),k);
+    picked.forEach((t,i)=>{t.explore=true;list.splice(Math.min(2+i*3,list.length),0,t)});
   }
-  function applyFilter(c, f, br, ct) {
-    const out = document.createElement('canvas'); out.width = c.width; out.height = c.height;
-    const ctx = out.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(c, 0, 0);
-    const img = ctx.getImageData(0, 0, out.width, out.height), d = img.data;
-    const w = out.width, h = out.height;
+  return list;
+}
 
-    if (f === 'bw' || f === 'enhance') {
-      // Adaptive (local mean) thresholding gives clean text even with uneven lighting
-      const g = new Float32Array(w * h);
-      for (let i = 0, j = 0; i < d.length; i += 4, j++) g[j] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-      const radius = Math.max(8, Math.round(Math.min(w, h) / 40));
-      const bg = boxBlur(g, w, h, radius);
-      for (let j = 0, i = 0; j < g.length; j++, i += 4) {
-        if (f === 'bw') {
-          const v = g[j] > bg[j] * 0.92 - 4 + (-br * 0.4) ? 255 : 0;
-          d[i] = d[i + 1] = d[i + 2] = v;
-        } else {
-          // "Enhanced": divide by local background to flatten shadows, keep color
-          const k = 235 / Math.max(40, bg[j]);
-          d[i] = Math.min(255, d[i] * k); d[i + 1] = Math.min(255, d[i + 1] * k); d[i + 2] = Math.min(255, d[i + 2] * k);
-        }
-      }
-    } else if (f === 'gray') {
-      for (let i = 0; i < d.length; i += 4) {
-        const v = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-        d[i] = d[i + 1] = d[i + 2] = v;
-      }
-    }
+/* ---------- Feed ---------- */
+function cardHTML(t){
+  const body=t.text.replace(/[\p{L}\p{N}'’\-]+/gu,w=>{const l=w.toLowerCase();return TERMS.has(l)?`<span class="term ${S.terms[l]||''}" data-t="${l}">${w}</span>`:w});
+  const chips=F.map(f=>{
+    const p=S.feats[f.id];const d=Math.abs(t.fx[f.id]-p.mean);
+    const c=d<=Math.max(spread(p),.12)?'near':(d>.35?'far':'');
+    return `<span class="chip ${c}">${f.short} ${Math.round(t.fx[f.id]*100)}</span>`}).join('');
+  let worst=null,wv=0;
+  F.forEach(f=>{const p=S.feats[f.id];const loss=p.imp*(1-match(t,f));if(loss>wv){wv=loss;worst={f,d:t.fx[f.id]-p.mean}}});
+  const why=worst&&wv>.08?`Biggest gap: ${worst.f.label.toLowerCase()} (${worst.d>0?'higher':'lower'} than your preference)`:'Close to your profile on every weighted feature';
+  const pct=Math.round(t.sc*100);
+  return `<article class="card" data-id="${t.id}">
+    <div class="row"><span class="tag">${t.tag}</span><span class="row2">${t.explore?'<span class="tag ex">Explore</span>':''}<b class="pct">${pct}% match</b></span></div>
+    <div class="txt">${body}</div>
+    <div class="chips">${chips}</div>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <div class="hint">${why}</div>
+    <div class="acts">
+      <button class="btn primary" data-act="save">Save</button>
+      <button class="btn" data-act="skip">Skip</button>
+      <button class="btn" data-act="hard">Too hard</button>
+      <button class="btn" data-act="easy">Too easy</button>
+    </div></article>`;
+}
+function renderFeed(){
+  const list=ranked();
+  const hidden=S.queue.length-list.length;
+  $('qinfo').textContent=`${list.length} in queue`+(hidden?` · ${hidden} hidden by rule`:'');
+  $('feed').innerHTML=list.length?list.map(cardHTML).join(''):`<div class="empty"><p class="hint">Queue is empty.</p><button class="btn primary" id="refill">Refill feed</button></div>`;
+}
+$('feed').addEventListener('click',e=>{
+  const term=e.target.closest('.term');
+  if(term){
+    const w=term.dataset.t,c=S.terms[w];
+    if(!c)S.terms[w]='unknown';else if(c==='unknown')S.terms[w]='known';else delete S.terms[w];
+    paintTerm(w);save();renderTerms();renderJSON();return;
+  }
+  if(e.target.id==='refill'){S.queue=T.map(t=>t.id);renderFeed();return}
+  const b=e.target.closest('[data-act]');
+  if(b)act(+b.closest('.card').dataset.id,b.dataset.act);
+});
+function paintTerm(w){document.querySelectorAll('#feed .term[data-t="'+w+'"]').forEach(e=>e.className='term '+(S.terms[w]||''))}
 
-    if (f !== 'bw') {
-      const cf = (259 * (ct + 255)) / (255 * (259 - ct));
-      for (let i = 0; i < d.length; i += 4) {
-        for (let k = 0; k < 3; k++) {
-          let v = d[i + k] + br;
-          v = cf * (v - 128) + 128;
-          d[i + k] = v < 0 ? 0 : v > 255 ? 255 : v;
-        }
-      }
-    }
-    ctx.putImageData(img, 0, 0);
-    return out;
-  }
-
-  let renderPending = false;
-  function renderFilter() {
-    if (!croppedCanvas) return;
-    // preview at reduced size for speed
-    const stage = $('screenFilter').querySelector('.stage').getBoundingClientRect();
-    const maxW = Math.max(200, stage.width - 4), maxH = Math.max(200, window.innerHeight * 0.55);
-    let base = rotateCanvas(croppedCanvas, rotation);
-    const s = Math.min(1, maxW / base.width, maxH / base.height, 1200 / Math.max(base.width, base.height));
-    const pv = document.createElement('canvas');
-    pv.width = Math.max(1, Math.round(base.width * s)); pv.height = Math.max(1, Math.round(base.height * s));
-    pv.getContext('2d').drawImage(base, 0, 0, pv.width, pv.height);
-    const res = applyFilter(pv, filter, bright, contrast);
-    const v = $('filtCanvas'); v.width = res.width; v.height = res.height;
-    v.getContext('2d').drawImage(res, 0, 0);
-  }
-  function scheduleRender() {
-    if (renderPending) return;
-    renderPending = true;
-    requestAnimationFrame(() => { renderPending = false; renderFilter(); });
-  }
-  document.querySelectorAll('.chip').forEach(b => b.onclick = () => {
-    filter = b.dataset.f;
-    document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === b));
-    scheduleRender();
+/* ---------- Profile view ---------- */
+function buildProfile(){
+  $('feats').innerHTML=F.map(f=>`<div class="feat">
+    <div class="fh"><b>${f.label}</b><span class="meta" id="m-${f.id}"></span></div>
+    <div class="hint">${f.hint}</div>
+    <div class="viz"><div class="band" id="b-${f.id}"></div><div class="dot" id="d-${f.id}"></div></div>
+    <label>Preferred level <span id="pv-${f.id}"></span><input type="range" min="0" max="100" id="p-${f.id}"></label>
+    <label>Importance <span id="iv-${f.id}"></span><input type="range" min="0" max="100" id="i-${f.id}"></label></div>`).join('');
+  F.forEach(f=>{
+    $('p-'+f.id).oninput=e=>{S.feats[f.id].mean=e.target.value/100;changed()};
+    $('i-'+f.id).oninput=e=>{const p=S.feats[f.id];p.imp=e.target.value/100;p.lock=true;changed()};
   });
-  $('sBright').oninput = e => { bright = +e.target.value; scheduleRender(); };
-  $('sContrast').oninput = e => { contrast = +e.target.value; scheduleRender(); };
-  $('btnRotL').onclick = () => { rotation = (rotation + 270) % 360; scheduleRender(); };
-  $('btnRotR').onclick = () => { rotation = (rotation + 90) % 360; scheduleRender(); };
-
-  /* ---------- Save pages ---------- */
-  function addPage(canvas) {
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-    pages.push({ dataUrl, w: canvas.width, h: canvas.height });
-    updateBadge(); renderThumbs();
-  }
-  $('btnSaveScan').onclick = () => {
-    loading(true, 'Saving page…');
-    setTimeout(() => {
-      const base = rotateCanvas(croppedCanvas, rotation);
-      const final = applyFilter(base, filter, bright, contrast);
-      addPage(final);
-      loading(false);
-      show('screenPages');
-    }, 30);
-  };
-
-  function renderThumbs() {
-    const wrap = $('thumbs'); wrap.innerHTML = '';
-    $('emptyMsg').style.display = pages.length ? 'none' : '';
-    pages.forEach((p, i) => {
-      const d = document.createElement('div'); d.className = 'thumb';
-      d.innerHTML = `<img alt="page ${i + 1}" src="${p.dataUrl}"><span class="num">${i + 1}</span>
-        <div class="acts"><button data-a="up">↑</button><button data-a="dn">↓</button><button data-a="del">🗑</button></div>`;
-      d.querySelector('[data-a=up]').onclick = () => { if (i > 0) { [pages[i - 1], pages[i]] = [pages[i], pages[i - 1]]; renderThumbs(); } };
-      d.querySelector('[data-a=dn]').onclick = () => { if (i < pages.length - 1) { [pages[i + 1], pages[i]] = [pages[i], pages[i + 1]]; renderThumbs(); } };
-      d.querySelector('[data-a=del]').onclick = () => { pages.splice(i, 1); updateBadge(); renderThumbs(); };
-      d.querySelector('img').onclick = () => window.open(p.dataUrl, '_blank');
-      wrap.appendChild(d);
-    });
-  }
-  $('btnToPages').onclick = () => show('screenPages');
-  $('btnScanMore').onclick = () => show('screenCamera');
-  $('btnClear').onclick = () => { if (pages.length && confirm('Delete all scanned pages?')) { pages = []; updateBadge(); renderThumbs(); } };
-
-  /* ---------- Export: images ---------- */
-  function download(blob, name) {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = name;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-  }
-  function dataUrlToBytes(u) {
-    const b = atob(u.split(',')[1]), arr = new Uint8Array(b.length);
-    for (let i = 0; i < b.length; i++) arr[i] = b.charCodeAt(i);
-    return arr;
-  }
-  $('btnImgs').onclick = () => {
-    if (!pages.length) return alert('No pages to download yet.');
-    pages.forEach((p, i) => {
-      setTimeout(() => download(new Blob([dataUrlToBytes(p.dataUrl)], { type: 'image/jpeg' }), `scan-page-${i + 1}.jpg`), i * 350);
-    });
-  };
-
-  /* ---------- Export: PDF (hand-built, no libraries needed) ---------- */
-  async function recompress(p, q) {
-    return new Promise(res => {
-      const img = new Image();
-      img.onload = () => {
-        const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
-        const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0);
-        c.toBlob(b => b.arrayBuffer().then(buf => res({ bytes: new Uint8Array(buf), w: c.width, h: c.height })), 'image/jpeg', q);
-      };
-      img.src = p.dataUrl;
-    });
-  }
-  function concat(chunks) {
-    let n = 0; chunks.forEach(c => n += c.length);
-    const out = new Uint8Array(n); let o = 0;
-    chunks.forEach(c => { out.set(c, o); o += c.length; });
-    return out;
-  }
-  const enc = new TextEncoder();
-
-  async function buildPDF() {
-    const q = parseFloat($('pdfQ').value), size = $('pdfSize').value;
-    const imgs = [];
-    for (const p of pages) imgs.push(await recompress(p, q));
-
-    const objs = [];     // each: Uint8Array
-    const offsets = [];
-    const parts = [];
-    let pos = 0;
-    function push(u8) { parts.push(u8); pos += u8.length; }
-    function txt(s) { push(enc.encode(s)); }
-
-    txt('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
-
-    const n = imgs.length;
-    // Object numbering: 1 catalog, 2 pages, then for each page i: page(3+3i), content(4+3i), image(5+3i)
-    const pageIds = imgs.map((_, i) => 3 + i * 3);
-
-    offsets[1] = pos; txt('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
-    offsets[2] = pos; txt(`2 0 obj\n<< /Type /Pages /Kids [${pageIds.map(id => id + ' 0 R').join(' ')}] /Count ${n} >>\nendobj\n`);
-
-    imgs.forEach((im, i) => {
-      const pid = 3 + i * 3, cid = pid + 1, iid = pid + 2;
-      let pw, ph;   // page size in points
-      if (size === 'fit') { pw = im.w * 0.75; ph = im.h * 0.75; }
-      else {
-        const [bw, bh] = size === 'letter' ? [612, 792] : [595.28, 841.89];
-        // choose orientation matching image
-        if (im.w > im.h) { pw = bh; ph = bw; } else { pw = bw; ph = bh; }
-      }
-      // fit image inside page, centered, keep ratio
-      const sc = Math.min(pw / im.w, ph / im.h);
-      const dw = im.w * sc, dh = im.h * sc, dx = (pw - dw) / 2, dy = (ph - dh) / 2;
-      const content = `q ${dw.toFixed(2)} 0 0 ${dh.toFixed(2)} ${dx.toFixed(2)} ${dy.toFixed(2)} cm /Im0 Do Q`;
-
-      offsets[pid] = pos;
-      txt(`${pid} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pw.toFixed(2)} ${ph.toFixed(2)}] ` +
-          `/Resources << /XObject << /Im0 ${iid} 0 R >> >> /Contents ${cid} 0 R >>\nendobj\n`);
-      offsets[cid] = pos;
-      txt(`${cid} 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n`);
-      offsets[iid] = pos;
-      txt(`${iid} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} ` +
-          `/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.bytes.length} >>\nstream\n`);
-      push(im.bytes);
-      txt('\nendstream\nendobj\n');
-    });
-
-    const total = 2 + n * 3;
-    const xrefPos = pos;
-    let xref = `xref\n0 ${total + 1}\n0000000000 65535 f \n`;
-    for (let i = 1; i <= total; i++) xref += String(offsets[i]).padStart(10, '0') + ' 00000 n \n';
-    txt(xref);
-    txt(`trailer\n<< /Size ${total + 1} /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF`);
-    return new Blob([concat(parts)], { type: 'application/pdf' });
-  }
-
-  $('btnPDF').onclick = async () => {
-    if (!pages.length) return alert('No pages to export yet.');
-    loading(true, 'Building PDF…');
-    try {
-      const blob = await buildPDF();
-      const stamp = new Date().toISOString().slice(0, 10);
-      download(blob, `scan-${stamp}.pdf`);
-    } catch (e) { alert('PDF failed: ' + e.message); }
-    loading(false);
-  };
-
-  /* ---------- Init ---------- */
-  updateBadge(); renderThumbs();
-  startCamera();
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) stopCamera();
-    else if ($('screenCamera').classList.contains('active')) startCamera();
+}
+function paintProfile(){
+  F.forEach(f=>{
+    const p=S.feats[f.id],s=Math.max(spread(p),.06);
+    $('m-'+f.id).textContent=`±${Math.round(s*100)} · confidence ${Math.round(p.n/(p.n+4)*100)}%${p.lock?' · 🔒':''}`;
+    const lo=clamp(p.mean-s,0,1),hi=clamp(p.mean+s,0,1);
+    $('b-'+f.id).style.cssText=`left:${lo*100}%;width:${(hi-lo)*100}%`;
+    $('d-'+f.id).style.left=p.mean*100+'%';
+    $('p-'+f.id).value=Math.round(p.mean*100);$('pv-'+f.id).textContent=Math.round(p.mean*100);
+    $('i-'+f.id).value=Math.round(p.imp*100);$('iv-'+f.id).textContent=Math.round(p.imp*100);
   });
-})();
+  $('explore').value=Math.round(S.explore*100);$('exv').textContent=Math.round(S.explore*100)+'%';
+  $('needdef').checked=S.needDef;
+}
+function renderTerms(){
+  const k=[],u=[];
+  Object.keys(S.terms).forEach(w=>(S.terms[w]==='known'?k:u).push(w));
+  const mk=(a,c)=>a.length?a.map(w=>`<span class="term ${c}" data-x="${w}">${w}</span>`).join(' '):'<span class="hint">none yet</span>';
+  $('known').innerHTML=mk(k,'known');$('unknown').innerHTML=mk(u,'unknown');
+}
+['known','unknown'].forEach(id=>$(id).addEventListener('click',e=>{
+  const s=e.target.closest('[data-x]');if(!s)return;
+  delete S.terms[s.dataset.x];paintTerm(s.dataset.x);save();renderTerms();renderJSON();
+}));
+function renderJSON(){
+  const known=Object.keys(S.terms).filter(w=>S.terms[w]==='known');
+  const unknown=Object.keys(S.terms).filter(w=>S.terms[w]==='unknown');
+  $('json').textContent=JSON.stringify({
+    features:F.map(f=>{const p=S.feats[f.id];return{feature:f.id,context:'general',preferred:+p.mean.toFixed(2),spread:+Math.max(spread(p),.06).toFixed(2),importance:+p.imp.toFixed(2),confidence:+(p.n/(p.n+4)).toFixed(2),evidence_count:p.n}}),
+    known_terms:known,unknown_terms:unknown
+  },null,2);
+}
+function changed(){save();paintProfile();renderFeed();renderJSON()}
+$('explore').oninput=e=>{S.explore=e.target.value/100;changed()};
+$('needdef').onchange=e=>{S.needDef=e.target.checked;changed()};
+$('resetprof').onclick=()=>{S.feats={};F.forEach(f=>S.feats[f.id]=fresh());S.terms={};pi=0;S.queue=T.map(t=>t.id);save();renderAll();renderPair()};
+
+/* ---------- Calibrate view ---------- */
+let pi=0;
+function renderPair(){
+  const box=$('pair');
+  if(pi>=PAIRS.length){
+    box.innerHTML=`<p class="hint">Done. Your profile now has a starting point.</p><button class="btn primary" id="toprof">See profile</button> <button class="btn" id="redo">Redo</button>`;
+    $('toprof').onclick=()=>show('profile');
+    $('redo').onclick=()=>{pi=0;renderPair()};
+    return;
+  }
+  const p=PAIRS[pi],fl=F.find(f=>f.id===p.f);
+  box.innerHTML=`<div class="hint">Question ${pi+1} of ${PAIRS.length} · tests only: ${fl.label.toLowerCase()}</div><p>Which would you rather read?</p>
+    <button class="opt" data-c="a">${p.a}</button><button class="opt" data-c="b">${p.b}</button>`;
+  box.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    const txt=b.dataset.c==='a'?p.a:p.b;
+    const pr=S.feats[p.f];
+    pr.bo=Math.min(.3,(pr.bo||0)+.15);
+    learn(p.f,fxOf(txt).fx[p.f],2);
+    pi++;save();paintProfile();renderJSON();renderFeed();renderPair();
+  });
+}
+$('add').onclick=()=>{
+  const v=$('own').value.trim();if(!v)return;
+  const t=make(v,'Your text');T.push(t);S.queue.unshift(t.id);$('own').value='';
+  $('addmsg').textContent='Added to feed. '+F.map(f=>`${f.short} ${Math.round(t.fx[f.id]*100)}`).join(' · ');
+  renderFeed();
+};
+
+/* ---------- Shell ---------- */
+function show(v){
+  document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>show(b.dataset.v));
+function applyTheme(){document.documentElement.dataset.theme=S.theme;$('theme').value=S.theme}
+$('theme').onchange=e=>{S.theme=e.target.value;applyTheme();save()};
+function renderAll(){renderFeed();paintProfile();renderTerms();renderJSON()}
+
+load();
+F.forEach(f=>{if(!S.feats[f.id])S.feats[f.id]=fresh()});
+S.queue=T.map(t=>t.id);
+applyTheme();buildProfile();renderPair();renderAll();
 </script>
 </body>
 </html>
