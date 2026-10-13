@@ -11,8 +11,7 @@
   :root {
     --bg: #0f0e0b;
     --land: #241f14;
-    --land-stroke: #3a3322;
-    --grid: #16140e;
+    --land-stroke: #4a4128;
     --hover-bg: #1a1810;
     --border: #2a2518;
     --text: #f5f0e8;
@@ -37,25 +36,36 @@
   /* ── HEADER ── */
   header {
     position: fixed; top: 0; left: 0; right: 0; z-index: 5;
-    padding: calc(14px + env(safe-area-inset-top)) 18px 22px;
-    display: flex; justify-content: space-between; align-items: center;
-    background: linear-gradient(to bottom, rgba(15,14,11,0.92), rgba(15,14,11,0));
+    padding: calc(14px + env(safe-area-inset-top)) 16px 22px;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    background: linear-gradient(to bottom, rgba(15,14,11,0.94), rgba(15,14,11,0));
     pointer-events: none;
   }
-  .logo { display: flex; align-items: center; }
+  .logo { display: flex; align-items: center; flex-shrink: 0; }
   .logo img { height: 22px; display: block; }
-  .logo-fallback {
-    font-family: var(--font-title);
-    font-size: 18px; font-weight: 700;
-    color: var(--accent);
-  }
-  #reset {
+  .logo-fallback { font-family: var(--font-title); font-size: 18px; font-weight: 700; color: var(--accent); }
+  .header-right { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  #countryBtn {
     pointer-events: auto;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--hover-bg); color: var(--text);
+    border: 1px solid var(--border);
+    padding: 7px 12px; border-radius: 20px;
+    font-family: var(--font-ui); font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: border-color .15s, color .15s;
+    max-width: 210px; min-width: 0;
+  }
+  #countryBtn .fl { font-size: 16px; line-height: 1; }
+  #countryBtn .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #countryBtn i { font-size: 10px; color: var(--muted); }
+  #countryBtn:hover, #countryBtn:active { border-color: var(--accent); }
+  #reset {
+    pointer-events: auto; flex-shrink: 0;
+    width: 34px; height: 34px; border-radius: 50%;
     background: var(--hover-bg); color: var(--muted);
     border: 1px solid var(--border);
-    padding: 7px 14px; border-radius: 20px;
-    font-family: var(--font-ui); font-size: 12px; font-weight: 700;
-    cursor: pointer; transition: border-color .15s, color .15s;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; cursor: pointer; transition: border-color .15s, color .15s;
   }
   #reset:hover, #reset:active { border-color: var(--accent); color: var(--accent); }
 
@@ -68,16 +78,19 @@
   }
   #map:active { cursor: grabbing; }
 
-  .sea { fill: var(--bg); }
-  .grid { fill: none; stroke: var(--grid); stroke-width: .5; }
-  .country {
-    fill: var(--land); stroke: var(--land-stroke); stroke-width: .6;
+  .region {
+    fill: var(--land); stroke: var(--land-stroke); stroke-width: .8;
+    stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
     transition: fill .15s ease;
   }
-  .country:hover, .country.active {
-    fill: var(--accent);
-    stroke: var(--accent-hover);
+  .region:hover, .region.active { fill: var(--accent); stroke: var(--accent-hover); }
+  .lbl {
+    font: 600 10.5px var(--font-ui);
+    fill: var(--text);
+    paint-order: stroke; stroke: rgba(15,14,11,0.9); stroke-width: 3px; stroke-linejoin: round;
+    text-anchor: middle; dominant-baseline: central;
+    pointer-events: none;
   }
 
   #tooltip {
@@ -96,11 +109,71 @@
     color: var(--muted); pointer-events: none;
     text-shadow: 0 1px 8px rgba(0,0,0,0.9);
   }
-  #loading {
-    position: fixed; inset: 0; display: flex;
-    align-items: center; justify-content: center;
-    font-size: 12px; color: var(--muted);
+  #status {
+    position: fixed; inset: 0; z-index: 3;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    padding: 0 40px; text-align: center;
+    font-size: 13px; color: var(--muted); pointer-events: none;
   }
+  #status.hidden { display: none; }
+  .spin {
+    width: 26px; height: 26px; border: 2.5px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── COUNTRY PICKER SHEET ── */
+  #sheet {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.6);
+    opacity: 0; pointer-events: none; transition: opacity .25s ease;
+  }
+  #sheet.open { opacity: 1; pointer-events: all; }
+  .sheet-panel {
+    position: absolute; left: 50%; bottom: 0;
+    width: 100%; max-width: 450px; height: 78%;
+    background: var(--bg); border: 1px solid var(--border); border-bottom: none;
+    border-radius: 22px 22px 0 0;
+    transform: translate(-50%, 100%);
+    transition: transform .3s cubic-bezier(0.2,0.8,0.2,1);
+    display: flex; flex-direction: column;
+  }
+  #sheet.open .sheet-panel { transform: translate(-50%, 0); }
+  .sheet-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 18px 10px;
+  }
+  .sheet-title { font-family: var(--font-title); font-size: 16px; font-weight: 700; }
+  .sheet-close {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--hover-bg); border: 1px solid var(--border);
+    color: var(--muted); cursor: pointer; font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sheet-close:hover { border-color: var(--accent); color: var(--accent); }
+  #sheetSearch {
+    margin: 0 18px 8px; padding: 11px 14px;
+    background: var(--hover-bg); border: 1px solid var(--border);
+    border-radius: 14px; color: var(--text);
+    font-family: var(--font-ui); font-size: 16px; outline: none;
+  }
+  #sheetSearch:focus { border-color: var(--accent); }
+  #sheetList { flex: 1; overflow-y: auto; padding: 4px 10px calc(16px + env(safe-area-inset-bottom)); }
+  #sheetList::-webkit-scrollbar { width: 2px; }
+  #sheetList::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .crow {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 12px 10px; background: none; border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--text); font-family: var(--font-ui); font-size: 14px; font-weight: 600;
+    text-align: left; cursor: pointer;
+  }
+  .crow:hover { background: var(--hover-bg); }
+  .crow .fl { font-size: 20px; line-height: 1; }
+  .crow .nm { flex: 1; }
+  .crow.on { color: var(--accent); }
+  .none { padding: 24px; text-align: center; color: var(--muted); font-size: 13px; }
 
   /* ── FOOTER (same as Patholytica) ── */
   .footer-bar {
@@ -139,13 +212,27 @@
     <img src="IMG_3220.png" alt="Patholytica"
          onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'Patholytica',className:'logo-fallback'}))">
   </div>
-  <button id="reset">Reset view</button>
+  <div class="header-right">
+    <button id="countryBtn"><span class="fl">🌍</span><span class="nm">Country</span><i class="fas fa-chevron-down"></i></button>
+    <button id="reset" title="Reset view"><i class="fas fa-crosshairs"></i></button>
+  </div>
 </header>
 
 <svg id="map"></svg>
-<div id="loading">Loading map…</div>
+<div id="status"><div class="spin"></div><div id="statusText">Loading…</div></div>
 <div id="tooltip"></div>
-<div id="hint">Drag to move · Pinch or scroll to zoom · Tap a country</div>
+<div id="hint">Drag to move · Pinch or scroll to zoom · Tap a region</div>
+
+<div id="sheet">
+  <div class="sheet-panel">
+    <div class="sheet-head">
+      <div class="sheet-title">Choose a country</div>
+      <button class="sheet-close" id="sheetClose"><i class="fas fa-times"></i></button>
+    </div>
+    <input id="sheetSearch" type="search" placeholder="Search countries…" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <div id="sheetList"></div>
+  </div>
+</div>
 
 <div class="footer-bar">
   <button class="footer-btn" onclick="location.href='https://patholytica.com/home'"><i class="fas fa-home"></i><span>Home</span></button>
@@ -155,124 +242,479 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 <script>
+(function () {
+  const $ = (s) => document.querySelector(s);
   const svg = d3.select("#map");
-  const tooltip = document.getElementById("tooltip");
-  let countries = null;
-  let zoomBehavior = null;
-  let initialTransform = d3.zoomIdentity;
-  let lastW = 0, lastH = 0;
+  const tooltip = $("#tooltip");
 
-  // Used to frame the map: whole world, but only down to -57° (below Antarctica's removed area)
-  const FRAME = {
-    type: "MultiPoint",
-    coordinates: [
-      [-180, 84], [180, 84], [0, 84],
-      [-180, -57], [180, -57], [0, -57],
-      [-180, 0], [180, 0]
-    ]
+  // ISO3 | ISO2 | Name   (no Israel, no Antarctica)
+  const COUNTRY_DATA = `AFG|AF|Afghanistan
+ALB|AL|Albania
+DZA|DZ|Algeria
+AND|AD|Andorra
+AGO|AO|Angola
+ATG|AG|Antigua and Barbuda
+ARG|AR|Argentina
+ARM|AM|Armenia
+AUS|AU|Australia
+AUT|AT|Austria
+AZE|AZ|Azerbaijan
+BHS|BS|Bahamas
+BHR|BH|Bahrain
+BGD|BD|Bangladesh
+BRB|BB|Barbados
+BLR|BY|Belarus
+BEL|BE|Belgium
+BLZ|BZ|Belize
+BEN|BJ|Benin
+BTN|BT|Bhutan
+BOL|BO|Bolivia
+BIH|BA|Bosnia and Herzegovina
+BWA|BW|Botswana
+BRA|BR|Brazil
+BRN|BN|Brunei
+BGR|BG|Bulgaria
+BFA|BF|Burkina Faso
+BDI|BI|Burundi
+CPV|CV|Cabo Verde
+KHM|KH|Cambodia
+CMR|CM|Cameroon
+CAN|CA|Canada
+CAF|CF|Central African Republic
+TCD|TD|Chad
+CHL|CL|Chile
+CHN|CN|China
+COL|CO|Colombia
+COM|KM|Comoros
+COG|CG|Congo
+COD|CD|DR Congo
+CRI|CR|Costa Rica
+CIV|CI|Côte d'Ivoire
+HRV|HR|Croatia
+CUB|CU|Cuba
+CYP|CY|Cyprus
+CZE|CZ|Czechia
+DNK|DK|Denmark
+DJI|DJ|Djibouti
+DMA|DM|Dominica
+DOM|DO|Dominican Republic
+ECU|EC|Ecuador
+EGY|EG|Egypt
+SLV|SV|El Salvador
+GNQ|GQ|Equatorial Guinea
+ERI|ER|Eritrea
+EST|EE|Estonia
+SWZ|SZ|Eswatini
+ETH|ET|Ethiopia
+FJI|FJ|Fiji
+FIN|FI|Finland
+FRA|FR|France
+GAB|GA|Gabon
+GMB|GM|Gambia
+GEO|GE|Georgia
+DEU|DE|Germany
+GHA|GH|Ghana
+GRC|GR|Greece
+GRL|GL|Greenland
+GRD|GD|Grenada
+GTM|GT|Guatemala
+GIN|GN|Guinea
+GNB|GW|Guinea-Bissau
+GUY|GY|Guyana
+HTI|HT|Haiti
+HND|HN|Honduras
+HKG|HK|Hong Kong
+HUN|HU|Hungary
+ISL|IS|Iceland
+IND|IN|India
+IDN|ID|Indonesia
+IRN|IR|Iran
+IRQ|IQ|Iraq
+IRL|IE|Ireland
+ITA|IT|Italy
+JAM|JM|Jamaica
+JPN|JP|Japan
+JOR|JO|Jordan
+KAZ|KZ|Kazakhstan
+KEN|KE|Kenya
+KIR|KI|Kiribati
+XKX|XK|Kosovo
+KWT|KW|Kuwait
+KGZ|KG|Kyrgyzstan
+LAO|LA|Laos
+LVA|LV|Latvia
+LBN|LB|Lebanon
+LSO|LS|Lesotho
+LBR|LR|Liberia
+LBY|LY|Libya
+LIE|LI|Liechtenstein
+LTU|LT|Lithuania
+LUX|LU|Luxembourg
+MAC|MO|Macao
+MDG|MG|Madagascar
+MWI|MW|Malawi
+MYS|MY|Malaysia
+MDV|MV|Maldives
+MLI|ML|Mali
+MLT|MT|Malta
+MHL|MH|Marshall Islands
+MRT|MR|Mauritania
+MUS|MU|Mauritius
+MEX|MX|Mexico
+FSM|FM|Micronesia
+MDA|MD|Moldova
+MCO|MC|Monaco
+MNG|MN|Mongolia
+MNE|ME|Montenegro
+MAR|MA|Morocco
+MOZ|MZ|Mozambique
+MMR|MM|Myanmar
+NAM|NA|Namibia
+NRU|NR|Nauru
+NPL|NP|Nepal
+NLD|NL|Netherlands
+NZL|NZ|New Zealand
+NIC|NI|Nicaragua
+NER|NE|Niger
+NGA|NG|Nigeria
+PRK|KP|North Korea
+MKD|MK|North Macedonia
+NOR|NO|Norway
+OMN|OM|Oman
+PAK|PK|Pakistan
+PLW|PW|Palau
+PSE|PS|Palestine
+PAN|PA|Panama
+PNG|PG|Papua New Guinea
+PRY|PY|Paraguay
+PER|PE|Peru
+PHL|PH|Philippines
+POL|PL|Poland
+PRT|PT|Portugal
+PRI|PR|Puerto Rico
+QAT|QA|Qatar
+ROU|RO|Romania
+RUS|RU|Russia
+RWA|RW|Rwanda
+KNA|KN|Saint Kitts and Nevis
+LCA|LC|Saint Lucia
+VCT|VC|Saint Vincent and the Grenadines
+WSM|WS|Samoa
+SMR|SM|San Marino
+STP|ST|São Tomé and Príncipe
+SAU|SA|Saudi Arabia
+SEN|SN|Senegal
+SRB|RS|Serbia
+SYC|SC|Seychelles
+SLE|SL|Sierra Leone
+SGP|SG|Singapore
+SVK|SK|Slovakia
+SVN|SI|Slovenia
+SLB|SB|Solomon Islands
+SOM|SO|Somalia
+ZAF|ZA|South Africa
+KOR|KR|South Korea
+SSD|SS|South Sudan
+ESP|ES|Spain
+LKA|LK|Sri Lanka
+SDN|SD|Sudan
+SUR|SR|Suriname
+SWE|SE|Sweden
+CHE|CH|Switzerland
+SYR|SY|Syria
+TWN|TW|Taiwan
+TJK|TJ|Tajikistan
+TZA|TZ|Tanzania
+THA|TH|Thailand
+TLS|TL|Timor-Leste
+TGO|TG|Togo
+TON|TO|Tonga
+TTO|TT|Trinidad and Tobago
+TUN|TN|Tunisia
+TUR|TR|Türkiye
+TKM|TM|Turkmenistan
+TUV|TV|Tuvalu
+UGA|UG|Uganda
+UKR|UA|Ukraine
+ARE|AE|United Arab Emirates
+GBR|GB|United Kingdom
+USA|US|United States
+URY|UY|Uruguay
+UZB|UZ|Uzbekistan
+VUT|VU|Vanuatu
+VAT|VA|Vatican City
+VEN|VE|Venezuela
+VNM|VN|Vietnam
+ESH|EH|Western Sahara
+YEM|YE|Yemen
+ZMB|ZM|Zambia
+ZWE|ZW|Zimbabwe`;
+
+  const COUNTRIES = COUNTRY_DATA.trim().split("\n").map((l) => {
+    const [iso3, iso2, name] = l.split("|");
+    return { iso3, iso2, name };
+  }).sort((a, b) => a.name.localeCompare(b.name));
+  const BY_ISO3 = Object.fromEntries(COUNTRIES.map((c) => [c.iso3, c]));
+  const BY_ISO2 = Object.fromEntries(COUNTRIES.map((c) => [c.iso2, c]));
+
+  // For countries with far-away territories, frame only the main area: [west, south, east, north]
+  const FIT_BOX = {
+    USA: [-125, 24.5, -66.5, 49.5],
+    FRA: [-5.5, 41.2, 9.8, 51.2],
+    ESP: [-9.5, 35.9, 4.5, 43.9],
+    PRT: [-9.6, 36.9, -6.1, 42.2],
+    NLD: [3.2, 50.7, 7.3, 53.6],
+    DNK: [8, 54.5, 15.3, 57.8],
+    NOR: [4.5, 57.9, 31.5, 71.3],
+    GBR: [-8.7, 49.8, 2, 60.9],
+    CHL: [-75.7, -56, -66.4, -17.5],
+    NZL: [166, -47.4, 178.6, -34.3],
+    ECU: [-81.2, -5.1, -75, 1.5]
   };
 
-  function prepareCountries(world) {
-    const geoms = world.objects.countries.geometries;
+  const STORE_KEY = "patholytica_map_country";
+  const readStore = () => { try { return localStorage.getItem(STORE_KEY); } catch (e) { return null; } };
+  const writeStore = (v) => { try { localStorage.setItem(STORE_KEY, v); } catch (e) {} };
 
-    // Israel (376) + Palestine (275) -> one combined territory named "Palestine"
-    const isMerge = g =>
-      Number(g.id) === 376 || Number(g.id) === 275 ||
-      (g.properties && (g.properties.name === "Israel" || g.properties.name === "Palestine"));
+  const flag = (iso2) => String.fromCodePoint(...[...iso2].map((c) => 127397 + c.charCodeAt(0)));
+  const norm = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-    // Antarctica (010) -> removed entirely
-    const isAntarctica = g =>
-      Number(g.id) === 10 ||
-      (g.properties && g.properties.name === "Antarctica");
+  // ── State ──
+  let currentISO3 = null;
+  let features = [];
+  let items = [];
+  let zoomBehavior = null;
+  let lastT = d3.zoomIdentity;
+  let lastW = 0, lastH = 0;
+  let loadToken = 0;
+  let labelRAF = null;
+  const cache = {};
 
-    const toMerge = geoms.filter(isMerge);
-    const others = geoms.filter(g => !isMerge(g) && !isAntarctica(g));
+  // ── Status overlay ──
+  function showStatus(msg, noSpinner) {
+    $("#statusText").textContent = msg;
+    $("#status").classList.remove("hidden");
+    $("#status .spin").style.display = noSpinner ? "none" : "block";
+  }
+  function hideStatus() { $("#status").classList.add("hidden"); }
 
-    const list = topojson.feature(world, {
-      type: "GeometryCollection",
-      geometries: others
-    }).features;
-
-    if (toMerge.length) {
-      list.push({
-        type: "Feature",
-        id: "PSE",
-        properties: { name: "Palestine" },
-        geometry: topojson.merge(world, toMerge)
-      });
-    }
-    return list;
+  // ── Networking ──
+  async function fetchJSON(url, ms) {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), ms || 15000);
+    try {
+      const r = await fetch(url, { signal: ctl.signal });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return await r.json();
+    } finally { clearTimeout(t); }
   }
 
-  function draw() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    lastW = w; lastH = h;
+  async function detectIso2() {
+    const tries = [
+      async () => (await fetchJSON("https://api.country.is/", 5000)).country,
+      async () => (await fetchJSON("https://ipwho.is/", 5000)).country_code,
+      async () => (await fetchJSON("https://ipapi.co/json/", 5000)).country_code
+    ];
+    for (const t of tries) {
+      try {
+        const v = await t();
+        if (v && typeof v === "string") return v.toUpperCase();
+      } catch (e) {}
+    }
+    return null;
+  }
 
+  // ── Boundary data (geoBoundaries) ──
+  function rewindPoly(poly) {
+    if (d3.geoArea({ type: "Polygon", coordinates: poly }) > 2 * Math.PI) {
+      return poly.map((r) => r.slice().reverse());
+    }
+    return poly;
+  }
+  function fixFeature(f) {
+    const g = f.geometry;
+    if (!g) return f;
+    if (g.type === "Polygon") g.coordinates = rewindPoly(g.coordinates);
+    else if (g.type === "MultiPolygon") g.coordinates = g.coordinates.map(rewindPoly);
+    return f;
+  }
+  async function getBoundary(iso3, level) {
+    const meta = await fetchJSON("https://www.geoboundaries.org/api/current/gbOpen/" + iso3 + "/" + level + "/", 15000);
+    const m = Array.isArray(meta) ? meta[0] : meta;
+    const url = m.simplifiedGeometryGeoJSON || m.gjDownloadURL;
+    const gj = await fetchJSON(url, 60000);
+    return (gj.features || []).map(fixFeature).filter((f) => f.geometry);
+  }
+  async function fetchCountryFeatures(iso3) {
+    const name = BY_ISO3[iso3].name;
+    // Palestine = the entire combined territory
+    const codes = iso3 === "PSE" ? ["PSE", "ISR"] : [iso3];
+    const results = await Promise.all(codes.map(async (code, i) => {
+      try {
+        const f = await getBoundary(code, "ADM1");
+        if (f.length) return f;
+      } catch (e) {}
+      if (i > 0) return [];
+      try {
+        const f0 = await getBoundary(code, "ADM0");
+        f0.forEach((x) => { x.properties = Object.assign({}, x.properties, { shapeName: name }); });
+        return f0;
+      } catch (e) {}
+      return [];
+    }));
+    const all = results.flat();
+    if (!all.length) throw new Error("no data");
+    all.forEach((f) => {
+      const p = f.properties || (f.properties = {});
+      p._name = String(p.shapeName || p.shapeISO || "").trim();
+    });
+    return all;
+  }
+
+  // ── Loading a country ──
+  function updateCountryButton(c) {
+    $("#countryBtn .fl").textContent = flag(c.iso2);
+    $("#countryBtn .nm").textContent = c.name;
+  }
+
+  async function loadCountry(iso3, opts) {
+    const c = BY_ISO3[iso3];
+    if (!c) return;
+    const token = ++loadToken;
+    currentISO3 = iso3;
+    updateCountryButton(c);
+    if (opts && opts.persist) writeStore(iso3);
+    hideTooltip();
+    showStatus("Loading " + c.name + "…");
+    svg.selectAll("*").remove();
+    try {
+      let feats = cache[iso3];
+      if (!feats) { feats = await fetchCountryFeatures(iso3); cache[iso3] = feats; }
+      if (token !== loadToken) return;
+      features = feats;
+      hideStatus();
+      draw();
+    } catch (e) {
+      if (token !== loadToken) return;
+      showStatus("Couldn't load " + c.name + ". Check your connection or pick another country.", true);
+    }
+  }
+
+  // ── Drawing ──
+  function draw() {
+    const w = window.innerWidth, h = window.innerHeight;
+    lastW = w; lastH = h;
     svg.selectAll("*").remove();
     svg.attr("viewBox", [0, 0, w, h]);
 
-    const sphere = { type: "Sphere" };
+    const fc = { type: "FeatureCollection", features: features };
+    const box = FIT_BOX[currentISO3];
+    const fitGeo = box
+      ? { type: "MultiPoint", coordinates: [[box[0], box[1]], [box[2], box[1]], [box[2], box[3]], [box[0], box[3]]] }
+      : fc;
+    const lon0 = box ? (box[0] + box[2]) / 2 : d3.geoCentroid(fc)[0];
 
-    // Equal Earth, fitted so the map COVERS the whole screen
-    const projection = d3.geoEqualEarth().fitExtent([[0, 0], [w, h]], FRAME);
+    const padT = h < 500 ? 60 : 92, padB = h < 500 ? 70 : 108, padX = 14;
+    const projection = d3.geoEqualEarth().rotate([-lon0, 0])
+      .fitExtent([[padX, padT], [w - padX, h - padB]], fitGeo);
     const path = d3.geoPath(projection);
-    let b = path.bounds(FRAME);
-    const k = Math.max(w / (b[1][0] - b[0][0]), h / (b[1][1] - b[0][1]));
-    projection.scale(projection.scale() * k);
-    b = path.bounds(FRAME);
-    const t = projection.translate();
-    projection.translate([
-      t[0] + (w / 2 - (b[0][0] + b[1][0]) / 2),
-      t[1] + (h / 2 - (b[0][1] + b[1][1]) / 2)
-    ]);
-    b = path.bounds(FRAME);
 
     const g = svg.append("g");
 
-    g.append("path").datum(sphere).attr("class", "sea").attr("d", path)
-      .on("click", () => { g.selectAll(".country").classed("active", false); hide(); });
-    g.append("path").datum(d3.geoGraticule10()).attr("class", "grid").attr("d", path)
-      .style("pointer-events", "none");
-
-    g.selectAll(".country")
-      .data(countries)
+    g.selectAll("path.region")
+      .data(features)
       .join("path")
-      .attr("class", "country")
+      .attr("class", "region")
       .attr("d", path)
-      .on("pointerenter", (e, d) => show(e, d))
-      .on("pointermove", (e) => move(e))
-      .on("pointerleave", hide)
+      .on("pointerenter", (e, d) => showTip(e, d.properties._name))
+      .on("pointermove", moveTip)
+      .on("pointerleave", hideTooltip)
       .on("click", (e, d) => {
-        g.selectAll(".country").classed("active", false);
+        g.selectAll(".region").classed("active", false);
         d3.select(e.currentTarget).classed("active", true);
-        show(e, d);
+        showTip(e, d.properties._name);
       });
+
+    // Label anchors: centroid of each region's largest piece
+    const labelG = svg.append("g");
+    items = features.map((f) => {
+      let best = f.geometry;
+      if (best.type === "MultiPolygon") {
+        let max = -1;
+        best.coordinates.forEach((coords) => {
+          const poly = { type: "Polygon", coordinates: coords };
+          const a = d3.geoArea(poly);
+          if (a > max) { max = a; best = poly; }
+        });
+      }
+      const c = path.centroid(best);
+      const bb = path.bounds(best);
+      let name = f.properties._name;
+      if (name.length > 26) name = name.slice(0, 25) + "…";
+      return {
+        name: name, x: c[0], y: c[1],
+        bw: bb[1][0] - bb[0][0], bh: bb[1][1] - bb[0][1],
+        area: (bb[1][0] - bb[0][0]) * (bb[1][1] - bb[0][1])
+      };
+    }).filter((d) => d.name && isFinite(d.x) && isFinite(d.y))
+      .sort((a, b) => b.area - a.area);
+
+    items.forEach((d) => {
+      d.w = d.name.length * 6.1 + 8;
+      d.el = labelG.append("text").attr("class", "lbl").text(d.name).style("display", "none");
+    });
 
     zoomBehavior = d3.zoom()
       .extent([[0, 0], [w, h]])
-      .scaleExtent([1, 14])
-      .translateExtent(b)
-      .on("zoom", (e) => g.attr("transform", e.transform));
+      .scaleExtent([1, 60])
+      .translateExtent([[-w * 0.6, -h * 0.6], [w * 1.6, h * 1.6]])
+      .on("zoom", (e) => {
+        g.attr("transform", e.transform);
+        lastT = e.transform;
+        if (!labelRAF) labelRAF = requestAnimationFrame(() => { labelRAF = null; updateLabels(lastT); });
+      });
+
+    svg.on("click.bg", (e) => {
+      if (e.target === svg.node()) { g.selectAll(".region").classed("active", false); hideTooltip(); }
+    });
 
     svg.call(zoomBehavior);
-
-    // Start centered on the Middle East (clamped to the map edges)
-    const px = projection([35, 31.5])[0];
-    let tx = w / 2 - px;
-    tx = Math.max(w - b[1][0], Math.min(-b[0][0], tx));
-    initialTransform = d3.zoomIdentity.translate(tx, 0);
-    svg.call(zoomBehavior.transform, initialTransform);
+    svg.call(zoomBehavior.transform, d3.zoomIdentity);
   }
 
-  function show(e, d) {
-    tooltip.textContent = d.properties.name || "Unknown";
+  // Show as many labels as fit without overlapping, biggest regions first
+  function updateLabels(t) {
+    const W = window.innerWidth, H = window.innerHeight;
+    const top = 70, bottom = H - 70;
+    const placed = [];
+    const hgt = 14;
+    for (const d of items) {
+      const sx = t.applyX(d.x), sy = t.applyY(d.y);
+      const x0 = sx - d.w / 2, x1 = sx + d.w / 2, y0 = sy - hgt / 2, y1 = sy + hgt / 2;
+      let show = x1 > 0 && x0 < W && y1 > top && y0 < bottom;
+      if (show) show = d.bw * t.k >= d.w * 0.5 || d.bh * t.k >= hgt * 2.5;
+      if (show) {
+        for (const p of placed) {
+          if (x0 < p[2] && x1 > p[0] && y0 < p[3] && y1 > p[1]) { show = false; break; }
+        }
+      }
+      if (show) {
+        placed.push([x0, y0, x1, y1]);
+        d.el.attr("transform", "translate(" + sx + "," + sy + ")").style("display", null);
+      } else {
+        d.el.style("display", "none");
+      }
+    }
+  }
+
+  // ── Tooltip ──
+  function showTip(e, text) {
+    tooltip.textContent = text || "Unknown";
     tooltip.style.opacity = 1;
-    move(e);
+    moveTip(e);
   }
-  function move(e) {
+  function moveTip(e) {
     const tw = tooltip.offsetWidth || 100;
     let x = e.clientX + 14;
     let y = e.clientY + 14;
@@ -281,23 +723,71 @@
     tooltip.style.left = x + "px";
     tooltip.style.top = y + "px";
   }
-  function hide() { tooltip.style.opacity = 0; }
+  function hideTooltip() { tooltip.style.opacity = 0; }
 
-  document.getElementById("reset").addEventListener("click", () => {
-    svg.selectAll(".country").classed("active", false);
-    hide();
-    svg.transition().duration(600).call(zoomBehavior.transform, initialTransform);
+  // ── Reset ──
+  $("#reset").addEventListener("click", () => {
+    svg.selectAll(".region").classed("active", false);
+    hideTooltip();
+    if (zoomBehavior) svg.transition().duration(600).call(zoomBehavior.transform, d3.zoomIdentity);
   });
 
-  d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then((world) => {
-    countries = prepareCountries(world);
-    document.getElementById("loading").remove();
-    draw();
-    window.addEventListener("resize", () => {
-      // Ignore small height changes (phone address bar showing/hiding)
-      if (Math.abs(window.innerWidth - lastW) > 1 || Math.abs(window.innerHeight - lastH) > 150) draw();
-    });
+  // ── Country picker ──
+  const sheet = $("#sheet"), listEl = $("#sheetList"), searchEl = $("#sheetSearch");
+  function renderList(q) {
+    const query = norm(q || "").trim();
+    const rows = COUNTRIES.filter((c) => norm(c.name).includes(query));
+    listEl.innerHTML = rows.length
+      ? rows.map((c) =>
+          '<button class="crow' + (c.iso3 === currentISO3 ? " on" : "") + '" data-iso="' + c.iso3 + '">' +
+          '<span class="fl">' + flag(c.iso2) + '</span><span class="nm">' + c.name + '</span>' +
+          (c.iso3 === currentISO3 ? '<i class="fas fa-check"></i>' : "") + "</button>"
+        ).join("")
+      : '<div class="none">No match</div>';
+  }
+  function openSheet() {
+    searchEl.value = "";
+    renderList("");
+    sheet.classList.add("open");
+  }
+  function closeSheet() { sheet.classList.remove("open"); searchEl.blur(); }
+
+  $("#countryBtn").addEventListener("click", openSheet);
+  $("#sheetClose").addEventListener("click", closeSheet);
+  sheet.addEventListener("click", (e) => { if (e.target === sheet) closeSheet(); });
+  searchEl.addEventListener("input", () => renderList(searchEl.value));
+  listEl.addEventListener("click", (e) => {
+    const row = e.target.closest(".crow");
+    if (!row) return;
+    closeSheet();
+    loadCountry(row.dataset.iso, { persist: true });
   });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
+
+  // ── Resize ──
+  window.addEventListener("resize", () => {
+    if (!features.length) return;
+    // Ignore small height changes (phone address bar showing/hiding)
+    if (Math.abs(window.innerWidth - lastW) > 1 || Math.abs(window.innerHeight - lastH) > 150) draw();
+  });
+
+  // ── Start ──
+  (async function init() {
+    const saved = readStore();
+    if (saved && BY_ISO3[saved]) { loadCountry(saved); return; }
+
+    showStatus("Finding your country…");
+    let iso2 = await detectIso2();
+    if (iso2 === "IL") iso2 = "PS"; // Israel is not listed; maps to Palestine
+    const c = iso2 && BY_ISO2[iso2];
+    if (c) {
+      loadCountry(c.iso3, { persist: true });
+    } else {
+      showStatus("Couldn't detect your country. Pick one to start.", true);
+      openSheet();
+    }
+  })();
+})();
 </script>
 </body>
 </html>
