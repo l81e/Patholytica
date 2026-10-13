@@ -562,7 +562,12 @@ ZWE|ZW|Zimbabwe`;
     try {
       const r = await fetch(url, { signal: ctl.signal });
       if (!r.ok) throw new Error("HTTP " + r.status);
-      return await r.json();
+      const txt = await r.text();
+      try {
+        return JSON.parse(txt);
+      } catch (e) {
+        throw new Error("not valid JSON (starts with: " + txt.slice(0, 40).replace(/\s+/g, " ") + ")");
+      }
     } catch (e) {
       if (e && e.name === "AbortError") throw new Error("timed out");
       throw e;
@@ -605,18 +610,28 @@ ZWE|ZW|Zimbabwe`;
     return feats.map(fixFeature).filter((f) => f.geometry);
   }
 
-  // Provinces / governorates (geoBoundaries): API first, then a jsDelivr mirror
+  // geoBoundaries files live in Git LFS. Browsers can only read them from
+  // media.githubusercontent.com (github.com and raw.githubusercontent.com fail).
+  function toMediaUrl(u) {
+    return String(u)
+      .replace("https://github.com/wmgeolab/geoBoundaries/raw/", "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/")
+      .replace("https://raw.githubusercontent.com/wmgeolab/geoBoundaries/", "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/");
+  }
+
   async function getRegions(code, level, log) {
     const urls = [];
+    const add = (u) => { u = toMediaUrl(u); if (urls.indexOf(u) === -1) urls.push(u); };
     try {
       const meta = await fetchJSON("https://www.geoboundaries.org/api/current/gbOpen/" + code + "/" + level + "/", 12000);
       const m = Array.isArray(meta) ? meta[0] : meta;
-      if (m && m.simplifiedGeometryGeoJSON) urls.push(m.simplifiedGeometryGeoJSON);
-      if (m && m.gjDownloadURL) urls.push(m.gjDownloadURL);
+      if (m && m.simplifiedGeometryGeoJSON) add(m.simplifiedGeometryGeoJSON);
+      if (m && m.gjDownloadURL) add(m.gjDownloadURL);
     } catch (e) {
       log.push("geoboundaries.org API (" + code + "): " + errMsg(e));
     }
-    urls.push("https://cdn.jsdelivr.net/gh/wmgeolab/geoBoundaries@main/releaseData/gbOpen/" + code + "/" + level + "/geoBoundaries-" + code + "-" + level + "_simplified.geojson");
+    const base = "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/main/releaseData/gbOpen/" + code + "/" + level + "/geoBoundaries-" + code + "-" + level;
+    add(base + "_simplified.geojson");
+    add(base + ".geojson");
     for (const u of urls) {
       try {
         const f = toFeatures(await fetchJSON(u, 60000));
@@ -632,7 +647,7 @@ ZWE|ZW|Zimbabwe`;
   // Whole-country outline, used only if province data can't be loaded
   async function getOutline(code, log) {
     try {
-      const url = "https://cdn.jsdelivr.net/gh/johan/world.geo.json@master/countries/" + code + ".geojson";
+      const url = "https://cdn.jsdelivr.net/gh/johan/world.geo.json@master/countries/" + code + ".geo.json";
       return toFeatures(await fetchJSON(url, 20000));
     } catch (e) {
       log.push("outline jsdelivr (" + code + "): " + errMsg(e));
