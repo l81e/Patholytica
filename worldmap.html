@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#0f0e0b">
-<title>World Map</title>
+<title>Map - Patholytica</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -32,6 +33,8 @@
     position: fixed; inset: 0;
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* ── HEADER ── */
   header {
     position: fixed; top: 0; left: 0; right: 0; z-index: 5;
     padding: calc(14px + env(safe-area-inset-top)) 18px 22px;
@@ -39,22 +42,24 @@
     background: linear-gradient(to bottom, rgba(15,14,11,0.92), rgba(15,14,11,0));
     pointer-events: none;
   }
-  h1 {
+  .logo { display: flex; align-items: center; }
+  .logo img { height: 22px; display: block; }
+  .logo-fallback {
     font-family: var(--font-title);
     font-size: 18px; font-weight: 700;
-    letter-spacing: -0.01em; color: var(--text);
+    color: var(--accent);
   }
-  h1 span { color: var(--accent); }
-  button {
+  #reset {
     pointer-events: auto;
-    background: var(--hover-bg); color: var(--text-secondary, var(--muted));
+    background: var(--hover-bg); color: var(--muted);
     border: 1px solid var(--border);
     padding: 7px 14px; border-radius: 20px;
     font-family: var(--font-ui); font-size: 12px; font-weight: 700;
     cursor: pointer; transition: border-color .15s, color .15s;
   }
-  button:hover, button:active { border-color: var(--accent); color: var(--accent); }
+  #reset:hover, #reset:active { border-color: var(--accent); color: var(--accent); }
 
+  /* ── MAP ── */
   #map {
     position: fixed; inset: 0;
     width: 100%; height: 100%;
@@ -86,7 +91,7 @@
   }
   #hint {
     position: fixed; left: 0; right: 0; z-index: 4;
-    bottom: calc(14px + env(safe-area-inset-bottom));
+    bottom: calc(76px + env(safe-area-inset-bottom));
     text-align: center; font-size: 11px; font-weight: 500;
     color: var(--muted); pointer-events: none;
     text-shadow: 0 1px 8px rgba(0,0,0,0.9);
@@ -96,12 +101,44 @@
     align-items: center; justify-content: center;
     font-size: 12px; color: var(--muted);
   }
+
+  /* ── FOOTER (same as Patholytica) ── */
+  .footer-bar {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 450px;
+    background: rgba(15,14,11,0.96);
+    border-top: 1px solid #2a2518;
+    padding: 8px 24px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    display: flex; justify-content: space-around; align-items: center;
+    z-index: 100;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  }
+  .footer-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    background: none; border: none; color: #8a8070;
+    cursor: pointer; transition: color 0.2s ease; padding: 6px 12px;
+    font-family: var(--font-ui);
+  }
+  .footer-btn:hover { color: #f5f0e8; }
+  .footer-btn.active { color: #c8a96e; }
+  .footer-btn i { font-size: 19px; }
+  .footer-btn span { font-size: 10px; font-weight: 600; }
+  @media (max-width: 768px) {
+    .footer-bar { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+    .footer-btn { padding: 6px 8px; }
+    .footer-btn i { font-size: 17px; }
+    .footer-btn span { font-size: 9px; }
+  }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>World <span>Map</span></h1>
+  <div class="logo">
+    <img src="IMG_3220.png" alt="Patholytica"
+         onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'Patholytica',className:'logo-fallback'}))">
+  </div>
   <button id="reset">Reset view</button>
 </header>
 
@@ -109,6 +146,13 @@
 <div id="loading">Loading map…</div>
 <div id="tooltip"></div>
 <div id="hint">Drag to move · Pinch or scroll to zoom · Tap a country</div>
+
+<div class="footer-bar">
+  <button class="footer-btn" onclick="location.href='https://patholytica.com/home'"><i class="fas fa-home"></i><span>Home</span></button>
+  <button class="footer-btn" onclick="location.href='https://patholytica.com/dailyfeed'"><i class="fas fa-scroll"></i><span>Feed</span></button>
+  <button class="footer-btn" onclick="location.href='explore.html'"><i class="fas fa-search"></i><span>Explore</span></button>
+  <button class="footer-btn active"><i class="fas fa-map"></i><span>Map</span></button>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
@@ -120,6 +164,16 @@
   let initialTransform = d3.zoomIdentity;
   let lastW = 0, lastH = 0;
 
+  // Used to frame the map: whole world, but only down to -57° (below Antarctica's removed area)
+  const FRAME = {
+    type: "MultiPoint",
+    coordinates: [
+      [-180, 84], [180, 84], [0, 84],
+      [-180, -57], [180, -57], [0, -57],
+      [-180, 0], [180, 0]
+    ]
+  };
+
   function prepareCountries(world) {
     const geoms = world.objects.countries.geometries;
 
@@ -128,8 +182,13 @@
       Number(g.id) === 376 || Number(g.id) === 275 ||
       (g.properties && (g.properties.name === "Israel" || g.properties.name === "Palestine"));
 
+    // Antarctica (010) -> removed entirely
+    const isAntarctica = g =>
+      Number(g.id) === 10 ||
+      (g.properties && g.properties.name === "Antarctica");
+
     const toMerge = geoms.filter(isMerge);
-    const others = geoms.filter(g => !isMerge(g));
+    const others = geoms.filter(g => !isMerge(g) && !isAntarctica(g));
 
     const list = topojson.feature(world, {
       type: "GeometryCollection",
@@ -157,14 +216,19 @@
 
     const sphere = { type: "Sphere" };
 
-    // Fit the whole map first, then scale up so it COVERS the screen
-    const projection = d3.geoNaturalEarth1().fitExtent([[0, 0], [w, h]], sphere);
-    let path = d3.geoPath(projection);
-    let b = path.bounds(sphere);
+    // Equal Earth, fitted so the map COVERS the whole screen
+    const projection = d3.geoEqualEarth().fitExtent([[0, 0], [w, h]], FRAME);
+    const path = d3.geoPath(projection);
+    let b = path.bounds(FRAME);
     const k = Math.max(w / (b[1][0] - b[0][0]), h / (b[1][1] - b[0][1]));
-    projection.scale(projection.scale() * k).translate([w / 2, h / 2]);
-    path = d3.geoPath(projection);
-    b = path.bounds(sphere);
+    projection.scale(projection.scale() * k);
+    b = path.bounds(FRAME);
+    const t = projection.translate();
+    projection.translate([
+      t[0] + (w / 2 - (b[0][0] + b[1][0]) / 2),
+      t[1] + (h / 2 - (b[0][1] + b[1][1]) / 2)
+    ]);
+    b = path.bounds(FRAME);
 
     const g = svg.append("g");
 
