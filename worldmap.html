@@ -106,16 +106,36 @@
     position: fixed; left: 0; right: 0; z-index: 4;
     bottom: calc(76px + env(safe-area-inset-bottom));
     text-align: center; font-size: 11px; font-weight: 500;
-    color: var(--muted); pointer-events: none;
+    color: var(--muted); pointer-events: none; padding: 0 20px;
     text-shadow: 0 1px 8px rgba(0,0,0,0.9);
   }
+  #hint.warn { color: var(--accent); }
+
+  /* ── STATUS / ERROR OVERLAY ── */
   #status {
     position: fixed; inset: 0; z-index: 3;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
-    padding: 0 40px; text-align: center;
+    padding: 0 28px; text-align: center;
     font-size: 13px; color: var(--muted); pointer-events: none;
   }
   #status.hidden { display: none; }
+  #statusText { white-space: pre-line; line-height: 1.5; }
+  #statusLog {
+    display: none; max-width: 420px; width: 100%;
+    background: var(--hover-bg); border: 1px solid var(--border); border-radius: 12px;
+    padding: 10px 12px; text-align: left;
+    font: 11px/1.5 ui-monospace, Menlo, Consolas, monospace;
+    color: #c46a4e; white-space: pre-wrap; word-break: break-word;
+    max-height: 32vh; overflow-y: auto; pointer-events: auto;
+    user-select: text; -webkit-user-select: text;
+  }
+  #retryBtn {
+    display: none; pointer-events: auto;
+    padding: 10px 22px; border-radius: 12px;
+    background: var(--accent); color: #0f0e0b; border: none;
+    font-family: var(--font-ui); font-size: 13px; font-weight: 800; cursor: pointer;
+    box-shadow: 0 4px 16px var(--accent-glow);
+  }
   .spin {
     width: 26px; height: 26px; border: 2.5px solid var(--border);
     border-top-color: var(--accent); border-radius: 50%;
@@ -219,7 +239,12 @@
 </header>
 
 <svg id="map"></svg>
-<div id="status"><div class="spin"></div><div id="statusText">Loading…</div></div>
+<div id="status">
+  <div class="spin" id="statusSpin"></div>
+  <div id="statusText">Loading…</div>
+  <div id="statusLog"></div>
+  <button id="retryBtn">Retry</button>
+</div>
 <div id="tooltip"></div>
 <div id="hint">Drag to move · Pinch or scroll to zoom · Tap a region</div>
 
@@ -241,12 +266,49 @@
   <button class="footer-btn active"><i class="fas fa-map"></i><span>Map</span></button>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-<script>
+<!-- data-cfasync="false" stops Cloudflare Rocket Loader from rewriting/deferring these scripts -->
+<script data-cfasync="false" src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script data-cfasync="false">
+  // Backup copy of d3 if the first CDN is blocked
+  window.d3 || document.write('<script data-cfasync="false" src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"><\/script>');
+</script>
+<script data-cfasync="false">
 (function () {
   const $ = (s) => document.querySelector(s);
+
+  // ── Status overlay (also used for errors) ──
+  function showStatus(msg, opts) {
+    opts = opts || {};
+    $("#statusText").textContent = msg;
+    $("#statusSpin").style.display = opts.error ? "none" : "block";
+    const logEl = $("#statusLog");
+    if (opts.log && opts.log.length) {
+      logEl.textContent = opts.log.join("\n");
+      logEl.style.display = "block";
+    } else {
+      logEl.style.display = "none";
+    }
+    $("#retryBtn").style.display = opts.retry ? "block" : "none";
+    $("#status").classList.remove("hidden");
+  }
+  function hideStatus() { $("#status").classList.add("hidden"); }
+
+  // Show any unexpected script error on screen instead of failing silently
+  window.addEventListener("error", (e) => {
+    if (!$("#status").classList.contains("hidden")) {
+      showStatus("Something went wrong in the page script.", { error: true, log: [String(e.message || e)] });
+    }
+  });
+
+  if (!window.d3) {
+    showStatus("The map library (d3) couldn't be loaded. Check your connection or any ad/content blocker.", { error: true });
+    return;
+  }
+
   const svg = d3.select("#map");
   const tooltip = $("#tooltip");
+  const hintEl = $("#hint");
+  const HINT_DEFAULT = "Drag to move · Pinch or scroll to zoom · Tap a region";
 
   // ISO3 | ISO2 | Name   (no Israel, no Antarctica)
   const COUNTRY_DATA = `AFG|AF|Afghanistan
@@ -479,6 +541,8 @@ ZWE|ZW|Zimbabwe`;
 
   const flag = (iso2) => String.fromCodePoint(...[...iso2].map((c) => 127397 + c.charCodeAt(0)));
   const norm = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const errMsg = (e) => (e && e.message) ? e.message : String(e);
+  const hostOf = (u) => { try { return new URL(u).hostname; } catch (e) { return u; } };
 
   // ── State ──
   let currentISO3 = null;
@@ -491,14 +555,6 @@ ZWE|ZW|Zimbabwe`;
   let labelRAF = null;
   const cache = {};
 
-  // ── Status overlay ──
-  function showStatus(msg, noSpinner) {
-    $("#statusText").textContent = msg;
-    $("#status").classList.remove("hidden");
-    $("#status .spin").style.display = noSpinner ? "none" : "block";
-  }
-  function hideStatus() { $("#status").classList.add("hidden"); }
-
   // ── Networking ──
   async function fetchJSON(url, ms) {
     const ctl = new AbortController();
@@ -507,6 +563,9 @@ ZWE|ZW|Zimbabwe`;
       const r = await fetch(url, { signal: ctl.signal });
       if (!r.ok) throw new Error("HTTP " + r.status);
       return await r.json();
+    } catch (e) {
+      if (e && e.name === "AbortError") throw new Error("timed out");
+      throw e;
     } finally { clearTimeout(t); }
   }
 
@@ -525,7 +584,7 @@ ZWE|ZW|Zimbabwe`;
     return null;
   }
 
-  // ── Boundary data (geoBoundaries) ──
+  // ── Boundary data ──
   function rewindPoly(poly) {
     if (d3.geoArea({ type: "Polygon", coordinates: poly }) > 2 * Math.PI) {
       return poly.map((r) => r.slice().reverse());
@@ -539,37 +598,75 @@ ZWE|ZW|Zimbabwe`;
     else if (g.type === "MultiPolygon") g.coordinates = g.coordinates.map(rewindPoly);
     return f;
   }
-  async function getBoundary(iso3, level) {
-    const meta = await fetchJSON("https://www.geoboundaries.org/api/current/gbOpen/" + iso3 + "/" + level + "/", 15000);
-    const m = Array.isArray(meta) ? meta[0] : meta;
-    const url = m.simplifiedGeometryGeoJSON || m.gjDownloadURL;
-    const gj = await fetchJSON(url, 60000);
-    return (gj.features || []).map(fixFeature).filter((f) => f.geometry);
+  function toFeatures(gj) {
+    let feats = [];
+    if (gj && gj.type === "FeatureCollection") feats = gj.features || [];
+    else if (gj && gj.type === "Feature") feats = [gj];
+    return feats.map(fixFeature).filter((f) => f.geometry);
   }
+
+  // Provinces / governorates (geoBoundaries): API first, then a jsDelivr mirror
+  async function getRegions(code, level, log) {
+    const urls = [];
+    try {
+      const meta = await fetchJSON("https://www.geoboundaries.org/api/current/gbOpen/" + code + "/" + level + "/", 12000);
+      const m = Array.isArray(meta) ? meta[0] : meta;
+      if (m && m.simplifiedGeometryGeoJSON) urls.push(m.simplifiedGeometryGeoJSON);
+      if (m && m.gjDownloadURL) urls.push(m.gjDownloadURL);
+    } catch (e) {
+      log.push("geoboundaries.org API (" + code + "): " + errMsg(e));
+    }
+    urls.push("https://cdn.jsdelivr.net/gh/wmgeolab/geoBoundaries@main/releaseData/gbOpen/" + code + "/" + level + "/geoBoundaries-" + code + "-" + level + "_simplified.geojson");
+    for (const u of urls) {
+      try {
+        const f = toFeatures(await fetchJSON(u, 60000));
+        if (f.length) return f;
+        log.push(hostOf(u) + " (" + code + "): no features");
+      } catch (e) {
+        log.push(hostOf(u) + " (" + code + "): " + errMsg(e));
+      }
+    }
+    return [];
+  }
+
+  // Whole-country outline, used only if province data can't be loaded
+  async function getOutline(code, log) {
+    try {
+      const url = "https://cdn.jsdelivr.net/gh/johan/world.geo.json@master/countries/" + code + ".geojson";
+      return toFeatures(await fetchJSON(url, 20000));
+    } catch (e) {
+      log.push("outline jsdelivr (" + code + "): " + errMsg(e));
+      return [];
+    }
+  }
+
   async function fetchCountryFeatures(iso3) {
     const name = BY_ISO3[iso3].name;
+    const log = [];
+    let outlineOnly = false;
     // Palestine = the entire combined territory
     const codes = iso3 === "PSE" ? ["PSE", "ISR"] : [iso3];
-    const results = await Promise.all(codes.map(async (code, i) => {
-      try {
-        const f = await getBoundary(code, "ADM1");
-        if (f.length) return f;
-      } catch (e) {}
-      if (i > 0) return [];
-      try {
-        const f0 = await getBoundary(code, "ADM0");
-        f0.forEach((x) => { x.properties = Object.assign({}, x.properties, { shapeName: name }); });
-        return f0;
-      } catch (e) {}
-      return [];
+    const results = await Promise.all(codes.map(async (code) => {
+      let f = await getRegions(code, "ADM1", log);
+      if (f.length) return f;
+      f = await getOutline(code, log);
+      if (f.length) {
+        outlineOnly = true;
+        f.forEach((x) => { x.properties = Object.assign({}, x.properties, { shapeName: name }); });
+      }
+      return f;
     }));
     const all = results.flat();
-    if (!all.length) throw new Error("no data");
+    if (!all.length) {
+      const err = new Error("no data");
+      err.log = log;
+      throw err;
+    }
     all.forEach((f) => {
       const p = f.properties || (f.properties = {});
-      p._name = String(p.shapeName || p.shapeISO || "").trim();
+      p._name = String(p.shapeName || p.shapeISO || p.name || "").trim();
     });
-    return all;
+    return { feats: all, outlineOnly: outlineOnly };
   }
 
   // ── Loading a country ──
@@ -586,18 +683,30 @@ ZWE|ZW|Zimbabwe`;
     updateCountryButton(c);
     if (opts && opts.persist) writeStore(iso3);
     hideTooltip();
+    hintEl.textContent = HINT_DEFAULT;
+    hintEl.classList.remove("warn");
     showStatus("Loading " + c.name + "…");
     svg.selectAll("*").remove();
+    features = []; items = [];
     try {
-      let feats = cache[iso3];
-      if (!feats) { feats = await fetchCountryFeatures(iso3); cache[iso3] = feats; }
+      let res = cache[iso3];
+      if (!res) {
+        res = await fetchCountryFeatures(iso3);
+        if (!res.outlineOnly) cache[iso3] = res;
+      }
       if (token !== loadToken) return;
-      features = feats;
+      features = res.feats;
       hideStatus();
+      if (res.outlineOnly) {
+        hintEl.textContent = "Province data couldn't be loaded, so only the outline is shown. Re-select the country to retry.";
+        hintEl.classList.add("warn");
+      }
       draw();
     } catch (e) {
       if (token !== loadToken) return;
-      showStatus("Couldn't load " + c.name + ". Check your connection or pick another country.", true);
+      showStatus("Couldn't load " + c.name + ".\nHere is exactly what failed:", {
+        error: true, retry: true, log: (e && e.log && e.log.length) ? e.log : [errMsg(e)]
+      });
     }
   }
 
@@ -725,11 +834,15 @@ ZWE|ZW|Zimbabwe`;
   }
   function hideTooltip() { tooltip.style.opacity = 0; }
 
-  // ── Reset ──
+  // ── Reset / Retry ──
   $("#reset").addEventListener("click", () => {
     svg.selectAll(".region").classed("active", false);
     hideTooltip();
     if (zoomBehavior) svg.transition().duration(600).call(zoomBehavior.transform, d3.zoomIdentity);
+  });
+  $("#retryBtn").addEventListener("click", () => {
+    if (currentISO3) loadCountry(currentISO3);
+    else init();
   });
 
   // ── Country picker ──
@@ -772,7 +885,7 @@ ZWE|ZW|Zimbabwe`;
   });
 
   // ── Start ──
-  (async function init() {
+  async function init() {
     const saved = readStore();
     if (saved && BY_ISO3[saved]) { loadCountry(saved); return; }
 
@@ -783,10 +896,11 @@ ZWE|ZW|Zimbabwe`;
     if (c) {
       loadCountry(c.iso3, { persist: true });
     } else {
-      showStatus("Couldn't detect your country. Pick one to start.", true);
+      showStatus("Couldn't detect your country. Pick one to start.", { error: true });
       openSheet();
     }
-  })();
+  }
+  init();
 })();
 </script>
 </body>
